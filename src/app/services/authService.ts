@@ -3,6 +3,8 @@
  * Manages employee authentication, password management, and account security
  */
 
+import { employeeDatabaseService } from "./employeeDatabaseService";
+
 export interface AuthCredentials {
   loginMobile: string;
   password: string;
@@ -39,7 +41,6 @@ class AuthServiceClass {
   // ── LOGIN ─────────────────────────────────────────────────────
 
   login(credentials: AuthCredentials): AuthResult {
-    const { employeeDatabaseService } = require("./employeeDatabaseService");
     const employees = employeeDatabaseService.getAll();
     const employee = employees.find(
       (e: any) => e.loginMobile === credentials.loginMobile || e.mobile === credentials.loginMobile
@@ -131,7 +132,6 @@ class AuthServiceClass {
       return { success: false, error: "Password must contain at least one letter" };
     }
 
-    const { employeeDatabaseService } = require("./employeeDatabaseService");
     const employees = employeeDatabaseService.getAll();
     const employee = employees.find(
       (e: any) => (e.loginMobile === loginMobile || e.mobile === loginMobile)
@@ -163,7 +163,6 @@ class AuthServiceClass {
   initiatePasswordReset(employeeId: string, triggeredByHR: string): {
     success: boolean; otp?: string; maskedMobile?: string; error?: string;
   } {
-    const { employeeDatabaseService } = require("./employeeDatabaseService");
     const employee = employeeDatabaseService.getAll().find((e: any) => e.id === employeeId);
     if (!employee) return { success: false, error: "Employee not found" };
 
@@ -203,7 +202,6 @@ class AuthServiceClass {
       return { success: false, error: "Password must contain at least one number" };
     }
 
-    const { employeeDatabaseService } = require("./employeeDatabaseService");
     const employees = employeeDatabaseService.getAll();
     const employee = employees.find(
       (e: any) => e.loginMobile === loginMobile || e.mobile === loginMobile
@@ -235,7 +233,6 @@ class AuthServiceClass {
   // ── RETRIEVE LOGIN ID (for HR) ────────────────────────────────
 
   getLoginId(employeeId: string): { loginMobile?: string; maskedMobile?: string } {
-    const { employeeDatabaseService } = require("./employeeDatabaseService");
     const employee = employeeDatabaseService.getAll().find((e: any) => e.id === employeeId);
     if (!employee) return {};
     const mobile = employee.loginMobile || employee.mobile || "";
@@ -248,7 +245,6 @@ class AuthServiceClass {
   // ── GENERATE TEMP PIN for HR ──────────────────────────────────
 
   generateTempPinForEmployee(employeeId: string): { success: boolean; tempPin?: string } {
-    const { employeeDatabaseService } = require("./employeeDatabaseService");
     const employee = employeeDatabaseService.getAll().find((e: any) => e.id === employeeId);
     if (!employee) return { success: false };
 
@@ -260,7 +256,6 @@ class AuthServiceClass {
   // ── UNLOCK ACCOUNT ───────────────────────────────────────────
 
   unlockAccount(employeeId: string): void {
-    const { employeeDatabaseService } = require("./employeeDatabaseService");
     employeeDatabaseService.update(employeeId, {
       accountStatus: "active",
       failedLoginAttempts: 0,
