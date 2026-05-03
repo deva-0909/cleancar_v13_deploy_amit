@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Building2, Eye, EyeOff, Phone, Lock, AlertTriangle, ArrowRight } from "lucide-react";
 import { Input } from "../components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { toast } from "sonner";
 import { authService } from "../services/authService";
+import { seedDummyLogins } from "../utils/seedDummyLogins";
 
 type LoginView = "login" | "forgot_otp_request" | "forgot_otp_verify" | "forgot_reset";
 
@@ -29,6 +30,17 @@ export function LoginPage() {
   const [forgotError, setForgotError] = useState("");
   const [forgotInfo, setForgotInfo] = useState("");
 
+  // ── SEED DEMO ACCOUNTS ON MOUNT ──────────────────────────────
+  // This ensures demo accounts exist in localStorage even if App.tsx
+  // useEffect hasn't fired yet (e.g. on first load / Vercel cold start).
+  useEffect(() => {
+    try {
+      seedDummyLogins();
+    } catch (err) {
+      console.error("[LoginPage] Failed to seed demo logins:", err);
+    }
+  }, []);
+
   const handleLogin = async () => {
     if (!loginMobile || !loginPassword) {
       setLoginError("Please enter your mobile number and password.");
@@ -37,6 +49,9 @@ export function LoginPage() {
     setIsLoading(true);
     setLoginError("");
     try {
+      // Guard: ensure demo accounts are seeded before auth check
+      seedDummyLogins();
+
       const result = authService.login({ loginMobile, password: loginPassword });
 
       if (result.success) {
