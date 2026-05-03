@@ -1,0 +1,1022 @@
+import React, { useState, useEffect } from "react";
+import { formatCurrency } from "../../lib/formatters";
+import {
+  FileText,
+  DollarSign,
+  Calendar,
+  AlertCircle,
+  ArrowLeft,
+  CreditCard,
+  RefreshCw,
+  User,
+  MapPin,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Download,
+  Printer,
+  Send,
+} from "lucide-react";
+import { Button } from "../ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { BackButton } from "../ui/back-button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../ui/table";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Skeleton } from "../ui/skeleton";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "../ui/sheet";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Badge } from "../ui/badge";
+import { Separator } from "../ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { Textarea } from "../ui/textarea";
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+interface InvoiceLineItem {
+  id: string;
+  lineNumber: number;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  serviceReference?: string;
+}
+
+interface Payment {
+  id: string;
+  paymentNumber: string;
+  paymentDate: string;
+  paymentMode: string;
+  paymentReference: string;
+  amount: number;
+  createdAt: string;
+  createdBy: string;
+}
+
+interface InvoiceDetail {
+  id: string;
+  invoiceNumber: string;
+  customerId: string;
+  customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  serviceId?: string;
+  serviceType?: string;
+  invoiceDate: string;
+  dueDate: string;
+  subtotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  balanceDue: number;
+  status: "UNPAID" | "PARTIAL" | "PAID" | "OVERDUE" | "CANCELLED";
+  paymentStatus: "PENDING" | "PARTIAL" | "COMPLETED";
+  city?: string;
+  cluster?: string;
+  createdAt: string;
+  createdBy: string;
+  lineItems: InvoiceLineItem[];
+  payments: Payment[];
+  revenueTransactionId?: string;
+}
+
+interface TimelineEvent {
+  id: string;
+  type: "created" | "payment" | "refund" | "cancelled";
+  date: string;
+  description: string;
+  amount?: number;
+  user?: string;
+}
+
+interface RefundFormData {
+  amount: string;
+  reason: string;
+  refundMode: string;
+}
+
+// ============================================================================
+// MOCK DATA
+// ============================================================================
+
+const mockInvoiceDetail: InvoiceDetail = {
+  id: "inv_001",
+  invoiceNumber: "INV-2026-001",
+  customerId: "cust_123",
+  customerName: "Rajesh Patel",
+  customerEmail: "rajesh.patel@example.com",
+  customerPhone: "+91 98765 43210",
+  customerAddress: "123, MG Road, Surat, Gujarat - 395001",
+  serviceId: "svc_456",
+  serviceType: "AC Service",
+  invoiceDate: "2026-04-15",
+  dueDate: "2026-04-30",
+  subtotal: 2500.0,
+  taxAmount: 450.0,
+  discountAmount: 0.0,
+  totalAmount: 2950.0,
+  paidAmount: 0.0,
+  balanceDue: 2950.0,
+  status: "UNPAID",
+  paymentStatus: "PENDING",
+  city: "Surat",
+  cluster: "West Zone",
+  createdAt: "2026-04-15T10:30:00Z",
+  createdBy: "admin@example.com",
+  revenueTransactionId: "txn_revenue_001",
+  lineItems: [
+    {
+      id: "line_001",
+      lineNumber: 1,
+      description: "AC Service - 1.5 Ton Split AC",
+      quantity: 1,
+      unitPrice: 1500.0,
+      lineTotal: 1500.0,
+      serviceReference: "UNIT-AC-001",
+    },
+    {
+      id: "line_002",
+      lineNumber: 2,
+      description: "Gas Refill - R32 Refrigerant",
+      quantity: 1,
+      unitPrice: 800.0,
+      lineTotal: 800.0,
+      serviceReference: "UNIT-AC-001",
+    },
+    {
+      id: "line_003",
+      lineNumber: 3,
+      description: "Filter Replacement",
+      quantity: 2,
+      unitPrice: 100.0,
+      lineTotal: 200.0,
+    },
+  ],
+  payments: [],
+};
+
+// ============================================================================
+// API FUNCTIONS
+// ============================================================================
+
+async function fetchInvoiceDetail(invoiceId: string): Promise<InvoiceDetail> {
+  // In production: Replace with real API call
+  // const response = await fetch(`/api/invoices/${invoiceId}`);
+  // return await response.json();
+
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  return mockInvoiceDetail;
+}
+
+async function recordPayment(
+  invoiceId: string,
+  paymentData: any
+): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  console.log("Payment recorded:", { invoiceId, paymentData });
+}
+
+async function processRefund(
+  invoiceId: string,
+  refundData: RefundFormData
+): Promise<void> {
+  // In production: Replace with real API call
+  // const response = await fetch('/api/refunds', {
+  //   method: 'POST',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify({
+  //     invoiceId,
+  //     amount: parseFloat(refundData.amount),
+  //     reason: refundData.reason,
+  //     refundMode: refundData.refundMode,
+  //   }),
+  // });
+  // if (!response.ok) throw new Error('Failed to process refund');
+
+  await new Promise((resolve) => setTimeout(resolve, 800));
+  console.log("Refund processed:", { invoiceId, refundData });
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(dateString: string): string {
+  return new Date(dateString).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function getStatusBadge(status: InvoiceDetail["status"]) {
+  const statusConfig = {
+    UNPAID: { color: "bg-yellow-100 text-yellow-800", icon: Clock },
+    PARTIAL: { color: "bg-blue-100 text-blue-800", icon: AlertCircle },
+    PAID: { color: "bg-green-100 text-green-800", icon: CheckCircle },
+    OVERDUE: { color: "bg-red-100 text-red-800", icon: AlertCircle },
+    CANCELLED: { color: "bg-gray-100 text-gray-800", icon: XCircle },
+  };
+
+  const config = statusConfig[status];
+  const Icon = config.icon;
+
+  return (
+    <Badge className={config.color}>
+      <Icon className="w-3 h-3 mr-1" />
+      {status}
+    </Badge>
+  );
+}
+
+function generateTimeline(invoice: InvoiceDetail): TimelineEvent[] {
+  const events: TimelineEvent[] = [];
+
+  // Invoice created
+  events.push({
+    id: "event_created",
+    type: "created",
+    date: invoice.createdAt,
+    description: `Invoice ${invoice.invoiceNumber} created`,
+    amount: invoice.totalAmount,
+    user: invoice.createdBy,
+  });
+
+  // Payments
+  invoice.payments.forEach((payment) => {
+    events.push({
+      id: payment.id,
+      type: "payment",
+      date: payment.createdAt,
+      description: `Payment received via ${payment.paymentMode}`,
+      amount: payment.amount,
+      user: payment.createdBy,
+    });
+  });
+
+  return events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+export default function InvoiceDetail() {
+  const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Payment drawer state
+  const [isPaymentDrawerOpen, setIsPaymentDrawerOpen] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    amount: "",
+    paymentMode: "CASH",
+    paymentReference: "",
+    paymentDate: new Date().toISOString().split("T")[0],
+  });
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+
+  // Refund drawer state
+  const [isRefundDrawerOpen, setIsRefundDrawerOpen] = useState(false);
+  const [refundForm, setRefundForm] = useState<RefundFormData>({
+    amount: "",
+    reason: "",
+    refundMode: "CASH",
+  });
+  const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
+
+  // Extract invoice ID from URL (mock)
+  const invoiceId = "inv_001";
+
+  useEffect(() => {
+    loadInvoiceDetail();
+  }, []);
+
+  async function loadInvoiceDetail() {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const data = await fetchInvoiceDetail(invoiceId);
+      setInvoice(data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load invoice details"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function handleRecordPaymentClick() {
+    if (!invoice) return;
+    setPaymentForm({
+      amount: invoice.balanceDue.toString(),
+      paymentMode: "CASH",
+      paymentReference: "",
+      paymentDate: new Date().toISOString().split("T")[0],
+    });
+    setIsPaymentDrawerOpen(true);
+  }
+
+  async function handleSubmitPayment() {
+    if (!invoice) return;
+
+    const paymentAmount = parseFloat(paymentForm.amount);
+    if (isNaN(paymentAmount) || paymentAmount <= 0) {
+      alert("Please enter a valid payment amount");
+      return;
+    }
+
+    if (paymentAmount > invoice.balanceDue) {
+      alert("Payment amount cannot exceed outstanding balance");
+      return;
+    }
+
+    setIsSubmittingPayment(true);
+
+    try {
+      await recordPayment(invoice.id, paymentForm);
+      setIsPaymentDrawerOpen(false);
+      loadInvoiceDetail();
+      alert("Payment recorded successfully");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to record payment");
+    } finally {
+      setIsSubmittingPayment(false);
+    }
+  }
+
+  function handleIssueRefundClick() {
+    if (!invoice) return;
+    setRefundForm({
+      amount: invoice.paidAmount.toString(),
+      reason: "",
+      refundMode: "CASH",
+    });
+    setIsRefundDrawerOpen(true);
+  }
+
+  async function handleSubmitRefund() {
+    if (!invoice) return;
+
+    const refundAmount = parseFloat(refundForm.amount);
+    if (isNaN(refundAmount) || refundAmount <= 0) {
+      alert("Please enter a valid refund amount");
+      return;
+    }
+
+    if (refundAmount > invoice.paidAmount) {
+      alert("Refund amount cannot exceed paid amount");
+      return;
+    }
+
+    if (!refundForm.reason.trim()) {
+      alert("Please provide a reason for refund");
+      return;
+    }
+
+    setIsSubmittingRefund(true);
+
+    try {
+      await processRefund(invoice.id, refundForm);
+      setIsRefundDrawerOpen(false);
+      loadInvoiceDetail();
+      alert("Refund processed successfully");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to process refund");
+    } finally {
+      setIsSubmittingRefund(false);
+    }
+  }
+
+  // ============================================================================
+  // RENDER: LOADING STATE
+  // ============================================================================
+
+  if (isLoading) {
+    return (
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  // ============================================================================
+  // RENDER: ERROR STATE
+  // ============================================================================
+
+  if (error || !invoice) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error Loading Invoice</AlertTitle>
+          <AlertDescription>
+            {error || "Invoice not found"}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadInvoiceDetail}
+              className="ml-4"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const timeline = generateTimeline(invoice);
+
+  // ============================================================================
+  // RENDER: MAIN UI
+  // ============================================================================
+
+  return (
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      <BackButton to="/finance/invoices" />
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold">{invoice.invoiceNumber}</h1>
+          <p className="text-gray-600">Invoice Details</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Printer className="w-4 h-4 mr-2" />
+            Print
+          </Button>
+          <Button variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />
+            Download PDF
+          </Button>
+          <Button variant="outline" size="sm">
+            <Send className="w-4 h-4 mr-2" />
+            Email
+          </Button>
+        </div>
+      </div>
+
+      {/* Status and Actions */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex justify-between items-center">
+            <div className="flex gap-4 items-center">
+              {getStatusBadge(invoice.status)}
+              <Separator orientation="vertical" className="h-6" />
+              <div className="text-sm">
+                <span className="text-gray-600">Due Date: </span>
+                <span className="font-semibold">{formatDate(invoice.dueDate)}</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {invoice.status !== "PAID" && invoice.status !== "CANCELLED" && (
+                <Button onClick={handleRecordPaymentClick}>
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Record Payment
+                </Button>
+              )}
+              {invoice.paidAmount > 0 && invoice.status !== "CANCELLED" && (
+                <Button variant="outline" onClick={handleIssueRefundClick}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Issue Refund
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Customer and Invoice Info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Customer Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <User className="w-5 h-5 mr-2" />
+              Customer Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <div className="text-sm text-gray-600">Name</div>
+              <div className="font-semibold">{invoice.customerName}</div>
+            </div>
+            {invoice.customerEmail && (
+              <div>
+                <div className="text-sm text-gray-600">Email</div>
+                <div>{invoice.customerEmail}</div>
+              </div>
+            )}
+            {invoice.customerPhone && (
+              <div>
+                <div className="text-sm text-gray-600">Phone</div>
+                <div>{invoice.customerPhone}</div>
+              </div>
+            )}
+            {invoice.customerAddress && (
+              <div>
+                <div className="text-sm text-gray-600">Address</div>
+                <div>{invoice.customerAddress}</div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Invoice Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <FileText className="w-5 h-5 mr-2" />
+              Invoice Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div>
+                <div className="text-sm text-gray-600">Invoice Date</div>
+                <div className="font-semibold">{formatDate(invoice.invoiceDate)}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Due Date</div>
+                <div className="font-semibold">{formatDate(invoice.dueDate)}</div>
+              </div>
+            </div>
+            {invoice.serviceType && (
+              <div>
+                <div className="text-sm text-gray-600">Service Type</div>
+                <div>{invoice.serviceType}</div>
+              </div>
+            )}
+            {invoice.city && (
+              <div>
+                <div className="text-sm text-gray-600">
+                  <MapPin className="w-4 h-4 inline mr-1" />
+                  Location
+                </div>
+                <div>
+                  {invoice.city}
+                  {invoice.cluster && ` - ${invoice.cluster}`}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Line Items */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Line Items</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>#</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Reference</TableHead>
+                <TableHead className="text-right">Quantity</TableHead>
+                <TableHead className="text-right">Unit Price</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {invoice.lineItems.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>{item.lineNumber}</TableCell>
+                  <TableCell>{item.description}</TableCell>
+                  <TableCell>{item.serviceReference || "—"}</TableCell>
+                  <TableCell className="text-right">{item.quantity}</TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(item.unitPrice)}
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">
+                    {formatCurrency(item.lineTotal)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          <Separator className="my-4" />
+
+          {/* Totals */}
+          <div className="space-y-2 max-w-sm ml-auto">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Subtotal:</span>
+              <span>{formatCurrency(invoice.subtotal)}</span>
+            </div>
+            {invoice.discountAmount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Discount:</span>
+                <span>- {formatCurrency(invoice.discountAmount)}</span>
+              </div>
+            )}
+            {invoice.taxAmount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Tax (GST):</span>
+                <span>{formatCurrency(invoice.taxAmount)}</span>
+              </div>
+            )}
+            <Separator />
+            <div className="flex justify-between text-lg font-bold">
+              <span>Total Amount:</span>
+              <span>{formatCurrency(invoice.totalAmount)}</span>
+            </div>
+            {invoice.paidAmount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Paid Amount:</span>
+                <span>- {formatCurrency(invoice.paidAmount)}</span>
+              </div>
+            )}
+            {invoice.balanceDue > 0 && (
+              <div className="flex justify-between text-xl font-bold text-blue-600">
+                <span>Balance Due:</span>
+                <span>{formatCurrency(invoice.balanceDue)}</span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment History */}
+      {invoice.payments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <DollarSign className="w-5 h-5 mr-2" />
+              Payment History
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Payment #</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Mode</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invoice.payments.map((payment) => (
+                  <TableRow key={payment.id}>
+                    <TableCell className="font-medium">
+                      {payment.paymentNumber}
+                    </TableCell>
+                    <TableCell>{formatDate(payment.paymentDate)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{payment.paymentMode}</Badge>
+                    </TableCell>
+                    <TableCell>{payment.paymentReference || "—"}</TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {formatCurrency(payment.amount)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Timeline */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Clock className="w-5 h-5 mr-2" />
+            Timeline
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {timeline.map((event, index) => (
+              <div key={event.id} className="flex gap-4">
+                <div className="relative">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      event.type === "created"
+                        ? "bg-blue-100 text-blue-600"
+                        : event.type === "payment"
+                        ? "bg-green-100 text-green-600"
+                        : event.type === "refund"
+                        ? "bg-orange-100 text-orange-600"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {event.type === "created" && <FileText className="w-5 h-5" />}
+                    {event.type === "payment" && <DollarSign className="w-5 h-5" />}
+                    {event.type === "refund" && <RefreshCw className="w-5 h-5" />}
+                    {event.type === "cancelled" && <XCircle className="w-5 h-5" />}
+                  </div>
+                  {index < timeline.length - 1 && (
+                    <div className="absolute top-10 left-5 w-0.5 h-full bg-gray-200" />
+                  )}
+                </div>
+                <div className="flex-1 pb-6">
+                  <div className="font-semibold">{event.description}</div>
+                  <div className="text-sm text-gray-600">
+                    {formatDateTime(event.date)}
+                    {event.user && ` • ${event.user}`}
+                  </div>
+                  {event.amount !== undefined && (
+                    <div className="text-sm font-semibold mt-1">
+                      {formatCurrency(event.amount)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment Recording Drawer */}
+      <Sheet open={isPaymentDrawerOpen} onOpenChange={setIsPaymentDrawerOpen}>
+        <SheetContent className="w-full sm:w-[500px] sm:w-[600px]">
+          <SheetHeader>
+            <SheetTitle>Record Payment</SheetTitle>
+            <SheetDescription>
+              Record payment for invoice {invoice.invoiceNumber}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-6">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Amount:</span>
+                    <span>{formatCurrency(invoice.totalAmount)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Paid Amount:</span>
+                    <span>{formatCurrency(invoice.paidAmount)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2">
+                    <span className="font-semibold">Outstanding:</span>
+                    <span className="font-semibold text-lg text-blue-600">
+                      {formatCurrency(invoice.balanceDue)}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="space-y-4">
+              <div>
+                <Label>Payment Amount *</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={paymentForm.amount}
+                  onChange={(e) =>
+                    setPaymentForm({ ...paymentForm, amount: e.target.value })
+                  }
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Maximum: {formatCurrency(invoice.balanceDue)}
+                </p>
+              </div>
+
+              <div>
+                <Label>Payment Mode *</Label>
+                <Select
+                  value={paymentForm.paymentMode}
+                  onValueChange={(value) =>
+                    setPaymentForm({ ...paymentForm, paymentMode: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CASH">Cash</SelectItem>
+                    <SelectItem value="CARD">Card</SelectItem>
+                    <SelectItem value="UPI">UPI</SelectItem>
+                    <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                    <SelectItem value="CHEQUE">Cheque</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Payment Reference</Label>
+                <Input
+                  placeholder="Transaction ID, Cheque #, etc."
+                  value={paymentForm.paymentReference}
+                  onChange={(e) =>
+                    setPaymentForm({
+                      ...paymentForm,
+                      paymentReference: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div>
+                <Label>Payment Date *</Label>
+                <Input
+                  type="date"
+                  value={paymentForm.paymentDate}
+                  onChange={(e) =>
+                    setPaymentForm({
+                      ...paymentForm,
+                      paymentDate: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSubmitPayment}
+                disabled={isSubmittingPayment}
+                className="flex-1"
+              >
+                {isSubmittingPayment ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Recording...
+                  </>
+                ) : (
+                  <>
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    Record Payment
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsPaymentDrawerOpen(false)}
+                disabled={isSubmittingPayment}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Refund Drawer */}
+      <Sheet open={isRefundDrawerOpen} onOpenChange={setIsRefundDrawerOpen}>
+        <SheetContent className="w-full sm:w-[500px] sm:w-[600px]">
+          <SheetHeader>
+            <SheetTitle>Issue Refund</SheetTitle>
+            <SheetDescription>
+              Process refund for invoice {invoice.invoiceNumber}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-6">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Refund Information</AlertTitle>
+              <AlertDescription>
+                Refunds will reverse the original revenue transaction and update the
+                invoice status. This action cannot be undone.
+              </AlertDescription>
+            </Alert>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Paid:</span>
+                    <span>{formatCurrency(invoice.paidAmount)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Original Transaction:</span>
+                    <span className="font-mono text-sm">
+                      {invoice.revenueTransactionId || "—"}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="space-y-4">
+              <div>
+                <Label>Refund Amount *</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={refundForm.amount}
+                  onChange={(e) =>
+                    setRefundForm({ ...refundForm, amount: e.target.value })
+                  }
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Maximum: {formatCurrency(invoice.paidAmount)}
+                </p>
+              </div>
+
+              <div>
+                <Label>Refund Mode *</Label>
+                <Select
+                  value={refundForm.refundMode}
+                  onValueChange={(value) =>
+                    setRefundForm({ ...refundForm, refundMode: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CASH">Cash</SelectItem>
+                    <SelectItem value="CARD">Card Reversal</SelectItem>
+                    <SelectItem value="UPI">UPI</SelectItem>
+                    <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Reason for Refund *</Label>
+                <Textarea
+                  placeholder="Explain why this refund is being issued..."
+                  value={refundForm.reason}
+                  onChange={(e) =>
+                    setRefundForm({ ...refundForm, reason: e.target.value })
+                  }
+                  rows={4}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSubmitRefund}
+                disabled={isSubmittingRefund}
+                variant="destructive"
+                className="flex-1"
+              >
+                {isSubmittingRefund ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Process Refund
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsRefundDrawerOpen(false)}
+                disabled={isSubmittingRefund}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}

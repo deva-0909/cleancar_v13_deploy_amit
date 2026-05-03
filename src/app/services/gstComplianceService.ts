@@ -1,0 +1,198 @@
+export type VendorRiskLevel = "Clean" | "Medium" | "High" | "Critical";
+export type TransactionStatus = "Draft" | "Validated" | "Flagged" | "Approved" | "Filed";
+export type GSTType = "B2B" | "B2C" | "B2CL" | "EXPORT";
+export type SupplyType = "Regular" | "RCM" | "SEZ" | "Deemed Export";
+
+export interface GSTVendor {
+  id: string;
+  name: string;
+  gstin: string;
+  pan: string;
+  state: string;
+  stateCode: string;
+  address: string;
+  contactPerson: string;
+  contactPhone: string;
+  contactEmail: string;
+  vendorType: "Goods" | "Services" | "Both";
+  supplyType: SupplyType;
+  paymentTerms: string;
+  bankAccountNumber: string;
+  ifscCode: string;
+  gstinValidated: boolean;
+  gstinValidatedOn?: string;
+  riskScore: number;
+  riskLevel: VendorRiskLevel;
+  filingStatus: "Regular Filer" | "Non-Filer" | "Irregular" | "Unknown";
+  lastFiledMonth?: string;
+  createdBy: string;
+  createdAt: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  status: "Active" | "Inactive" | "Blacklisted";
+  notes: string;
+}
+
+export interface GSTCustomer {
+  id: string;
+  name: string;
+  gstin?: string;
+  pan?: string;
+  state: string;
+  stateCode: string;
+  address: string;
+  contactPerson: string;
+  contactPhone: string;
+  contactEmail: string;
+  customerType: GSTType;
+  registrationType: "Regular" | "Composition" | "SEZ" | "Unregistered";
+  creditLimit: number;
+  creditDays: number;
+  createdBy: string;
+  createdAt: string;
+  status: "Active" | "Inactive";
+}
+
+export interface GSTTransaction {
+  id: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  transactionType: "Sale" | "Purchase" | "Expense" | "Credit Note" | "Debit Note";
+  transactionSubType?: string;     // e.g. "Capital Goods", "Rent", "Consumable"
+  transactionCategory?: string;    // e.g. "PURCHASE_CAPITAL", "EXPENSE_RENT"
+  gstType: GSTType;
+  partyId: string;
+  partyName: string;
+  partyGstin: string;
+  partyState: string;
+  placeOfSupply: string;
+  placeOfSupplyCode: string;
+  hsnSacCode: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  taxableValue: number;
+  gstRate: number;
+  cgst: number;
+  sgst: number;
+  igst: number;
+  cess: number;
+  totalTax: number;
+  invoiceTotal: number;
+  itcEligible: boolean;
+  itcAmount: number;
+  reverseCharge: boolean;
+  status: TransactionStatus;
+  validationErrors: string[];
+  riskScore: number;
+  riskLevel: VendorRiskLevel;
+  createdBy: string;
+  createdAt: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  filedInReturn?: string;
+  month: string;
+  year: number;
+}
+
+export interface GSTReconciliationRecord {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  vendorGstin: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  taxableValue: number;
+  gstAmount: number;
+  inSystemBooks: boolean;
+  inGSTR2B: boolean;
+  matchStatus: "Matched" | "In Books Only" | "In 2B Only" | "Amount Mismatch" | "Date Mismatch";
+  differenceAmount: number;
+  itcClaimable: boolean;
+  itcStatus: "Claimed" | "Provisional" | "Blocked" | "Not Claimed";
+  vendorFilingStatus: "Filed" | "Not Filed" | "Delayed";
+  notes: string;
+  month: string;
+  year: number;
+}
+
+class GSTComplianceService {
+  private readonly VENDOR_KEY   = "cleancar_gst_vendors";
+  private readonly CUSTOMER_KEY = "cleancar_gst_customers";
+  private readonly TXN_KEY      = "cleancar_gst_transactions";
+  private readonly RECON_KEY    = "cleancar_gst_reconciliation";
+
+  validateGSTIN(gstin: string): { valid: boolean; stateCode: string; error?: string } {
+    const pattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    if (!pattern.test(gstin)) return { valid: false, stateCode: "", error: "Invalid GSTIN format" };
+    const stateCode = gstin.substring(0, 2);
+    return { valid: true, stateCode };
+  }
+
+  deriveGSTType(gstin?: string): GSTType {
+    return gstin && gstin.trim().length === 15 ? "B2B" : "B2C";
+  }
+
+  calculateGST(taxableValue: number, gstRate: number, supplyState: string, companyState: string)
+    : { cgst: number; sgst: number; igst: number; totalTax: number } {
+    const tax = taxableValue * (gstRate / 100);
+    if (supplyState === companyState) {
+      return { cgst: tax / 2, sgst: tax / 2, igst: 0, totalTax: tax };
+    }
+    return { cgst: 0, sgst: 0, igst: tax, totalTax: tax };
+  }
+
+  initVendorRisk(gstin: string): number {
+    const validation = this.validateGSTIN(gstin);
+    if (!validation.valid) return 100;
+    return 40;
+  }
+
+  private getList<T>(key: string): T[] {
+    const d = localStorage.getItem(key);
+    return d ? JSON.parse(d) : [];
+  }
+  private saveList<T>(key: string, list: T[]): void {
+    localStorage.setItem(key, JSON.stringify(list));
+  }
+
+  getVendors(): GSTVendor[]       { return this.getList<GSTVendor>(this.VENDOR_KEY); }
+  getCustomers(): GSTCustomer[]   { return this.getList<GSTCustomer>(this.CUSTOMER_KEY); }
+  getTransactions(): GSTTransaction[] { return this.getList<GSTTransaction>(this.TXN_KEY); }
+  getReconciliation(): GSTReconciliationRecord[] { return this.getList<GSTReconciliationRecord>(this.RECON_KEY); }
+
+  saveVendor(v: GSTVendor): void {
+    const list = this.getVendors();
+    const idx  = list.findIndex(x => x.id === v.id);
+    idx >= 0 ? list.splice(idx, 1, v) : list.push(v);
+    this.saveList(this.VENDOR_KEY, list);
+  }
+  saveCustomer(c: GSTCustomer): void {
+    const list = this.getCustomers();
+    const idx  = list.findIndex(x => x.id === c.id);
+    idx >= 0 ? list.splice(idx, 1, c) : list.push(c);
+    this.saveList(this.CUSTOMER_KEY, list);
+  }
+  saveTransaction(t: GSTTransaction): void {
+    const list = this.getTransactions();
+    const idx  = list.findIndex(x => x.id === t.id);
+    idx >= 0 ? list.splice(idx, 1, t) : list.push(t);
+    this.saveList(this.TXN_KEY, list);
+  }
+  saveReconciliationRecord(r: GSTReconciliationRecord): void {
+    const list = this.getReconciliation();
+    const idx  = list.findIndex(x => x.id === r.id);
+    idx >= 0 ? list.splice(idx, 1, r) : list.push(r);
+    this.saveList(this.RECON_KEY, list);
+  }
+
+  getTransactionsByMonth(month: string, year: number): GSTTransaction[] {
+    return this.getTransactions().filter(t => t.month === month && t.year === year);
+  }
+  getPendingApproval(): GSTTransaction[] {
+    return this.getTransactions().filter(t => t.status === "Validated" || t.status === "Flagged");
+  }
+}
+
+export const gstComplianceService = new GSTComplianceService();

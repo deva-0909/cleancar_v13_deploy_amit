@@ -1,0 +1,1038 @@
+/**
+ * FinanceContext - SINGLE SOURCE OF TRUTH for all financial data
+ * Used across: Finance Module, Revenue, Payables, MRR, Cash Flow, Reports
+ *
+ * CRITICAL: MRR reads from CustomerSubscriptionContext (real subscriptions), NOT from plan definitions
+ * RULE: Finance displays subscription data via subscriptionId lookup
+ */
+
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { DataService } from "../services/DataService";
+import { logger } from "../services/logger";
+import { useSync } from "../hooks/useSync";
+
+// Types
+export interface MRRData {
+  mrrId: string;
+  month: string; // "2026-04"
+  subscriptionId: string;
+  customerId: string; // GLOBAL IDENTITY
+  revenue: number;
+  status: "Active" | "Churned" | "Paused";
+  cityId: string; // ✅ REQUIRED: Multi-city isolation
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Payable {
+  payableId: string;
+  type: "Salary" | "Vendor" | "Statutory";
+  // For Salary Payables
+  employeeId?: string; // GLOBAL IDENTITY - links to HRDataContext
+  payrollId?: string; // Links to PayrollRun in HRDataContext
+  // For Vendor Payables
+  vendorId?: string;
+  vendorName?: string;
+  invoiceNumber?: string;
+  // For Statutory Payables
+  statutoryType?: "PF" | "ESIC" | "TDS" | "GST" | "PT";
+  // Common fields
+  amount: number;
+  dueDate: string;
+  status: "Pending" | "Approved" | "Paid" | "Overdue";
+  description: string;
+  cityId: string; // ✅ REQUIRED: Multi-city isolation
+  // Payment details
+  paidAt?: string;
+  paymentReference?: string;
+  paymentMethod?: "Bank Transfer" | "UPI" | "Cash" | "Cheque";
+  approvedBy?: string;
+  approvedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Revenue {
+  revenueId: string;
+  customerId: string; // GLOBAL IDENTITY
+  subscriptionId?: string;
+  jobId?: string; // Links to JobContext if from job completion
+  type: "Subscription" | "One-Time" | "Add-on";
+  amount: number;
+  receivedDate: string;
+  paymentMethod: "UPI" | "Card" | "Bank Transfer" | "Cash";
+  invoiceNumber?: string;
+  status: "Received" | "Pending" | "Failed";
+  cityId: string; // ✅ REQUIRED: Multi-city isolation (was optional, now required)
+  createdAt: string;
+}
+
+export interface LedgerEntry {
+  ledgerEntryId: string;
+  entryDate: string;
+  accountCode: string; // 1000-1999: Assets, 2000-2999: Liabilities, 4000-4999: Revenue, 5000-5999: Expenses
+  accountName: string;
+  entryType: "DEBIT" | "CREDIT";
+  amount: number;
+  description: string;
+  referenceType?: "Invoice" | "Payment" | "Payroll" | "Expense" | "Adjustment";
+  referenceId?: string;
+  cityId: string; // ✅ REQUIRED: Multi-city isolation (was optional "city", now required "cityId")
+  serviceType?: string;
+  createdAt: string;
+}
+
+interface FinanceContextType {
+  // MRR Data
+  mrrData: MRRData[];
+  addMRREntry: (mrr: Omit<MRRData, "mrrId" | "createdAt" | "updatedAt">) => MRRData;
+  updateMRR: (mrrId: string, updates: Partial<MRRData>) => void;
+  removeMRREntry: (subscriptionId: string) => void;
+  getMRRForMonth: (month: string) => MRRData[];
+  getTotalMRR: (month: string) => number;
+
+  // Payables
+  payables: Payable[];
+  createPayable: (payable: Omit<Payable, "payableId" | "createdAt" | "updatedAt">) => Payable;
+  updatePayable: (payableId: string, updates: Partial<Payable>) => void;
+  markAsPaid: (payableId: string, paymentReference: string, paymentMethod: Payable["paymentMethod"]) => void;
+  approvePayable: (payableId: string, approvedBy: string) => void;
+  getSalaryPayables: () => Payable[];
+  getVendorPayables: () => Payable[];
+  getStatutoryPayables: () => Payable[];
+  getPendingPayables: () => Payable[];
+  getOverduePayables: () => Payable[];
+
+  // Revenue
+  revenues: Revenue[];
+  recordRevenue: (revenue: Omit<Revenue, "revenueId" | "createdAt">) => Revenue;
+  getRevenueForMonth: (month: string) => Revenue[];
+  getTotalRevenue: (month: string) => number;
+
+  // Ledger Entries
+  ledgerEntries: LedgerEntry[];
+  createLedgerEntry: (entry: Omit<LedgerEntry, "ledgerEntryId" | "createdAt">) => LedgerEntry;
+  getLedgerEntriesByAccount: (accountCode: string) => LedgerEntry[];
+  getLedgerEntriesForPeriod: (startDate: string, endDate: string) => LedgerEntry[];
+  getRevenueFromLedger: (startDate: string, endDate: string) => number; // Accounts 4000-4999
+  getExpensesFromLedger: (startDate: string, endDate: string) => number; // Accounts 5000-5999
+
+  // ✅ NEW: City Filter Methods (Multi-city isolation)
+  getMRRByCity: (cityId: string) => MRRData[];
+  getRevenueByCity: (cityId: string) => Revenue[];
+  getPayablesByCity: (cityId: string) => Payable[];
+  getLedgerEntriesByCity: (cityId: string) => LedgerEntry[];
+
+  // ✅ NEW: EBITDA + Margin Analytics (MC-06)
+  calculateEBITDA: (cityId: string) => number;
+  calculateMargin: (cityId: string) => number;
+  getCityFinancialSnapshot: (cityId: string) => CityFinancialSnapshot;
+  getMultiCityDashboard: (cityIds: string[]) => CityFinancialSnapshot[];
+  getRevenueBreakdown: (cityId: string) => Record<string, number>;
+  getExpenseBreakdown: (cityId: string) => Record<string, number>;
+  getMonthlyTrend: (cityId: string) => Record<string, number>;
+
+  // ✅ NEW: Budget, Forecast, Variance (MC-07)
+  budgets: Budget[];
+  setBudget: (budget: Omit<Budget, "budgetId" | "createdAt" | "updatedAt">) => Budget;
+  updateBudget: (budgetId: string, updates: Partial<Budget>) => void;
+  getBudget: (cityId: string, month: string) => Budget | undefined;
+  getForecast: (cityId: string, month: string) => Forecast;
+  getVariance: (cityId: string, month: string) => Variance | null;
+
+  // ✅ NEW: Automated Alert System (MC-08)
+  alerts: FinanceAlert[];
+  runAlertEngine: (cityId: string) => void;
+  acknowledgeAlert: (alertId: string, acknowledgedBy: string) => void;
+  getActiveAlerts: (cityId: string) => FinanceAlert[];
+
+  // ✅ NEW: Decision Engine / AI Recommendations (MC-09)
+  recommendations: Recommendation[];
+  runDecisionEngine: (cityId: string) => void;
+  getRecommendations: (cityId: string) => Recommendation[];
+}
+
+// ✅ NEW: City Financial Snapshot Type
+export interface CityFinancialSnapshot {
+  cityId: string;
+  totalRevenue: number;
+  totalMRR: number;
+  totalExpenses: number;
+  ebitda: number;
+  margin: number;
+}
+
+// ✅ NEW: Budget, Forecast, Variance Types (MC-07)
+export interface Budget {
+  budgetId: string;
+  cityId: string;
+  month: string; // YYYY-MM
+  revenueTarget: number;
+  expenseBudget: number;
+  profitTarget: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Forecast {
+  cityId: string;
+  month: string;
+  projectedRevenue: number;
+  projectedExpenses: number;
+  projectedProfit: number;
+  confidence: number; // 0-100 based on data availability
+}
+
+export interface Variance {
+  cityId: string;
+  month: string;
+  revenueVariance: number;
+  revenueVariancePercent: number;
+  expenseVariance: number;
+  expenseVariancePercent: number;
+  profitVariance: number;
+  profitVariancePercent: number;
+}
+
+// ✅ NEW: Automated Alert System (MC-08)
+export interface FinanceAlert {
+  alertId: string;
+  cityId: string;
+  type: "VARIANCE" | "EXPENSE_SPIKE" | "LOW_REVENUE" | "NEGATIVE_MARGIN" | "BUDGET_MISS";
+  message: string;
+  severity: "LOW" | "MEDIUM" | "HIGH";
+  createdAt: string;
+  acknowledged?: boolean;
+  acknowledgedAt?: string;
+  acknowledgedBy?: string;
+}
+
+// ✅ NEW: Decision Engine / AI Recommendations (MC-09)
+export interface Recommendation {
+  id: string;
+  cityId: string;
+  type: "COST_OPTIMIZATION" | "REVENUE_GROWTH" | "RISK_ALERT";
+  message: string;
+  impact: "LOW" | "MEDIUM" | "HIGH";
+  createdAt: string;
+}
+
+const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
+
+const DEFAULT_CITY = "CITY-SURAT"; // Backward compatibility default
+
+// ✅ SAFETY FALLBACK: Prevents crash for old data without cityId
+const withCityFallback = <T extends { cityId?: string; city?: string }>(item: T): T & { cityId: string } => ({
+  ...item,
+  cityId: item.cityId || (item as any).city || DEFAULT_CITY,
+});
+
+export function FinanceProvider({ children }: { children: ReactNode }) {
+  const [mrrData, setMRRData] = useState<MRRData[]>(() => {
+    const stored = DataService.get<MRRData>("FINANCE_MRR");
+    logger.debug("FinanceContext MRR loaded", { count: stored.length });
+    return stored.map(withCityFallback); // ✅ Apply cityId fallback
+  });
+
+  const [payables, setPayables] = useState<Payable[]>(() => {
+    const stored = DataService.get<Payable>("FINANCE_PAYABLES");
+    logger.debug("FinanceContext Payables loaded", { count: stored.length });
+    return stored.map(withCityFallback); // ✅ Apply cityId fallback
+  });
+
+  const [revenues, setRevenues] = useState<Revenue[]>(() => {
+    const stored = DataService.get<Revenue>("FINANCE_REVENUES");
+    logger.debug("FinanceContext Revenues loaded", { count: stored.length });
+    return stored.map(withCityFallback); // ✅ Apply cityId fallback
+  });
+
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>(() => {
+    const stored = DataService.get<LedgerEntry>("FINANCE_LEDGER");
+    logger.debug("FinanceContext Ledger loaded", { count: stored.length });
+    return stored.map(withCityFallback); // ✅ Apply cityId fallback
+  });
+
+  const [budgets, setBudgets] = useState<Budget[]>(() => {
+    const stored = DataService.get<Budget>("FINANCE_BUDGETS");
+    logger.debug("FinanceContext Budgets loaded", { count: stored.length });
+    return stored;
+  });
+
+  const [alerts, setAlerts] = useState<FinanceAlert[]>(() => {
+    const stored = DataService.get<FinanceAlert>("FINANCE_ALERTS");
+    logger.debug("FinanceContext Alerts loaded", { count: stored.length });
+    return stored;
+  });
+
+  const [recommendations, setRecommendations] = useState<Recommendation[]>(() => {
+    const stored = DataService.get<Recommendation>("FINANCE_RECOMMENDATIONS");
+    logger.debug("FinanceContext Recommendations loaded", { count: stored.length });
+    return stored;
+  });
+
+  // Persist to storage (local cache - instant)
+  useEffect(() => {
+    DataService.setAll("FINANCE_MRR", mrrData);
+  }, [mrrData]);
+
+  useEffect(() => {
+    DataService.setAll("FINANCE_PAYABLES", payables);
+  }, [payables]);
+
+  useEffect(() => {
+    DataService.setAll("FINANCE_REVENUES", revenues);
+  }, [revenues]);
+
+  useEffect(() => {
+    DataService.setAll("FINANCE_LEDGER", ledgerEntries);
+  }, [ledgerEntries]);
+
+  useEffect(() => {
+    DataService.setAll("FINANCE_BUDGETS", budgets);
+  }, [budgets]);
+
+  useEffect(() => {
+    DataService.setAll("FINANCE_ALERTS", alerts);
+  }, [alerts]);
+
+  useEffect(() => {
+    DataService.setAll("FINANCE_RECOMMENDATIONS", recommendations);
+  }, [recommendations]);
+
+  // Backend sync (background, non-blocking)
+  useSync("FINANCE_MRR", mrrData);
+  useSync("FINANCE_PAYABLES", payables);
+  useSync("FINANCE_REVENUES", revenues);
+  useSync("FINANCE_LEDGER", ledgerEntries);
+  useSync("FINANCE_BUDGETS", budgets);
+  useSync("FINANCE_ALERTS", alerts);
+  useSync("FINANCE_RECOMMENDATIONS", recommendations);
+
+  // MRR Operations
+  const addMRREntry = (mrrEntryData: Omit<MRRData, "mrrId" | "createdAt" | "updatedAt">): MRRData => {
+    const newMRR: MRRData = {
+      ...mrrEntryData,
+      mrrId: `MRR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setMRRData((prev) => [...prev, newMRR]);
+    return newMRR;
+  };
+
+  const updateMRR = (mrrId: string, updates: Partial<MRRData>) => {
+    setMRRData((prev) =>
+      prev.map((mrr) =>
+        mrr.mrrId === mrrId ? { ...mrr, ...updates, updatedAt: new Date().toISOString() } : mrr
+      )
+    );
+  };
+
+  const removeMRREntry = (subscriptionId: string) => {
+    setMRRData((prev) => prev.filter((mrr) => mrr.subscriptionId !== subscriptionId));
+  };
+
+  const getMRRForMonth = (month: string): MRRData[] => {
+    return mrrData.filter((m) => m.month === month);
+  };
+
+  const getTotalMRR = (month: string): number => {
+    return mrrData
+      .filter((m) => m.month === month && m.status === "Active")
+      .reduce((sum, m) => sum + m.revenue, 0);
+  };
+
+  // Payables Operations
+  const createPayable = (
+    payableData: Omit<Payable, "payableId" | "createdAt" | "updatedAt">
+  ): Payable => {
+    const newPayable: Payable = {
+      ...payableData,
+      payableId: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setPayables((prev) => [...prev, newPayable]);
+    return newPayable;
+  };
+
+  const updatePayable = (payableId: string, updates: Partial<Payable>) => {
+    setPayables((prev) =>
+      prev.map((p) =>
+        p.payableId === payableId
+          ? { ...p, ...updates, updatedAt: new Date().toISOString() }
+          : p
+      )
+    );
+  };
+
+  const markAsPaid = (
+    payableId: string,
+    paymentReference: string,
+    paymentMethod: Payable["paymentMethod"]
+  ) => {
+    updatePayable(payableId, {
+      status: "Paid",
+      paidAt: new Date().toISOString(),
+      paymentReference,
+      paymentMethod,
+    });
+  };
+
+  const approvePayable = (payableId: string, approvedBy: string) => {
+    updatePayable(payableId, {
+      status: "Approved",
+      approvedBy,
+      approvedAt: new Date().toISOString(),
+    });
+  };
+
+  const getSalaryPayables = (): Payable[] => {
+    return payables.filter((p) => p.type === "Salary");
+  };
+
+  const getVendorPayables = (): Payable[] => {
+    return payables.filter((p) => p.type === "Vendor");
+  };
+
+  const getStatutoryPayables = (): Payable[] => {
+    return payables.filter((p) => p.type === "Statutory");
+  };
+
+  const getPendingPayables = (): Payable[] => {
+    return payables.filter((p) => p.status === "Pending" || p.status === "Approved");
+  };
+
+  const getOverduePayables = (): Payable[] => {
+    const today = new Date().toISOString().split("T")[0];
+    return payables.filter((p) => p.status !== "Paid" && p.dueDate < today);
+  };
+
+  // Revenue Operations
+  const recordRevenue = (revenueData: Omit<Revenue, "revenueId" | "createdAt">): Revenue => {
+    const newRevenue: Revenue = {
+      ...revenueData,
+      revenueId: `REV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+    };
+    setRevenues((prev) => [...prev, newRevenue]);
+    return newRevenue;
+  };
+
+  const getRevenueForMonth = (month: string): Revenue[] => {
+    return revenues.filter((r) => r.receivedDate.startsWith(month));
+  };
+
+  const getTotalRevenue = (month: string): number => {
+    return revenues
+      .filter((r) => r.receivedDate.startsWith(month) && r.status === "Received")
+      .reduce((sum, r) => sum + r.amount, 0);
+  };
+
+  // Ledger Operations
+  const createLedgerEntry = (
+    entryData: Omit<LedgerEntry, "ledgerEntryId" | "createdAt">
+  ): LedgerEntry => {
+    const newEntry: LedgerEntry = {
+      ...entryData,
+      ledgerEntryId: `LED-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+    };
+    setLedgerEntries((prev) => [...prev, newEntry]);
+    return newEntry;
+  };
+
+  const getLedgerEntriesByAccount = (accountCode: string): LedgerEntry[] => {
+    return ledgerEntries.filter((e) => e.accountCode === accountCode);
+  };
+
+  const getLedgerEntriesForPeriod = (startDate: string, endDate: string): LedgerEntry[] => {
+    return ledgerEntries.filter(
+      (e) => e.entryDate >= startDate && e.entryDate <= endDate
+    );
+  };
+
+  const getRevenueFromLedger = (startDate: string, endDate: string): number => {
+    return ledgerEntries
+      .filter(
+        (e) =>
+          e.entryDate >= startDate &&
+          e.entryDate <= endDate &&
+          e.accountCode >= "4000" &&
+          e.accountCode <= "4999" &&
+          e.entryType === "CREDIT"
+      )
+      .reduce((sum, e) => sum + e.amount, 0);
+  };
+
+  const getExpensesFromLedger = (startDate: string, endDate: string): number => {
+    return ledgerEntries
+      .filter(
+        (e) =>
+          e.entryDate >= startDate &&
+          e.entryDate <= endDate &&
+          e.accountCode >= "5000" &&
+          e.accountCode <= "5999" &&
+          e.entryType === "DEBIT"
+      )
+      .reduce((sum, e) => sum + e.amount, 0);
+  };
+
+  // ✅ CITY FILTER METHODS (Multi-city isolation)
+  const getMRRByCity = (cityId: string): MRRData[] => {
+    return mrrData.filter(item => item.cityId === cityId);
+  };
+
+  const getRevenueByCity = (cityId: string): Revenue[] => {
+    return revenues.filter(item => item.cityId === cityId);
+  };
+
+  const getPayablesByCity = (cityId: string): Payable[] => {
+    return payables.filter(item => item.cityId === cityId);
+  };
+
+  const getLedgerEntriesByCity = (cityId: string): LedgerEntry[] => {
+    return ledgerEntries.filter(item => item.cityId === cityId);
+  };
+
+  // ✅ EBITDA + MARGIN ANALYTICS (MC-06)
+  const calculateEBITDA = (cityId: string): number => {
+    const cityRevenues = getRevenueByCity(cityId);
+    const cityPayables = getPayablesByCity(cityId);
+
+    const totalRevenue = cityRevenues.reduce((sum, r) => sum + r.amount, 0);
+    const totalExpenses = cityPayables.reduce((sum, p) => sum + p.amount, 0);
+
+    return totalRevenue - totalExpenses;
+  };
+
+  const calculateMargin = (cityId: string): number => {
+    const cityRevenues = getRevenueByCity(cityId);
+    const totalRevenue = cityRevenues.reduce((sum, r) => sum + r.amount, 0);
+
+    if (totalRevenue === 0) return 0;
+
+    const ebitda = calculateEBITDA(cityId);
+    return (ebitda / totalRevenue) * 100;
+  };
+
+  const getCityFinancialSnapshot = (cityId: string): CityFinancialSnapshot => {
+    const cityRevenues = getRevenueByCity(cityId);
+    const cityMRR = getMRRByCity(cityId);
+    const cityPayables = getPayablesByCity(cityId);
+
+    const totalRevenue = cityRevenues.reduce((sum, r) => sum + r.amount, 0);
+    const totalMRR = cityMRR.reduce((sum, m) => sum + m.revenue, 0);
+    const totalExpenses = cityPayables.reduce((sum, p) => sum + p.amount, 0);
+
+    const ebitda = totalRevenue - totalExpenses;
+    const margin = totalRevenue ? (ebitda / totalRevenue) * 100 : 0;
+
+    return {
+      cityId,
+      totalRevenue,
+      totalMRR,
+      totalExpenses,
+      ebitda,
+      margin,
+    };
+  };
+
+  const getMultiCityDashboard = (cityIds: string[]): CityFinancialSnapshot[] => {
+    return cityIds.map(cityId => getCityFinancialSnapshot(cityId));
+  };
+
+  const getRevenueBreakdown = (cityId: string): Record<string, number> => {
+    const cityRevenues = getRevenueByCity(cityId);
+    const breakdown: Record<string, number> = {};
+
+    cityRevenues.forEach(r => {
+      const source = r.type || "Unknown";
+      breakdown[source] = (breakdown[source] || 0) + r.amount;
+    });
+
+    return breakdown;
+  };
+
+  const getExpenseBreakdown = (cityId: string): Record<string, number> => {
+    const cityPayables = getPayablesByCity(cityId);
+    const breakdown: Record<string, number> = {};
+
+    cityPayables.forEach(p => {
+      const category = p.type || "Unknown";
+      breakdown[category] = (breakdown[category] || 0) + p.amount;
+    });
+
+    return breakdown;
+  };
+
+  const getMonthlyTrend = (cityId: string): Record<string, number> => {
+    const cityRevenues = getRevenueByCity(cityId);
+    const monthly: Record<string, number> = {};
+
+    cityRevenues.forEach(r => {
+      const month = r.receivedDate.slice(0, 7); // Extract YYYY-MM
+      monthly[month] = (monthly[month] || 0) + r.amount;
+    });
+
+    return monthly;
+  };
+
+  // ✅ BUDGET, FORECAST, VARIANCE (MC-07)
+  const setBudget = (budgetData: Omit<Budget, "budgetId" | "createdAt" | "updatedAt">): Budget => {
+    // Remove existing budget for same city + month
+    setBudgets(prev => {
+      const filtered = prev.filter(
+        b => !(b.cityId === budgetData.cityId && b.month === budgetData.month)
+      );
+
+      const newBudget: Budget = {
+        ...budgetData,
+        budgetId: `BDG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      return [...filtered, newBudget];
+    });
+
+    // Return the budget (though it's async in state)
+    return {
+      ...budgetData,
+      budgetId: `BDG-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  };
+
+  const updateBudget = (budgetId: string, updates: Partial<Budget>) => {
+    setBudgets(prev =>
+      prev.map(budget =>
+        budget.budgetId === budgetId
+          ? { ...budget, ...updates, updatedAt: new Date().toISOString() }
+          : budget
+      )
+    );
+  };
+
+  const getBudget = (cityId: string, month: string): Budget | undefined => {
+    return budgets.find(b => b.cityId === cityId && b.month === month);
+  };
+
+  const getForecast = (cityId: string, month: string): Forecast => {
+    const cityRevenues = getRevenueByCity(cityId);
+    const cityPayables = getPayablesByCity(cityId);
+
+    // Filter data for the specified month
+    const currentMonthRevenues = cityRevenues.filter(r =>
+      r.receivedDate.startsWith(month)
+    );
+
+    const currentMonthPayables = cityPayables.filter(p =>
+      p.dueDate.startsWith(month)
+    );
+
+    // Calculate days elapsed in month
+    const today = new Date();
+    const currentMonth = today.toISOString().slice(0, 7);
+    const daysElapsed = currentMonth === month ? today.getDate() : 30;
+
+    // Calculate totals so far
+    const revenueSoFar = currentMonthRevenues.reduce((sum, r) => sum + r.amount, 0);
+    const expensesSoFar = currentMonthPayables.reduce((sum, p) => sum + p.amount, 0);
+
+    // Project to full month (30 days)
+    const projectedRevenue = daysElapsed > 0 ? (revenueSoFar / daysElapsed) * 30 : 0;
+    const projectedExpenses = daysElapsed > 0 ? (expensesSoFar / daysElapsed) * 30 : 0;
+
+    // Calculate confidence based on data availability
+    const confidence = Math.min((daysElapsed / 30) * 100, 100);
+
+    return {
+      cityId,
+      month,
+      projectedRevenue,
+      projectedExpenses,
+      projectedProfit: projectedRevenue - projectedExpenses,
+      confidence,
+    };
+  };
+
+  const getVariance = (cityId: string, month: string): Variance | null => {
+    const budget = getBudget(cityId, month);
+    if (!budget) return null;
+
+    const snapshot = getCityFinancialSnapshot(cityId);
+
+    const revenueVariance = snapshot.totalRevenue - budget.revenueTarget;
+    const expenseVariance = snapshot.totalExpenses - budget.expenseBudget;
+    const profitVariance = snapshot.ebitda - budget.profitTarget;
+
+    return {
+      cityId,
+      month,
+      revenueVariance,
+      revenueVariancePercent: budget.revenueTarget ? (revenueVariance / budget.revenueTarget) * 100 : 0,
+      expenseVariance,
+      expenseVariancePercent: budget.expenseBudget ? (expenseVariance / budget.expenseBudget) * 100 : 0,
+      profitVariance,
+      profitVariancePercent: budget.profitTarget ? (profitVariance / budget.profitTarget) * 100 : 0,
+    };
+  };
+
+  // ✅ AUTOMATED ALERT SYSTEM (MC-08)
+
+  // WhatsApp notification hook (placeholder for future integration)
+  const triggerNotification = (alert: FinanceAlert) => {
+    logger.log("Finance Alert Triggered", {
+      type: alert.type,
+      severity: alert.severity,
+      cityId: alert.cityId
+    });
+    console.log(`📱 WhatsApp Alert: [${alert.severity}] ${alert.message}`);
+
+    // Future: Integrate with WhatsApp Business API
+    // sendToWhatsAppAPI({
+    //   to: getCityManagerPhone(alert.cityId),
+    //   message: `⚠️ ${alert.severity} Alert: ${alert.message}`,
+    // });
+  };
+
+  const runAlertEngine = (cityId: string) => {
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const variance = getVariance(cityId, currentMonth);
+    const snapshot = getCityFinancialSnapshot(cityId);
+
+    // Skip if no budget (can't calculate variance)
+    if (!variance) {
+      logger.debug("Alert engine skipped - no budget set", { cityId, month: currentMonth });
+      return;
+    }
+
+    const newAlerts: FinanceAlert[] = [];
+    const now = new Date().toISOString();
+
+    // RULE 1: Profit significantly below target (>₹50K or >20%)
+    if (variance.profitVariance < -50000 || variance.profitVariancePercent < -20) {
+      newAlerts.push({
+        alertId: `ALERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        cityId,
+        type: "VARIANCE",
+        message: `Profit is significantly below target: ₹${Math.abs(variance.profitVariance / 1000).toFixed(1)}K (${variance.profitVariancePercent.toFixed(1)}%)`,
+        severity: variance.profitVariancePercent < -30 ? "HIGH" : "MEDIUM",
+        createdAt: now,
+      });
+    }
+
+    // RULE 2: Expenses exceeding budget (>₹50K or >15%)
+    if (variance.expenseVariance > 50000 || variance.expenseVariancePercent > 15) {
+      newAlerts.push({
+        alertId: `ALERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        cityId,
+        type: "EXPENSE_SPIKE",
+        message: `Expenses exceeding budget: +₹${(variance.expenseVariance / 1000).toFixed(1)}K (${variance.expenseVariancePercent.toFixed(1)}%)`,
+        severity: variance.expenseVariancePercent > 25 ? "HIGH" : "MEDIUM",
+        createdAt: now,
+      });
+    }
+
+    // RULE 3: Revenue significantly below target (>₹100K or >15%)
+    if (variance.revenueVariance < -100000 || variance.revenueVariancePercent < -15) {
+      newAlerts.push({
+        alertId: `ALERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        cityId,
+        type: "LOW_REVENUE",
+        message: `Revenue significantly below target: -₹${Math.abs(variance.revenueVariance / 1000).toFixed(1)}K (${variance.revenueVariancePercent.toFixed(1)}%)`,
+        severity: variance.revenueVariancePercent < -25 ? "HIGH" : "MEDIUM",
+        createdAt: now,
+      });
+    }
+
+    // RULE 4: Negative margin (profit < 0)
+    if (snapshot.margin < 0) {
+      newAlerts.push({
+        alertId: `ALERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        cityId,
+        type: "NEGATIVE_MARGIN",
+        message: `Negative profit margin detected: ${snapshot.margin.toFixed(1)}% (EBITDA: ₹${(snapshot.ebitda / 1000).toFixed(1)}K)`,
+        severity: "HIGH",
+        createdAt: now,
+      });
+    }
+
+    // RULE 5: Budget miss projected (forecast shows will miss target by >20%)
+    const forecast = getForecast(cityId, currentMonth);
+    const projectedMiss = forecast.projectedProfit - variance.profitVariance;
+    if (forecast.confidence > 50 && projectedMiss < -40000) {
+      newAlerts.push({
+        alertId: `ALERT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        cityId,
+        type: "BUDGET_MISS",
+        message: `Forecast shows likely budget miss: Projected profit ₹${(forecast.projectedProfit / 1000).toFixed(1)}K vs target ₹${(variance.profitVariance / 1000).toFixed(1)}K`,
+        severity: "MEDIUM",
+        createdAt: now,
+      });
+    }
+
+    // Prevent duplicate alerts (check for same type in last hour)
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const recentAlertTypes = alerts
+      .filter(a => a.cityId === cityId && a.createdAt > oneHourAgo && !a.acknowledged)
+      .map(a => a.type);
+
+    const uniqueNewAlerts = newAlerts.filter(
+      alert => !recentAlertTypes.includes(alert.type)
+    );
+
+    if (uniqueNewAlerts.length > 0) {
+      setAlerts(prev => [...prev, ...uniqueNewAlerts]);
+      uniqueNewAlerts.forEach(triggerNotification);
+      logger.log("Finance alerts generated", {
+        cityId,
+        count: uniqueNewAlerts.length,
+        types: uniqueNewAlerts.map(a => a.type)
+      });
+    }
+  };
+
+  const acknowledgeAlert = (alertId: string, acknowledgedBy: string) => {
+    setAlerts(prev =>
+      prev.map(alert =>
+        alert.alertId === alertId
+          ? {
+              ...alert,
+              acknowledged: true,
+              acknowledgedAt: new Date().toISOString(),
+              acknowledgedBy,
+            }
+          : alert
+      )
+    );
+  };
+
+  const getActiveAlerts = (cityId: string): FinanceAlert[] => {
+    return alerts.filter(a => a.cityId === cityId && !a.acknowledged);
+  };
+
+  // ✅ DECISION ENGINE / AI RECOMMENDATIONS (MC-09)
+  const runDecisionEngine = (cityId: string) => {
+    const snapshot = getCityFinancialSnapshot(cityId);
+    const expenseBreakdown = getExpenseBreakdown(cityId);
+    const revenueBreakdown = getRevenueBreakdown(cityId);
+    const cityPayables = getPayablesByCity(cityId);
+
+    const newRecs: Recommendation[] = [];
+
+    // RULE 1: High expense vendor concentration
+    // Group by vendor name for better detection
+    const vendorExpenses: Record<string, number> = {};
+    cityPayables.forEach(p => {
+      if (p.type === "Vendor" && p.vendorName) {
+        vendorExpenses[p.vendorName] = (vendorExpenses[p.vendorName] || 0) + p.amount;
+      }
+    });
+
+    Object.entries(vendorExpenses).forEach(([vendor, amount]) => {
+      if (snapshot.totalExpenses > 0 && amount > snapshot.totalExpenses * 0.4) {
+        newRecs.push({
+          id: crypto.randomUUID(),
+          cityId,
+          type: "COST_OPTIMIZATION",
+          message: `Vendor ${vendor} contributes ${((amount / snapshot.totalExpenses) * 100).toFixed(1)}% of expenses. Consider renegotiation or diversification.`,
+          impact: "HIGH",
+          createdAt: new Date().toISOString()
+        });
+      }
+    });
+
+    // RULE 2: Low margin warning
+    if (snapshot.margin < 15 && snapshot.totalRevenue > 0) {
+      newRecs.push({
+        id: crypto.randomUUID(),
+        cityId,
+        type: "RISK_ALERT",
+        message: `Profit margin ${snapshot.margin.toFixed(1)}% is below healthy threshold (15%). Review pricing or reduce costs.`,
+        impact: "HIGH",
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    // RULE 3: Revenue concentration
+    Object.entries(revenueBreakdown).forEach(([source, amount]) => {
+      if (snapshot.totalRevenue > 0 && amount > snapshot.totalRevenue * 0.6) {
+        newRecs.push({
+          id: crypto.randomUUID(),
+          cityId,
+          type: "REVENUE_GROWTH",
+          message: `Revenue heavily dependent on ${source} (${((amount / snapshot.totalRevenue) * 100).toFixed(1)}%). Diversify revenue sources.`,
+          impact: "MEDIUM",
+          createdAt: new Date().toISOString()
+        });
+      }
+    });
+
+    // RULE 4: High salary-to-revenue ratio
+    const salaryExpenses = Object.entries(expenseBreakdown)
+      .filter(([category]) => category === "Salary")
+      .reduce((sum, [, amount]) => sum + amount, 0);
+
+    if (snapshot.totalRevenue > 0 && salaryExpenses > snapshot.totalRevenue * 0.5) {
+      newRecs.push({
+        id: crypto.randomUUID(),
+        cityId,
+        type: "COST_OPTIMIZATION",
+        message: `Salary expenses are ${((salaryExpenses / snapshot.totalRevenue) * 100).toFixed(1)}% of revenue. Consider automation or process optimization.`,
+        impact: "MEDIUM",
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    // RULE 5: Expense imbalance (one category dominates)
+    Object.entries(expenseBreakdown).forEach(([category, amount]) => {
+      if (snapshot.totalExpenses > 0 && amount > snapshot.totalExpenses * 0.7) {
+        newRecs.push({
+          id: crypto.randomUUID(),
+          cityId,
+          type: "COST_OPTIMIZATION",
+          message: `${category} expenses dominate at ${((amount / snapshot.totalExpenses) * 100).toFixed(1)}%. Review cost structure balance.`,
+          impact: "MEDIUM",
+          createdAt: new Date().toISOString()
+        });
+      }
+    });
+
+    // Prevent duplicate recommendations (check for same type+cityId in last 24 hours)
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const recentRecTypes = recommendations
+      .filter(r => r.cityId === cityId && r.createdAt > oneDayAgo)
+      .map(r => r.type);
+
+    const uniqueNewRecs = newRecs.filter(
+      rec => !recentRecTypes.includes(rec.type)
+    );
+
+    if (uniqueNewRecs.length > 0) {
+      setRecommendations(prev => [...prev, ...uniqueNewRecs]);
+      logger.log("Decision engine recommendations generated", {
+        cityId,
+        count: uniqueNewRecs.length,
+        types: uniqueNewRecs.map(r => r.type)
+      });
+    }
+  };
+
+  const getRecommendations = (cityId: string): Recommendation[] => {
+    return recommendations.filter(r => r.cityId === cityId);
+  };
+
+  // Auto-run alert engine when financial data changes
+  useEffect(() => {
+    // Get all unique cities from current data
+    const cities = new Set([
+      ...revenues.map(r => r.cityId),
+      ...payables.map(p => p.cityId),
+    ]);
+
+    cities.forEach(cityId => {
+      runAlertEngine(cityId);
+    });
+  }, [revenues, payables, budgets]); // Run when finance data or budgets change
+
+  // Auto-run decision engine when financial data changes
+  useEffect(() => {
+    // Get all unique cities from current data
+    const cities = new Set([
+      ...revenues.map(r => r.cityId),
+      ...payables.map(p => p.cityId),
+    ]);
+
+    cities.forEach(cityId => {
+      runDecisionEngine(cityId);
+    });
+  }, [revenues, payables]); // Run when revenue or expense data changes
+
+  return (
+    <FinanceContext.Provider
+      value={{
+        mrrData,
+        addMRREntry,
+        updateMRR,
+        removeMRREntry,
+        getMRRForMonth,
+        getTotalMRR,
+        payables,
+        createPayable,
+        updatePayable,
+        markAsPaid,
+        approvePayable,
+        getSalaryPayables,
+        getVendorPayables,
+        getStatutoryPayables,
+        getPendingPayables,
+        getOverduePayables,
+        revenues,
+        recordRevenue,
+        getRevenueForMonth,
+        getTotalRevenue,
+        ledgerEntries,
+        createLedgerEntry,
+        getLedgerEntriesByAccount,
+        getLedgerEntriesForPeriod,
+        getRevenueFromLedger,
+        getExpensesFromLedger,
+        // ✅ NEW: City filter methods
+        getMRRByCity,
+        getRevenueByCity,
+        getPayablesByCity,
+        getLedgerEntriesByCity,
+        // ✅ NEW: EBITDA + Margin Analytics (MC-06)
+        calculateEBITDA,
+        calculateMargin,
+        getCityFinancialSnapshot,
+        getMultiCityDashboard,
+        getRevenueBreakdown,
+        getExpenseBreakdown,
+        getMonthlyTrend,
+        // ✅ NEW: Budget, Forecast, Variance (MC-07)
+        budgets,
+        setBudget,
+        updateBudget,
+        getBudget,
+        getForecast,
+        getVariance,
+        // ✅ NEW: Automated Alert System (MC-08)
+        alerts,
+        runAlertEngine,
+        acknowledgeAlert,
+        getActiveAlerts,
+        // ✅ NEW: Decision Engine / AI Recommendations (MC-09)
+        recommendations,
+        runDecisionEngine,
+        getRecommendations,
+      }}
+    >
+      {children}
+    </FinanceContext.Provider>
+  );
+}
+
+export function useFinance() {
+  const context = useContext(FinanceContext);
+  if (!context) {
+    // PREVIEW FALLBACK: Safe no-op defaults for Figma Make iframe and dev HMR
+    if (import.meta.hot || !import.meta.env?.PROD) {
+      const noop = () => { console.warn("[Context] called outside provider."); return null as any; };
+      return {
+        mrrData: [], addMRREntry: noop, updateMRR: () => {}, removeMRREntry: () => {},
+        getMRRForMonth: () => [], getTotalMRR: () => 0,
+        payables: [], createPayable: noop, updatePayable: () => {}, markAsPaid: () => {},
+        approvePayable: () => {}, getSalaryPayables: () => [], getVendorPayables: () => [],
+        getStatutoryPayables: () => [], getPendingPayables: () => [], getOverduePayables: () => [],
+        revenues: [], recordRevenue: noop, getRevenueForMonth: () => [], getTotalRevenue: () => 0,
+        ledgerEntries: [], createLedgerEntry: noop, getLedgerEntriesByAccount: () => [],
+      } as any;
+    }
+    console.warn("[Context] called outside provider — using safe defaults."); return null as any;
+  }
+  return context;
+}

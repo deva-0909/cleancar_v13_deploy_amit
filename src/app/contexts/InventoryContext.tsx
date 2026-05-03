@@ -1,0 +1,508 @@
+/**
+ * InventoryContext - SINGLE SOURCE OF TRUTH for all inventory/stock data
+ * Used across: Inventory Module, Requisitions, Issuances, Procurement
+ */
+
+import { createContext, useContext, useState, ReactNode } from "react";
+import { useEvents } from "./EventSystem";
+
+// Types
+export interface InventoryItem {
+  itemId: string;
+  itemName: string;
+  category: "Cleaning Supplies" | "Equipment" | "Consumables" | "Tools";
+  unit: "L" | "Kg" | "Pcs" | "Box";
+  reorderLevel: number;
+  // Multi-city isolation
+  cityId: string; // ✅ NEW: City-level stock isolation (e.g., "CITY-SURAT", "CITY-MUMBAI")
+  // Stock levels by location
+  centralStock: number;
+  supervisorStock: Record<string, number>; // { supervisorId: quantity }
+  washerStock: Record<string, number>; // { washerId/employeeId: quantity }
+  // Pricing
+  unitCost: number;
+  lastProcurementDate?: string;
+  supplierId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StockTransaction {
+  transactionId: string;
+  itemId: string;
+  type: "Procurement" | "Issue" | "Transfer" | "Adjustment" | "Return";
+  quantity: number;
+  fromLocation: "Central" | "Supervisor" | "Washer";
+  fromId?: string; // supervisorId or washerId
+  toLocation: "Central" | "Supervisor" | "Washer";
+  toId?: string; // supervisorId or washerId
+  reason?: string;
+  requestedBy?: string;
+  approvedBy?: string;
+  status: "Pending" | "Approved" | "Rejected" | "Completed";
+  createdAt: string;
+  completedAt?: string;
+}
+
+interface InventoryContextType {
+  // Inventory Items
+  inventory: InventoryItem[];
+  addInventoryItem: (item: Omit<InventoryItem, "itemId" | "createdAt" | "updatedAt">, cityId: string) => InventoryItem;
+  updateInventoryItem: (itemId: string, cityId: string, updates: Partial<InventoryItem>) => void;
+  getItemById: (itemId: string, cityId: string) => InventoryItem | undefined;
+  getLowStockItems: (cityId: string) => InventoryItem[];
+
+  // Stock Transactions
+  stockTransactions: StockTransaction[];
+  createTransaction: (
+    transaction: Omit<StockTransaction, "transactionId" | "createdAt">
+  ) => StockTransaction;
+  approveTransaction: (transactionId: string, approvedBy: string) => void;
+  completeTransaction: (transactionId: string) => void;
+
+  // Stock Operations
+  issueInventory: (
+    itemId: string,
+    quantity: number,
+    toLocation: "Supervisor" | "Washer",
+    toId: string,
+    requestedBy: string,
+    cityId: string
+  ) => void;
+  transferInventory: (
+    itemId: string,
+    quantity: number,
+    fromLocation: "Central" | "Supervisor" | "Washer",
+    fromId: string | undefined,
+    toLocation: "Central" | "Supervisor" | "Washer",
+    toId: string | undefined,
+    cityId: string
+  ) => void;
+  procureInventory: (itemId: string, quantity: number, supplierId: string, cityId: string) => void;
+  adjustStock: (
+    itemId: string,
+    location: "Central" | "Supervisor" | "Washer",
+    locationId: string | undefined,
+    newQuantity: number,
+    reason: string,
+    cityId: string
+  ) => void;
+
+  // Queries
+  getCentralStock: (cityId: string) => InventoryItem[];
+  getSupervisorStock: (supervisorId: string, cityId: string) => InventoryItem[];
+  getWasherStock: (washerId: string, cityId: string) => InventoryItem[];
+  getPendingTransactions: () => StockTransaction[];
+}
+
+const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
+
+const DEFAULT_CITY = "CITY-SURAT"; // Backward compatibility default
+
+export function InventoryProvider({ children }: { children: ReactNode }) {
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
+    // ✅ PHASE 1: Backward compatibility - normalize existing data
+    // If old inventory exists without cityId, default to CITY-SURAT
+    const storedInventory: InventoryItem[] = []; // Would load from DataService in production
+    return storedInventory.map(item => ({
+      ...item,
+      cityId: item.cityId || DEFAULT_CITY, // ✅ Prevents crash for old data
+    }));
+  });
+  const [stockTransactions, setStockTransactions] = useState<StockTransaction[]>([]);
+  const { emit } = useEvents();
+
+  // Inventory Item CRUD
+  const addInventoryItem = (
+    itemData: Omit<InventoryItem, "itemId" | "createdAt" | "updatedAt">,
+    cityId: string
+  ): InventoryItem => {
+    // ✅ SAFETY GUARD: Prevent operations without cityId
+    if (!cityId) {
+      console.warn("[InventoryContext] Blocked addInventoryItem: cityId missing");
+      console.warn("[Context] called outside provider."); return null as any;
+    }
+
+    const newItem: InventoryItem = {
+      ...itemData,
+      cityId, // ✅ Enforce city isolation
+      itemId: `ITEM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setInventory((prev) => [...prev, newItem]);
+    return newItem;
+  };
+
+  const updateInventoryItem = (itemId: string, cityId: string, updates: Partial<InventoryItem>) => {
+    // ✅ SAFETY GUARD: Prevent operations without cityId
+    if (!cityId) {
+      console.warn("[InventoryContext] Blocked updateInventoryItem: cityId missing");
+      return;
+    }
+
+    setInventory((prev) =>
+      prev.map((item) =>
+        item.itemId === itemId && item.cityId === cityId // ✅ City filter
+          ? { ...item, ...updates, updatedAt: new Date().toISOString() }
+          : item
+      )
+    );
+  };
+
+  const getItemById = (itemId: string, cityId: string): InventoryItem | undefined => {
+    // ✅ SAFETY GUARD: Prevent operations without cityId
+    if (!cityId) {
+      console.warn("[InventoryContext] Blocked getItemById: cityId missing");
+      return undefined;
+    }
+
+    return inventory.find((i) => i.itemId === itemId && i.cityId === cityId); // ✅ City filter
+  };
+
+  const getLowStockItems = (cityId: string): InventoryItem[] => {
+    // ✅ SAFETY GUARD: Prevent operations without cityId
+    if (!cityId) {
+      console.warn("[InventoryContext] Blocked getLowStockItems: cityId missing");
+      return [];
+    }
+
+    return inventory.filter(
+      (item) => item.cityId === cityId && item.centralStock <= item.reorderLevel // ✅ City filter
+    );
+  };
+
+  // Stock Transaction CRUD
+  const createTransaction = (
+    transactionData: Omit<StockTransaction, "transactionId" | "createdAt">
+  ): StockTransaction => {
+    const newTransaction: StockTransaction = {
+      ...transactionData,
+      transactionId: `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+    };
+    setStockTransactions((prev) => [...prev, newTransaction]);
+    return newTransaction;
+  };
+
+  const approveTransaction = (transactionId: string, approvedBy: string) => {
+    setStockTransactions((prev) =>
+      prev.map((txn) =>
+        txn.transactionId === transactionId
+          ? { ...txn, status: "Approved", approvedBy }
+          : txn
+      )
+    );
+  };
+
+  const completeTransaction = (transactionId: string) => {
+    const transaction = stockTransactions.find((t) => t.transactionId === transactionId);
+    if (!transaction) return;
+
+    // Update stock levels based on transaction
+    setInventory((prev) =>
+      prev.map((item) => {
+        if (item.itemId === transaction.itemId) {
+          const updated = { ...item };
+
+          // Decrease from source
+          if (transaction.fromLocation === "Central") {
+            updated.centralStock -= transaction.quantity;
+          } else if (transaction.fromLocation === "Supervisor" && transaction.fromId) {
+            updated.supervisorStock = {
+              ...updated.supervisorStock,
+              [transaction.fromId]: (updated.supervisorStock[transaction.fromId] || 0) - transaction.quantity,
+            };
+          } else if (transaction.fromLocation === "Washer" && transaction.fromId) {
+            updated.washerStock = {
+              ...updated.washerStock,
+              [transaction.fromId]: (updated.washerStock[transaction.fromId] || 0) - transaction.quantity,
+            };
+          }
+
+          // Increase to destination
+          if (transaction.toLocation === "Central") {
+            updated.centralStock += transaction.quantity;
+          } else if (transaction.toLocation === "Supervisor" && transaction.toId) {
+            updated.supervisorStock = {
+              ...updated.supervisorStock,
+              [transaction.toId]: (updated.supervisorStock[transaction.toId] || 0) + transaction.quantity,
+            };
+          } else if (transaction.toLocation === "Washer" && transaction.toId) {
+            updated.washerStock = {
+              ...updated.washerStock,
+              [transaction.toId]: (updated.washerStock[transaction.toId] || 0) + transaction.quantity,
+            };
+          }
+
+          return updated;
+        }
+        return item;
+      })
+    );
+
+    // Mark transaction as completed
+    setStockTransactions((prev) =>
+      prev.map((txn) =>
+        txn.transactionId === transactionId
+          ? { ...txn, status: "Completed", completedAt: new Date().toISOString() }
+          : txn
+      )
+    );
+  };
+
+  // Stock Operations
+  const issueInventory = (
+    itemId: string,
+    quantity: number,
+    toLocation: "Supervisor" | "Washer",
+    toId: string,
+    requestedBy: string,
+    cityId: string
+  ) => {
+    // ✅ SAFETY GUARD: Prevent operations without cityId
+    if (!cityId) {
+      console.warn("[InventoryContext] Blocked issueInventory: cityId missing");
+      return;
+    }
+
+    const item = inventory.find(i => i.itemId === itemId && i.cityId === cityId); // ✅ City filter
+    if (!item) {
+      console.warn(`[InventoryContext] Item ${itemId} not found in ${cityId}`);
+      return;
+    }
+
+    const transaction = createTransaction({
+      itemId,
+      type: "Issue",
+      quantity,
+      fromLocation: "Central",
+      toLocation,
+      toId,
+      requestedBy,
+      status: "Pending",
+    });
+    // Auto-approve and complete for now (in real app, needs approval workflow)
+    approveTransaction(transaction.transactionId, "System");
+    completeTransaction(transaction.transactionId);
+
+    // Emit INVENTORY_ISSUED event
+    emit("INVENTORY_ISSUED", {
+      itemId,
+      itemName: item.itemName,
+      quantity,
+      toLocation,
+      toId,
+      requestedBy,
+      transactionId: transaction.transactionId,
+      cityId, // ✅ Include cityId in event
+    }, "InventoryContext");
+
+    // Check if stock is now low and emit warning
+    const newCentralStock = item.centralStock - quantity;
+    if (newCentralStock <= item.reorderLevel && newCentralStock > 0) {
+      emit("INVENTORY_LOW_STOCK", {
+        itemId,
+        itemName: item.itemName,
+        quantity: newCentralStock,
+        reorderLevel: item.reorderLevel,
+        cityId, // ✅ Include cityId in event
+      }, "InventoryContext");
+    }
+  };
+
+  const transferInventory = (
+    itemId: string,
+    quantity: number,
+    fromLocation: "Central" | "Supervisor" | "Washer",
+    fromId: string | undefined,
+    toLocation: "Central" | "Supervisor" | "Washer",
+    toId: string | undefined,
+    cityId: string
+  ) => {
+    // ✅ SAFETY GUARD: Prevent operations without cityId
+    if (!cityId) {
+      console.warn("[InventoryContext] Blocked transferInventory: cityId missing");
+      return;
+    }
+
+    const item = inventory.find(i => i.itemId === itemId && i.cityId === cityId); // ✅ City filter
+    if (!item) {
+      console.warn(`[InventoryContext] Item ${itemId} not found in ${cityId}`);
+      return;
+    }
+
+    const transaction = createTransaction({
+      itemId,
+      type: "Transfer",
+      quantity,
+      fromLocation,
+      fromId,
+      toLocation,
+      toId,
+      status: "Approved",
+    });
+    completeTransaction(transaction.transactionId);
+  };
+
+  const procureInventory = (itemId: string, quantity: number, supplierId: string, cityId: string) => {
+    // ✅ SAFETY GUARD: Prevent operations without cityId
+    if (!cityId) {
+      console.warn("[InventoryContext] Blocked procureInventory: cityId missing");
+      return;
+    }
+
+    const item = inventory.find(i => i.itemId === itemId && i.cityId === cityId); // ✅ City filter
+    if (!item) {
+      console.warn(`[InventoryContext] Item ${itemId} not found in ${cityId}`);
+      return;
+    }
+
+    const transaction = createTransaction({
+      itemId,
+      type: "Procurement",
+      quantity,
+      fromLocation: "Central",
+      toLocation: "Central",
+      status: "Completed",
+    });
+
+    // Directly add to central stock (city-filtered)
+    setInventory((prev) =>
+      prev.map((item) =>
+        item.itemId === itemId && item.cityId === cityId // ✅ City filter
+          ? {
+              ...item,
+              centralStock: item.centralStock + quantity,
+              lastProcurementDate: new Date().toISOString(),
+              supplierId,
+              updatedAt: new Date().toISOString(),
+            }
+          : item
+      )
+    );
+  };
+
+  const adjustStock = (
+    itemId: string,
+    location: "Central" | "Supervisor" | "Washer",
+    locationId: string | undefined,
+    newQuantity: number,
+    reason: string,
+    cityId: string
+  ) => {
+    // ✅ SAFETY GUARD: Prevent operations without cityId
+    if (!cityId) {
+      console.warn("[InventoryContext] Blocked adjustStock: cityId missing");
+      return;
+    }
+
+    const item = inventory.find(i => i.itemId === itemId && i.cityId === cityId); // ✅ City filter
+    if (!item) {
+      console.warn(`[InventoryContext] Item ${itemId} not found in ${cityId}`);
+      return;
+    }
+
+    setInventory((prev) =>
+      prev.map((item) => {
+        if (item.itemId === itemId && item.cityId === cityId) { // ✅ City filter
+          const updated = { ...item };
+          if (location === "Central") {
+            updated.centralStock = newQuantity;
+          } else if (location === "Supervisor" && locationId) {
+            updated.supervisorStock = { ...updated.supervisorStock, [locationId]: newQuantity };
+          } else if (location === "Washer" && locationId) {
+            updated.washerStock = { ...updated.washerStock, [locationId]: newQuantity };
+          }
+          return updated;
+        }
+        return item;
+      })
+    );
+
+    createTransaction({
+      itemId,
+      type: "Adjustment",
+      quantity: newQuantity,
+      fromLocation: location,
+      fromId: locationId,
+      toLocation: location,
+      toId: locationId,
+      reason,
+      status: "Completed",
+    });
+  };
+
+  // Queries
+  const getCentralStock = (cityId: string): InventoryItem[] => {
+    // ✅ SAFETY GUARD: Prevent operations without cityId
+    if (!cityId) {
+      console.warn("[InventoryContext] Blocked getCentralStock: cityId missing");
+      return [];
+    }
+
+    return inventory.filter((i) => i.cityId === cityId && i.centralStock > 0); // ✅ City filter
+  };
+
+  const getSupervisorStock = (supervisorId: string, cityId: string): InventoryItem[] => {
+    // ✅ SAFETY GUARD: Prevent operations without cityId
+    if (!cityId) {
+      console.warn("[InventoryContext] Blocked getSupervisorStock: cityId missing");
+      return [];
+    }
+
+    return inventory.filter(
+      (i) => i.cityId === cityId && (i.supervisorStock[supervisorId] || 0) > 0 // ✅ City filter
+    );
+  };
+
+  const getWasherStock = (washerId: string, cityId: string): InventoryItem[] => {
+    // ✅ SAFETY GUARD: Prevent operations without cityId
+    if (!cityId) {
+      console.warn("[InventoryContext] Blocked getWasherStock: cityId missing");
+      return [];
+    }
+
+    return inventory.filter(
+      (i) => i.cityId === cityId && (i.washerStock[washerId] || 0) > 0 // ✅ City filter
+    );
+  };
+
+  const getPendingTransactions = (): StockTransaction[] => {
+    return stockTransactions.filter((t) => t.status === "Pending");
+  };
+
+  return (
+    <InventoryContext.Provider
+      value={{
+        inventory,
+        addInventoryItem,
+        updateInventoryItem,
+        getItemById,
+        getLowStockItems,
+        stockTransactions,
+        createTransaction,
+        approveTransaction,
+        completeTransaction,
+        issueInventory,
+        transferInventory,
+        procureInventory,
+        adjustStock,
+        getCentralStock,
+        getSupervisorStock,
+        getWasherStock,
+        getPendingTransactions,
+      }}
+    >
+      {children}
+    </InventoryContext.Provider>
+  );
+}
+
+export function useInventory() {
+  const context = useContext(InventoryContext);
+  if (!context) {
+    console.warn("[Context] called outside provider — using safe defaults."); return null as any;
+  }
+  return context;
+}

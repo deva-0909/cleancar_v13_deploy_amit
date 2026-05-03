@@ -1,0 +1,351 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { BackButton } from "../ui/back-button";
+import {
+  TrendingDown,
+  DollarSign,
+  Users,
+  Target,
+  Download,
+  Filter,
+} from "lucide-react";
+import { useRole } from "../../contexts/RoleContext";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  Legend,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+
+const cacByChannel = [
+  { id: "channel-1", channel: "Google Ads", spend: 145000, customers: 185, cac: 784, conversion: 3.2 },
+  { id: "channel-2", channel: "Meta Ads", spend: 125000, customers: 210, cac: 595, conversion: 4.5 },
+  { id: "channel-3", channel: "Offline Events", spend: 85000, customers: 95, cac: 895, conversion: 2.1 },
+  { id: "channel-4", channel: "Referral Program", spend: 45000, customers: 180, cac: 250, conversion: 12.5 },
+  { id: "channel-5", channel: "Influencer Marketing", spend: 95000, customers: 125, cac: 760, conversion: 3.8 },
+];
+
+const cacByCity = [
+  { id: "city-1", city: "Bangalore", spend: 185000, customers: 308, cac: 601 },
+  { id: "city-2", city: "Mumbai", spend: 165000, customers: 245, cac: 673 },
+  { id: "city-3", city: "Delhi", spend: 142000, customers: 198, cac: 717 },
+  { id: "city-4", city: "Pune", spend: 98000, customers: 144, cac: 681 },
+];
+
+const cacTrend = [
+  { id: "jan", month: "Jan", cac: 925, target: 800 },
+  { id: "feb", month: "Feb", cac: 885, target: 800 },
+  { id: "mar", month: "Mar", cac: 835, target: 800 },
+  { id: "apr", month: "Apr", cac: 790, target: 800 },
+  { id: "may", month: "May", cac: 745, target: 800 },
+  { id: "jun", month: "Jun", cac: 701, target: 800 },
+];
+
+const channelDistribution = [
+  { id: "dist-1", name: "Meta Ads", value: 28, customers: 210 },
+  { id: "dist-2", name: "Google Ads", value: 25, customers: 185 },
+  { id: "dist-3", name: "Referral", value: 24, customers: 180 },
+  { id: "dist-4", name: "Influencer", value: 17, customers: 125 },
+  { id: "dist-5", name: "Offline", value: 6, customers: 95 },
+];
+
+function CACDashboard() {
+  const { currentRole } = useRole();
+
+  const hasAccess = currentRole === "Super Admin" || currentRole === "Admin" || currentRole === "Accounts";
+
+  if (!hasAccess) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="text-red-500 text-lg font-semibold">Access Denied</div>
+            <p className="text-gray-500 mt-2">
+              You don't have permission to access CAC Analytics.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const totalSpend = cacByChannel.reduce((sum, c) => sum + c.spend, 0);
+  const totalCustomers = cacByChannel.reduce((sum, c) => sum + c.customers, 0);
+  const avgCAC = totalSpend / totalCustomers;
+  const avgLTV = 18500; // From LTV analysis
+  const ltvCacRatio = avgLTV / avgCAC;
+
+  return (
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Customer Acquisition Cost (CAC) Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Track marketing spend efficiency and channel performance
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Filter className="w-4 h-4 mr-2" />
+            This Quarter
+          </Button>
+          <Button variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />
+            Export Report
+          </Button>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-sm text-gray-500">Average CAC</div>
+                <div className="text-2xl font-bold text-gray-900 mt-1">
+                  ₹{avgCAC.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                </div>
+                <div className="text-xs text-green-600 mt-2">↓ 24.2% vs last quarter</div>
+              </div>
+              <div className="p-2 bg-blue-50 rounded">
+                <DollarSign className="w-5 h-5 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-sm text-gray-500">Total Marketing Spend</div>
+                <div className="text-2xl font-bold text-gray-900 mt-1">
+                  ₹{totalSpend.toLocaleString("en-IN")}
+                </div>
+                <div className="text-xs text-gray-600 mt-2">This quarter</div>
+              </div>
+              <div className="p-2 bg-orange-50 rounded">
+                <Target className="w-5 h-5 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-sm text-gray-500">Customers Acquired</div>
+                <div className="text-2xl font-bold text-gray-900 mt-1">
+                  {totalCustomers.toLocaleString("en-IN")}
+                </div>
+                <div className="text-xs text-gray-600 mt-2">This quarter</div>
+              </div>
+              <div className="p-2 bg-green-50 rounded">
+                <Users className="w-5 h-5 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-sm text-gray-500">LTV:CAC Ratio</div>
+                <div className="text-2xl font-bold text-gray-900 mt-1">
+                  {ltvCacRatio.toFixed(1)}x
+                </div>
+                <Badge className="bg-green-500 text-xs mt-2">Excellent</Badge>
+              </div>
+              <div className="p-2 bg-purple-50 rounded">
+                <TrendingDown className="w-5 h-5 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        {/* CAC by Channel */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">CAC by Marketing Channel</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={cacByChannel} id="cac-channel-chart">
+                <CartesianGrid key="cac-channel-grid" strokeDasharray="3 3" />
+                <XAxis key="cac-channel-xaxis" dataKey="channel" tick={{ fontSize: 11 }} />
+                <YAxis key="cac-channel-yaxis" tick={{ fontSize: 11 }} width={50} />
+                <RechartsTooltip key="cac-channel-tooltip" />
+                <Bar key="cac-channel-bar" dataKey="cac" fill="#3b82f6" name="CAC (₹)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* CAC by City */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">CAC by City</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={cacByCity} id="cac-city-chart">
+                <CartesianGrid key="cac-city-grid" strokeDasharray="3 3" />
+                <XAxis key="cac-city-xaxis" dataKey="city" tick={{ fontSize: 11 }} />
+                <YAxis key="cac-city-yaxis" tick={{ fontSize: 11 }} width={50} />
+                <RechartsTooltip key="cac-city-tooltip" />
+                <Bar key="cac-city-bar" dataKey="cac" fill="#10b981" name="CAC (₹)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* CAC Trend */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">CAC Trend Over Time</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={cacTrend} id="cac-trend-chart">
+                <CartesianGrid key="cac-trend-grid" strokeDasharray="3 3" />
+                <XAxis key="cac-trend-xaxis" dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis key="cac-trend-yaxis" tick={{ fontSize: 11 }} width={50} />
+                <RechartsTooltip key="cac-trend-tooltip" />
+                <Legend key="cac-trend-legend" />
+                <Line key="cac-trend-actual" type="monotone" dataKey="cac" stroke="#ef4444" strokeWidth={2} name="Actual CAC" />
+                <Line key="cac-trend-target" type="monotone" dataKey="target" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" name="Target" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Channel Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Customer Acquisition by Channel</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart id="channel-dist-chart">
+                <Pie
+                  key="channel-dist-pie"
+                  data={channelDistribution}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, value }) => `${name}: ${value}%`}
+                  outerRadius={90}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {channelDistribution.map((entry, index) => (
+                    <Cell key={`channel-cell-${entry.id}-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <RechartsTooltip key="channel-dist-tooltip" />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* CAC by Channel Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Marketing Channel Performance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-3 text-sm font-semibold text-gray-700">Channel</th>
+                  <th className="text-right p-3 text-sm font-semibold text-gray-700">Total Spend</th>
+                  <th className="text-right p-3 text-sm font-semibold text-gray-700">Customers Acquired</th>
+                  <th className="text-right p-3 text-sm font-semibold text-gray-700">CAC</th>
+                  <th className="text-right p-3 text-sm font-semibold text-gray-700">Conversion Rate</th>
+                  <th className="text-center p-3 text-sm font-semibold text-gray-700">Efficiency</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cacByChannel.map((channel) => (
+                  <tr key={channel.id} className="border-b hover:bg-gray-50">
+                    <td className="p-3 font-medium">{channel.channel}</td>
+                    <td className="p-3 text-right">₹{channel.spend.toLocaleString("en-IN")}</td>
+                    <td className="p-3 text-right">{channel.customers.toLocaleString("en-IN")}</td>
+                    <td className="p-3 text-right font-semibold">₹{channel.cac.toLocaleString("en-IN")}</td>
+                    <td className="p-3 text-right">{channel.conversion}%</td>
+                    <td className="p-3 text-center">
+                      {channel.cac < 600 ? (
+                        <Badge className="bg-green-500">Excellent</Badge>
+                      ) : channel.cac < 800 ? (
+                        <Badge className="bg-blue-500">Good</Badge>
+                      ) : (
+                        <Badge className="bg-orange-500">Average</Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* CAC Insights */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="space-y-2">
+              <div className="text-sm font-semibold text-gray-700">Best Performing Channel</div>
+              <div className="text-xl font-bold text-green-600">Referral Program</div>
+              <div className="text-xs text-gray-600">CAC: ₹250 | Conversion: 12.5%</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="space-y-2">
+              <div className="text-sm font-semibold text-gray-700">Lowest CAC City</div>
+              <div className="text-xl font-bold text-blue-600">Bangalore</div>
+              <div className="text-xs text-gray-600">CAC: ₹601 | 308 customers</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="space-y-2">
+              <div className="text-sm font-semibold text-gray-700">CAC Reduction</div>
+              <div className="text-xl font-bold text-purple-600">24.2%</div>
+              <div className="text-xs text-gray-600">vs last quarter</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+export default CACDashboard;

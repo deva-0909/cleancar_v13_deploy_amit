@@ -1,0 +1,702 @@
+/**
+ * Finance Transactions - Transaction-based model
+ *
+ * Types: Revenue, Expense, Refund, Salary
+ * Source Tags: operationsEngine, payrollEngine, subscriptionEngine, manualEntry
+ * NO UI CALCULATIONS - All from financeEngine
+ *
+ * @component
+ */
+
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Separator } from "../ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { useCity } from "../../contexts/CityContext";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "../ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import {
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  RefreshCw,
+  Wallet,
+  Database,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Eye,
+  Calendar,
+  Tag,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  RotateCcw,
+  Banknote,
+} from "lucide-react";
+
+// Transaction Types
+type TransactionType = "REVENUE" | "EXPENSE" | "REFUND" | "SALARY";
+
+// Source Tags - Where the transaction came from
+type TransactionSource =
+  | "operationsEngine"      // From completed units
+  | "payrollEngine"         // From salary/incentive processing
+  | "subscriptionEngine"    // From subscription payments
+  | "manualEntry"          // Manually entered by finance team
+  | "refundEngine"         // From refund processing
+  | "expenseEngine";       // From expense tracking
+
+// Transaction Status
+type TransactionStatus = "POSTED" | "PENDING" | "REVERSED";
+
+// Transaction Record
+interface FinanceTransaction {
+  id: string;
+  date: string;
+  type: TransactionType;
+  source: TransactionSource;
+  description: string;
+  referenceId: string; // Link to source record (UNIT-001, PAYROLL-FEB-2026, etc.)
+  amount: number; // Calculated by financeEngine
+  accountDebit: string;
+  accountCredit: string;
+  status: TransactionStatus;
+  city: string;
+  cluster?: string;
+  postedBy: string;
+  notes?: string;
+}
+
+// Transaction Type Configuration
+interface TransactionTypeConfig {
+  type: TransactionType;
+  label: string;
+  icon: any;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+  textColor: string;
+}
+
+const TRANSACTION_TYPES: TransactionTypeConfig[] = [
+  {
+    type: "REVENUE",
+    label: "Revenue",
+    icon: ArrowUpCircle,
+    color: "text-green-600",
+    bgColor: "bg-green-50",
+    borderColor: "border-green-200",
+    textColor: "text-green-700",
+  },
+  {
+    type: "EXPENSE",
+    label: "Expense",
+    icon: ArrowDownCircle,
+    color: "text-red-600",
+    bgColor: "bg-red-50",
+    borderColor: "border-red-200",
+    textColor: "text-red-700",
+  },
+  {
+    type: "REFUND",
+    label: "Refund",
+    icon: RotateCcw,
+    color: "text-orange-600",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-200",
+    textColor: "text-orange-700",
+  },
+  {
+    type: "SALARY",
+    label: "Salary",
+    icon: Banknote,
+    color: "text-blue-600",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+    textColor: "text-blue-700",
+  },
+];
+
+// Source Tag Configuration
+interface SourceConfig {
+  source: TransactionSource;
+  label: string;
+  color: string;
+}
+
+const SOURCE_TAGS: SourceConfig[] = [
+  { source: "operationsEngine", label: "Operations", color: "bg-purple-100 text-purple-700 border-purple-200" },
+  { source: "payrollEngine", label: "Payroll", color: "bg-blue-100 text-blue-700 border-blue-200" },
+  { source: "subscriptionEngine", label: "Subscriptions", color: "bg-green-100 text-green-700 border-green-200" },
+  { source: "manualEntry", label: "Manual", color: "bg-gray-100 text-gray-700 border-gray-200" },
+  { source: "refundEngine", label: "Refunds", color: "bg-orange-100 text-orange-700 border-orange-200" },
+  { source: "expenseEngine", label: "Expenses", color: "bg-red-100 text-red-700 border-red-200" },
+];
+
+// Mock Transactions - In production, these come from financeEngine
+const getMockTransactions = (cityName: string): FinanceTransaction[] => [
+  {
+    id: "TXN-001",
+    date: "2026-04-20",
+    type: "REVENUE",
+    source: "operationsEngine",
+    description: "Car wash service revenue - 4W Premium",
+    referenceId: "UNIT-001",
+    amount: 499, // From financeEngine
+    accountDebit: "1200 - Accounts Receivable",
+    accountCredit: "4000 - Service Revenue",
+    status: "POSTED",
+    city: cityName,
+    cluster: "Central",
+    postedBy: "operationsEngine",
+    notes: "Auto-posted from completed unit",
+  },
+  {
+    id: "TXN-002",
+    date: "2026-04-20",
+    type: "REVENUE",
+    source: "subscriptionEngine",
+    description: "Monthly subscription - Gold Plan",
+    referenceId: "SUB-CUST-101-APR",
+    amount: 2999, // From financeEngine
+    accountDebit: "1100 - Bank Account",
+    accountCredit: "4010 - Subscription Revenue",
+    status: "POSTED",
+    city: cityName,
+    cluster: "Central",
+    postedBy: "subscriptionEngine",
+    notes: "Auto-collected via payment gateway",
+  },
+  {
+    id: "TXN-003",
+    date: "2026-04-20",
+    type: "EXPENSE",
+    source: "manualEntry",
+    description: "Cleaning supplies purchase",
+    referenceId: "PO-2026-045",
+    amount: 15000, // From financeEngine (includes GST)
+    accountDebit: "5100 - Materials Expense",
+    accountCredit: "2000 - Accounts Payable",
+    status: "POSTED",
+    city: cityName,
+    postedBy: "Finance Team",
+    notes: "Vendor: CleanPro Supplies",
+  },
+  {
+    id: "TXN-004",
+    date: "2026-04-20",
+    type: "SALARY",
+    source: "payrollEngine",
+    description: "February 2026 Payroll - Car Washers",
+    referenceId: "PAYROLL-FEB-2026-WASHERS",
+    amount: 285000, // From financeEngine (payrollEngine output)
+    accountDebit: "5200 - Wage Expense",
+    accountCredit: "2100 - Salary Payable",
+    status: "POSTED",
+    city: cityName,
+    postedBy: "payrollEngine",
+    notes: "Auto-posted from payroll processing",
+  },
+  {
+    id: "TXN-005",
+    date: "2026-04-19",
+    type: "REFUND",
+    source: "refundEngine",
+    description: "Customer refund - Service quality issue",
+    referenceId: "REFUND-CUST-102",
+    amount: 499, // From financeEngine
+    accountDebit: "4000 - Service Revenue", // Reverses revenue
+    accountCredit: "1100 - Bank Account",
+    status: "POSTED",
+    city: cityName,
+    cluster: "Central",
+    postedBy: "refundEngine",
+    notes: "Approved by City Manager",
+  },
+  {
+    id: "TXN-006",
+    date: "2026-04-19",
+    type: "REVENUE",
+    source: "operationsEngine",
+    description: "Car wash service revenue - 2W Basic",
+    referenceId: "UNIT-002",
+    amount: 99, // From financeEngine
+    accountDebit: "1200 - Accounts Receivable",
+    accountCredit: "4000 - Service Revenue",
+    status: "POSTED",
+    city: cityName,
+    cluster: "Central",
+    postedBy: "operationsEngine",
+  },
+  {
+    id: "TXN-007",
+    date: "2026-04-19",
+    type: "EXPENSE",
+    source: "payrollEngine",
+    description: "PF Employer Contribution - Feb 2026",
+    referenceId: "PAYROLL-FEB-2026-PF",
+    amount: 34200, // From financeEngine
+    accountDebit: "5210 - PF Expense",
+    accountCredit: "2110 - PF Payable",
+    status: "POSTED",
+    city: cityName,
+    postedBy: "payrollEngine",
+    notes: "Auto-posted from payroll processing",
+  },
+  {
+    id: "TXN-008",
+    date: "2026-04-18",
+    type: "REFUND",
+    source: "refundEngine",
+    description: "Subscription cancellation refund - Pro-rata",
+    referenceId: "REFUND-SUB-CUST-103",
+    amount: 1500, // From financeEngine (pro-rated calculation)
+    accountDebit: "4010 - Subscription Revenue", // Reverses revenue
+    accountCredit: "1100 - Bank Account",
+    status: "POSTED",
+    city: cityName,
+    cluster: "East",
+    postedBy: "refundEngine",
+    notes: "Pro-rata refund for 15 days remaining",
+  },
+  {
+    id: "TXN-009",
+    date: "2026-04-18",
+    type: "EXPENSE",
+    source: "expenseEngine",
+    description: "Vehicle maintenance - Supervisor bike",
+    referenceId: "EXPENSE-SUP-001-APR",
+    amount: 3500, // From financeEngine
+    accountDebit: "5300 - Vehicle Maintenance",
+    accountCredit: "1100 - Bank Account",
+    status: "POSTED",
+    city: cityName,
+    postedBy: "Supervisor - Suresh",
+    notes: "Approved expense claim",
+  },
+  {
+    id: "TXN-010",
+    date: "2026-04-17",
+    type: "SALARY",
+    source: "payrollEngine",
+    description: "February 2026 Payroll - Operations Managers",
+    referenceId: "PAYROLL-FEB-2026-OM",
+    amount: 144000, // From financeEngine
+    accountDebit: "5200 - Wage Expense",
+    accountCredit: "2100 - Salary Payable",
+    status: "POSTED",
+    city: cityName,
+    postedBy: "payrollEngine",
+    notes: "3 OMs @ ₹48,000 each",
+  },
+];
+
+export function FinanceTransactions() {
+  const { city, cityInfo } = useCity();
+  const [transactions, setTransactions] = useState<FinanceTransaction[]>(() => getMockTransactions(cityInfo.displayName));
+  const [typeFilter, setTypeFilter] = useState<TransactionType | "ALL">("ALL");
+  const [sourceFilter, setSourceFilter] = useState<TransactionSource | "ALL">("ALL");
+  const [statusFilter, setStatusFilter] = useState<TransactionStatus | "ALL">("ALL");
+
+  // Calculate stats - All from financeEngine (showing the concept)
+  const totalRevenue = transactions
+    .filter(t => t.type === "REVENUE" && t.status === "POSTED")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalExpenses = transactions
+    .filter(t => (t.type === "EXPENSE" || t.type === "SALARY") && t.status === "POSTED")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const totalRefunds = transactions
+    .filter(t => t.type === "REFUND" && t.status === "POSTED")
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const netRevenue = totalRevenue - totalRefunds; // CRITICAL: Revenue - Refunds
+  const netIncome = netRevenue - totalExpenses;
+
+  // Filter transactions
+  const filteredTransactions = transactions.filter(txn => {
+    const typeMatch = typeFilter === "ALL" || txn.type === typeFilter;
+    const sourceMatch = sourceFilter === "ALL" || txn.source === sourceFilter;
+    const statusMatch = statusFilter === "ALL" || txn.status === statusFilter;
+    return typeMatch && sourceMatch && statusMatch;
+  });
+
+  // Get transaction type config
+  const getTypeConfig = (type: TransactionType): TransactionTypeConfig => {
+    return TRANSACTION_TYPES.find(t => t.type === type)!;
+  };
+
+  // Get source config
+  const getSourceConfig = (source: TransactionSource): SourceConfig => {
+    return SOURCE_TAGS.find(s => s.source === source)!;
+  };
+
+  return (
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="space-y-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Finance Transactions</h1>
+            <p className="text-gray-600 mt-2">
+              Transaction-based accounting (Revenue, Expense, Refund, Salary)
+            </p>
+          </div>
+          <Badge variant="outline" className="flex items-center gap-2 px-3 py-1.5">
+            <Database className="w-4 h-4 text-blue-600" />
+            <span className="text-sm">Transaction Model</span>
+          </Badge>
+        </div>
+
+        {/* Engine Label */}
+        <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <Database className="w-5 h-5 text-blue-600" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-blue-900">Source of Truth: financeEngine</p>
+            <p className="text-xs text-blue-700">
+              All amounts calculated by <span className="font-semibold">financeEngine</span>.
+              Transactions auto-posted from operationsEngine, payrollEngine, subscriptionEngine, refundEngine.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-700 mb-1">Total Revenue</p>
+                <p className="text-3xl font-bold text-green-900">
+                  ₹{(totalRevenue / 1000).toFixed(1)}K
+                </p>
+              </div>
+              <ArrowUpCircle className="w-12 h-12 text-green-600 opacity-20" />
+            </div>
+            <p className="text-xs text-green-600 mt-2">From financeEngine</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-orange-700 mb-1">Total Refunds</p>
+                <p className="text-3xl font-bold text-orange-900">
+                  ₹{(totalRefunds / 1000).toFixed(1)}K
+                </p>
+              </div>
+              <RotateCcw className="w-12 h-12 text-orange-600 opacity-20" />
+            </div>
+            <p className="text-xs text-orange-600 mt-2">Reverses revenue</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-blue-700 mb-1">Net Revenue</p>
+                <p className="text-3xl font-bold text-blue-900">
+                  ₹{(netRevenue / 1000).toFixed(1)}K
+                </p>
+              </div>
+              <TrendingUp className="w-12 h-12 text-blue-600 opacity-20" />
+            </div>
+            <p className="text-xs text-blue-600 mt-2">Revenue - Refunds</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-red-700 mb-1">Total Expenses</p>
+                <p className="text-3xl font-bold text-red-900">
+                  ₹{(totalExpenses / 1000).toFixed(1)}K
+                </p>
+              </div>
+              <ArrowDownCircle className="w-12 h-12 text-red-600 opacity-20" />
+            </div>
+            <p className="text-xs text-red-600 mt-2">Expense + Salary</p>
+          </CardContent>
+        </Card>
+
+        <Card className={`${netIncome >= 0 ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className={`text-sm ${netIncome >= 0 ? "text-green-700" : "text-red-700"} mb-1`}>
+                  Net Income
+                </p>
+                <p className={`text-3xl font-bold ${netIncome >= 0 ? "text-green-900" : "text-red-900"}`}>
+                  ₹{(netIncome / 1000).toFixed(1)}K
+                </p>
+              </div>
+              {netIncome >= 0 ? (
+                <TrendingUp className="w-12 h-12 text-green-600 opacity-20" />
+              ) : (
+                <TrendingDown className="w-12 h-12 text-red-600 opacity-20" />
+              )}
+            </div>
+            <p className={`text-xs ${netIncome >= 0 ? "text-green-600" : "text-red-600"} mt-2`}>
+              Net Rev - Expenses
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Revenue vs Refund Clarity */}
+      <Alert className="border-orange-200 bg-orange-50">
+        <AlertCircle className="w-4 h-4 text-orange-600" />
+        <AlertTitle className="text-orange-900">Revenue vs Refund Distinction</AlertTitle>
+        <AlertDescription className="text-orange-700 text-sm">
+          <ul className="list-disc list-inside space-y-1 mt-2">
+            <li><strong>REVENUE</strong> (Green ↑): Money received from services/subscriptions. Increases total revenue.</li>
+            <li><strong>REFUND</strong> (Orange ↻): Money returned to customers. <strong>REVERSES revenue</strong> - reduces total revenue.</li>
+            <li><strong>Net Revenue</strong> = Total Revenue - Total Refunds (the actual money we keep)</li>
+            <li>Both transactions have <strong>source tags</strong> showing which engine posted them</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
+
+      {/* Transaction Type Filter */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Transaction Types</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {TRANSACTION_TYPES.map((config) => {
+              const Icon = config.icon;
+              const count = transactions.filter(t => t.type === config.type && t.status === "POSTED").length;
+              const isSelected = typeFilter === config.type;
+
+              return (
+                <div
+                  key={config.type}
+                  onClick={() => setTypeFilter(isSelected ? "ALL" : config.type)}
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    isSelected
+                      ? `${config.bgColor} ${config.borderColor} shadow-md`
+                      : "border-gray-200 hover:shadow-md"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <Icon className={`w-6 h-6 ${config.color}`} />
+                    <Badge className="text-xs" variant={isSelected ? "default" : "outline"}>
+                      {count} txns
+                    </Badge>
+                  </div>
+                  <h3 className="font-semibold mb-1">{config.label}</h3>
+                  <p className="text-xs text-gray-600">
+                    {config.type === "REVENUE" && "Money received"}
+                    {config.type === "EXPENSE" && "Money spent"}
+                    {config.type === "REFUND" && "Money returned"}
+                    {config.type === "SALARY" && "Payroll expense"}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Source Tag Filter */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Transaction Sources</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              variant={sourceFilter === "ALL" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSourceFilter("ALL")}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              All Sources
+            </Button>
+            {SOURCE_TAGS.map((source) => {
+              const count = transactions.filter(t => t.source === source.source).length;
+              return (
+                <Button
+                  key={source.source}
+                  variant={sourceFilter === source.source ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSourceFilter(source.source)}
+                  className={sourceFilter === source.source ? source.color : ""}
+                >
+                  <Tag className="w-4 h-4 mr-2" />
+                  {source.label} ({count})
+                </Button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Transactions Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Transaction Ledger ({filteredTransactions.length})</CardTitle>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              {(typeFilter !== "ALL" || sourceFilter !== "ALL") && (
+                <Badge variant="outline">
+                  Filtered
+                  {typeFilter !== "ALL" && `: ${typeFilter}`}
+                  {sourceFilter !== "ALL" && ` from ${sourceFilter}`}
+                </Badge>
+              )}
+              <Badge variant="outline" className="text-xs">
+                <Database className="w-3 h-3 mr-1" />
+                financeEngine
+              </Badge>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Transaction ID</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Accounts</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTransactions.map((txn) => {
+                  const typeConfig = getTypeConfig(txn.type);
+                  const sourceConfig = getSourceConfig(txn.source);
+                  const TypeIcon = typeConfig.icon;
+
+                  return (
+                    <TableRow key={txn.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm">{txn.date}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">{txn.id}</TableCell>
+                      <TableCell>
+                        <div className={`flex items-center gap-2 px-2 py-1 rounded-md ${typeConfig.bgColor} ${typeConfig.borderColor} border`}>
+                          <TypeIcon className={`w-4 h-4 ${typeConfig.color}`} />
+                          <span className={`text-xs font-medium ${typeConfig.textColor}`}>
+                            {typeConfig.label}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-xs ${sourceConfig.color}`}>
+                          <Tag className="w-3 h-3 mr-1" />
+                          {sourceConfig.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <p className="font-medium">{txn.description}</p>
+                          {txn.notes && (
+                            <p className="text-xs text-gray-500 mt-1">{txn.notes}</p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">{txn.referenceId}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-col items-end">
+                          <span className={`font-mono font-bold ${
+                            txn.type === "REVENUE" ? "text-green-600" :
+                            txn.type === "REFUND" ? "text-orange-600" :
+                            "text-red-600"
+                          }`}>
+                            {txn.type === "REVENUE" ? "+" : "-"}₹{txn.amount.toLocaleString("en-IN")}
+                          </span>
+                          <span className="text-xs text-gray-500">financeEngine</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs space-y-1">
+                          <p className="text-gray-600">
+                            <span className="font-medium">Dr:</span> {txn.accountDebit}
+                          </p>
+                          <p className="text-gray-600">
+                            <span className="font-medium">Cr:</span> {txn.accountCredit}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {txn.status === "POSTED" && (
+                          <Badge className="bg-green-100 text-green-700 border-green-200">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Posted
+                          </Badge>
+                        )}
+                        {txn.status === "PENDING" && (
+                          <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            Pending
+                          </Badge>
+                        )}
+                        {txn.status === "REVERSED" && (
+                          <Badge className="bg-red-100 text-red-700 border-red-200">
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Reversed
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Info Alert */}
+      <Alert className="border-blue-200 bg-blue-50">
+        <Database className="w-4 h-4 text-blue-600" />
+        <AlertTitle className="text-blue-900">Transaction Model - No UI Calculations</AlertTitle>
+        <AlertDescription className="text-blue-700 text-sm">
+          All transaction amounts are calculated by <strong>financeEngine</strong> and posted automatically from source engines:
+          <ul className="list-disc list-inside mt-2 space-y-1">
+            <li><strong>operationsEngine</strong> → Posts REVENUE transactions when units are completed</li>
+            <li><strong>subscriptionEngine</strong> → Posts REVENUE transactions when subscriptions are paid</li>
+            <li><strong>payrollEngine</strong> → Posts SALARY and EXPENSE transactions (wages, PF, ESI)</li>
+            <li><strong>refundEngine</strong> → Posts REFUND transactions that reverse revenue</li>
+            <li><strong>expenseEngine</strong> → Posts EXPENSE transactions from approved expense claims</li>
+            <li><strong>manualEntry</strong> → Finance team posts EXPENSE transactions manually</li>
+          </ul>
+          <p className="mt-2 font-medium">The UI only displays transactions - no calculations are performed here.</p>
+        </AlertDescription>
+      </Alert>
+    </div>
+  );
+}
