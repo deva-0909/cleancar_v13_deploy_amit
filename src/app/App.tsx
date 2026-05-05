@@ -55,12 +55,13 @@ export default function App() {
         setLoadingMsg("Loading employees...");
         await employeeDatabaseService.loadFromSupabase();
 
-        setLoadingMsg("Loading customers, jobs & transactions...");
+        setLoadingMsg("Loading data from database (may take 20-30s)...");
         await loadAllDataFromSupabase();
 
         setLoadingMsg("Almost ready...");
         // Wait for localStorage writes to settle before mounting contexts
-        await new Promise(r => setTimeout(r, 800));
+        // Data takes ~25s to load from Supabase - wait for it
+        await new Promise(r => setTimeout(r, 1500));
 
       } catch (err) {
         console.error("Bootstrap error:", err);
