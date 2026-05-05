@@ -34,6 +34,49 @@ const TABLE_MAP: Array<{ table: string; localKey: string; limit?: number }> = [
   { table: "cleancar_attendance",          localKey: "attendance_records", limit: 1000 },
 ];
 
+
+// ── Field Normalizers ────────────────────────────────────────────────────────
+// Seed data uses different field names than what contexts expect.
+// These normalizers map seed fields → context fields at load time.
+
+function normalizeEmployee(e: any): any {
+  if (!e) return e;
+  return {
+    ...e,
+    // Map seed fields to context fields
+    phone:            e.phone       || e.mobile        || "",
+    role:             e.role        || e.designation   || "",
+    city:             e.city        || e.workLocation  || e.cityId || "",
+    joiningDate:      e.joiningDate || e.dateOfJoining || "",
+    assignedPincodes: e.assignedPincodes || e.pinCodes || [],
+    incentiveEligible: e.incentiveEligible !== undefined ? e.incentiveEligible : true,
+    // Keep originals too for backward compat
+    designation: e.designation || e.role || "",
+    mobile:      e.mobile      || e.phone || "",
+    workLocation: e.workLocation || e.cityId || "",
+    dateOfJoining: e.dateOfJoining || e.joiningDate || "",
+    pinCodes: e.pinCodes || e.assignedPincodes || [],
+  };
+}
+
+function normalizeJob(j: any): any {
+  if (!j) return j;
+  // Ensure scheduledDate is a full ISO string for date comparisons
+  const d = j.scheduledDate || "";
+  return {
+    ...j,
+    scheduledDate: d.length === 10 ? d + "T00:00:00.000Z" : d,
+  };
+}
+
+function normalizeRecord(table: string, record: any): any {
+  switch (table) {
+    case "cleancar_employees": return normalizeEmployee(record);
+    case "cleancar_jobs":      return normalizeJob(record);
+    default:                   return record;
+  }
+}
+
 async function fetchTable(table: string, limit?: number): Promise<any[]> {
   const allRows: any[] = [];
   const pageSize = Math.min(limit || 1000, 1000);
@@ -114,8 +157,10 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
       // Write ONLY the legacy key: cleancar_{localKey}
       // DataService automatically falls back to this when city-namespaced key is missing
       const legacyKey = `cleancar_${localKey}`;
-      safeWrite(legacyKey, rows);
-      console.log(`[Supabase] ✅ ${table}: ${rows.length} records → ${legacyKey}`);
+      // Normalize field names to match context interfaces
+      const normalized = rows.map((r: any) => normalizeRecord(table, r));
+      safeWrite(legacyKey, normalized);
+      console.log(`[Supabase] ✅ ${table}: ${normalized.length} records → ${legacyKey}`);
 
     } catch (err) {
       console.error(`[Supabase] Failed ${table}:`, err);

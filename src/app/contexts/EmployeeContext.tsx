@@ -169,6 +169,24 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
     );
   }, [employees, city, cityInfo]);
 
+  // Re-hydrate from Supabase data after it loads into localStorage
+  useEffect(() => {
+    const t1 = setTimeout(() => {
+      const stored = DataService.get<Employee>("EMPLOYEES");
+      if (stored.length > employees.length) {
+        console.log(`[EmployeeContext] Re-hydrating ${stored.length} employees`);
+        setEmployees(stored);
+      }
+    }, 1500);
+    const t2 = setTimeout(() => {
+      const stored = DataService.get<Employee>("EMPLOYEES");
+      if (stored.length > employees.length) {
+        setEmployees(stored);
+      }
+    }, 4000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Function to reload employees from DataService
   const loadEmployees = useCallback(() => {
     const data = DataService.get<Employee>("EMPLOYEES");

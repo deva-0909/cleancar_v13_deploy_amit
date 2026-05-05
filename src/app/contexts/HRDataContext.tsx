@@ -13,7 +13,7 @@
  * Data Flow: UI → useEmployeeData → HRDataContext → DataService → localStorage
  */
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { DataService } from "../services/DataService";
 import { seedEmployeesIfEmpty } from "../data/seedEmployees";
 import { eventBus } from "../utils/eventBus";
@@ -274,6 +274,28 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
   const [employees, setEmployees] = useState<Employee[]>(() => initializeEmployees());
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => initializeAttendance());
   const [payrollRuns, setPayrollRuns] = useState<PayrollRun[]>(() => initializePayroll());
+
+  // Re-hydrate from localStorage after Supabase data loads (1s and 3s attempts)
+  useEffect(() => {
+    const rehydrate = () => {
+      const stored = DataService.get<Employee>("EMPLOYEES");
+      if (stored.length > employees.length) {
+        console.log(`[HRDataContext] Re-hydrating ${stored.length} employees from localStorage`);
+        setEmployees(stored);
+      }
+      const storedAtt = DataService.get<AttendanceRecord>("ATTENDANCE_RECORDS");
+      if (storedAtt.length > attendanceRecords.length) {
+        setAttendanceRecords(storedAtt);
+      }
+      const storedPay = DataService.get<PayrollRun>("PAYROLL_RUNS");
+      if (storedPay.length > payrollRuns.length) {
+        setPayrollRuns(storedPay);
+      }
+    };
+    const t1 = setTimeout(rehydrate, 1000);
+    const t2 = setTimeout(rehydrate, 3500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ============================================
   // EMPLOYEE OPERATIONS
