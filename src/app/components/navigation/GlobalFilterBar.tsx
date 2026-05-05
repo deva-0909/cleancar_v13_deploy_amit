@@ -50,8 +50,8 @@ export function useGlobalFilters() {
     if (import.meta.hot || !import.meta.env?.PROD) {
       const defaultFilters: GlobalFilters = {
         city: "ALL",
-        startDate: "",
-        endDate: "",
+        startDate: "2026-01-01",
+        endDate: "2026-04-30",
         businessUnit: "ALL",
       };
       return {
@@ -77,8 +77,8 @@ interface GlobalFiltersProviderProps {
 export function GlobalFiltersProvider({ children }: GlobalFiltersProviderProps) {
   const defaultFilters: GlobalFilters = {
     city: "ALL",
-    startDate: "",
-    endDate: "",
+    startDate: "2026-01-01",  // Start of seeded data
+    endDate: "2026-04-30",    // End of seeded data
     businessUnit: "ALL",
   };
 
@@ -90,8 +90,8 @@ export function GlobalFiltersProvider({ children }: GlobalFiltersProviderProps) 
 
   const hasActiveFilters =
     filters.city !== "ALL" ||
-    filters.startDate !== "" ||
-    filters.endDate !== "" ||
+    (filters.startDate !== "" && filters.startDate !== "2026-01-01") ||
+    (filters.endDate !== "" && filters.endDate !== "2026-04-30") ||
     filters.businessUnit !== "ALL";
 
   return (

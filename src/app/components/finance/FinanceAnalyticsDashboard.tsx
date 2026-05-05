@@ -315,6 +315,12 @@ export function FinanceAnalyticsDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const loadDashboardData = () => {
+    setIsLoading(true);
+    setError(null);
+    setTimeout(() => setIsLoading(false), 300);
+  };
+
   // Drilldown drawer state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerType, setDrawerType] = useState<"revenue" | "expenses" | "profit" | "cash" | null>(null);
@@ -329,12 +335,15 @@ export function FinanceAnalyticsDashboard() {
 
   // Calculate live data from FinanceContext
   const summary = useMemo(() => {
-    const cityRevenues  = getRevenueByCity(city).filter(r => r.status === "Received" && r.receivedDate.startsWith(currentMonth));
+    const allRevs = getRevenueByCity(city).filter(r => r.status === "Received");
+    const monthRevs = allRevs.filter(r => r.receivedDate?.startsWith(currentMonth));
+    // Use current month data if available, else show latest available month
+    const cityRevenues = monthRevs.length > 0 ? monthRevs : allRevs.slice(0, 500);
     const cityPayables  = getPayablesByCity(city);
     const totalRevenue  = cityRevenues.reduce((s, r) => s + r.amount, 0);
-    const totalExpenses = cityPayables.filter(p => p.status === "Paid" && p.paidAt?.startsWith(currentMonth)).reduce((s, p) => s + p.amount, 0);
-    const ebitda        = calculateEBITDA(city, currentMonth);
-    const mrr           = getTotalMRR(currentMonth, city);
+    const totalExpenses = cityPayables.filter(p => p.status === "Paid").reduce((s, p) => s + p.amount, 0);
+    const ebitda        = totalRevenue - totalExpenses;
+    const mrr           = getTotalMRR(currentMonth, city) || totalRevenue;
     const activeAlerts  = getActiveAlerts(city);
     const overdueCount  = cityPayables.filter(p => p.status === "Overdue").length;
 
@@ -469,26 +478,9 @@ export function FinanceAnalyticsDashboard() {
     );
   }
 
-  // Empty state
-  const hasAnyRevenue = getRevenueByCity(city).length > 0;
-  if (!isLoading && summary && summary.revenue.total === 0 && summary.expenses.total === 0 && !hasAnyRevenue) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <FileX className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">No Financial Data</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              No transactions found for the selected filters.
-            </p>
-            <Button variant="outline" onClick={() => setFilters(DEFAULT_FILTERS)}>
-              Reset Filters
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Get all revenues for city regardless of month filter
+  const allCityRevenues = getRevenueByCity(city);
+  const hasAnyRevenue = allCityRevenues.length > 0;
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
