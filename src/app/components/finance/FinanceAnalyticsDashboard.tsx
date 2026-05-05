@@ -4,7 +4,21 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useCity } from "../../contexts/CityContext";
-import { useGlobalFilters } from "../navigation/GlobalFilterBar";
+import { useGlobalFilters as useGlobalFiltersHook } from "../navigation/GlobalFilterBar";
+
+// Safe wrapper — never throws even outside provider
+function useSafeGlobalFilters() {
+  try {
+    return useGlobalFiltersHook();
+  } catch {
+    return {
+      filters: { city: "ALL", startDate: "2026-01-01", endDate: "2026-04-30", businessUnit: "ALL" },
+      setFilters: () => {},
+      resetFilters: () => {},
+      hasActiveFilters: false,
+    };
+  }
+}
 import { useFinance } from "../../contexts/FinanceContext";
 import { DataService } from "../../services/DataService";
 import {
@@ -63,7 +77,7 @@ function KPICard({ title, value, change, icon: Icon, color = "blue" }: any) {
 export function FinanceAnalyticsDashboard() {
   const { city, cityInfo } = useCity();
   const { getRevenueByCity, getPayablesByCity } = useFinance();
-  const { filters, setFilters } = useGlobalFilters();
+  const { filters, setFilters } = useSafeGlobalFilters();
   // Derive selectedMonth from GlobalFilterBar startDate
   // If user picked Jan 6 - Mar 10 2026, use those months
   const filterStart = filters.startDate || "2026-01-01";
