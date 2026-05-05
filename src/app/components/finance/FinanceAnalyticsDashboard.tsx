@@ -4,6 +4,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useCity } from "../../contexts/CityContext";
+import { useGlobalFilters } from "../navigation/GlobalFilterBar";
 import { useFinance } from "../../contexts/FinanceContext";
 import { DataService } from "../../services/DataService";
 import {
@@ -62,7 +63,11 @@ function KPICard({ title, value, change, icon: Icon, color = "blue" }: any) {
 export function FinanceAnalyticsDashboard() {
   const { city, cityInfo } = useCity();
   const { getRevenueByCity, getPayablesByCity } = useFinance();
-  const [selectedMonth, setSelectedMonth] = useState("2026-04");
+  const { filters, setFilters } = useGlobalFilters();
+  // Derive selectedMonth from GlobalFilterBar startDate
+  // If user picked Jan 6 - Mar 10 2026, use those months
+  const filterStart = filters.startDate || "2026-01-01";
+  const filterEnd   = filters.endDate   || "2026-04-30";
   const [revenues, setRevenues] = useState<any[]>([]);
   const [payables, setPayables] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,14 +115,13 @@ export function FinanceAnalyticsDashboard() {
       setPayables(pays);
       setLoading(false);
 
-      // Auto-switch to latest month with data
+      // Log available months
       if (revs.length > 0) {
         const months = [...new Set(
           revs.map((r: any) => r?.receivedDate?.slice(0, 7)).filter(Boolean)
         )].sort().reverse() as string[];
-        if (months.length > 0 && !months.includes(selectedMonth)) {
-          setSelectedMonth(months[0]);
-        }
+        console.log("[Finance] Available months:", months.join(", "));
+        console.log("[Finance] Filter range:", filterStart, "to", filterEnd);
       }
     } catch (e) {
       console.error("Finance load error:", e);
@@ -132,23 +136,35 @@ export function FinanceAnalyticsDashboard() {
     return () => clearTimeout(t);
   }, [city]);
 
-  // Filter to selected month
+  // Filter by GlobalFilterBar date range
   const monthRevenues = useMemo(() =>
-    revenues.filter((r: any) => r?.receivedDate?.startsWith(selectedMonth)),
-    [revenues, selectedMonth]
+    revenues.filter((r: any) => {
+      const d = r?.receivedDate || "";
+      return d >= filterStart && d <= filterEnd;
+    }),
+    [revenues, filterStart, filterEnd]
   );
 
   const monthPayables = useMemo(() =>
-    payables.filter((p: any) => p?.dueDate?.startsWith(selectedMonth) || p?.paidAt?.startsWith(selectedMonth)),
-    [payables, selectedMonth]
+    payables.filter((p: any) => {
+      const d = p?.dueDate || p?.paidAt || "";
+      return d >= filterStart && d <= filterEnd;
+    }),
+    [payables, filterStart, filterEnd]
   );
 
-  // Previous month for comparison
-  const prevMonth = MONTHS[MONTHS.findIndex(m => m.value === selectedMonth) + 1]?.value;
-  const prevRevenues = useMemo(() =>
-    prevMonth ? revenues.filter((r: any) => r?.receivedDate?.startsWith(prevMonth)) : [],
-    [revenues, prevMonth]
-  );
+  // Previous period for comparison (same duration before filterStart)
+  const prevRevenues = useMemo(() => {
+    const start = new Date(filterStart);
+    const end   = new Date(filterEnd);
+    const duration = end.getTime() - start.getTime();
+    const prevStart = new Date(start.getTime() - duration).toISOString().split("T")[0];
+    const prevEnd   = filterStart;
+    return revenues.filter((r: any) => {
+      const d = r?.receivedDate || "";
+      return d >= prevStart && d < prevEnd;
+    });
+  }, [revenues, filterStart, filterEnd]);
 
   // KPI calculations
   const summary = useMemo(() => {
@@ -196,14 +212,15 @@ export function FinanceAnalyticsDashboard() {
     })).filter(x => x.value > 0);
   }, [monthRevenues]);
 
-  // Monthly comparison
+  // Monthly comparison - all 4 seeded months
   const monthCompare = useMemo(() => {
     return MONTHS.slice(0, 4).map(m => ({
-      month: m.label.split(" ")[0], // "April", "March" etc
+      month: m.label.split(" ")[0],
       revenue: revenues.filter((r: any) => r?.receivedDate?.startsWith(m.value))
         .reduce((s: number, r: any) => s + (Number(r?.amount) || 0), 0),
+      isInRange: m.value >= filterStart.slice(0,7) && m.value <= filterEnd.slice(0,7),
     })).reverse();
-  }, [revenues]);
+  }, [revenues, filterStart, filterEnd]);
 
   if (loading) {
     return (
@@ -230,16 +247,10 @@ export function FinanceAnalyticsDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MONTHS.map(m => (
-                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
+            📅 {filterStart} → {filterEnd}
+            <span className="text-xs text-gray-400 ml-1">(set via top filter bar)</span>
+          </div>
           <Button variant="outline" size="sm" onClick={loadData}>
             <RefreshCcw className="w-4 h-4 mr-1" /> Refresh
           </Button>
@@ -298,7 +309,7 @@ export function FinanceAnalyticsDashboard() {
             {revenues.length} Revenue Records
           </Badge>
           <Badge className="bg-purple-100 text-purple-800 text-sm px-3 py-1">
-            {monthRevenues.length} in {MONTHS.find(m => m.value === selectedMonth)?.label}
+            {monthRevenues.length} in {`${filterStart} to ${filterEnd}`}
           </Badge>
         </div>
       )}
@@ -311,7 +322,7 @@ export function FinanceAnalyticsDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
-                  Daily Revenue — {MONTHS.find(m => m.value === selectedMonth)?.label}
+                  Daily Revenue — {`${filterStart} to ${filterEnd}`}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -386,7 +397,7 @@ export function FinanceAnalyticsDashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                Revenue Summary — {MONTHS.find(m => m.value === selectedMonth)?.label}
+                Revenue Summary — {`${filterStart} to ${filterEnd}`}
               </CardTitle>
             </CardHeader>
             <CardContent>
