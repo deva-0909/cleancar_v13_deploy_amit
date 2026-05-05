@@ -128,6 +128,40 @@ export const ROUTES: AppRoute[] = [
   // HIERARCHY
   { path: "/hierarchy-dashboard", module: "operations", description: "Org hierarchy" },
 
+  // GST routes (F-NAV-03 - these were unguarded)
+  { path: "/gst", module: "accounts", description: "GST Compliance" },
+  { path: "/gst/vendors", module: "accounts", description: "GST Vendor Master" },
+  { path: "/gst/customers", module: "accounts", description: "GST Customer Master" },
+  { path: "/gst/transactions", module: "accounts", description: "GST Transactions" },
+  { path: "/gst/transaction-entry", module: "accounts", description: "GST Entry" },
+  { path: "/gst/gstr1", module: "accounts", description: "GSTR-1" },
+  { path: "/gst/gstr3b", module: "accounts", description: "GSTR-3B" },
+  { path: "/gst/filing", module: "accounts", description: "GST Filing" },
+  { path: "/gst/reconciliation", module: "accounts", description: "GST Reconciliation" },
+  { path: "/gst/monitoring", module: "accounts", description: "GST Monitoring" },
+  { path: "/gst/validation", module: "accounts", description: "GST Validation" },
+  { path: "/gst/reports", module: "accounts", description: "GST Reports" },
+
+  // Travel reimbursement (F-NAV-19)
+  { path: "/travel", module: "hr", description: "Travel Reimbursement" },
+
+  // Role-specific apps (F-NAV-19)
+  { path: "/washer-core-screens", module: "car-washer", description: "Washer App" },
+  { path: "/supervisor-app", module: "supervisor", description: "Supervisor App" },
+  { path: "/supervisor-app/dashboard", module: "supervisor", description: "Supervisor Dashboard" },
+  { path: "/om-app", module: "operations", description: "Operations Manager App" },
+  { path: "/cm-app", module: "operations", description: "Cluster Manager App" },
+  { path: "/city-app", module: "operations", description: "City Manager App" },
+  { path: "/tsm-app", module: "crm", description: "TSM App" },
+  { path: "/tse-app", module: "crm", description: "TSE App" },
+  { path: "/cce-app", module: "crm", description: "CCE App" },
+
+  // My Account (F-NAV-19)
+  { path: "/my-account/mobile-change", module: "dashboard", description: "Mobile Change" },
+
+  // Washer attendance (F-NAV-19)
+  { path: "/washer/attendance", module: "car-washer", description: "Washer Attendance" },
+
   // PUBLIC ONBOARDING
   { path: "/onboard/:empId", module: "public", description: "Employee onboarding" },
   { path: "/onboarding/:empId", module: "public", description: "Employee onboarding form" },

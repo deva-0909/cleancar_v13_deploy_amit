@@ -50,7 +50,7 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
     allowedPaths: ["/", "/operations", "/washer-jobs", "/service-zones", "/supervisor", "/complaints", "/car-washer", "/hr/professional-leave", "/hr/self-service", "/approvals", "/performance", "/analytics"],
   },
   "Cluster Manager": {
-    defaultPath: "/cluster",
+    defaultPath: "/cm-app", // F-NAV-14: /cluster does not exist
     allowedPaths: ["/", "/cluster", "/operations", "/washer-jobs", "/service-zones", "/complaints", "/users", "/leads", "/customers", "/finance", "/hr/professional-leave", "/hr/self-service", "/performance", "/analytics"],
   },
   "City Manager": {
@@ -84,7 +84,7 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
     allowedPaths: ["/hr", "/advance/hr-management"],
   },
   Accounts: {
-    defaultPath: "/finance",
+    defaultPath: "/accounts", // F-NAV-15
     allowedPaths: ["/finance", "/accounts"],
   },
 };

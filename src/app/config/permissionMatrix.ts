@@ -82,6 +82,7 @@ export const permissionMatrix: Record<City, RolePermissions> = {
       "jobs": ["view", "create", "edit", "approve", "export"],
       "admin": ["view", "create", "edit", "export"],
       "payroll-self-service": ["view"],
+      advance: ["view", "create", "edit", "approve"], // F-NAV-13
     },
 
     "City Manager": {
@@ -92,6 +93,9 @@ export const permissionMatrix: Record<City, RolePermissions> = {
       operations: ["view", "create", "edit", "export"],
       complaints: ["view", "create", "edit", "approve", "export"],
       finance: ["view", "export"],
+      hr: ["view", "export"],       // F-NAV-10: City Manager needs HR section visibility
+      payroll: ["view", "export"],  // F-NAV-10: City Manager needs payroll visibility
+      advance: ["view", "export"],  // City Manager needs advance visibility
       leave: ["view", "approve", "export"],
       performance: ["view", "export"],
       analytics: ["view", "export"],
@@ -408,6 +412,7 @@ export const permissionMatrix: Record<City, RolePermissions> = {
       "jobs": ["view", "create", "edit", "approve", "export"],
       "admin": ["view", "create", "edit", "export"],
       "payroll-self-service": ["view"],
+      advance: ["view", "create", "edit", "approve"], // F-NAV-13
     },
 
     "City Manager": {

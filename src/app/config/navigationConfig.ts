@@ -85,7 +85,7 @@ export const NAV_CONFIG: NavItem[] = [
     path: "/crm",
     icon: Target,
     module: "crm",
-    match: "exact", // Parent uses exact match
+    match: "prefix" // F-NAV-05, // Parent uses exact match
     description: "Leads, customers, and sales",
     children: [
       { label: "Leads", path: "/leads", icon: Target, module: "leads", match: "prefix" },
@@ -185,7 +185,7 @@ export const NAV_CONFIG: NavItem[] = [
     path: "/payroll",
     icon: Coins,
     module: "payroll",
-    match: "exact", // Parent uses exact match
+    match: "prefix" // F-NAV-07, // Parent uses exact match
     description: "Payroll processing and management",
     children: [
       { label: "Configuration", path: "/payroll/configuration", icon: Settings, module: "payroll", match: "prefix" },
@@ -246,7 +246,7 @@ export const NAV_CONFIG: NavItem[] = [
       { label: "Purchase Summary",   path: "/accounts/reports/purchase", icon: ShoppingCart,    module: "accounts", match: "prefix" },
       { label: "Sales Summary",      path: "/accounts/reports/sales",    icon: TrendingUp,      module: "accounts", match: "prefix" },
       { label: "RCM Report",         path: "/accounts/reports/rcm",      icon: AlertCircle,     module: "accounts", match: "prefix" },
-      { label: "Vendor Master",      path: "/gst/vendors",               icon: Building2,       module: "accounts", match: "prefix" },
+      
       { label: "Vendor Payment",     path: "/accounts/vendor-payment",   icon: Building,        module: "accounts", match: "prefix" },
       { label: "Payroll Processing", path: "/accounts/payroll-processing",icon: Calculator,     module: "accounts", match: "prefix" },
       { label: "Payables",           path: "/accounts/payables",         icon: CreditCard,      module: "accounts", match: "prefix" },
@@ -304,7 +304,7 @@ export const NAV_CONFIG: NavItem[] = [
     path: "/admin",
     icon: Settings,
     module: "admin",
-    match: "exact", // Parent uses exact match
+    match: "prefix" // F-NAV-06, // Parent uses exact match
     description: "System configuration and settings",
     children: [
       { label: "City Management", path: "/admin/city-management", icon: MapPin, module: "admin", match: "prefix" },

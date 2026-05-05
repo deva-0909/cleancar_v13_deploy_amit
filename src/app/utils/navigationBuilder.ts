@@ -96,14 +96,10 @@ export function buildNavigation(employee: NavEmployee | null, city?: CityId): Na
     .map(filterNavItem)
     .filter((item): item is NavItem => item !== null);
 
-  const allowedModules = Object.keys(
-    permissionMatrix[employee.cityId as City]?.[employee.role as Role] || {}
-  );
-  const filtered = filteredNav.filter(item =>
-    !item.module || allowedModules.includes(item.module) ||
-    allowedModules.length === 0
-  );
-  return filtered;
+  // Pass 1 (hasPermission) is the single source of truth for nav filtering.
+  // The previous Pass 2 Object.keys() filter was redundant and caused silent
+  // removal of legitimate nav items for 14 of 17 roles. Removed per F-NAV-01.
+  return filteredNav;
 }
 
 /**
