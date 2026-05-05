@@ -59,8 +59,8 @@ export default function App() {
         await loadAllDataFromSupabase();
 
         setLoadingMsg("Almost ready...");
-        // Small delay to let localStorage writes settle
-        await new Promise(r => setTimeout(r, 300));
+        // Wait for localStorage writes to settle before mounting contexts
+        await new Promise(r => setTimeout(r, 800));
 
       } catch (err) {
         console.error("Bootstrap error:", err);

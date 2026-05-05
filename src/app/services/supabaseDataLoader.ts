@@ -69,10 +69,22 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
     return;
   }
 
-  // Skip if already loaded this session (unless forced)
-  if (!forceReload && sessionStorage.getItem(SEED_FLAG)) {
-    console.log("[Supabase] Data already loaded this session");
-    return;
+  // Check if localStorage already has data (fast path - no Supabase call needed)
+  if (!forceReload) {
+    const existingRevenues = localStorage.getItem("cleancar_revenues") ||
+      localStorage.getItem("cleancar_CITY-SURAT_revenues");
+    const existingCustomers = localStorage.getItem("cleancar_customers") ||
+      localStorage.getItem("cleancar_CITY-SURAT_customers");
+    if (existingRevenues && existingCustomers) {
+      try {
+        const revCount = JSON.parse(existingRevenues).length;
+        const custCount = JSON.parse(existingCustomers).length;
+        if (revCount > 10 && custCount > 10) {
+          console.log(`[Supabase] localStorage has data (${revCount} revenues, ${custCount} customers) — skipping fetch`);
+          return;
+        }
+      } catch(e) { /* parse error — proceed with fetch */ }
+    }
   }
 
   console.log("[Supabase] Loading all data...");
