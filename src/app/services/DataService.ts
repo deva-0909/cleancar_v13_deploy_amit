@@ -93,22 +93,39 @@ class DataServiceClass {
       const newKey = buildKey(baseKey, cityId);
       const legacyKey = buildLegacyKey(baseKey);
 
-      // Try new namespaced key first
-      let data = localStorage.getItem(newKey);
-
-      // Backward compatibility: fallback to legacy key
-      if (!data) {
-        const legacyData = localStorage.getItem(legacyKey);
-        if (legacyData) {
-          console.log(`[DataService] 🔄 Migrating ${entityType} from legacy key to ${cityId || DEFAULT_CITY}`);
-          // Auto-migrate to new namespaced key
-          localStorage.setItem(newKey, legacyData);
-          data = legacyData;
-          // Note: We keep the legacy key for safety during transition
+      // Try city-namespaced key first, with safe JSON parse
+      const cityData = localStorage.getItem(newKey);
+      if (cityData) {
+        try {
+          const parsed = JSON.parse(cityData);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+          // Empty array or invalid — fall through to legacy key
+        } catch (e) {
+          // Corrupt/truncated JSON in city key — remove it and use legacy
+          console.warn(`[DataService] Corrupt data in ${newKey}, falling back to legacy key`);
+          try { localStorage.removeItem(newKey); } catch(_) {}
         }
       }
 
-      return data ? JSON.parse(data) : [];
+      // Fallback: try legacy key cleancar_{baseKey}
+      const legacyData = localStorage.getItem(legacyKey);
+      if (legacyData) {
+        try {
+          const parsed = JSON.parse(legacyData);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Migrate to city key for next time
+            try { localStorage.setItem(newKey, legacyData); } catch(_) {}
+            return parsed;
+          }
+        } catch (e) {
+          console.warn(`[DataService] Corrupt data in ${legacyKey}`);
+          try { localStorage.removeItem(legacyKey); } catch(_) {}
+        }
+      }
+
+      return [];
     } catch (error) {
       console.error(`[DataService] Error reading ${entityType}:`, error);
       return [];
