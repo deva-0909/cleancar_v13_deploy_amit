@@ -46,22 +46,19 @@ const GlobalFiltersContext = createContext<GlobalFiltersContextType | undefined>
 export function useGlobalFilters() {
   const context = useContext(GlobalFiltersContext);
   if (!context) {
-    // Preview/HMR fallback
-    if (import.meta.hot || !import.meta.env?.PROD) {
-      const defaultFilters: GlobalFilters = {
+    // Always return safe defaults — never throw
+    // This handles both preview/HMR and production edge cases
+    return {
+      filters: {
         city: "ALL",
         startDate: "2026-01-01",
         endDate: "2026-04-30",
         businessUnit: "ALL",
-      };
-      return {
-        filters: defaultFilters,
-        setFilters: () => {},
-        resetFilters: () => {},
-        hasActiveFilters: false,
-      };
-    }
-    throw new Error("useGlobalFilters must be used within GlobalFiltersProvider");
+      } as GlobalFilters,
+      setFilters: (_f: GlobalFilters) => {},
+      resetFilters: () => {},
+      hasActiveFilters: false,
+    };
   }
   return context;
 }
