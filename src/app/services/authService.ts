@@ -262,7 +262,6 @@ class AuthServiceClass {
       lockedUntil: undefined,
     });
   }
-}
 
   // ── RESET PASSWORD (simple wrapper for LoginPage) ─────────
   resetPassword(loginMobile: string, otp: string, newPassword: string): void {
