@@ -325,7 +325,7 @@ export function FinanceAnalyticsDashboard() {
   // Cities for multi-select (in production: fetch from API)
   const availableCities = ["Surat", "Mumbai", "Ahmedabad"];
 
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const [currentMonth, setCurrentMonth] = useState("2026-04"); // Default to latest seeded month
 
   // Calculate live data from FinanceContext
   const summary = useMemo(() => {
@@ -470,7 +470,8 @@ export function FinanceAnalyticsDashboard() {
   }
 
   // Empty state
-  if (!isLoading && summary && summary.revenue.total === 0 && summary.expenses.total === 0) {
+  const hasAnyRevenue = getRevenueByCity(city).length > 0;
+  if (!isLoading && summary && summary.revenue.total === 0 && summary.expenses.total === 0 && !hasAnyRevenue) {
     return (
       <div className="p-6">
         <div className="flex items-center justify-center min-h-[400px]">

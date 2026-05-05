@@ -323,6 +323,25 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
   }, []); // Run on mount only
 
+  // Re-hydrate from localStorage after Supabase data loads (1s delay for loader)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const storedRevenues = DataService.get<Revenue>("FINANCE_REVENUES");
+      if (storedRevenues.length > revenues.length) {
+        setRevenues(storedRevenues.map(withCityFallback));
+      }
+      const storedPayables = DataService.get<Payable>("FINANCE_PAYABLES");
+      if (storedPayables.length > payables.length) {
+        setPayables(storedPayables);
+      }
+      const storedMRR = DataService.get<MRRData>("FINANCE_MRR");
+      if (storedMRR.length > mrrData.length) {
+        setMRRData(storedMRR);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auto-run alert engine when financial data changes
   useEffect(() => {
     const cities = [...new Set([...revenues.map(r => r.cityId), ...payables.map(p => p.cityId)])];

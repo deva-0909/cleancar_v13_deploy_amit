@@ -100,6 +100,17 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const { emit } = useEvents();
 
   // Persist to storage (local cache - instant)
+    // Re-hydrate from localStorage after Supabase data loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const stored_customers = DataService.get<Customer>("CUSTOMERS");
+      if (stored_customers.length > customers.length) { setCustomers(stored_customers); }
+      const stored_leads = DataService.get<Lead>("LEADS");
+      if (stored_leads.length > leads.length) { setLeads(stored_leads); }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     DataService.setAll("CUSTOMERS", customers);
   }, [customers]);

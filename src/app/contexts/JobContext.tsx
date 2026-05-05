@@ -143,6 +143,15 @@ export function JobProvider({ children }: { children: ReactNode }) {
   const { emit } = useEvents();
 
   // Persist to storage (local cache - instant)
+    // Re-hydrate from localStorage after Supabase data loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const stored_allJobs = DataService.get<Job>("JOBS");
+      if (stored_allJobs.length > allJobs.length) { setAllJobs(stored_allJobs); }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     DataService.setAll("JOBS", allJobs);
   }, [allJobs]);

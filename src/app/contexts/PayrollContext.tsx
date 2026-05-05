@@ -180,6 +180,15 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
   });
 
   // Persist to storage
+    // Re-hydrate from localStorage after Supabase data loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const stored_payrollRuns = DataService.get<PayrollRun>("PAYROLL_RUNS");
+      if (stored_payrollRuns.length > payrollRuns.length) { setPayrollRuns(stored_payrollRuns); }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     DataService.setAll("PAYROLL_RUNS", payrollRuns);
   }, [payrollRuns]);

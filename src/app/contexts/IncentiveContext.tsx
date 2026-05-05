@@ -133,6 +133,17 @@ export function IncentiveProvider({ children }: { children: ReactNode }) {
   });
 
   // Persist to storage
+    // Re-hydrate from localStorage after Supabase data loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const stored_incentivePlans = DataService.get<IncentivePlan>("INCENTIVE_PLANS");
+      if (stored_incentivePlans.length > incentivePlans.length) { setIncentivePlans(stored_incentivePlans); }
+      const stored_employeeIncentives = DataService.get<EmployeeIncentive>("EMPLOYEE_INCENTIVES");
+      if (stored_employeeIncentives.length > employeeIncentives.length) { setEmployeeIncentives(stored_employeeIncentives); }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     DataService.setAll("INCENTIVE_PLANS", incentivePlans);
   }, [incentivePlans]);
