@@ -112,11 +112,11 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    DataService.setAll("CUSTOMERS", customers);
+    if (customers.length > 0) DataService.setAll("CUSTOMERS", customers);
   }, [customers]);
 
   useEffect(() => {
-    DataService.setAll("LEADS", leads);
+    if (leads.length > 0) DataService.setAll("LEADS", leads);
   }, [leads]);
 
   // Backend sync (background, non-blocking)

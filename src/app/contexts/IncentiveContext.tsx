@@ -145,11 +145,11 @@ export function IncentiveProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    DataService.setAll("INCENTIVE_PLANS", incentivePlans);
+    if (incentivePlans.length > 0) DataService.setAll("INCENTIVE_PLANS", incentivePlans);
   }, [incentivePlans]);
 
   useEffect(() => {
-    DataService.setAll("EMPLOYEE_INCENTIVES", employeeIncentives);
+    if (employeeIncentives.length > 0) DataService.setAll("EMPLOYEE_INCENTIVES", employeeIncentives);
   }, [employeeIncentives]);
 
   // ========== INCENTIVE PLAN ACTIONS ==========

@@ -270,33 +270,35 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return stored;
   });
 
-  // Persist to storage (local cache - instant)
+  // Persist to storage — only when data is non-empty to avoid overwriting Supabase data with []
   useEffect(() => {
-    DataService.setAll("FINANCE_MRR", mrrData);
+    if (mrrData.length > 0) DataService.setAll("FINANCE_MRR", mrrData);
   }, [mrrData]);
 
   useEffect(() => {
-    DataService.setAll("FINANCE_PAYABLES", payables);
+    if (payables.length > 0) DataService.setAll("FINANCE_PAYABLES", payables);
   }, [payables]);
 
   useEffect(() => {
-    DataService.setAll("FINANCE_REVENUES", revenues);
+    // Never write revenues back to localStorage — Supabase is source of truth
+    // Writing back causes quota issues and overwrites good data with []
+    // DataService.get() fallback handles reading from cleancar_revenues legacy key
   }, [revenues]);
 
   useEffect(() => {
-    DataService.setAll("FINANCE_LEDGER", ledgerEntries);
+    if (ledgerEntries.length > 0) DataService.setAll("FINANCE_LEDGER", ledgerEntries);
   }, [ledgerEntries]);
 
   useEffect(() => {
-    DataService.setAll("FINANCE_BUDGETS", budgets);
+    if (budgets.length > 0) DataService.setAll("FINANCE_BUDGETS", budgets);
   }, [budgets]);
 
   useEffect(() => {
-    DataService.setAll("FINANCE_ALERTS", alerts);
+    if (alerts.length > 0) DataService.setAll("FINANCE_ALERTS", alerts);
   }, [alerts]);
 
   useEffect(() => {
-    DataService.setAll("FINANCE_RECOMMENDATIONS", recommendations);
+    if (recommendations.length > 0) DataService.setAll("FINANCE_RECOMMENDATIONS", recommendations);
   }, [recommendations]);
 
   // Backend sync (background, non-blocking)

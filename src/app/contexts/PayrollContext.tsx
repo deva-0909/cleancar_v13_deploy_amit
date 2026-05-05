@@ -190,7 +190,7 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    DataService.setAll("PAYROLL_RUNS", payrollRuns);
+    if (payrollRuns.length > 0) DataService.setAll("PAYROLL_RUNS", payrollRuns);
   }, [payrollRuns]);
 
   useEffect(() => {
