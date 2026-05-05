@@ -112,8 +112,8 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
 
         const legacyKey = `cleancar_${localKey}`;
 
-        if (cityColumn && cityNamespaced) {
-          // Group by city and store city-namespaced keys (only for small tables)
+        // Write city-namespaced keys (matches DataService primary read key)
+        if (cityColumn) {
           const cityGroups: Record<string, any[]> = {};
           rows.forEach(row => {
             const cityId = row?.[cityColumn] || row?.cityId || "CITY-SURAT";
@@ -122,25 +122,22 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
           });
 
           Object.entries(cityGroups).forEach(([cityId, cityRows]) => {
-            const key = `cleancar_${cityId}_${localKey}`;
+            // Match DataService key exactly: cleancar_CITY-SURAT_revenues
+            const cityKey = `cleancar_${cityId}_${localKey}`;
             try {
-              localStorage.setItem(key, JSON.stringify(cityRows));
+              localStorage.setItem(cityKey, JSON.stringify(cityRows));
             } catch (e) {
-              // Quota exceeded — store without city namespace
-              try { localStorage.setItem(legacyKey, JSON.stringify(rows.slice(0, 500))); } catch(_) {}
+              // Quota — write trimmed
+              try { localStorage.setItem(cityKey, JSON.stringify(cityRows.slice(0, 200))); } catch(_) {}
             }
           });
         }
 
-        // Always store combined legacy key
+        // Also write legacy key as fallback: cleancar_revenues
         try {
           localStorage.setItem(legacyKey, JSON.stringify(rows));
         } catch (e) {
-          // Quota — store trimmed version
-          try {
-            localStorage.setItem(legacyKey, JSON.stringify(rows.slice(0, 300)));
-            console.warn(`[Supabase] Stored trimmed ${table}: ${Math.min(rows.length, 300)} of ${rows.length}`);
-          } catch(_) {}
+          try { localStorage.setItem(legacyKey, JSON.stringify(rows.slice(0, 300))); } catch(_) {}
         }
 
         console.log(`[Supabase] ✅ ${table}: ${rows.length} records`);

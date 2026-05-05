@@ -323,11 +323,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
   }, []); // Run on mount only
 
-  // Re-hydrate from localStorage after Supabase data loads (1s delay for loader)
+  // Re-hydrate from localStorage after Supabase data loads
+  // Run at 1s and 3s to catch slow Supabase responses
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const rehydrate = () => {
+      // Read all cities combined (no cityId = reads CITY-SURAT key as default, falls back to legacy)
       const storedRevenues = DataService.get<Revenue>("FINANCE_REVENUES");
       if (storedRevenues.length > revenues.length) {
+        logger.debug("FinanceContext re-hydrating revenues", { count: storedRevenues.length });
         setRevenues(storedRevenues.map(withCityFallback));
       }
       const storedPayables = DataService.get<Payable>("FINANCE_PAYABLES");
@@ -338,8 +341,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       if (storedMRR.length > mrrData.length) {
         setMRRData(storedMRR);
       }
-    }, 1000);
-    return () => clearTimeout(timer);
+    };
+    const t1 = setTimeout(rehydrate, 1000);
+    const t2 = setTimeout(rehydrate, 3000); // Second attempt for slow connections
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-run alert engine when financial data changes
