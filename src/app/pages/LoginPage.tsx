@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, Eye, EyeOff, Phone, Lock, AlertTriangle, ArrowRight } from "lucide-react";
 import { Input } from "../components/ui/input";
@@ -6,12 +6,14 @@ import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { toast } from "sonner";
 import { authService } from "../services/authService";
+import { employeeDatabaseService } from "../services/employeeDatabaseService";
 
 type LoginView = "login" | "forgot_otp_request" | "forgot_otp_verify" | "forgot_reset";
 
 export function LoginPage() {
   const navigate = useNavigate();
   const [view, setView] = useState<LoginView>("login");
+  const [dataReady, setDataReady] = useState(false);
 
   // Login form
   const [loginMobile, setLoginMobile] = useState("");
@@ -29,9 +31,27 @@ export function LoginPage() {
   const [forgotError, setForgotError] = useState("");
   const [forgotInfo, setForgotInfo] = useState("");
 
+  // Load employee data from Supabase before allowing login
+  useEffect(() => {
+    employeeDatabaseService.loadFromSupabase()
+      .then(() => {
+        const employees = employeeDatabaseService.getAll();
+        console.log(`Login ready: ${employees.length} employees loaded`);
+        setDataReady(true);
+      })
+      .catch((err) => {
+        console.error("Supabase load failed, trying localStorage:", err);
+        setDataReady(true); // Allow login attempt even if Supabase fails
+      });
+  }, []);
+
   const handleLogin = async () => {
     if (!loginMobile || !loginPassword) {
       setLoginError("Please enter your mobile number and password.");
+      return;
+    }
+    if (!dataReady) {
+      setLoginError("Loading employee data, please wait...");
       return;
     }
     setIsLoading(true);
@@ -40,7 +60,6 @@ export function LoginPage() {
       const result = authService.login({ loginMobile, password: loginPassword });
 
       if (result.success) {
-        // Store session
         localStorage.setItem("cc360_session", JSON.stringify({
           employeeId: result.employeeId,
           employeeName: result.employeeName,
@@ -62,6 +81,13 @@ export function LoginPage() {
             const unlockTime = result.lockedUntil ? new Date(result.lockedUntil).toLocaleTimeString() : "";
             setLoginError(`Account locked after too many attempts. Try again after ${unlockTime}.`);
             break;
+          case "INVALID_CREDENTIALS":
+            setLoginError(`Incorrect mobile number or password. ${
+              result.remainingAttempts !== undefined
+                ? `${result.remainingAttempts} attempts remaining before lockout.`
+                : ""
+            }`);
+            break;
           default:
             setLoginError(`Incorrect mobile number or password. ${
               result.remainingAttempts !== undefined
@@ -71,6 +97,7 @@ export function LoginPage() {
         }
       }
     } catch (err) {
+      console.error("Login error:", err);
       setLoginError("An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
@@ -82,190 +109,206 @@ export function LoginPage() {
       setForgotError("Please enter your 10-digit registered mobile number.");
       return;
     }
-    // Find employee by mobile
-    const { employeeDatabaseService } = require("../services/employeeDatabaseService");
     const employee = employeeDatabaseService.getAll().find(
       (e: any) => e.loginMobile === forgotMobile || e.mobile === forgotMobile
     );
     if (!employee) {
-      setForgotError("Mobile number not found. Please contact HR.");
+      setForgotError("No account found with this mobile number.");
       return;
     }
-    const result = authService.initiatePasswordReset(employee.id, "self_service");
-    if (result.success) {
-      setForgotInfo(`OTP sent to ${result.maskedMobile}. Valid for 15 minutes.`);
-      // In demo mode, show OTP in console. In production: WhatsApp API.
-      console.log("[Demo] OTP:", result.otp);
-      setForgotError("");
-      setView("forgot_otp_verify");
-    }
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    employeeDatabaseService.update(employee.id, {
+      passwordResetOTP: otp,
+      passwordResetOTPExpiry: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      passwordResetRequestedAt: new Date().toISOString(),
+    });
+    setForgotInfo(`OTP sent to ${forgotMobile.slice(0,3)}XXXXXXX. (Demo OTP: ${otp})`);
+    setForgotError("");
+    setView("forgot_otp_verify");
+  };
+
+  const handleVerifyOTP = () => {
+    const employee = employeeDatabaseService.getAll().find(
+      (e: any) => e.loginMobile === forgotMobile || e.mobile === forgotMobile
+    );
+    if (!employee) { setForgotError("Employee not found."); return; }
+    if (employee.passwordResetOTP !== forgotOTP) { setForgotError("Invalid OTP. Please try again."); return; }
+    const expiry = employee.passwordResetOTPExpiry;
+    if (expiry && new Date(expiry) < new Date()) { setForgotError("OTP expired. Please request a new one."); return; }
+    setForgotError("");
+    setView("forgot_reset");
   };
 
   const handleResetPassword = () => {
-    const result = authService.resetPasswordWithOTP(
-      forgotMobile, forgotOTP, newPassword, confirmPassword
-    );
-    if (result.success) {
+    if (!newPassword || newPassword.length < 6) { setForgotError("Password must be at least 6 characters."); return; }
+    if (newPassword !== confirmPassword) { setForgotError("Passwords do not match."); return; }
+    try {
+      authService.resetPassword(forgotMobile, forgotOTP, newPassword);
       toast.success("Password reset successfully! Please log in with your new password.");
       setView("login");
       setForgotMobile(""); setForgotOTP(""); setNewPassword(""); setConfirmPassword("");
-    } else {
-      setForgotError(result.error || "Reset failed. Please contact HR.");
+    } catch (err) {
+      setForgotError("Failed to reset password. Please try again.");
     }
   };
 
-  // ── RENDER ───────────────────────────────────────────────────
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900
-                    flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center
-                          mx-auto mb-4 shadow-lg">
-            <Building2 className="w-9 h-9 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg">
+            <Building2 className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">CleanCar 360°</h1>
-          <p className="text-blue-300 text-sm mt-1">Enterprise Resource Planning</p>
+          <h1 className="text-3xl font-bold text-white">CleanCar 360°</h1>
+          <p className="text-blue-300 mt-1">Enterprise Resource Planning</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-7">
+        <div className="bg-white rounded-2xl shadow-2xl p-8">
 
           {/* ── LOGIN VIEW ── */}
           {view === "login" && (
             <>
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Sign In</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Sign In</h2>
+
+              {/* Loading indicator */}
+              {!dataReady && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm text-blue-700">Loading employee data...</span>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">Mobile Number</Label>
-                  <div className="relative mt-1.5">
-                    <Phone className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                    <Input
-                      type="tel" maxLength={10}
-                      placeholder="10-digit mobile number"
-                      value={loginMobile}
-                      onChange={e => { setLoginMobile(e.target.value); setLoginError(""); }}
+                  <Label htmlFor="mobile" className="text-sm font-medium text-gray-700">Mobile Number</Label>
+                  <div className="relative mt-1">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input id="mobile" type="tel" placeholder="10-digit mobile number"
+                      value={loginMobile} onChange={e => setLoginMobile(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && handleLogin()}
-                      className="pl-10 font-mono"
-                    />
+                      className="pl-10" maxLength={10} />
                   </div>
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">Password</Label>
-                  <div className="relative mt-1.5">
-                    <Lock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Your password"
-                      value={loginPassword}
-                      onChange={e => { setLoginPassword(e.target.value); setLoginError(""); }}
+                  <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
+                  <div className="relative mt-1">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input id="password" type={showPassword ? "text" : "password"} placeholder="Enter password"
+                      value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && handleLogin()}
-                      className="pl-10 pr-10 font-mono"
-                    />
+                      className="pl-10 pr-10" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600">
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
 
                 {loginError && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-2">
-                    <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
                     <p className="text-sm text-red-700">{loginError}</p>
                   </div>
                 )}
 
-                <Button onClick={handleLogin} disabled={isLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 min-h-[48px] text-base font-semibold">
-                  {isLoading ? "Signing in..." : "Sign In"}
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                <Button onClick={handleLogin} disabled={isLoading || !dataReady}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium">
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Signing in...
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2">
+                      Sign In <ArrowRight className="w-4 h-4" />
+                    </div>
+                  )}
                 </Button>
+              </div>
 
+              <div className="mt-4 text-center">
                 <button onClick={() => { setView("forgot_otp_request"); setLoginError(""); }}
-                  className="w-full text-sm text-blue-600 hover:text-blue-800 text-center mt-2">
+                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
                   Forgot password?
                 </button>
-
-                <div className="border-t pt-4 mt-4">
-                  <p className="text-xs text-gray-500 text-center">
-                    New employee? Complete the onboarding link sent by HR.
-                    <br />Contact HR if you haven't received your link.
-                  </p>
-                </div>
               </div>
             </>
           )}
 
-          {/* ── FORGOT — ENTER MOBILE ── */}
+          {/* ── FORGOT PASSWORD - REQUEST OTP ── */}
           {view === "forgot_otp_request" && (
             <>
-              <button onClick={() => setView("login")} className="text-sm text-blue-600 mb-4 flex items-center gap-1">
-                ← Back to Login
-              </button>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Forgot Password</h2>
-              <p className="text-sm text-gray-600 mb-5">
-                Enter your registered mobile number. An OTP will be sent to you.
-              </p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Reset Password</h2>
+              <p className="text-gray-500 text-sm mb-6">Enter your registered mobile number to receive an OTP.</p>
               <div className="space-y-4">
                 <div>
-                  <Label>Mobile Number</Label>
-                  <Input type="tel" maxLength={10} placeholder="10-digit mobile number"
-                    value={forgotMobile} onChange={e => { setForgotMobile(e.target.value); setForgotError(""); }}
-                    className="mt-1.5 font-mono" />
+                  <Label className="text-sm font-medium text-gray-700">Mobile Number</Label>
+                  <div className="relative mt-1">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input type="tel" placeholder="10-digit mobile number" value={forgotMobile}
+                      onChange={e => setForgotMobile(e.target.value)} className="pl-10" maxLength={10} />
+                  </div>
                 </div>
                 {forgotError && <p className="text-sm text-red-600">{forgotError}</p>}
-                <Button onClick={handleRequestOTP} className="w-full bg-blue-600 hover:bg-blue-700 min-h-[44px]">
+                {forgotInfo && <p className="text-sm text-green-600">{forgotInfo}</p>}
+                <Button onClick={handleRequestOTP} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                   Send OTP
                 </Button>
-                <p className="text-xs text-gray-500 text-center">
-                  If your mobile is not registered, contact HR to retrieve your login ID.
-                </p>
+                <button onClick={() => setView("login")} className="w-full text-sm text-gray-500 hover:text-gray-700">
+                  ← Back to Sign In
+                </button>
               </div>
             </>
           )}
 
-          {/* ── FORGOT — ENTER OTP + NEW PASSWORD ── */}
-          {(view === "forgot_otp_verify") && (
+          {/* ── FORGOT PASSWORD - VERIFY OTP ── */}
+          {view === "forgot_otp_verify" && (
             <>
-              <button onClick={() => setView("forgot_otp_request")} className="text-sm text-blue-600 mb-4">
-                ← Back
-              </button>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Reset Password</h2>
-              {forgotInfo && <p className="text-sm text-green-700 bg-green-50 rounded p-2 mb-4">{forgotInfo}</p>}
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Enter OTP</h2>
+              <p className="text-gray-500 text-sm mb-6">{forgotInfo}</p>
               <div className="space-y-4">
                 <div>
-                  <Label>OTP (6 digits)</Label>
-                  <Input type="tel" maxLength={6} placeholder="Enter OTP from WhatsApp"
-                    value={forgotOTP} onChange={e => { setForgotOTP(e.target.value); setForgotError(""); }}
-                    className="mt-1.5 font-mono text-center text-xl tracking-widest" />
+                  <Label className="text-sm font-medium text-gray-700">OTP</Label>
+                  <Input type="text" placeholder="6-digit OTP" value={forgotOTP}
+                    onChange={e => setForgotOTP(e.target.value)} maxLength={6} />
                 </div>
+                {forgotError && <p className="text-sm text-red-600">{forgotError}</p>}
+                <Button onClick={handleVerifyOTP} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                  Verify OTP
+                </Button>
+                <button onClick={() => setView("forgot_otp_request")} className="w-full text-sm text-gray-500 hover:text-gray-700">
+                  ← Resend OTP
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── FORGOT PASSWORD - RESET ── */}
+          {view === "forgot_reset" && (
+            <>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Set New Password</h2>
+              <div className="space-y-4">
                 <div>
-                  <Label>New Password</Label>
-                  <div className="relative mt-1.5">
-                    <Input type={showNew ? "text" : "password"} placeholder="Min 8 chars with a number"
-                      value={newPassword} onChange={e => setNewPassword(e.target.value)}
-                      className="pr-10 font-mono" />
+                  <Label className="text-sm font-medium text-gray-700">New Password</Label>
+                  <div className="relative mt-1">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input type={showNew ? "text" : "password"} placeholder="Min 6 characters"
+                      value={newPassword} onChange={e => setNewPassword(e.target.value)} className="pl-10 pr-10" />
                     <button type="button" onClick={() => setShowNew(!showNew)}
-                      className="absolute right-3 top-2.5 text-gray-400">
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                       {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
                 <div>
-                  <Label>Confirm New Password</Label>
-                  <Input type="password" placeholder="Re-enter new password"
-                    value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-                    className="mt-1.5 font-mono" />
+                  <Label className="text-sm font-medium text-gray-700">Confirm Password</Label>
+                  <Input type="password" placeholder="Repeat password" value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)} />
                 </div>
                 {forgotError && <p className="text-sm text-red-600">{forgotError}</p>}
-                <Button onClick={handleResetPassword}
-                  disabled={!forgotOTP || !newPassword || newPassword !== confirmPassword}
-                  className="w-full bg-green-600 hover:bg-green-700 min-h-[44px]">
+                <Button onClick={handleResetPassword} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                   Reset Password
                 </Button>
               </div>
@@ -273,8 +316,8 @@ export function LoginPage() {
           )}
         </div>
 
-        <p className="text-center text-blue-400 text-xs mt-6">
-          © 2026 CleanCar 360° · Shine. Trust. Speed.
+        <p className="text-center text-blue-300 text-xs mt-6">
+          CleanCar 360° ERP © 2026 · Secure Login
         </p>
       </div>
     </div>
