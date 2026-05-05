@@ -886,7 +886,7 @@ function CostPerWashCalculatorEnhanced() {
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={profitabilityData}>
                       <CartesianGrid strokeDasharray="3 3" key="bar-grid" />
-                      <XAxis dataKey="price" tick={{ fontSize: 11 }} tick={{ fontSize: 12 }} key="bar-xaxis" />
+                      <XAxis dataKey="price" tick={{ fontSize: 12 }} key="bar-xaxis" />
                       <YAxis tick={{ fontSize: 12 }} key="bar-yaxis" />
                       <Tooltip key="bar-tooltip" />
                       <Bar dataKey="profit" fill="#10B981" key="profit-bar" />
