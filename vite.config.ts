@@ -27,7 +27,21 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['react-router-dom', 'react', 'react-dom'],
+    include: [
+      'react-router-dom',
+      'react',
+      'react-dom',
+      'react-is',
+      'recharts',
+    ],
+  },
+  build: {
+    rollupOptions: {
+      external: [],
+    },
+    commonjsOptions: {
+      include: [/recharts/, /react-is/, /node_modules/],
+    },
   },
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })
