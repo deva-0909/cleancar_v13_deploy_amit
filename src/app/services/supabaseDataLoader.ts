@@ -1,8 +1,7 @@
 /**
  * Supabase Data Loader
  * Loads ALL data from Supabase into localStorage on app startup.
- * Strategy: write ONLY legacy combined keys to avoid localStorage quota issues.
- * DataService falls back to legacy key when city-namespaced key is missing.
+ * After this runs, all existing contexts work unchanged via DataService.
  */
 
 import { isSupabaseEnabled } from "./supabaseClient";
@@ -15,60 +14,62 @@ const HEADERS = {
   "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
 };
 
-// Map: Supabase table → localStorage legacy key (format: cleancar_{key})
-// DataService falls back to this when city-namespaced key is missing
-const TABLE_MAP: Array<{ table: string; localKey: string; limit?: number }> = [
-  { table: "cleancar_revenues",            localKey: "revenues"           },
-  { table: "cleancar_payables",            localKey: "payables"           },
-  { table: "cleancar_mrr",                 localKey: "mrr"                },
-  { table: "cleancar_customers",           localKey: "customers"          },
-  { table: "cleancar_leads",               localKey: "leads"              },
-  { table: "cleancar_subscriptions",       localKey: "subscriptions"      },
-  { table: "cleancar_inventory",           localKey: "inventory"          },
-  { table: "cleancar_salary_structures",   localKey: "salary_structures"  },
-  { table: "cleancar_incentive_plans",     localKey: "incentive_plans"    },
-  { table: "cleancar_employee_incentives", localKey: "employee_incentives"},
-  { table: "cleancar_payroll_runs",        localKey: "payroll_runs"       },
-  { table: "cleancar_employees",           localKey: "employees"          },
-  { table: "cleancar_jobs",                localKey: "jobs",        limit: 1500 },
-  { table: "cleancar_attendance",          localKey: "attendance_records", limit: 1000 },
+// Supabase table → localStorage key mapping
+// Tables with their storage strategy
+// cityNamespaced: false = store only as combined legacy key (saves localStorage space)
+// skip: true = too large for localStorage, read directly from Supabase
+const TABLE_MAP: Array<{
+  table: string;
+  localKey: string;
+  cityColumn?: string;
+  cityNamespaced?: boolean; // whether to store per-city keys (default true)
+}> = [
+  { table: "cleancar_customers",           localKey: "customers",           cityColumn: "city_id", cityNamespaced: true  },
+  { table: "cleancar_leads",               localKey: "leads",               cityColumn: "city_id", cityNamespaced: true  },
+  { table: "cleancar_subscriptions",       localKey: "subscriptions",       cityColumn: "city_id", cityNamespaced: true  },
+  { table: "cleancar_revenues",            localKey: "revenues",            cityColumn: "city_id", cityNamespaced: true  },
+  { table: "cleancar_payables",            localKey: "payables",            cityColumn: "city_id", cityNamespaced: true  },
+  { table: "cleancar_mrr",                 localKey: "mrr",                 cityColumn: "city_id", cityNamespaced: true  },
+  { table: "cleancar_inventory",           localKey: "inventory",           cityColumn: "city_id", cityNamespaced: true  },
+  { table: "cleancar_salary_structures",   localKey: "salary_structures",   cityColumn: "city_id", cityNamespaced: false },
+  { table: "cleancar_incentive_plans",     localKey: "incentive_plans",     cityColumn: "city_id", cityNamespaced: false },
+  { table: "cleancar_employee_incentives", localKey: "employee_incentives", cityColumn: "city_id", cityNamespaced: false },
+  { table: "cleancar_payroll_runs",        localKey: "payroll_runs",        cityColumn: "city_id", cityNamespaced: false },
+  { table: "cleancar_employees",           localKey: "employees",           cityColumn: "city_id", cityNamespaced: false },
+  // Jobs and attendance are too large for localStorage - stored as trimmed sample only
+  { table: "cleancar_jobs",                localKey: "jobs",                cityColumn: "city_id", cityNamespaced: false },
+  { table: "cleancar_attendance",          localKey: "attendance_records",  cityColumn: "city_id", cityNamespaced: false },
 ];
 
-async function fetchTable(table: string, limit?: number): Promise<any[]> {
-  const allRows: any[] = [];
-  const pageSize = Math.min(limit || 1000, 1000);
-  let offset = 0;
-
-  while (true) {
-    const url = `${SUPABASE_URL}/rest/v1/${table}?select=data&limit=${pageSize}&offset=${offset}`;
-    try {
-      const res = await fetch(url, { headers: HEADERS });
-      if (!res.ok) break;
-      const rows = await res.json();
-      if (!Array.isArray(rows) || rows.length === 0) break;
-      allRows.push(...rows.map((r: any) => r.data));
-      if (rows.length < pageSize) break;
-      if (limit && allRows.length >= limit) break;
-      offset += pageSize;
-    } catch (e) {
-      break;
-    }
-  }
-  return allRows;
+async function fetchSample(table: string, limit: number): Promise<any[]> {
+  // Fetch a limited sample ordered by latest first
+  const url = `${SUPABASE_URL}/rest/v1/${table}?select=data&limit=${limit}&order=created_at.desc`;
+  const res = await fetch(url, { headers: HEADERS });
+  if (!res.ok) return [];
+  const rows = await res.json();
+  return Array.isArray(rows) ? rows.map((r: any) => r.data) : [];
 }
 
-function safeWrite(key: string, data: any[]): void {
-  // Try full data first, then progressively smaller until it fits
-  const attempts = [data, data.slice(0, 500), data.slice(0, 200), data.slice(0, 50)];
-  for (const attempt of attempts) {
-    try {
-      localStorage.setItem(key, JSON.stringify(attempt));
-      return; // Success
-    } catch (e) {
-      // Quota exceeded — try smaller
+async function fetchAll(table: string): Promise<any[]> {
+  // Fetch in pages of 1000 to handle large datasets
+  const allRows: any[] = [];
+  let offset = 0;
+  const limit = 1000;
+
+  while (true) {
+    const url = `${SUPABASE_URL}/rest/v1/${table}?select=data&limit=${limit}&offset=${offset}`;
+    const res = await fetch(url, { headers: HEADERS });
+    if (!res.ok) {
+      console.warn(`[Supabase] Failed to fetch ${table}: ${res.status}`);
+      break;
     }
+    const rows = await res.json();
+    if (!Array.isArray(rows) || rows.length === 0) break;
+    allRows.push(...rows.map((r: any) => r.data));
+    if (rows.length < limit) break;
+    offset += limit;
   }
-  console.warn(`[Supabase] Could not store ${key} even at 50 records — localStorage full`);
+  return allRows;
 }
 
 export async function loadAllDataFromSupabase(forceReload = false): Promise<void> {
@@ -77,48 +78,80 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
     return;
   }
 
-  // Check if data already exists in localStorage
+  // Check if localStorage already has data (fast path - no Supabase call needed)
   if (!forceReload) {
-    try {
-      const existing = localStorage.getItem("cleancar_revenues");
-      if (existing) {
-        const parsed = JSON.parse(existing);
-        if (Array.isArray(parsed) && parsed.length > 10) {
-          console.log(`[Supabase] Data already in localStorage (${parsed.length} revenues) — skipping fetch`);
+    const existingRevenues = localStorage.getItem("cleancar_revenues") ||
+      localStorage.getItem("cleancar_CITY-SURAT_revenues");
+    const existingCustomers = localStorage.getItem("cleancar_customers") ||
+      localStorage.getItem("cleancar_CITY-SURAT_customers");
+    if (existingRevenues && existingCustomers) {
+      try {
+        const revCount = JSON.parse(existingRevenues).length;
+        const custCount = JSON.parse(existingCustomers).length;
+        if (revCount > 10 && custCount > 10) {
+          console.log(`[Supabase] localStorage has data (${revCount} revenues, ${custCount} customers) — skipping fetch`);
           return;
         }
-      }
-    } catch (e) { /* corrupt data — proceed with fetch */ }
-  }
-
-  console.log("[Supabase] Loading all data into localStorage...");
-
-  // Clear ALL existing cleancar keys first to free up space
-  const keysToDelete = Object.keys(localStorage).filter(k => k.startsWith("cleancar_"));
-  keysToDelete.forEach(k => {
-    try { localStorage.removeItem(k); } catch (e) {}
-  });
-  console.log(`[Supabase] Cleared ${keysToDelete.length} existing keys`);
-
-  // Fetch and store each table sequentially (not parallel) to avoid race conditions
-  for (const { table, localKey, limit } of TABLE_MAP) {
-    try {
-      const rows = await fetchTable(table, limit);
-      if (rows.length === 0) {
-        console.log(`[Supabase] ⚠️ ${table}: 0 records`);
-        continue;
-      }
-
-      // Write ONLY the legacy key: cleancar_{localKey}
-      // DataService automatically falls back to this when city-namespaced key is missing
-      const legacyKey = `cleancar_${localKey}`;
-      safeWrite(legacyKey, rows);
-      console.log(`[Supabase] ✅ ${table}: ${rows.length} records → ${legacyKey}`);
-
-    } catch (err) {
-      console.error(`[Supabase] Failed ${table}:`, err);
+      } catch(e) { /* parse error — proceed with fetch */ }
     }
   }
 
-  console.log("[Supabase] ✅ All data loaded");
+  console.log("[Supabase] Loading all data...");
+  const start = Date.now();
+
+  try {
+    // Load all tables in parallel for speed
+    const results = await Promise.allSettled(
+      TABLE_MAP.map(async ({ table, localKey, cityColumn, cityNamespaced }) => {
+        // For large tables (jobs, attendance), only fetch a sample to save localStorage space
+        const isLargeTable = table === "cleancar_jobs" || table === "cleancar_attendance";
+        const rows = isLargeTable
+          ? await fetchSample(table, 2000)  // Only latest 2000 records
+          : await fetchAll(table);
+        if (rows.length === 0) return;
+
+        const legacyKey = `cleancar_${localKey}`;
+
+        // Write city-namespaced keys (matches DataService primary read key)
+        if (cityColumn) {
+          const cityGroups: Record<string, any[]> = {};
+          rows.forEach(row => {
+            const cityId = row?.[cityColumn] || row?.cityId || "CITY-SURAT";
+            if (!cityGroups[cityId]) cityGroups[cityId] = [];
+            cityGroups[cityId].push(row);
+          });
+
+          Object.entries(cityGroups).forEach(([cityId, cityRows]) => {
+            // Match DataService key exactly: cleancar_CITY-SURAT_revenues
+            const cityKey = `cleancar_${cityId}_${localKey}`;
+            try {
+              localStorage.setItem(cityKey, JSON.stringify(cityRows));
+            } catch (e) {
+              // Quota — write trimmed
+              try { localStorage.setItem(cityKey, JSON.stringify(cityRows.slice(0, 200))); } catch(_) {}
+            }
+          });
+        }
+
+        // Also write legacy key as fallback: cleancar_revenues
+        try {
+          localStorage.setItem(legacyKey, JSON.stringify(rows));
+        } catch (e) {
+          try { localStorage.setItem(legacyKey, JSON.stringify(rows.slice(0, 300))); } catch(_) {}
+        }
+
+        console.log(`[Supabase] ✅ ${table}: ${rows.length} records`);
+      })
+    );
+
+    const elapsed = Date.now() - start;
+    const failed = results.filter(r => r.status === "rejected").length;
+    console.log(`[Supabase] ✅ All data loaded in ${elapsed}ms (${failed} failures)`);
+
+    // Mark as loaded for this session
+    sessionStorage.setItem("cc360_supabase_loaded_v1", Date.now().toString());
+
+  } catch (err) {
+    console.error("[Supabase] Failed to load data:", err);
+  }
 }
