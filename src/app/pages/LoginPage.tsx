@@ -7,6 +7,7 @@ import { Button } from "../components/ui/button";
 import { toast } from "sonner";
 import { authService } from "../services/authService";
 import { employeeDatabaseService } from "../services/employeeDatabaseService";
+import { loadAllDataFromSupabase } from "../services/supabaseDataLoader";
 
 type LoginView = "login" | "forgot_otp_request" | "forgot_otp_verify" | "forgot_reset";
 
@@ -33,16 +34,16 @@ export function LoginPage() {
 
   // Load employee data from Supabase before allowing login
   useEffect(() => {
-    employeeDatabaseService.loadFromSupabase()
-      .then(() => {
-        const employees = employeeDatabaseService.getAll();
-        console.log(`Login ready: ${employees.length} employees loaded`);
-        setDataReady(true);
-      })
-      .catch((err) => {
-        console.error("Supabase load failed, trying localStorage:", err);
-        setDataReady(true); // Allow login attempt even if Supabase fails
-      });
+    loadAllDataFromSupabase().then(() => {
+      return employeeDatabaseService.loadFromSupabase();
+    }).then(() => {
+      const employees = employeeDatabaseService.getAll();
+      console.log(`Login ready: ${employees.length} employees loaded`);
+      setDataReady(true);
+    }).catch((err) => {
+      console.error("Supabase load failed, trying localStorage:", err);
+      setDataReady(true);
+    });
   }, []);
 
   const handleLogin = async () => {

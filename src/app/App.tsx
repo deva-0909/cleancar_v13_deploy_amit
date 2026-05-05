@@ -8,12 +8,15 @@ import { EventMonitor } from "./components/crm/EventMonitor";
 import { useGlobalEventHandlers } from "./hooks/useGlobalEventHandlers";
 import { AppProvider } from "./contexts/AppProvider";
 import { employeeDatabaseService } from "./services/employeeDatabaseService";
+import { loadAllDataFromSupabase } from "./services/supabaseDataLoader";
 
 function AppContent() {
   // IMPORTANT: Hooks must be called unconditionally at the top level
   useEffect(() => {
-    // Load employees from Supabase first (needed for login)
-    employeeDatabaseService.loadFromSupabase().finally(() => {
+    // Load ALL data from Supabase into localStorage, then load employees for auth
+    loadAllDataFromSupabase().then(() => {
+      return employeeDatabaseService.loadFromSupabase();
+    }).finally(() => {
       try { initializeHRData(); } catch (e) {
         console.error("Failed to initialize HR data:", e);
       }
