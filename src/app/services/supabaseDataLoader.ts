@@ -77,18 +77,20 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
     return;
   }
 
-  // Check if data already exists in localStorage
-  if (!forceReload) {
+  // Always reload on first visit - use sessionStorage to skip on navigation within same session
+  const SESSION_KEY = "cc360_data_loaded";
+  if (!forceReload && sessionStorage.getItem(SESSION_KEY) === "1") {
+    // Verify data actually exists before skipping
     try {
       const existing = localStorage.getItem("cleancar_revenues");
-      if (existing) {
-        const parsed = JSON.parse(existing);
-        if (Array.isArray(parsed) && parsed.length > 10) {
-          console.log(`[Supabase] Data already in localStorage (${parsed.length} revenues) — skipping fetch`);
-          return;
-        }
+      const parsed = existing ? JSON.parse(existing) : null;
+      if (Array.isArray(parsed) && parsed.length > 10) {
+        console.log(`[Supabase] Data verified in localStorage (${parsed.length} revenues) — skipping fetch`);
+        return;
       }
-    } catch (e) { /* corrupt data — proceed with fetch */ }
+    } catch(e) {}
+    // Data missing or corrupt — force reload
+    console.log("[Supabase] Session flag set but data missing — reloading from Supabase");
   }
 
   console.log("[Supabase] Loading all data into localStorage...");
@@ -121,4 +123,5 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
   }
 
   console.log("[Supabase] ✅ All data loaded");
+  sessionStorage.setItem("cc360_data_loaded", "1");
 }
