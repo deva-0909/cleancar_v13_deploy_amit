@@ -1,301 +1,57 @@
-/**
- * Finance Analytics Dashboard - Ledger-Driven Architecture
- *
- * PRINCIPLES:
- * - Zero UI calculations
- * - All data from financeEngine API
- * - Ledger-driven (not operational tables)
- * - Generic transaction model
- * - Multi-city scalable
- *
- * @component
- */
-
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import { Button } from "../ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { useCity } from "../../contexts/CityContext";
 import { useFinance } from "../../contexts/FinanceContext";
+import { DataService } from "../../services/DataService";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "../ui/sheet";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
-import {
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Wallet,
-  ArrowUpRight,
-  ArrowDownRight,
-  Database,
-  Filter,
-  Calendar,
-  MapPin,
-  RefreshCcw,
-  AlertCircle,
-  Loader2,
-  FileX,
+  DollarSign, TrendingUp, TrendingDown, Wallet,
+  RefreshCcw, ArrowUpRight, ArrowDownRight, AlertCircle,
 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { Skeleton } from "../ui/skeleton";
+import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+} from "recharts";
 
-// ============================================================================
-// DATA CONTRACTS - Strict API Response Structures
-// ============================================================================
+const MONTHS = [
+  { value: "2026-04", label: "April 2026" },
+  { value: "2026-03", label: "March 2026" },
+  { value: "2026-02", label: "February 2026" },
+  { value: "2026-01", label: "January 2026" },
+];
 
-/**
- * Finance Summary Response
- * Endpoint: GET /api/finance/summary?city=...&dateRange=...&serviceType=...
- */
-interface FinanceSummaryResponse {
-  revenue: {
-    total: number;
-    percentChange: number; // vs previous period
-    previousPeriodTotal: number;
+const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+
+function KPICard({ title, value, change, icon: Icon, color = "blue" }: any) {
+  const isPos = change >= 0;
+  const colorMap: Record<string, string> = {
+    blue: "bg-blue-50 text-blue-600",
+    green: "bg-green-50 text-green-600",
+    red: "bg-red-50 text-red-600",
+    purple: "bg-purple-50 text-purple-600",
   };
-  expenses: {
-    total: number;
-    percentChange: number;
-    previousPeriodTotal: number;
-  };
-  profit: {
-    total: number;
-    percentChange: number;
-    previousPeriodTotal: number;
-  };
-  cashBalance: {
-    total: number;
-    percentChange: number;
-    previousPeriodTotal: number;
-  };
-  trends: TrendDataPoint[];
-  cityBreakdown: CityBreakdownItem[];
-  revenueSplit: RevenueSplitItem[];
-}
-
-interface TrendDataPoint {
-  date: string; // "2026-04-01"
-  revenue: number;
-  expenses: number;
-}
-
-interface CityBreakdownItem {
-  city: string;
-  revenue: number;
-  expenses: number;
-  profit: number;
-}
-
-interface RevenueSplitItem {
-  category: string; // "Services", "Subscriptions", "Add-ons"
-  amount: number;
-  percentage: number; // Pre-calculated by backend
-}
-
-/**
- * Finance Transactions Response
- * Endpoint: GET /api/finance/transactions?city=...&type=...&dateRange=...
- */
-interface FinanceTransaction {
-  id: string;
-  date: string; // "2026-04-20"
-  type: "REVENUE" | "EXPENSE" | "PAYROLL" | "REFUND";
-  referenceId: string; // Link to source (UNIT-001, PAYROLL-FEB-2026, etc.)
-  description: string;
-  amount: number;
-  city: string;
-  cluster?: string;
-  sourceEngine: string; // "operationsEngine", "payrollEngine", etc.
-}
-
-interface TransactionsResponse {
-  transactions: FinanceTransaction[];
-  total: number;
-  pageInfo: {
-    page: number;
-    pageSize: number;
-    totalPages: number;
-  };
-}
-
-// ============================================================================
-// FILTER STATE
-// ============================================================================
-
-interface DashboardFilters {
-  cities: string[]; // Multi-select
-  dateRange: string; // "last7days" | "last30days" | "thisMonth" | "lastMonth" | "custom"
-  serviceType: string; // "all" | "services" | "subscriptions" | "addons"
-  customDateStart?: string;
-  customDateEnd?: string;
-}
-
-const DEFAULT_FILTERS: DashboardFilters = {
-  cities: [], // Empty = all cities
-  dateRange: "last30days",
-  serviceType: "all",
-};
-
-// ============================================================================
-// MOCK API RESPONSES (Replace with real API calls)
-// ============================================================================
-
-// In production: Replace with actual API calls
-const getMockFinanceSummary = (cityName: string): FinanceSummaryResponse => ({
-  revenue: {
-    total: 485000,
-    percentChange: 12.5,
-    previousPeriodTotal: 431555,
-  },
-  expenses: {
-    total: 325000,
-    percentChange: -3.2,
-    previousPeriodTotal: 335732,
-  },
-  profit: {
-    total: 160000,
-    percentChange: 45.8,
-    previousPeriodTotal: 109734,
-  },
-  cashBalance: {
-    total: 1250000,
-    percentChange: 8.3,
-    previousPeriodTotal: 1154238,
-  },
-  trends: [
-    { date: "2026-04-14", revenue: 65000, expenses: 45000 },
-    { date: "2026-04-15", revenue: 72000, expenses: 48000 },
-    { date: "2026-04-16", revenue: 68000, expenses: 46000 },
-    { date: "2026-04-17", revenue: 75000, expenses: 52000 },
-    { date: "2026-04-18", revenue: 70000, expenses: 49000 },
-    { date: "2026-04-19", revenue: 68000, expenses: 43000 },
-    { date: "2026-04-20", revenue: 67000, expenses: 42000 },
-  ],
-  cityBreakdown: [
-    { city: "Surat",     revenue: 285000, expenses: 185000, profit: 100000 },
-    { city: "Mumbai",    revenue: 320000, expenses: 210000, profit: 110000 },
-    { city: "Ahmedabad", revenue: 255000, expenses: 168000, profit: 87000  },
-  ],
-  revenueSplit: [
-    { category: "Services", amount: 285000, percentage: 58.8 },
-    { category: "Subscriptions", amount: 150000, percentage: 30.9 },
-    { category: "Add-ons", amount: 50000, percentage: 10.3 },
-  ],
-});
-
-
-// ============================================================================
-// API FUNCTIONS (Replace with real implementations)
-// ============================================================================
-
-async function fetchTransactions(
-  filters: DashboardFilters,
-  cityName: string,
-  transactionType?: string
-): Promise<TransactionsResponse> {
-  // Mock delay
-  await new Promise(resolve => setTimeout(resolve, 600));
-
-  // Return empty for now - transaction drill-down can be implemented later
-  return {
-    transactions: [],
-    total: 0,
-    pageInfo: {
-      page: 1,
-      pageSize: 50,
-      totalPages: 1,
-    },
-  };
-}
-
-// ============================================================================
-// KPI CARD COMPONENT
-// ============================================================================
-
-interface KPICardProps {
-  title: string;
-  value: number;
-  percentChange: number;
-  icon: React.ElementType;
-  onClick: () => void;
-  isLoading: boolean;
-}
-
-function KPICard({ title, value, percentChange, icon: Icon, onClick, isLoading }: KPICardProps) {
-  const isPositive = percentChange > 0;
-  const isNegative = percentChange < 0;
-
-  if (isLoading) {
-    return (
-      <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-        <CardContent className="p-6">
-          <div className="space-y-3">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-4 w-28" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={onClick}>
-      <CardContent className="p-6">
+    <Card>
+      <CardContent className="p-5">
         <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-sm text-gray-600 mb-1">{title}</p>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              ₹{value.toLocaleString("en-IN")}
-            </h3>
-            <div className="flex items-center gap-1">
-              {isPositive && <ArrowUpRight className="w-4 h-4 text-green-600" />}
-              {isNegative && <ArrowDownRight className="w-4 h-4 text-red-600" />}
-              {percentChange === 0 && <div className="w-4 h-4" />}
-              <span className={`text-sm font-medium ${
-                isPositive ? "text-green-600" : isNegative ? "text-red-600" : "text-gray-600"
-              }`}>
-                {percentChange > 0 ? "+" : ""}{percentChange.toFixed(1)}%
-              </span>
-              <span className="text-sm text-gray-500">vs prev</span>
-            </div>
+          <div>
+            <p className="text-sm text-gray-500 mb-1">{title}</p>
+            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            {change !== undefined && (
+              <div className="flex items-center gap-1 mt-1">
+                {isPos
+                  ? <ArrowUpRight className="w-3 h-3 text-green-600" />
+                  : <ArrowDownRight className="w-3 h-3 text-red-600" />}
+                <span className={`text-xs font-medium ${isPos ? "text-green-600" : "text-red-600"}`}>
+                  {Math.abs(change).toFixed(1)}% vs prev month
+                </span>
+              </div>
+            )}
           </div>
-          <div className="p-3 bg-blue-50 rounded-lg">
-            <Icon className="w-6 h-6 text-blue-600" />
+          <div className={`p-2.5 rounded-lg ${colorMap[color] || colorMap.blue}`}>
+            <Icon className="w-5 h-5" />
           </div>
         </div>
       </CardContent>
@@ -303,542 +59,358 @@ function KPICard({ title, value, percentChange, icon: Icon, onClick, isLoading }
   );
 }
 
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
-
 export function FinanceAnalyticsDashboard() {
   const { city, cityInfo } = useCity();
-  const { getRevenueByCity, getPayablesByCity, getMRRByCity,
-          calculateEBITDA, getActiveAlerts, getTotalMRR } = useFinance();
-  const [filters, setFilters] = useState<DashboardFilters>(DEFAULT_FILTERS);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { getRevenueByCity, getPayablesByCity } = useFinance();
+  const [selectedMonth, setSelectedMonth] = useState("2026-04");
+  const [revenues, setRevenues] = useState<any[]>([]);
+  const [payables, setPayables] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dataSource, setDataSource] = useState("loading");
 
-  const loadDashboardData = () => {
-    setIsLoading(true);
-    setError(null);
-    setTimeout(() => setIsLoading(false), 300);
-  };
-
-  // Drilldown drawer state
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [drawerType, setDrawerType] = useState<"revenue" | "expenses" | "profit" | "cash" | null>(null);
-  const [drawerTransactions, setDrawerTransactions] = useState<FinanceTransaction[]>([]);
-  const [isDrawerLoading, setIsDrawerLoading] = useState(false);
-  const [drawerFilter, setDrawerFilter] = useState<string>("all");
-
-  // Cities for multi-select (in production: fetch from API)
-  const availableCities = ["Surat", "Mumbai", "Ahmedabad"];
-
-  const [currentMonth, setCurrentMonth] = useState("2026-04"); // Default to latest seeded month
-
-  // Calculate live data from FinanceContext
-  const summary = useMemo(() => {
-    const allRevs = getRevenueByCity(city).filter(r => r.status === "Received");
-    const monthRevs = allRevs.filter(r => r.receivedDate?.startsWith(currentMonth));
-    // Use current month data if available, else show latest available month
-    const cityRevenues = monthRevs.length > 0 ? monthRevs : allRevs.slice(0, 500);
-    const cityPayables  = getPayablesByCity(city);
-    const totalRevenue  = cityRevenues.reduce((s, r) => s + r.amount, 0);
-    const totalExpenses = cityPayables.filter(p => p.status === "Paid").reduce((s, p) => s + p.amount, 0);
-    const ebitda        = totalRevenue - totalExpenses;
-    const mrr           = getTotalMRR(currentMonth, city) || totalRevenue;
-    const activeAlerts  = getActiveAlerts(city);
-    const overdueCount  = cityPayables.filter(p => p.status === "Overdue").length;
-
-    return {
-      revenue: {
-        total: totalRevenue,
-        percentChange: 0, // TODO: Calculate vs previous month
-        previousPeriodTotal: 0,
-      },
-      expenses: {
-        total: totalExpenses,
-        percentChange: 0,
-        previousPeriodTotal: 0,
-      },
-      profit: {
-        total: ebitda,
-        percentChange: 0,
-        previousPeriodTotal: 0,
-      },
-      cashBalance: {
-        total: mrr,
-        percentChange: 0,
-        previousPeriodTotal: 0,
-      },
-      alerts: activeAlerts.length,
-      overduePayables: overdueCount,
-      dailyTrend: [],
-      cityBreakdown: [],
-      revenueSplit: [],
-    };
-  }, [city, currentMonth, getRevenueByCity, getPayablesByCity, calculateEBITDA, getTotalMRR, getActiveAlerts]);
-
-  // Load dashboard data
-  useEffect(() => {
-    setIsLoading(true);
-    // Simulate loading delay for UX
-    setTimeout(() => setIsLoading(false), 300);
-  }, [filters]);
-
-  // Handle KPI card click
-  const handleKPIClick = async (type: "revenue" | "expenses" | "profit" | "cash") => {
-    setDrawerType(type);
-    setIsDrawerOpen(true);
-    setIsDrawerLoading(true);
-    setDrawerFilter("all");
-
+  // Load data — try context first, then direct localStorage
+  const loadData = () => {
+    setLoading(true);
     try {
-      // Determine transaction type filter based on KPI
-      let transactionTypeFilter: string | undefined = undefined;
-      if (type === "revenue") {
-        transactionTypeFilter = "REVENUE";
-      } else if (type === "expenses") {
-        transactionTypeFilter = "EXPENSE";
+      // Try FinanceContext first
+      let revs = getRevenueByCity(city) || [];
+      let pays = getPayablesByCity(city) || [];
+
+      // If context is empty, read directly from localStorage
+      if (revs.length === 0) {
+        const raw = localStorage.getItem("cleancar_revenues") ||
+                    localStorage.getItem(`cleancar_${city}_revenues`);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            revs = Array.isArray(parsed)
+              ? parsed.filter((r: any) => r?.cityId === city || !r?.cityId)
+              : [];
+            setDataSource("localStorage");
+          } catch (e) { revs = []; }
+        }
+      } else {
+        setDataSource("context");
       }
 
-      const data = await fetchTransactions(filters, cityInfo.displayName, transactionTypeFilter);
-      setDrawerTransactions(data.transactions);
-    } catch (err) {
-      console.error("Failed to load transactions:", err);
-      setDrawerTransactions([]);
-    } finally {
-      setIsDrawerLoading(false);
+      if (pays.length === 0) {
+        const raw = localStorage.getItem("cleancar_payables") ||
+                    localStorage.getItem(`cleancar_${city}_payables`);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            pays = Array.isArray(parsed)
+              ? parsed.filter((p: any) => p?.cityId === city || !p?.cityId)
+              : [];
+          } catch (e) { pays = []; }
+        }
+      }
+
+      setRevenues(revs);
+      setPayables(pays);
+      setLoading(false);
+
+      // Auto-switch to latest month with data
+      if (revs.length > 0) {
+        const months = [...new Set(
+          revs.map((r: any) => r?.receivedDate?.slice(0, 7)).filter(Boolean)
+        )].sort().reverse() as string[];
+        if (months.length > 0 && !months.includes(selectedMonth)) {
+          setSelectedMonth(months[0]);
+        }
+      }
+    } catch (e) {
+      console.error("Finance load error:", e);
+      setLoading(false);
     }
   };
 
-  // Handle drawer filter change
-  const handleDrawerFilterChange = async (filterValue: string) => {
-    setDrawerFilter(filterValue);
-    setIsDrawerLoading(true);
+  useEffect(() => {
+    loadData();
+    // Re-try after 2s in case Supabase loader hasn't finished
+    const t = setTimeout(loadData, 2000);
+    return () => clearTimeout(t);
+  }, [city]);
 
-    try {
-      const data = await fetchTransactions(
-        filters,
-        cityInfo.displayName,
-        filterValue === "all" ? undefined : filterValue
-      );
-      setDrawerTransactions(data.transactions);
-    } catch (err) {
-      console.error("Failed to load filtered transactions:", err);
-    } finally {
-      setIsDrawerLoading(false);
-    }
-  };
+  // Filter to selected month
+  const monthRevenues = useMemo(() =>
+    revenues.filter((r: any) => r?.receivedDate?.startsWith(selectedMonth)),
+    [revenues, selectedMonth]
+  );
 
-  // Get transaction type badge color
-  const getTransactionTypeBadge = (type: string) => {
-    switch (type) {
-      case "REVENUE":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "EXPENSE":
-        return "bg-red-100 text-red-700 border-red-200";
-      case "PAYROLL":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "REFUND":
-        return "bg-orange-100 text-orange-700 border-orange-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
-    }
-  };
+  const monthPayables = useMemo(() =>
+    payables.filter((p: any) => p?.dueDate?.startsWith(selectedMonth) || p?.paidAt?.startsWith(selectedMonth)),
+    [payables, selectedMonth]
+  );
 
-  // Chart colors
-  const CHART_COLORS = {
-    revenue: "#10b981",
-    expenses: "#ef4444",
-    profit: "#3b82f6",
-    services: "#3b82f6",
-    subscriptions: "#10b981",
-    addons: "#f59e0b",
-  };
+  // Previous month for comparison
+  const prevMonth = MONTHS[MONTHS.findIndex(m => m.value === selectedMonth) + 1]?.value;
+  const prevRevenues = useMemo(() =>
+    prevMonth ? revenues.filter((r: any) => r?.receivedDate?.startsWith(prevMonth)) : [],
+    [revenues, prevMonth]
+  );
 
-  // Error state
-  if (error && !isLoading) {
+  // KPI calculations
+  const summary = useMemo(() => {
+    const totalRevenue  = monthRevenues.reduce((s: number, r: any) => s + (Number(r?.amount) || 0), 0);
+    const prevRevenue   = prevRevenues.reduce((s: number, r: any) => s + (Number(r?.amount) || 0), 0);
+    const totalExpenses = payables.filter((p: any) => p?.status === "Paid")
+      .reduce((s: number, p: any) => s + (Number(p?.amount) || 0), 0);
+    const subRevenue    = monthRevenues.filter((r: any) => r?.type === "Subscription")
+      .reduce((s: number, r: any) => s + (Number(r?.amount) || 0), 0);
+    const onetimeRevenue = totalRevenue - subRevenue;
+    const profit        = totalRevenue - totalExpenses;
+    const revenueGrowth = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0;
+    const uniqueCustomers = new Set(monthRevenues.map((r: any) => r?.customerId).filter(Boolean)).size;
+
+    return {
+      totalRevenue, totalExpenses, profit, subRevenue, onetimeRevenue,
+      revenueGrowth, uniqueCustomers,
+      allTimeRevenue: revenues.reduce((s: number, r: any) => s + (Number(r?.amount) || 0), 0),
+    };
+  }, [monthRevenues, prevRevenues, payables, revenues]);
+
+  // Daily trend data
+  const trendData = useMemo(() => {
+    const daily: Record<string, number> = {};
+    monthRevenues.forEach((r: any) => {
+      const d = r?.receivedDate?.slice(0, 10) || "";
+      if (d) daily[d] = (daily[d] || 0) + (Number(r?.amount) || 0);
+    });
+    return Object.entries(daily).sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, amount]) => ({
+        date: new Date(date).toLocaleDateString("en-IN", { day: "numeric", month: "short" }),
+        amount,
+      }));
+  }, [monthRevenues]);
+
+  // Revenue by type
+  const typeData = useMemo(() => {
+    const types: Record<string, number> = {};
+    monthRevenues.forEach((r: any) => {
+      const t = r?.type || "Other";
+      types[t] = (types[t] || 0) + (Number(r?.amount) || 0);
+    });
+    return Object.entries(types).map(([name, value], i) => ({
+      name, value, color: COLORS[i % COLORS.length],
+    })).filter(x => x.value > 0);
+  }, [monthRevenues]);
+
+  // Monthly comparison
+  const monthCompare = useMemo(() => {
+    return MONTHS.slice(0, 4).map(m => ({
+      month: m.label.split(" ")[0], // "April", "March" etc
+      revenue: revenues.filter((r: any) => r?.receivedDate?.startsWith(m.value))
+        .reduce((s: number, r: any) => s + (Number(r?.amount) || 0), 0),
+    })).reverse();
+  }, [revenues]);
+
+  if (loading) {
     return (
-      <div className="p-6">
-        <Alert className="border-red-200 bg-red-50">
-          <AlertCircle className="w-4 h-4 text-red-600" />
-          <AlertTitle className="text-red-900">Error Loading Dashboard</AlertTitle>
-          <AlertDescription className="text-red-700">
-            {error}
-            <Button
-              variant="outline"
-              size="sm"
-              className="ml-4"
-              onClick={loadDashboardData}
-            >
-              <RefreshCcw className="w-4 h-4 mr-2" />
-              Retry
-            </Button>
-          </AlertDescription>
-        </Alert>
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="w-10 h-10 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-gray-500">Loading financial data...</p>
+        </div>
       </div>
     );
   }
 
-  // Get all revenues for city regardless of month filter
-  const allCityRevenues = getRevenueByCity(city);
-  const hasAnyRevenue = allCityRevenues.length > 0;
-
   return (
-    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+    <div className="p-4 md:p-6 space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Finance Analytics Dashboard</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Ledger-driven financial insights and performance metrics
+          <h1 className="text-2xl font-bold text-gray-900">Finance Analytics</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {cityInfo.displayName} ·{" "}
+            {revenues.length > 0
+              ? `${revenues.length} total records · ${dataSource}`
+              : "No data loaded"}
           </p>
         </div>
-        <Badge variant="outline" className="flex items-center gap-2 px-3 py-1.5">
-          <Database className="w-4 h-4 text-blue-600" />
-          <span className="text-sm">financeEngine</span>
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MONTHS.map(m => (
+                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="outline" size="sm" onClick={loadData}>
+            <RefreshCcw className="w-4 h-4 mr-1" /> Refresh
+          </Button>
+        </div>
       </div>
 
-      {/* Engine Label */}
-      <Alert className="border-blue-200 bg-blue-50">
-        <Database className="w-4 h-4 text-blue-600" />
-        <AlertTitle className="text-blue-900">Data Source: financeEngine</AlertTitle>
-        <AlertDescription className="text-blue-700 text-sm">
-          All metrics and calculations are performed by <strong>financeEngine</strong> based on
-          ledger entries. This dashboard performs ZERO calculations - all data is pre-calculated
-          by the backend.
-        </AlertDescription>
-      </Alert>
-
-      {/* Global Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Filters:</span>
-            </div>
-
-            {/* City Multi-Select */}
-            <Select
-              value={filters.cities.length > 0 ? filters.cities[0] : "all"}
-              onValueChange={(value) => {
-                setFilters({
-                  ...filters,
-                  cities: value === "all" ? [] : [value],
-                });
-              }}
-            >
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="All Cities" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Cities</SelectItem>
-                {availableCities.map((city) => (
-                  <SelectItem key={city} value={city}>
-                    {city}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Date Range */}
-            <Select
-              value={filters.dateRange}
-              onValueChange={(value) => {
-                setFilters({ ...filters, dateRange: value });
-              }}
-            >
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="last7days">Last 7 Days</SelectItem>
-                <SelectItem value="last30days">Last 30 Days</SelectItem>
-                <SelectItem value="thisMonth">This Month</SelectItem>
-                <SelectItem value="lastMonth">Last Month</SelectItem>
-                <SelectItem value="custom">Custom Range</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Service Type */}
-            <Select
-              value={filters.serviceType}
-              onValueChange={(value) => {
-                setFilters({ ...filters, serviceType: value });
-              }}
-            >
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Service Types</SelectItem>
-                <SelectItem value="services">Services Only</SelectItem>
-                <SelectItem value="subscriptions">Subscriptions Only</SelectItem>
-                <SelectItem value="addons">Add-ons Only</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {isLoading && (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Loading...
-              </div>
-            )}
+      {/* No data warning */}
+      {revenues.length === 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium text-amber-800">No revenue data found for {cityInfo.displayName}</p>
+            <p className="text-sm text-amber-600 mt-1">
+              Data loads from Supabase on login. Try clicking Refresh or logging out and back in.
+            </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
           title="Total Revenue"
-          value={summary?.revenue.total || 0}
-          percentChange={summary?.revenue.percentChange || 0}
+          value={`₹${summary.totalRevenue.toLocaleString("en-IN")}`}
+          change={summary.revenueGrowth}
           icon={DollarSign}
-          onClick={() => handleKPIClick("revenue")}
-          isLoading={isLoading}
+          color="blue"
         />
         <KPICard
-          title="Total Expenses"
-          value={summary?.expenses.total || 0}
-          percentChange={summary?.expenses.percentChange || 0}
-          icon={TrendingDown}
-          onClick={() => handleKPIClick("expenses")}
-          isLoading={isLoading}
+          title="Subscription Revenue"
+          value={`₹${summary.subRevenue.toLocaleString("en-IN")}`}
+          icon={RefreshCcw}
+          color="green"
         />
         <KPICard
           title="Net Profit"
-          value={summary?.profit.total || 0}
-          percentChange={summary?.profit.percentChange || 0}
-          icon={TrendingUp}
-          onClick={() => handleKPIClick("profit")}
-          isLoading={isLoading}
+          value={`₹${summary.profit.toLocaleString("en-IN")}`}
+          icon={summary.profit >= 0 ? TrendingUp : TrendingDown}
+          color={summary.profit >= 0 ? "green" : "red"}
         />
         <KPICard
-          title="Cash Balance"
-          value={summary?.cashBalance.total || 0}
-          percentChange={summary?.cashBalance.percentChange || 0}
+          title="Active Customers"
+          value={summary.uniqueCustomers.toString()}
           icon={Wallet}
-          onClick={() => handleKPIClick("cash")}
-          isLoading={isLoading}
+          color="purple"
         />
       </div>
 
-      {/* Revenue vs Expense Trend */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Revenue vs Expense Trend</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <Skeleton className="h-[300px] w-full" />
-          ) : (
-            <ResponsiveContainer width="100%" height={300} key="trend-chart-container">
-              <LineChart data={summary?.trends || []} key="trend-linechart">
-                <CartesianGrid strokeDasharray="3 3" key="trend-grid" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} key="trend-xaxis" />
-                <YAxis key="trend-yaxis" tick={{ fontSize: 11 }} width={50} />
-                <RechartsTooltip key="trend-tooltip" />
-                <Legend key="trend-legend" />
-                <Line
-                  key="trend-line-revenue"
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke={CHART_COLORS.revenue}
-                  strokeWidth={2}
-                  name="Revenue"
-                />
-                <Line
-                  key="trend-line-expenses"
-                  type="monotone"
-                  dataKey="expenses"
-                  stroke={CHART_COLORS.expenses}
-                  strokeWidth={2}
-                  name="Expenses"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
+      {/* All-time Revenue Badge */}
+      {revenues.length > 0 && (
+        <div className="flex items-center gap-3 flex-wrap">
+          <Badge className="bg-blue-100 text-blue-800 text-sm px-3 py-1">
+            All-time Revenue: ₹{summary.allTimeRevenue.toLocaleString("en-IN")}
+          </Badge>
+          <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">
+            {revenues.length} Revenue Records
+          </Badge>
+          <Badge className="bg-purple-100 text-purple-800 text-sm px-3 py-1">
+            {monthRevenues.length} in {MONTHS.find(m => m.value === selectedMonth)?.label}
+          </Badge>
+        </div>
+      )}
 
-      {/* City-wise Revenue & Revenue Split */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-        {/* City-wise Revenue */}
-        <Card>
-          <CardHeader>
-            <CardTitle>City-wise Revenue Comparison</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-[280px] w-full" />
-            ) : (
-              <ResponsiveContainer width="100%" height={280} key="city-chart-container">
-                <BarChart data={summary?.cityBreakdown || []} key="city-barchart">
-                  <CartesianGrid strokeDasharray="3 3" key="city-grid" />
-                  <XAxis dataKey="city" tick={{ fontSize: 11 }} key="city-xaxis" />
-                  <YAxis key="city-yaxis" tick={{ fontSize: 11 }} width={50} />
-                  <RechartsTooltip key="city-tooltip" />
-                  <Legend key="city-legend" />
-                  <Bar key="city-bar-revenue" dataKey="revenue" fill={CHART_COLORS.revenue} name="Revenue" />
-                  <Bar key="city-bar-expenses" dataKey="expenses" fill={CHART_COLORS.expenses} name="Expenses" />
+      {monthRevenues.length > 0 && (
+        <>
+          {/* Charts Row 1 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Daily Trend */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  Daily Revenue — {MONTHS.find(m => m.value === selectedMonth)?.label}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={trendData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} width={55}
+                      tickFormatter={v => `₹${(v / 1000).toFixed(0)}K`} />
+                    <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`} />
+                    <Line type="monotone" dataKey="amount" stroke="#3b82f6"
+                      strokeWidth={2} dot={false} name="Revenue" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Revenue by Type */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Revenue by Type</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {typeData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={typeData} cx="50%" cy="50%"
+                        innerRadius={55} outerRadius={90}
+                        paddingAngle={4} dataKey="value"
+                        label={({ name, percent }) =>
+                          `${name}: ${(percent * 100).toFixed(0)}%`}>
+                        {typeData.map(e => (
+                          <Cell key={e.name} fill={e.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[220px] flex items-center justify-center text-gray-400">
+                    No data for selected month
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Monthly Comparison */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Monthly Revenue Comparison</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={monthCompare}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 11 }} width={60}
+                    tickFormatter={v => `₹${(v / 1000).toFixed(0)}K`} />
+                  <Tooltip formatter={(v: any) => `₹${Number(v).toLocaleString("en-IN")}`} />
+                  <Bar dataKey="revenue" fill="#3b82f6" name="Revenue"
+                    radius={[4, 4, 0, 0]}
+                    label={{ position: "top",
+                      formatter: (v: any) => v > 0 ? `₹${(v/1000).toFixed(0)}K` : "",
+                      fontSize: 11 }} />
                 </BarChart>
               </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Revenue Split */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue Split</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-[280px] w-full" />
-            ) : (
-              <ResponsiveContainer width="100%" height={280} key="split-chart-container">
-                <PieChart key="split-piechart">
-                  <Pie
-                    key="split-pie"
-                    data={summary?.revenueSplit || []}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
-                    dataKey="amount"
-                    label={({ category, percentage }) => `${category}: ${percentage.toFixed(1)}%`}
-                  >
-                    {(summary?.revenueSplit || []).map((entry) => (
-                      <Cell
-                        key={`cell-${entry.category}`}
-                        fill={
-                          entry.category === "Services"
-                            ? CHART_COLORS.services
-                            : entry.category === "Subscriptions"
-                            ? CHART_COLORS.subscriptions
-                            : CHART_COLORS.addons
-                        }
-                      />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip key="split-tooltip" />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Drilldown Drawer */}
-      <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <SheetContent className="w-full sm:w-[600px] sm:w-[800px] overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>
-              {drawerType === "revenue" && "Revenue Transactions"}
-              {drawerType === "expenses" && "Expense Transactions"}
-              {drawerType === "profit" && "Profit Analysis"}
-              {drawerType === "cash" && "Cash Flow Transactions"}
-            </SheetTitle>
-            <SheetDescription>
-              Detailed transaction breakdown from ledger entries
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-6 space-y-4">
-            {/* Drawer Filter */}
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <span className="text-sm font-medium text-gray-700">Filter:</span>
-              <Select value={drawerFilter} onValueChange={handleDrawerFilterChange}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="REVENUE">Revenue Only</SelectItem>
-                  <SelectItem value="EXPENSE">Expense Only</SelectItem>
-                  <SelectItem value="PAYROLL">Payroll Only</SelectItem>
-                  <SelectItem value="REFUND">Refund Only</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Transaction Table */}
-            {isDrawerLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
+          {/* Summary table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">
+                Revenue Summary — {MONTHS.find(m => m.value === selectedMonth)?.label}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {[
+                  { label: "Total Revenue",        value: summary.totalRevenue,   color: "text-blue-700" },
+                  { label: "Subscription Revenue", value: summary.subRevenue,     color: "text-green-700" },
+                  { label: "One-time Revenue",      value: summary.onetimeRevenue, color: "text-amber-700" },
+                  { label: "Total Expenses",        value: summary.totalExpenses,  color: "text-red-700" },
+                  { label: "Net Profit",            value: summary.profit,         color: summary.profit >= 0 ? "text-green-700" : "text-red-700" },
+                ].map(row => (
+                  <div key={row.label}
+                    className="flex justify-between items-center py-2 border-b last:border-0">
+                    <span className="text-sm text-gray-600">{row.label}</span>
+                    <span className={`font-semibold text-sm ${row.color}`}>
+                      ₹{row.value.toLocaleString("en-IN")}
+                    </span>
+                  </div>
                 ))}
               </div>
-            ) : drawerTransactions.length === 0 ? (
-              <div className="text-center py-12">
-                <FileX className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-sm text-gray-500">No transactions found</p>
-              </div>
-            ) : (
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Reference ID</TableHead>
-                      <TableHead>City</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {drawerTransactions.map((txn) => (
-                      <TableRow key={txn.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-gray-400" />
-                            <span className="text-sm">{txn.date}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getTransactionTypeBadge(txn.type)}>
-                            {txn.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <p className="font-medium">{txn.description}</p>
-                            <p className="text-xs text-gray-500">{txn.sourceEngine}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">{txn.referenceId}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3 text-gray-400" />
-                            <span className="text-sm">{txn.city}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span
-                            className={`font-mono font-semibold ${
-                              txn.type === "REVENUE"
-                                ? "text-green-600"
-                                : txn.type === "REFUND"
-                                ? "text-orange-600"
-                                : "text-red-600"
-                            }`}
-                          >
-                            {txn.type === "REVENUE" ? "+" : "-"}₹
-                            {txn.amount.toLocaleString("en-IN")}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }
