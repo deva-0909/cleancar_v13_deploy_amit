@@ -7,16 +7,17 @@ import { initializeHRData } from "./utils/hr-data-initializer";
 import { EventMonitor } from "./components/crm/EventMonitor";
 import { useGlobalEventHandlers } from "./hooks/useGlobalEventHandlers";
 import { AppProvider } from "./contexts/AppProvider";
+import { employeeDatabaseService } from "./services/employeeDatabaseService";
 
 function AppContent() {
   // IMPORTANT: Hooks must be called unconditionally at the top level
   useEffect(() => {
-    // Initialize HR data on first load
-    try {
-      initializeHRData();
-    } catch (error) {
-      console.error("Failed to initialize HR data:", error);
-    }
+    // Load employees from Supabase first (needed for login)
+    employeeDatabaseService.loadFromSupabase().finally(() => {
+      try { initializeHRData(); } catch (e) {
+        console.error("Failed to initialize HR data:", e);
+      }
+    });
   }, []);
 
   // Activate global event listeners
