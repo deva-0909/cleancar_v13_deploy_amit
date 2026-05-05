@@ -14,8 +14,6 @@ const HEADERS = {
   "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
 };
 
-const SEED_FLAG = "cc360_supabase_loaded_v1";
-
 // Supabase table → localStorage key mapping
 // Tables with their storage strategy
 // cityNamespaced: false = store only as combined legacy key (saves localStorage space)
@@ -42,8 +40,6 @@ const TABLE_MAP: Array<{
   { table: "cleancar_jobs",                localKey: "jobs",                cityColumn: "city_id", cityNamespaced: false },
   { table: "cleancar_attendance",          localKey: "attendance_records",  cityColumn: "city_id", cityNamespaced: false },
 ];
-
-const CITIES = ["CITY-SURAT", "CITY-MUMBAI", "CITY-AHMEDABAD"];
 
 async function fetchSample(table: string, limit: number): Promise<any[]> {
   // Fetch a limited sample ordered by latest first
@@ -156,7 +152,7 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
     console.log(`[Supabase] ✅ All data loaded in ${elapsed}ms (${failed} failures)`);
 
     // Mark as loaded for this session
-    sessionStorage.setItem(SEED_FLAG, Date.now().toString());
+    sessionStorage.setItem("cc360_supabase_loaded_v1", Date.now().toString());
 
   } catch (err) {
     console.error("[Supabase] Failed to load data:", err);
