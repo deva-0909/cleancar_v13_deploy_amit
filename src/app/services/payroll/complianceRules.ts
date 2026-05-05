@@ -546,15 +546,8 @@ export function getStateRules(state: IndianState): ComplianceRules {
 export function detectStateFromCity(city: string): IndianState {
   const cityStateMap: Record<string, IndianState> = {
     surat: "GJ",
-    ahmedabad: "GJ",
-    vadodara: "GJ",
     mumbai: "MH",
-    pune: "MH",
-    bangalore: "KA",
-    delhi: "DL",
-    chennai: "TN",
-    hyderabad: "TG",
-    kolkata: "WB",
+    ahmedabad: "GJ",
   };
 
   return cityStateMap[city.toLowerCase()] || "GJ"; // Default to Gujarat

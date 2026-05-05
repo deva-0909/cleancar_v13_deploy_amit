@@ -15,7 +15,7 @@ import {
   AlertCircle,
   ChevronLeft,
 } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 interface AttendanceRecord {
   date: string;

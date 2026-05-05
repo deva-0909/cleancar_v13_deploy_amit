@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -32,10 +32,14 @@ import { Textarea } from "../ui/textarea";
 import { Plus, Star, Download, Building2, Phone, Mail, MapPin, CreditCard, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { gstComplianceService } from "../../services/gstComplianceService";
+import { useCity } from "../../contexts/CityContext";
+import { GST_STATE_OPTIONS } from "../../services/accountingEntryService";
 
 export function SupplierMaster() {
   const navigate = useNavigate();
+  const { availableCities } = useCity();
   const vendors = gstComplianceService.getVendors();
+  const [formData, setFormData] = useState({ city: "", stateCode: "", state: "" });
   const suppliers = vendors.map(v => ({
     id: v.id, companyName: v.legalName, tradeName: v.tradeName||v.legalName,
     gstin: v.gstin||"", contactPerson: v.contactPerson||"", phone: v.phone||"",
@@ -339,11 +343,25 @@ export function SupplierMaster() {
                 </div>
                 <div className="space-y-2">
                   <Label>City *</Label>
-                  <Input placeholder="City" />
+                  <Select value={formData.city} onValueChange={val => setFormData(prev => ({ ...prev, city: val }))}>
+                    <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
+                    <SelectContent>
+                      {availableCities.map(c => <SelectItem key={c.id} value={c.displayName}>{c.displayName}</SelectItem>)}
+                      <SelectItem value="Other">Other city</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>State *</Label>
-                  <Input placeholder="State" />
+                  <Select value={formData.stateCode} onValueChange={val => {
+                    const state = GST_STATE_OPTIONS.find(s => s.value === val);
+                    setFormData(prev => ({ ...prev, stateCode: val, state: state?.name || "" }));
+                  }}>
+                    <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
+                    <SelectContent>
+                      {GST_STATE_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>PIN Code *</Label>

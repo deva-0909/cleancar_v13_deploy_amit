@@ -6,7 +6,7 @@
  * <DevOnlyRoute element={<TestComponent />} />
  */
 
-import { Navigate } from "react-router";
+import { Navigate } from "react-router-dom";
 
 interface DevOnlyRouteProps {
   element: React.ReactElement;

@@ -65,6 +65,31 @@ function CustomerLTVAnalysis() {
 
   const hasAccess = currentRole === "Super Admin" || currentRole === "Admin" || currentRole === "Accounts";
 
+  // Calculate real retention from subscription history
+  const realRetentionByPackage = useMemo(() => {
+    const churnedSubs = customerSubscriptions.filter(s => s.status === "Cancelled" || s.status === "Churned");
+    const packageMap: Record<string, number[]> = {};
+    churnedSubs.forEach(sub => {
+      if (!sub.startDate || !sub.endDate) return;
+      const months = Math.max(1, Math.round(
+        (new Date(sub.endDate).getTime() - new Date(sub.startDate).getTime()) / (30 * 86400000)
+      ));
+      const pkg = sub.packageType || "Unknown";
+      if (!packageMap[pkg]) packageMap[pkg] = [];
+      packageMap[pkg].push(months);
+    });
+    const retention: Record<string, number> = {};
+    Object.entries(packageMap).forEach(([pkg, months]) => {
+      retention[pkg] = Math.round(months.reduce((s, m) => s + m, 0) / months.length);
+    });
+    return retention;
+  }, [customerSubscriptions]);
+
+  const getRetentionMonths = (packageType: string): number =>
+    realRetentionByPackage[packageType] ||
+    PACKAGE_RETENTION_MONTHS[packageType] ||  // fallback to assumed values
+    12;
+
   if (!hasAccess) {
     return (
       <div className="p-6">
@@ -91,7 +116,7 @@ function CustomerLTVAnalysis() {
 
       if (customerCount === 0) return null;
 
-      const retentionMonths = PACKAGE_RETENTION_MONTHS[packageType] || 12;
+      const retentionMonths = getRetentionMonths(packageType);
       const ltvValues = customersInPlan.map(calculateSubscriptionLTV);
       const avgLTV = Math.round(ltvValues.reduce((sum, ltv) => sum + ltv, 0) / customerCount);
       const totalValue = ltvValues.reduce((sum, ltv) => sum + ltv, 0);

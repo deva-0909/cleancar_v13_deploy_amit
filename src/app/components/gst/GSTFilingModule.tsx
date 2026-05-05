@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { Upload, Check, ChevronRight, Download, CheckCircle } from "lucide-react";
 import { showExportMenu } from "../../utils/gstExportUtils";
+import { gstComplianceService } from "../../services/gstComplianceService";
+import { useCity } from "../../contexts/CityContext";
 
 export function GSTFilingModule() {
+  const { city } = useCity();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedGSTIN, setSelectedGSTIN] = useState("24GAOPS5676E1Z3");
-  const [selectedMonth, setSelectedMonth] = useState("April 2026");
+  const [selectedMonth, setSelectedMonth] = useState(4);
+  const [selectedYear, setSelectedYear] = useState(2026);
   const [filingReference, setFilingReference] = useState("");
   const [filingDate, setFilingDate] = useState("");
   const [filedBy] = useState("Current Manager");
@@ -77,7 +81,30 @@ export function GSTFilingModule() {
       alert("Please enter filing reference and date");
       return;
     }
+    // Persist Filed status + reference to every approved transaction for this period
+    const toFile = gstComplianceService
+      .getTransactionsByMonth(selectedMonth, selectedYear, city)
+      .filter(t => t.status === "Approved");
+
+    toFile.forEach(t => {
+      const updated = {
+        ...t,
+        status: "Filed" as const,
+        filedInReturn: filingReference,
+        changeHistory: [...(t.changeHistory || []), {
+          timestamp: new Date().toISOString(),
+          changedBy: "Accounts",
+          action: "Filed",
+          previousStatus: "Approved",
+          newStatus: "Filed",
+          note: `Filed on ${filingDate}. Reference: ${filingReference}`,
+        }],
+      };
+      gstComplianceService.saveTransaction(updated);
+    });
+
     setFiled(true);
+    alert(`Filing confirmed. ${toFile.length} transactions marked as Filed. Reference: ${filingReference}`);
   };
 
   return (

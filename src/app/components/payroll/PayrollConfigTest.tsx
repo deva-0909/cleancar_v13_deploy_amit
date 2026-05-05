@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { CheckCircle } from "lucide-react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { Button } from "../ui/button";
 
 export function PayrollConfigTest() {

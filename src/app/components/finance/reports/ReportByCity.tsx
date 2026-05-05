@@ -56,7 +56,7 @@ export function ReportByCity({ period }: ReportByCityProps) {
   const cityData: CityData[] = [
     {
       id: "1",
-      city: "Bangalore",
+      city: "Surat",
       activeZones: 12,
       activeCustomers: 1854,
       totalWashes: 6842,
@@ -66,11 +66,11 @@ export function ReportByCity({ period }: ReportByCityProps) {
       totalRevenue: 4285600,
       avgEBITDA: 61.9,
       zoneBreakdown: [
-        { pinCode: "560034", areaName: "Koramangala", washes: 892, avgCost: 91.2, revenue: 485600 },
-        { pinCode: "560038", areaName: "Indiranagar", washes: 1156, avgCost: 92.8, revenue: 625400 },
-        { pinCode: "560102", areaName: "HSR Layout", washes: 1024, avgCost: 88.5, revenue: 542800 },
-        { pinCode: "560066", areaName: "Whitefield", washes: 654, avgCost: 94.5, revenue: 398200 },
-        { pinCode: "560078", areaName: "JP Nagar", washes: 723, avgCost: 90.3, revenue: 412800 },
+        { pinCode: "395001", areaName: "Adajan", washes: 892, avgCost: 91.2, revenue: 485600 },
+        { pinCode: "395005", areaName: "Althan", washes: 756, avgCost: 89.5, revenue: 412800 },
+        { pinCode: "395007", areaName: "Vesu", washes: 1024, avgCost: 92.1, revenue: 558200 },
+        { pinCode: "395009", areaName: "Piplod", washes: 654, avgCost: 90.8, revenue: 398200 },
+        { pinCode: "395010", areaName: "Athwa", washes: 723, avgCost: 90.3, revenue: 412800 },
       ],
     },
     {
@@ -85,15 +85,15 @@ export function ReportByCity({ period }: ReportByCityProps) {
       totalRevenue: 3125400,
       avgEBITDA: 59.3,
       zoneBreakdown: [
-        { pinCode: "400001", areaName: "Fort", washes: 945, avgCost: 96.5, revenue: 685200 },
-        { pinCode: "400050", areaName: "Bandra", washes: 1254, avgCost: 94.8, revenue: 872300 },
-        { pinCode: "400053", areaName: "Andheri", washes: 856, avgCost: 93.2, revenue: 598400 },
-        { pinCode: "400076", areaName: "Powai", washes: 768, avgCost: 96.8, revenue: 542100 },
+        { pinCode: "400001", areaName: "Bandra", washes: 1156, avgCost: 98.4, revenue: 695400 },
+        { pinCode: "400002", areaName: "Andheri", washes: 988, avgCost: 96.2, revenue: 568800 },
+        { pinCode: "400003", areaName: "Thane", washes: 856, avgCost: 94.8, revenue: 598400 },
+        { pinCode: "400004", areaName: "Dadar", washes: 768, avgCost: 95.5, revenue: 542100 },
       ],
     },
     {
       id: "3",
-      city: "Delhi",
+      city: "Ahmedabad",
       activeZones: 10,
       activeCustomers: 1568,
       totalWashes: 5234,
@@ -103,10 +103,10 @@ export function ReportByCity({ period }: ReportByCityProps) {
       totalRevenue: 3654800,
       avgEBITDA: 60.8,
       zoneBreakdown: [
-        { pinCode: "110001", areaName: "Connaught Place", washes: 1123, avgCost: 93.2, revenue: 785600 },
-        { pinCode: "110016", areaName: "Lajpat Nagar", washes: 985, avgCost: 91.5, revenue: 685200 },
-        { pinCode: "110025", areaName: "Karol Bagh", washes: 856, avgCost: 92.8, revenue: 598400 },
-        { pinCode: "110048", areaName: "Saket", washes: 945, avgCost: 91.2, revenue: 658900 },
+        { pinCode: "380001", areaName: "Navrangpura", washes: 820, avgCost: 88.6, revenue: 445200 },
+        { pinCode: "380015", areaName: "Satellite", washes: 745, avgCost: 87.9, revenue: 402600 },
+        { pinCode: "380005", areaName: "Vastrapur", washes: 985, avgCost: 91.5, revenue: 685200 },
+        { pinCode: "380009", areaName: "Jahangirpura", washes: 945, avgCost: 90.2, revenue: 658900 },
       ],
     },
   ];

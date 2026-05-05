@@ -13,6 +13,9 @@ import {
 import { Calendar, X } from "lucide-react";
 import { toast } from "sonner";
 import { EventTriggerLabel } from "../EventBadge";
+import { useCustomers } from "../../../contexts/CustomerContext";
+import { useRole } from "../../../contexts/RoleContext";
+import { useCity } from "../../../contexts/CityContext";
 
 interface ScheduleDemoPanelProps {
   lead: any;
@@ -25,12 +28,26 @@ export function ScheduleDemoPanel({
   onClose,
   onComplete,
 }: ScheduleDemoPanelProps) {
+  const { appendLeadActivity, updateLead, customers, updateCustomer } = useCustomers();
+  const { currentUser } = useRole();
+  const { availableCities } = useCity();
+  const leadId = lead.leadId || lead.id;
   const [demoType, setDemoType] = useState("subscription");
   const [demoDate, setDemoDate] = useState("");
   const [timeSlot, setTimeSlot] = useState("");
+  const [demoAddress, setDemoAddress] = useState("");
   const [supervisor, setSupervisor] = useState("");
   const [plan, setPlan] = useState(lead.planOfInterest);
   const [instructions, setInstructions] = useState("");
+  const [demoCity, setDemoCity] = useState(lead?.address?.city || "Surat");
+  const [demoPinCode, setDemoPinCode] = useState(lead?.address?.pinCode || "");
+
+  // Pincode options per city
+  const CITY_PINCODES: Record<string, string[]> = {
+    "Surat":  ["395001","395002","395003","395004","395005","395006","395007","395008","395009","395010"],
+    "Mumbai": ["400001","400002","400003","400004","400005","400006","400007","400008","400009","400010"],
+  };
+  const availablePins = CITY_PINCODES[demoCity] || [];
 
   const handleSchedule = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +71,24 @@ export function ScheduleDemoPanel({
 
     toast.success("Demo scheduled successfully!");
     toast.info("Operations Manager has been notified");
+
+    updateLead(leadId, {
+      stage: "demo_scheduled",
+      followUpDate: demoDate,
+    });
+    appendLeadActivity(leadId, {
+      timestamp: new Date().toISOString(),
+      type: "demo_scheduled",
+      description: `Demo scheduled for ${new Date(demoDate).toLocaleDateString("en-IN")} at ${timeSlot}`,
+      performedBy: currentUser?.name || "TSE",
+      metadata: { demoDate, demoTimeSlot: timeSlot, address: demoAddress },
+    });
+    // Sync to CustomerContext status
+    const customer = customers.find(c => c.customerId === leadId);
+    if (customer) {
+      updateCustomer(leadId, { status: "Demo Scheduled" });
+    }
+
     onComplete();
   };
 
@@ -166,8 +201,22 @@ export function ScheduleDemoPanel({
           <Input defaultValue={lead.area} />
           <Input placeholder="Address Line 1" />
           <div className="grid grid-cols-2 gap-2">
-            <Input placeholder="City" defaultValue="Surat" />
-            <Input placeholder="PIN Code" />
+            <Select value={demoCity} onValueChange={(val) => { setDemoCity(val); setDemoPinCode(""); }}>
+              <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
+              <SelectContent>
+                {availableCities.map(c => (
+                  <SelectItem key={c.id} value={c.displayName}>{c.displayName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={demoPinCode} onValueChange={setDemoPinCode}>
+              <SelectTrigger><SelectValue placeholder="Select PIN code" /></SelectTrigger>
+              <SelectContent>
+                {availablePins.map(pin => (
+                  <SelectItem key={pin} value={pin}>{pin}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

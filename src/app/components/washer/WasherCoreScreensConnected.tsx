@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { useWasher, useWasherJobs } from "../../contexts/WasherContext";
 import { WasherHomeDashboard, type DayStatus } from "./WasherHomeDashboard";
 import { WasherCheckIn, type CheckInWindow, type ValidationState } from "./WasherCheckIn";

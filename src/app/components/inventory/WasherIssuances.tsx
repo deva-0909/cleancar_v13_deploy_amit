@@ -33,11 +33,11 @@ import {
   TabsList,
   TabsTrigger,
 } from "../ui/tabs";
-import { 
-  Package, 
-  Plus, 
-  Users, 
-  FileText, 
+import {
+  Package,
+  Plus,
+  Users,
+  FileText,
   AlertTriangle,
   CheckCircle,
   Download,
@@ -47,9 +47,12 @@ import {
   TrendingDown,
   BarChart3
 } from "lucide-react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Textarea } from "../ui/textarea";
+import { useInventory } from "../../contexts/InventoryContext";
+import { useCity } from "../../contexts/CityContext";
+import { useEmployee } from "../../contexts/EmployeeContext";
 
 // Mock data for washers with stock in hand
 const washersData = [
@@ -158,6 +161,30 @@ const issuanceRecords = [
 ];
 
 export function WasherIssuances() {
+  const { getCentralStock, getSupervisorStock, getWasherStock,
+          issueInventory, stockTransactions, inventory } = useInventory();
+  const { city } = useCity();
+  const { employees } = useEmployee();
+
+  // Get washers from EmployeeContext for this city
+  const washers = employees.filter(e =>
+    e.designation === "Car Washer" && e.status === "Active" &&
+    (e.workLocation === city || e.cityId === city)
+  ).map(e => ({
+    id: e.id,
+    name: e.fullName,
+    pinCode: e.pinCodes?.[0] || "",
+    zone: e.pinCodes?.[0] || "Unknown",
+    stockInHand: getWasherStock(e.id, city)
+      .reduce((s, i) => s + (i.washerStock[e.id] || 0), 0),
+    lastIssuance: stockTransactions
+      .filter(t => t.toId === e.id && t.type === "Issue")
+      .sort((a,b) => b.createdAt.localeCompare(a.createdAt))[0]?.createdAt || "Never",
+  }));
+
+  // Use live data — fallback to mock if no employees loaded yet
+  const displayWashers = washers.length > 0 ? washers : washersData;
+
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [showBulkIssueDialog, setShowBulkIssueDialog] = useState(false);
   const [selectedWasher, setSelectedWasher] = useState<typeof washersData[0] | null>(null);
@@ -222,7 +249,7 @@ export function WasherIssuances() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Washers</SelectItem>
-                      {washersData.map(w => (
+                      {displayWashers.map(w => (
                         <SelectItem key={w.id} value={w.id.toString()}>{w.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -371,7 +398,7 @@ export function WasherIssuances() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {washersData.map((washer, idx) => (
+                {displayWashers.map((washer, idx) => (
                   <div key={washer.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       {idx === 0 ? (
@@ -495,12 +522,12 @@ export function WasherIssuances() {
                     <SelectValue placeholder="Select washer" />
                   </SelectTrigger>
                   <SelectContent>
-                    {washersData.map(w => (
+                    {displayWashers.map(w => (
                       <SelectItem key={w.id} value={w.id.toString()}>
                         <div className="flex flex-col">
                           <span>{w.name}</span>
                           <span className="text-xs text-gray-500">
-                            {w.pinCode} — {w.zone} | Shampoo: {w.stockInHand.shampoo}ml
+                            {w.pinCode} — {w.zone}
                           </span>
                         </div>
                       </SelectItem>
@@ -618,7 +645,7 @@ export function WasherIssuances() {
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="p-2 border text-left text-sm font-semibold">Material</th>
-                    {washersData.map(w => (
+                    {displayWashers.map(w => (
                       <th key={w.id} className="p-2 border text-center text-sm font-semibold">
                         {w.name}
                         <br />
@@ -635,11 +662,11 @@ export function WasherIssuances() {
                         <br />
                         <span className="text-xs text-gray-500">({material.unit})</span>
                       </td>
-                      {washersData.map(w => (
+                      {displayWashers.map(w => (
                         <td key={w.id} className="p-2 border">
-                          <Input 
-                            type="number" 
-                            placeholder="—" 
+                          <Input
+                            type="number"
+                            placeholder="—"
                             className="w-24 text-center"
                           />
                         </td>

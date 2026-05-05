@@ -20,14 +20,28 @@ import { Calendar, Clock, Phone, MapPin, Car, Plus, CheckCircle, AlertCircle, Ey
 import { DemoAssignmentStatus } from "./DemoAssignmentStatus";
 import { DemoSchedulingDrawer } from "./DemoSchedulingDrawer";
 import { useDemos } from "../../contexts/DemoContext";
+import { useCustomers } from "../../contexts/CustomerContext";
 
 export function DemoManagement() {
   const { demos } = useDemos();
+  const { leads } = useCustomers();
   const [showScheduleDrawer, setShowScheduleDrawer] = useState(false);
   const [selectedDemo, setSelectedDemo] = useState<typeof demos[0] | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  // Mock lead data for demo scheduling
+  // Build real lead data from selected demo
+  const realLeadData = selectedDemo ? (() => {
+    const lead = leads.find(l => l.leadId === selectedDemo.leadId);
+    return lead ? {
+      leadId: lead.leadId,
+      leadName: `${lead.firstName} ${lead.lastName}`,
+      phone: lead.phone,
+      address: lead.address,
+      vehicleDetails: lead.vehicleDetails,
+    } : null;
+  })() : null;
+
+  // Fallback mock lead data for demo scheduling
   const mockLeadData = {
     id: "LD999",
     name: "Demo Customer",
@@ -223,7 +237,7 @@ export function DemoManagement() {
       <DemoSchedulingDrawer
         isOpen={showScheduleDrawer}
         onClose={() => setShowScheduleDrawer(false)}
-        leadData={mockLeadData}
+        leadData={realLeadData || mockLeadData}
       />
 
       {/* Demo Details Modal */}

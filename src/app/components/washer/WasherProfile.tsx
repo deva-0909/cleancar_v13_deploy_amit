@@ -17,7 +17,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { useRole } from "../../contexts/RoleContext";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 export function WasherProfile() {
   const { currentUser } = useRole();

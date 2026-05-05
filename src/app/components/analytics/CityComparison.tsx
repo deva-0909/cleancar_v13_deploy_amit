@@ -32,6 +32,12 @@ import {
   Activity,
   Building2,
 } from "lucide-react";
+import { useFinance } from "../../contexts/FinanceContext";
+import { usePayroll } from "../../contexts/PayrollContext";
+import { useJobs } from "../../contexts/JobContext";
+import { useCustomers } from "../../contexts/CustomerContext";
+import { useEmployee } from "../../contexts/EmployeeContext";
+import { useCity } from "../../contexts/CityContext";
 
 // City data - From analyticsEngine
 interface CityComparisonData {
@@ -56,76 +62,54 @@ interface CityComparisonData {
   labourCostPerUnit: number;       // Derived: Labour Cost / Units
 }
 
-// Mock city data - In production from analyticsEngine
-// NOTE: Cities must match CityContext configuration: Surat, Mumbai, Ahmedabad
-const CITY_DATA: CityComparisonData[] = [
-  {
-    city: "SURAT",
-    totalRevenue: 850000,
-    totalRefunds: 85000,
-    netRevenue: 765000,
-    totalExpenses: 425000,
-    labourCost: 285000,
-    materialCost: 95000,
-    overheadCost: 45000,
-    netIncome: 340000,
-    profitMargin: 44.4,
-    unitsCompleted: 1850,
-    activeCustomers: 245,
-    employeeCount: 15,
-    refundRate: 10.0,
-    revenuePerUnit: 459,
-    revenuePerCustomer: 3469,
-    revenuePerEmployee: 56667,
-    costPerUnit: 230,
-    labourCostPerUnit: 154,
-  },
-  {
-    city: "MUMBAI",
-    totalRevenue: 1250000,
-    totalRefunds: 62500,
-    netRevenue: 1187500,
-    totalExpenses: 580000,
-    labourCost: 398000,
-    materialCost: 125000,
-    overheadCost: 57000,
-    netIncome: 607500,
-    profitMargin: 51.2,
-    unitsCompleted: 2650,
-    activeCustomers: 385,
-    employeeCount: 22,
-    refundRate: 5.0,
-    revenuePerUnit: 472,
-    revenuePerCustomer: 3247,
-    revenuePerEmployee: 56818,
-    costPerUnit: 219,
-    labourCostPerUnit: 150,
-  },
-  {
-    city: "AHMEDABAD",
-    totalRevenue: 620000,
-    totalRefunds: 93000,
-    netRevenue: 527000,
-    totalExpenses: 310000,
-    labourCost: 248000,
-    materialCost: 45000,
-    overheadCost: 17000,
-    netIncome: 217000,
-    profitMargin: 41.2,
-    unitsCompleted: 1380,
-    activeCustomers: 168,
-    employeeCount: 13,
-    refundRate: 15.0,
-    revenuePerUnit: 449,
-    revenuePerCustomer: 3690,
-    revenuePerEmployee: 47692,
-    costPerUnit: 225,
-    labourCostPerUnit: 180,
-  },
-];
-
 function CityComparison() {
   const [selectedMetric, setSelectedMetric] = useState<"revenue" | "profit" | "efficiency">("revenue");
+
+  const { getRevenueByCity, getPayablesByCity } = useFinance();
+  const { payrollRuns } = usePayroll();
+  const { allJobs } = useJobs();
+  const { customers } = useCustomers();
+  const { employees } = useEmployee();
+  const { availableCities } = useCity();
+
+  const CITY_DATA: CityComparisonData[] = useMemo(() => {
+    return availableCities.map(cityDef => {
+      const cityId = cityDef.id;
+      const cityName = cityDef.displayName.toUpperCase();
+
+      const revenues     = getRevenueByCity(cityId).filter(r => r.status === "Received");
+      const payables     = getPayablesByCity(cityId).filter(p => p.status === "Paid");
+      const cityJobs     = allJobs.filter(j => j.cityId === cityId && (j.status === "Completed" || j.status === "Verified"));
+      const cityCustomers= customers.filter(c => c.cityId === cityId && c.status === "Active");
+      const cityEmployees= employees.filter(e => (e.workLocation === cityId || e.cityId === cityId) && e.status === "Active");
+      const cityPayroll  = payrollRuns.filter(r => r.cityId === cityId);
+
+      const totalRevenue  = revenues.reduce((s, r) => s + r.amount, 0);
+      const totalExpenses = payables.reduce((s, p) => s + p.amount, 0);
+      const labourCost    = payables.filter(p => p.type === "Salary").reduce((s, p) => s + p.amount, 0);
+      const materialCost  = payables.filter(p => p.type === "Vendor").reduce((s, p) => s + p.amount, 0);
+      const netRevenue    = totalRevenue;
+      const netIncome     = netRevenue - totalExpenses;
+
+      return {
+        city: cityName,
+        totalRevenue, totalRefunds: 0, netRevenue,
+        totalExpenses, labourCost, materialCost,
+        overheadCost: totalExpenses - labourCost - materialCost,
+        netIncome,
+        profitMargin: netRevenue > 0 ? Math.round((netIncome / netRevenue) * 1000) / 10 : 0,
+        unitsCompleted:      cityJobs.length,
+        activeCustomers:     cityCustomers.length,
+        employeeCount:       cityEmployees.length,
+        refundRate:          0,
+        revenuePerUnit:      cityJobs.length > 0 ? Math.round(totalRevenue / cityJobs.length) : 0,
+        revenuePerCustomer:  cityCustomers.length > 0 ? Math.round(totalRevenue / cityCustomers.length) : 0,
+        revenuePerEmployee:  cityEmployees.length > 0 ? Math.round(totalRevenue / cityEmployees.length) : 0,
+        costPerUnit:         cityJobs.length > 0 ? Math.round(totalExpenses / cityJobs.length) : 0,
+        labourCostPerUnit:   cityJobs.length > 0 ? Math.round(labourCost / cityJobs.length) : 0,
+      };
+    });
+  }, [availableCities, getRevenueByCity, getPayablesByCity, allJobs, customers, employees, payrollRuns]);
 
   // Calculate totals for benchmarking
   const totals = useMemo(() => ({

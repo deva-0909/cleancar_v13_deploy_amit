@@ -2,7 +2,7 @@
  * Test component to verify statutory routes are accessible
  */
 
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { FileText, Shield, CheckCircle } from "lucide-react";

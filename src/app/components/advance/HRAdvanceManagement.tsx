@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { useRole } from "../../contexts/RoleContext";
 import { advanceManagementService } from "../../services/advanceManagementService";
 import { getAdvanceSettings, updateAdvanceSettings, type AdvanceSettings } from "../../config/advanceSettings";

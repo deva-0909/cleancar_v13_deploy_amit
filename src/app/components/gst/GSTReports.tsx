@@ -2,15 +2,17 @@ import { useState, useMemo } from "react";
 import { FileBarChart, Download } from "lucide-react";
 import { gstComplianceService } from "../../services/gstComplianceService";
 import { showExportMenu } from "../../utils/gstExportUtils";
+import { useCity } from "../../contexts/CityContext";
 
 export function GSTReports() {
+  const { city } = useCity();
   const [activeTab, setActiveTab] = useState<"register" | "output" | "itc" | "recon" | "risk" | "audit">("register");
   const [filterMonth, setFilterMonth] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterRisk, setFilterRisk] = useState("");
 
-  const transactions = gstComplianceService.getTransactions();
+  const transactions = gstComplianceService.getTransactions(city);
   const reconciliation = gstComplianceService.getReconciliation();
 
   const filteredTransactions = useMemo(() => {
@@ -512,14 +514,15 @@ export function GSTReports() {
             <h3 className="font-semibold text-gray-900">Audit Log</h3>
             <button
               onClick={(e) => {
-                const data = transactions.map(t => ({
-                  Action: "Transaction Created",
-                  Invoice: t.invoiceNumber,
-                  User: t.createdBy,
-                  Timestamp: t.createdAt,
-                  Details: `${t.transactionType} for ${t.partyName}`
-                }));
-                handleExport(e, "audit-log", data);
+                const data = transactions.flatMap(txn => [
+                  { Timestamp: txn.createdAt, Action: "Transaction Created", User: txn.createdBy,
+                    Invoice: txn.invoiceNumber, Details: `${txn.transactionType} for ${txn.partyName}` },
+                  ...(txn.changeHistory || []).map(log => ({
+                    Timestamp: log.timestamp, Action: log.action, User: log.changedBy,
+                    Invoice: txn.invoiceNumber, Details: log.note || log.action,
+                  })),
+                ]).sort((a, b) => b.Timestamp.localeCompare(a.Timestamp));
+                handleExport(e, "gst-audit-log", data);
               }}
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
             >
@@ -540,15 +543,40 @@ export function GSTReports() {
                 </tr>
               </thead>
               <tbody>
-                {transactions.slice(0, 50).map(txn => (
-                  <tr key={txn.id} className="border-b border-gray-100 text-sm">
-                    <td className="py-3 text-gray-700">{new Date(txn.createdAt).toLocaleString()}</td>
-                    <td className="py-3 text-gray-900">Transaction Created</td>
-                    <td className="py-3 text-gray-700">{txn.createdBy}</td>
-                    <td className="py-3 font-medium text-gray-900">{txn.invoiceNumber}</td>
-                    <td className="py-3 text-gray-700">{txn.transactionType} for {txn.partyName}</td>
-                  </tr>
-                ))}
+                {transactions
+                  .flatMap(txn =>
+                    [
+                      // Always include the creation event
+                      { txnId: txn.id, invoice: txn.invoiceNumber, ts: txn.createdAt,
+                        action: "Transaction Created", user: txn.createdBy,
+                        detail: `${txn.transactionType} — ${txn.partyName} — ₹${txn.invoiceTotal?.toLocaleString()}` },
+                      // Expand all changeHistory entries
+                      ...(txn.changeHistory || []).map(log => ({
+                        txnId: txn.id, invoice: txn.invoiceNumber, ts: log.timestamp,
+                        action: log.action, user: log.changedBy,
+                        detail: log.note || (log.newStatus ? `Status → ${log.newStatus}` : log.action),
+                      })),
+                    ]
+                  )
+                  .sort((a, b) => b.ts.localeCompare(a.ts))
+                  .slice(0, 100)
+                  .map((entry, i) => (
+                    <tr key={i} className="border-b border-gray-100 text-sm">
+                      <td className="py-3 text-gray-700">{new Date(entry.ts).toLocaleString("en-IN")}</td>
+                      <td className="py-3">
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          entry.action === "Filed" ? "bg-purple-100 text-purple-700"
+                          : entry.action === "Approved" ? "bg-green-100 text-green-700"
+                          : entry.action.includes("AI") ? "bg-blue-100 text-blue-700"
+                          : "bg-gray-100 text-gray-700"
+                        }`}>{entry.action}</span>
+                      </td>
+                      <td className="py-3 text-gray-700">{entry.user}</td>
+                      <td className="py-3 font-mono text-xs text-gray-600">{entry.invoice}</td>
+                      <td className="py-3 text-gray-600">{entry.detail}</td>
+                    </tr>
+                  ))
+                }
               </tbody>
             </table>
           </div>

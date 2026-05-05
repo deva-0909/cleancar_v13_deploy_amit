@@ -138,11 +138,9 @@ export function FinancialReportsModule() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">All Cities</SelectItem>
-                  <SelectItem value="BLR">Bangalore</SelectItem>
-                  <SelectItem value="DEL">Delhi</SelectItem>
+                  <SelectItem value="SUR">Surat</SelectItem>
                   <SelectItem value="MUM">Mumbai</SelectItem>
-                  <SelectItem value="HYD">Hyderabad</SelectItem>
-                  <SelectItem value="CHN">Chennai</SelectItem>
+                  <SelectItem value="AHD">Ahmedabad</SelectItem>
                 </SelectContent>
               </Select>
             </div>

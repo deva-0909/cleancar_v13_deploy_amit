@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "../ui/table";
 import { Search, Package, AlertTriangle, TrendingDown, TrendingUp } from "lucide-react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 
 interface InventoryItem {
   id: string;

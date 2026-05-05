@@ -6,6 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
+import { useFinance } from "../../contexts/FinanceContext";
+import { useCity } from "../../contexts/CityContext";
 import {
   Table,
   TableBody,
@@ -40,11 +42,19 @@ import { AlertCircle, TrendingUp, TrendingDown, Info } from "lucide-react";
 
 export function EBITDADashboard() {
   const { CURRENT_PLAN_VERSION, VEHICLE_CATEGORIES, PLAN_TYPES, formatPrice } = usePlanDefinitions();
+  const { calculateEBITDA: calculateActualEBITDA, getRevenueByCity } = useFinance();
+  const { city } = useCity();
   const [withIncentive, setWithIncentive] = useState(false);
   const [selectedVehicle, setSelectedVehicle] =
     useState<VehicleCategory>("Hatchback / Compact Sedan");
 
   const vehicleType = selectedVehicle.includes("2W") ? "2W" : "4W";
+
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const actualEBITDA = calculateActualEBITDA(city, currentMonth);
+  const cityRevenues = getRevenueByCity(city).filter(r => r.status === "Received" && r.receivedDate.startsWith(currentMonth));
+  const totalRevenue = cityRevenues.reduce((s, r) => s + r.amount, 0);
+  const actualEBITDAPercent = totalRevenue > 0 ? (actualEBITDA / totalRevenue) * 100 : 0;
 
   // Calculate EBITDA for all subscription plans (exclude One-Time)
   const subscriptionPlans = PLAN_TYPES.filter((plan) => !plan.includes("One-Time"));
@@ -521,6 +531,32 @@ export function EBITDADashboard() {
                     </p>
                   </CardContent>
                 </Card>
+
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <h3 className="text-sm font-semibold text-blue-800 mb-1">
+                    Actual Financial EBITDA — {new Date().toLocaleString("en-IN", { month: "long", year: "numeric" })}
+                  </h3>
+                  <p className="text-xs text-blue-600 mb-3">
+                    Based on real revenue received and expenses paid — from Finance module records.
+                  </p>
+                  <div className="flex gap-4">
+                    <div className="bg-white rounded-lg p-3 flex-1 text-center">
+                      <div className="text-xs text-gray-500 mb-1">Actual EBITDA (₹)</div>
+                      <div className={`text-xl font-bold ${actualEBITDA >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        ₹{(actualEBITDA / 1000).toFixed(1)}K
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 flex-1 text-center">
+                      <div className="text-xs text-gray-500 mb-1">Actual EBITDA %</div>
+                      <div className={`text-xl font-bold ${actualEBITDAPercent >= 35 ? "text-green-600" : actualEBITDAPercent >= 30 ? "text-yellow-600" : "text-red-600"}`}>
+                        {actualEBITDAPercent.toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2 italic">
+                    Note: Pricing EBITDA above is a theoretical model. Actual EBITDA is derived from Finance module transactions.
+                  </p>
+                </div>
               </div>
             </TabsContent>
           </Tabs>

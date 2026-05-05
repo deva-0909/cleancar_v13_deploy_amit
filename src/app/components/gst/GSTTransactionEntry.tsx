@@ -1,21 +1,23 @@
 import { useState, useMemo, useEffect } from "react";
 import { FileText, Save, CheckCircle, AlertTriangle, Brain, TrendingDown, CheckCircle2 } from "lucide-react";
-import { gstComplianceService, type GSTTransaction } from "../../services/gstComplianceService";
+import { gstComplianceService, type GSTTransaction, COMPANY_GST_CONFIG } from "../../services/gstComplianceService";
 import { analyzeTransaction, type ScoringResult, type AICorrection, scoreAfterCorrection } from "../../services/gstAIScoringService";
 import { getSubTypesForParent, getSubTypeById } from "../../config/gstTransactionTypes";
 import type { TransactionSubType } from "../../config/gstTransactionTypes";
 import { TransactionTypeConfigurator } from "./TransactionTypeConfigurator";
 import { hasPermission } from "../../utils/permissionEngine";
 import { useRole } from "../../contexts/RoleContext";
+import { useCity } from "../../contexts/CityContext";
 
-const COMPANY_STATE = "Gujarat";
-const COMPANY_STATE_CODE = "24";
+const COMPANY_STATE      = COMPANY_GST_CONFIG.stateName;
+const COMPANY_STATE_CODE = COMPANY_GST_CONFIG.stateCode;
 
 export function GSTTransactionEntry() {
   const { currentUser } = useRole();
   const canCreate = hasPermission(currentUser, "accounts", "create");
+  const { city, cityInfo } = useCity();
 
-  const [formData, setFormData] = useState<Partial<GSTTransaction>>({
+  const [formData, setFormData] = useState<Partial<GSTTransaction & { supplyType?: "INTRA_STATE" | "INTER_STATE" | "EXPORT"; isRCM?: boolean }>>({
     id: crypto.randomUUID(),
     invoiceNumber: `INV-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9999) + 1).padStart(4, '0')}`,
     invoiceDate: new Date().toISOString().split('T')[0],
@@ -27,6 +29,8 @@ export function GSTTransactionEntry() {
     partyState: "",
     placeOfSupply: "",
     placeOfSupplyCode: "",
+    supplyType: undefined,
+    isRCM: false,
     hsnSacCode: "",
     description: "",
     quantity: 1,
@@ -60,9 +64,14 @@ export function GSTTransactionEntry() {
   const [showConfigurator, setShowConfigurator] = useState(false);
   const [availableSubTypes, setAvailableSubTypes] = useState<TransactionSubType[]>([]);
 
-  const vendors = gstComplianceService.getVendors();
-  const customers = gstComplianceService.getCustomers();
-  const parties = formData.transactionType === "Purchase" ? vendors : customers;
+  const parties = useMemo(() => {
+    const vendors   = gstComplianceService.getVendors(city);    // pass city filter
+    const customers = gstComplianceService.getCustomers(city);  // pass city filter
+    return [
+      ...vendors.map(v => ({ id: v.id, name: v.name, type: "vendor" as const, gstin: v.gstin, state: v.state, stateCode: v.stateCode })),
+      ...customers.map(c => ({ id: c.id, name: c.name, type: "customer" as const, gstin: c.gstin || "", state: c.state || "", stateCode: c.stateCode || "" })),
+    ];
+  }, [city]);
 
   useEffect(() => {
     if (formData.quantity && formData.unitPrice) {
@@ -72,30 +81,26 @@ export function GSTTransactionEntry() {
   }, [formData.quantity, formData.unitPrice]);
 
   useEffect(() => {
-    if (formData.taxableValue && formData.gstRate !== undefined && formData.placeOfSupply) {
+    if (formData.taxableValue && formData.gstRate !== undefined && formData.supplyType) {
+      const supplyType = formData.isRCM
+        ? (formData.supplyType === "INTER_STATE" ? "RCM_INTER" : "RCM_INTRA")
+        : (formData.supplyType as "INTRA_STATE" | "INTER_STATE" | "EXPORT");
       const gst = gstComplianceService.calculateGST(
-        formData.taxableValue,
-        formData.gstRate,
-        formData.placeOfSupply,
-        COMPANY_STATE
+        formData.taxableValue, formData.gstRate, supplyType
       );
-      const invoiceTotal = formData.taxableValue + gst.totalTax;
       setFormData(prev => ({
         ...prev,
-        cgst: gst.cgst,
-        sgst: gst.sgst,
-        igst: gst.igst,
-        totalTax: gst.totalTax,
-        invoiceTotal,
+        cgst: gst.cgst, sgst: gst.sgst, igst: gst.igst,
+        totalTax: gst.totalTax, invoiceTotal: gst.invoiceTotal,
         itcAmount: prev.itcEligible ? gst.totalTax : 0
       }));
     }
-  }, [formData.taxableValue, formData.gstRate, formData.placeOfSupply]);
+  }, [formData.taxableValue, formData.gstRate, formData.supplyType, formData.isRCM]);
 
   useEffect(() => {
     if (formData.invoiceDate) {
       const date = new Date(formData.invoiceDate);
-      const month = date.toLocaleString('default', { month: 'long' });
+      const month = date.getMonth() + 1; // integer 1–12, locale-independent
       const year = date.getFullYear();
       setFormData(prev => ({ ...prev, month, year }));
     }
@@ -137,11 +142,21 @@ export function GSTTransactionEntry() {
     }
   };
 
+  // Auto-derive supply type when party is selected
+  const deriveSupplyType = (partyId: string): "INTRA_STATE" | "INTER_STATE" => {
+    const party = parties.find(p => p.id === partyId);
+    const partyStateCode  = party?.stateCode || "";
+    const companyStateCode = COMPANY_GST_CONFIG.stateCode; // e.g. "24" for Gujarat
+    return partyStateCode === companyStateCode ? "INTRA_STATE" : "INTER_STATE";
+  };
+
   const handlePartySelect = (partyId: string) => {
     const party = parties.find(p => p.id === partyId);
     if (party) {
       const isVendor = 'gstin' in party && party.gstin;
       const gstType = isVendor ? gstComplianceService.deriveGSTType(party.gstin) : "B2C";
+      const supplyType = party.stateCode === COMPANY_GST_CONFIG.stateCode
+        ? "INTRA_STATE" : "INTER_STATE";
       setFormData(prev => ({
         ...prev,
         partyId: party.id,
@@ -150,6 +165,7 @@ export function GSTTransactionEntry() {
         partyState: party.state,
         placeOfSupply: party.state,
         placeOfSupplyCode: party.stateCode,
+        supplyType,
         gstType
       }));
     }
@@ -212,22 +228,95 @@ export function GSTTransactionEntry() {
       ...formData,
       status: asDraft ? "Draft" : scoringResult?.requiresManagerReview ? "Flagged" : "Validated",
       riskScore: scoringResult?.totalScore || 0,
-      riskLevel: scoringResult?.riskLevel || "Clean"
+      riskLevel: scoringResult?.riskLevel || "Clean",
+      validationErrors: scoringResult?.corrections.map(c => c.issueType) || [],
+      cityId: city,
+      city: cityInfo.displayName,
+      supplyNature: formData.gstRate === 0 ? "ZeroRated" : "Taxable",
+      changeHistory: [{
+        timestamp: new Date().toISOString(),
+        changedBy: formData.createdBy || "Accountant",
+        action: "Submitted",
+        newStatus: asDraft ? "Draft" : "Validated",
+      }],
     } as GSTTransaction;
 
     gstComplianceService.saveTransaction(transaction);
+
+    // RCM Journal Entry auto-generation
+    if (formData.isRCM && formData.transactionType === "Purchase") {
+      const { accountingEntryService } = require("../../services/accountingEntryService");
+
+      // Determine if intra-state or inter-state RCM
+      const isIntraState = formData.supplyType === "INTRA_STATE";
+
+      // Get ledger IDs (simplified - in production, fetch from accountingEntryService)
+      const expenseLedgerId = formData.transactionCategory || "direct_expenses";
+      const expenseLedgerName = formData.transactionSubType || "Direct Expense";
+      const inputCGSTLedgerId = "gst_input_cgst";
+      const inputSGSTLedgerId = "gst_input_sgst";
+      const inputIGSTLedgerId = "gst_input_igst";
+      const rcmOutputCGSTId = "rcm_output_cgst";
+      const rcmOutputSGSTId = "rcm_output_sgst";
+      const rcmOutputIGSTId = "rcm_output_igst";
+      const vendorLedgerId = formData.partyId || "vendor_misc";
+
+      const journalLines = [];
+
+      // Expense Ledger Dr
+      journalLines.push({
+        accountHead: expenseLedgerId,
+        accountLabel: expenseLedgerName,
+        debit: formData.taxableValue || 0,
+        credit: 0
+      });
+
+      if (isIntraState) {
+        // Intra-state RCM: CGST Input Dr | SGST Input Dr | CGST RCM Output Cr | SGST RCM Output Cr
+        journalLines.push(
+          { accountHead: inputCGSTLedgerId, accountLabel: "Input CGST", debit: formData.cgst || 0, credit: 0 },
+          { accountHead: inputSGSTLedgerId, accountLabel: "Input SGST", debit: formData.sgst || 0, credit: 0 },
+          { accountHead: rcmOutputCGSTId, accountLabel: "CGST RCM Output", debit: 0, credit: formData.cgst || 0 },
+          { accountHead: rcmOutputSGSTId, accountLabel: "SGST RCM Output", debit: 0, credit: formData.sgst || 0 }
+        );
+      } else {
+        // Inter-state RCM: IGST Input Dr | IGST RCM Output Cr
+        journalLines.push(
+          { accountHead: inputIGSTLedgerId, accountLabel: "Input IGST", debit: formData.igst || 0, credit: 0 },
+          { accountHead: rcmOutputIGSTId, accountLabel: "IGST RCM Output", debit: 0, credit: formData.igst || 0 }
+        );
+      }
+
+      // Vendor Cr
+      journalLines.push({
+        accountHead: vendorLedgerId,
+        accountLabel: formData.partyName || "Vendor",
+        debit: 0,
+        credit: formData.taxableValue || 0
+      });
+
+      accountingEntryService.createJournal({
+        date: formData.invoiceDate || new Date().toISOString().split('T')[0],
+        narration: `RCM — ${formData.partyName} — ${formData.invoiceNumber}`,
+        lines: journalLines,
+        city: cityInfo.displayName,
+        cityId: city,
+        createdBy: formData.createdBy || "GST Entry",
+      }, cityInfo.displayName);
+    }
+
     alert(`Transaction ${asDraft ? 'saved as draft' : 'submitted'} successfully!`);
     window.location.reload();
   };
 
   const taxFormula = useMemo(() => {
     if (!formData.taxableValue || !formData.gstRate) return "";
-    const isIntraState = formData.placeOfSupply === COMPANY_STATE;
+    const isIntraState = formData.supplyType === "INTRA_STATE";
     if (isIntraState) {
-      return `Taxable ₹${formData.taxableValue.toLocaleString()} × ${formData.gstRate}% = ₹${formData.totalTax.toLocaleString()} split as CGST ₹${formData.cgst.toLocaleString()} + SGST ₹${formData.sgst.toLocaleString()}`;
+      return `Taxable ₹${formData.taxableValue.toLocaleString()} × ${formData.gstRate}% = ₹${formData.totalTax?.toLocaleString() || 0} split as CGST ₹${formData.cgst?.toLocaleString() || 0} + SGST ₹${formData.sgst?.toLocaleString() || 0}`;
     }
-    return `Taxable ₹${formData.taxableValue.toLocaleString()} × ${formData.gstRate}% = IGST ₹${formData.igst.toLocaleString()}`;
-  }, [formData.taxableValue, formData.gstRate, formData.placeOfSupply, formData.totalTax, formData.cgst, formData.sgst, formData.igst]);
+    return `Taxable ₹${formData.taxableValue.toLocaleString()} × ${formData.gstRate}% = IGST ₹${formData.igst?.toLocaleString() || 0}`;
+  }, [formData.taxableValue, formData.gstRate, formData.supplyType, formData.totalTax, formData.cgst, formData.sgst, formData.igst]);
 
   const getRiskColor = (level: string) => {
     switch (level) {
@@ -425,6 +514,18 @@ export function GSTTransactionEntry() {
                     Regular Filer ✓
                   </span>
                 </div>
+                {formData.supplyType && (
+                  <div className="col-span-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Supply Type</label>
+                    <div className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-1 ${
+                      formData.supplyType === "INTRA_STATE"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-blue-100 text-blue-700"
+                    }`}>
+                      {formData.supplyType === "INTRA_STATE" ? "Intra-State — CGST + SGST" : "Inter-State — IGST only"}
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -527,6 +628,7 @@ export function GSTTransactionEntry() {
                   <option value={12}>12%</option>
                   <option value={18}>18%</option>
                   <option value={28}>28%</option>
+                  <option value={40}>40%</option>
                 </select>
               </div>
             </div>
@@ -535,10 +637,16 @@ export function GSTTransactionEntry() {
               <div>
                 <label className="text-gray-600">CGST</label>
                 <p className="font-semibold text-gray-900">₹{formData.cgst?.toLocaleString()}</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Auto-calculated based on supply type (intra/inter-state)
+                </p>
               </div>
               <div>
                 <label className="text-gray-600">SGST</label>
                 <p className="font-semibold text-gray-900">₹{formData.sgst?.toLocaleString()}</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Auto-calculated based on supply type (intra/inter-state)
+                </p>
               </div>
               <div>
                 <label className="text-gray-600">IGST</label>
@@ -597,7 +705,7 @@ export function GSTTransactionEntry() {
                       type="checkbox"
                       id="rcm"
                       checked={formData.reverseCharge}
-                      onChange={e => setFormData(prev => ({ ...prev, reverseCharge: e.target.checked }))}
+                      onChange={e => setFormData(prev => ({ ...prev, reverseCharge: e.target.checked, isRCM: e.target.checked }))}
                       className="w-4 h-4 text-blue-600"
                     />
                     <label htmlFor="rcm" className="text-sm text-gray-700">Reverse Charge Mechanism</label>

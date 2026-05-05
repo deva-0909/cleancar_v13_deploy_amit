@@ -1,4 +1,8 @@
 import { useState } from "react";
+import { useEmployee } from "../../contexts/EmployeeContext";
+import { useCity } from "../../contexts/CityContext";
+import { useCustomers } from "../../contexts/CustomerContext";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -111,7 +115,26 @@ type WorkingHours = {
 
 export function LeadAssignmentEngine() {
   const { currentRole } = useRole();
-  const [executives, setExecutives] = useState<Executive[]>(mockExecutives);
+  const { employees } = useEmployee();
+  const { city } = useCity();
+  const { cityLeads } = useCustomers();
+
+  const executives = employees
+    .filter(e => e.designation === "TSE" && e.status === "Active" && e.workLocation === city)
+    .map(e => ({
+      id: e.id,
+      name: e.fullName,
+      status: "available" as const,
+      leadsToday: cityLeads.filter(l => l.assignedTo === e.id).length,
+      dailyCapacity: 25,
+      lastAssigned: cityLeads.filter(l => l.assignedTo === e.id && l.assignedAt).sort((a, b) =>
+        new Date(b.assignedAt!).getTime() - new Date(a.assignedAt!).getTime()
+      )[0]?.assignedAt?.split("T")[1]?.substring(0, 5) || undefined,
+      avgResponseTime: 3.0,
+      conversionRate: 25,
+    }));
+
+  const [localExecutives, setLocalExecutives] = useState<Executive[]>(executives);
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [selectedExecutive, setSelectedExecutive] = useState<Executive | null>(
     null
@@ -142,10 +165,10 @@ export function LeadAssignmentEngine() {
   const currentHour = now.getHours();
   const isWorkingHours = currentHour >= 9 && currentHour < 19;
 
-  const availableExecs = executives.filter((e) => e.status === "available");
-  const pausedExecs = executives.filter((e) => e.status === "paused");
-  const onLeaveExecs = executives.filter((e) => e.status === "on-leave");
-  const inactiveExecs = executives.filter((e) => e.status === "inactive");
+  const availableExecs = localExecutives.filter((e) => e.status === "available");
+  const pausedExecs = localExecutives.filter((e) => e.status === "paused");
+  const onLeaveExecs = localExecutives.filter((e) => e.status === "on-leave");
+  const inactiveExecs = localExecutives.filter((e) => e.status === "inactive");
 
   const getStatusColor = (status: ExecutiveStatus) => {
     switch (status) {
@@ -176,7 +199,7 @@ export function LeadAssignmentEngine() {
   };
 
   const handlePauseAssignment = (executive: Executive, duration: number) => {
-    const updatedExecutives = executives.map(exec =>
+    const updatedExecutives = localExecutives.map(exec =>
       exec.id === executive.id
         ? {
             ...exec,
@@ -186,39 +209,39 @@ export function LeadAssignmentEngine() {
           }
         : exec
     );
-    setExecutives(updatedExecutives);
+    setLocalExecutives(updatedExecutives);
     setShowPauseModal(false);
-    alert(`${executive.name} paused for ${duration} minutes. Assignments will resume at ${new Date(Date.now() + duration * 60000).toLocaleTimeString()}`);
+    toast.success(`${executive.name} paused for ${duration} minutes`);
   };
 
   const handleResumeAssignment = (executiveId: string) => {
-    const updatedExecutives = executives.map(exec =>
+    const updatedExecutives = localExecutives.map(exec =>
       exec.id === executiveId
         ? { ...exec, status: "available" as const, pauseReason: undefined, pauseEndTime: undefined }
         : exec
     );
-    setExecutives(updatedExecutives);
-    alert(`Assignment resumed for executive ${executiveId}`);
+    setLocalExecutives(updatedExecutives);
+    toast.success("Assignment resumed");
   };
 
   const handleMarkOnLeave = (executiveId: string) => {
-    const updatedExecutives = executives.map(exec =>
+    const updatedExecutives = localExecutives.map(exec =>
       exec.id === executiveId
         ? { ...exec, status: "on-leave" as const }
         : exec
     );
-    setExecutives(updatedExecutives);
-    alert(`Executive ${executiveId} marked as on leave for today`);
+    setLocalExecutives(updatedExecutives);
+    toast.info("Marked as on leave for today");
   };
 
   const handleActivateExecutive = (executiveId: string) => {
-    const updatedExecutives = executives.map(exec =>
+    const updatedExecutives = localExecutives.map(exec =>
       exec.id === executiveId
         ? { ...exec, status: "available" as const }
         : exec
     );
-    setExecutives(updatedExecutives);
-    alert(`Executive ${executiveId} activated and ready for lead assignment`);
+    setLocalExecutives(updatedExecutives);
+    toast.success("Executive activated and ready for lead assignment");
   };
 
   return (
@@ -499,7 +522,7 @@ export function LeadAssignmentEngine() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {executives.map((exec) => (
+                {localExecutives.map((exec) => (
                   <tr key={exec.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap items-center gap-2 sm:gap-3">

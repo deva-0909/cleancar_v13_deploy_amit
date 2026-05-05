@@ -11,7 +11,7 @@
  * @component
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { useCity } from "../../contexts/CityContext";
+import { useFinance } from "../../contexts/FinanceContext";
 import {
   Sheet,
   SheetContent,
@@ -205,9 +206,9 @@ const getMockFinanceSummary = (cityName: string): FinanceSummaryResponse => ({
     { date: "2026-04-20", revenue: 67000, expenses: 42000 },
   ],
   cityBreakdown: [
-    { city: cityName, revenue: 285000, expenses: 195000, profit: 90000 },
-    { city: "Bangalore", revenue: 125000, expenses: 85000, profit: 40000 },
-    { city: "Mumbai", revenue: 75000, expenses: 45000, profit: 30000 },
+    { city: "Surat",     revenue: 285000, expenses: 185000, profit: 100000 },
+    { city: "Mumbai",    revenue: 320000, expenses: 210000, profit: 110000 },
+    { city: "Ahmedabad", revenue: 255000, expenses: 168000, profit: 87000  },
   ],
   revenueSplit: [
     { category: "Services", amount: 285000, percentage: 58.8 },
@@ -216,104 +217,23 @@ const getMockFinanceSummary = (cityName: string): FinanceSummaryResponse => ({
   ],
 });
 
-const getMockTransactions = (cityName: string): FinanceTransaction[] => [
-  {
-    id: "TXN-001",
-    date: "2026-04-20",
-    type: "REVENUE",
-    referenceId: "UNIT-395001-001",
-    description: "Car wash service - 4W Premium",
-    amount: 499,
-    city: cityName,
-    cluster: "Adajan",
-    sourceEngine: "operationsEngine",
-  },
-  {
-    id: "TXN-002",
-    date: "2026-04-20",
-    type: "REVENUE",
-    referenceId: "SUB-CUST-101-APR",
-    description: "Monthly subscription - Gold Plan",
-    amount: 2999,
-    city: cityName,
-    cluster: "Central",
-    sourceEngine: "subscriptionEngine",
-  },
-  {
-    id: "TXN-003",
-    date: "2026-04-20",
-    type: "EXPENSE",
-    referenceId: "PO-2026-045",
-    description: "Cleaning supplies purchase",
-    amount: 15000,
-    city: cityName,
-    sourceEngine: "manualEntry",
-  },
-  {
-    id: "TXN-004",
-    date: "2026-04-20",
-    type: "PAYROLL",
-    referenceId: "PAYROLL-FEB-2026-WASHERS",
-    description: "February 2026 Payroll - Car Washers",
-    amount: 285000,
-    city: cityName,
-    sourceEngine: "payrollEngine",
-  },
-  {
-    id: "TXN-005",
-    date: "2026-04-19",
-    type: "REFUND",
-    referenceId: "REFUND-CUST-102",
-    description: "Customer refund - Service quality issue",
-    amount: 499,
-    city: cityName,
-    sourceEngine: "refundEngine",
-  },
-];
 
 // ============================================================================
 // API FUNCTIONS (Replace with real implementations)
 // ============================================================================
-
-async function fetchFinanceSummary(filters: DashboardFilters, cityName: string): Promise<FinanceSummaryResponse> {
-  // In production:
-  // const response = await fetch('/api/finance/summary?' + new URLSearchParams({
-  //   cities: filters.cities.join(','),
-  //   dateRange: filters.dateRange,
-  //   serviceType: filters.serviceType,
-  // }));
-  // return await response.json();
-
-  // Mock delay
-  await new Promise(resolve => setTimeout(resolve, 800));
-  return getMockFinanceSummary(cityName);
-}
 
 async function fetchTransactions(
   filters: DashboardFilters,
   cityName: string,
   transactionType?: string
 ): Promise<TransactionsResponse> {
-  // In production:
-  // const response = await fetch('/api/finance/transactions?' + new URLSearchParams({
-  //   cities: filters.cities.join(','),
-  //   dateRange: filters.dateRange,
-  //   type: transactionType || 'all',
-  // }));
-  // return await response.json();
-
   // Mock delay
   await new Promise(resolve => setTimeout(resolve, 600));
 
-  const transactions = getMockTransactions(cityName);
-  let filtered = transactions;
-  if (transactionType && transactionType !== "all") {
-    filtered = transactions.filter(t => t.type === transactionType);
-  }
-
+  // Return empty for now - transaction drill-down can be implemented later
   return {
-    transactions: filtered,
-    total: filtered.length,
+    transactions: [],
+    total: 0,
     pageInfo: {
       page: 1,
       pageSize: 50,
@@ -389,8 +309,9 @@ function KPICard({ title, value, percentChange, icon: Icon, onClick, isLoading }
 
 export function FinanceAnalyticsDashboard() {
   const { city, cityInfo } = useCity();
+  const { getRevenueByCity, getPayablesByCity, getMRRByCity,
+          calculateEBITDA, getActiveAlerts, getTotalMRR } = useFinance();
   const [filters, setFilters] = useState<DashboardFilters>(DEFAULT_FILTERS);
-  const [summary, setSummary] = useState<FinanceSummaryResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -402,26 +323,56 @@ export function FinanceAnalyticsDashboard() {
   const [drawerFilter, setDrawerFilter] = useState<string>("all");
 
   // Cities for multi-select (in production: fetch from API)
-  const availableCities = [cityInfo?.displayName || "Surat", "Bangalore", "Mumbai", "Delhi", "Pune"];
+  const availableCities = ["Surat", "Mumbai", "Ahmedabad"];
+
+  const currentMonth = new Date().toISOString().slice(0, 7);
+
+  // Calculate live data from FinanceContext
+  const summary = useMemo(() => {
+    const cityRevenues  = getRevenueByCity(city).filter(r => r.status === "Received" && r.receivedDate.startsWith(currentMonth));
+    const cityPayables  = getPayablesByCity(city);
+    const totalRevenue  = cityRevenues.reduce((s, r) => s + r.amount, 0);
+    const totalExpenses = cityPayables.filter(p => p.status === "Paid" && p.paidAt?.startsWith(currentMonth)).reduce((s, p) => s + p.amount, 0);
+    const ebitda        = calculateEBITDA(city, currentMonth);
+    const mrr           = getTotalMRR(currentMonth, city);
+    const activeAlerts  = getActiveAlerts(city);
+    const overdueCount  = cityPayables.filter(p => p.status === "Overdue").length;
+
+    return {
+      revenue: {
+        total: totalRevenue,
+        percentChange: 0, // TODO: Calculate vs previous month
+        previousPeriodTotal: 0,
+      },
+      expenses: {
+        total: totalExpenses,
+        percentChange: 0,
+        previousPeriodTotal: 0,
+      },
+      profit: {
+        total: ebitda,
+        percentChange: 0,
+        previousPeriodTotal: 0,
+      },
+      cashBalance: {
+        total: mrr,
+        percentChange: 0,
+        previousPeriodTotal: 0,
+      },
+      alerts: activeAlerts.length,
+      overduePayables: overdueCount,
+      dailyTrend: [],
+      cityBreakdown: [],
+      revenueSplit: [],
+    };
+  }, [city, currentMonth, getRevenueByCity, getPayablesByCity, calculateEBITDA, getTotalMRR, getActiveAlerts]);
 
   // Load dashboard data
   useEffect(() => {
-    loadDashboardData();
-  }, [filters]); // Reload when filters change
-
-  const loadDashboardData = async () => {
     setIsLoading(true);
-    setError(null);
-    try {
-      const data = await fetchFinanceSummary(filters, cityInfo.displayName);
-      setSummary(data);
-    } catch (err) {
-      setError("Failed to load dashboard data. Please try again.");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Simulate loading delay for UX
+    setTimeout(() => setIsLoading(false), 300);
+  }, [filters]);
 
   // Handle KPI card click
   const handleKPIClick = async (type: "revenue" | "expenses" | "profit" | "cash") => {

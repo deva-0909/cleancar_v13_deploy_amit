@@ -1,495 +1,454 @@
 /**
- * Exit Workflow Service
+ * Exit Workflow Service - Employee Exit Management
  *
- * Manages employee exit process with:
- * - Notice period tracking
- * - Asset checklist
- * - Final settlement calculation
+ * Exit Stages:
+ * 1. Initiate → Employee/HR initiates exit
+ * 2. Notice Period → Employee serves notice
+ * 3. Clearance → Collect items, clear dues
+ * 4. F&F → Final settlement calculation
+ * 5. Exit → Employee marked as exited
+ *
+ * When exited, employee is LOCKED:
+ * - Cannot mark attendance
+ * - Cannot assign tasks
+ * - Cannot process payroll
  */
 
-import { DataService } from "./DataService";
+import { employeeMasterService } from "./employeeMaster";
 import { logger } from "./logger";
+import { auditLogService } from "./auditLogService";
+import { DataService } from "./DataService";
 
 // ========== TYPES ==========
 
-export type ExitType = "Resignation" | "Termination" | "Retirement" | "Contract End";
-export type ExitStatus = "Initiated" | "Notice Period" | "Clearance Pending" | "Completed";
-export type AssetStatus = "Pending" | "Returned" | "Missing" | "Waived";
-export type ClearanceStatus = "Pending" | "Approved" | "Rejected";
+export type ExitStage = "Initiated" | "Notice Period" | "Clearance" | "F&F Settlement" | "Exited";
 
 export interface ExitWorkflow {
-  exitId: string;
+  exitWorkflowId: string;
   employeeId: string;
   employeeName: string;
-  cityId: string;
   roleId: string;
+  cityId: string;
 
   // Exit details
-  exitType: ExitType;
-  exitStatus: ExitStatus;
-  initiatedDate: string;
-  initiatedBy: string;
-  reason?: string;
+  exitReason: string;
+  resignationType: "Voluntary" | "Termination" | "Retirement" | "Abscond";
+  initiatedDate: string; // YYYY-MM-DD
+  initiatedBy: string; // User ID
 
   // Notice period
-  noticePeriodDays: number; // Required notice period
-  lastWorkingDate: string; // Calculated or user-set
-  actualLastDate?: string; // Actual exit date
-  noticePeriodServed: number; // Days actually served
-  noticeShortfall: number; // Days short of required notice
+  noticePeriodDays: number;
+  lastWorkingDate: string; // YYYY-MM-DD
 
-  // Asset checklist
-  assets: AssetItem[];
-  allAssetsReturned: boolean;
+  // Current stage
+  currentStage: ExitStage;
+  stageHistory: {
+    stage: ExitStage;
+    completedAt: string;
+    completedBy: string;
+    notes?: string;
+  }[];
 
-  // Clearances
-  clearances: ClearanceItem[];
-  allClearancesApproved: boolean;
+  // Clearance
+  clearanceItems: {
+    item: string;
+    status: "Pending" | "Returned" | "Not Applicable";
+    returnedDate?: string;
+    notes?: string;
+  }[];
 
-  // Final settlement
-  settlement?: FinalSettlement;
+  // F&F Settlement
+  settlement?: {
+    pendingSalary: number;
+    leaveEncashment: number;
+    bonus: number;
+    otherPayments: number;
+    deductions: number;
+    netSettlement: number;
+    settlementDate?: string;
+    paidDate?: string;
+  };
 
-  // Metadata
+  // Status
+  isLocked: boolean; // Employee locked when exit workflow active
+  completedAt?: string;
+
   createdAt: string;
   updatedAt: string;
-  completedAt?: string;
-  completedBy?: string;
 }
 
-export interface AssetItem {
-  assetId: string;
-  assetName: string;
-  assetType: "Laptop" | "Mobile" | "ID Card" | "Keys" | "Uniform" | "Other";
-  assignedDate: string;
-  status: AssetStatus;
-  returnedDate?: string;
-  returnedTo?: string;
-  condition?: string;
-  replacementCost?: number;
-  notes?: string;
+export interface InitiateExitRequest {
+  employeeId: string;
+  exitReason: string;
+  resignationType: "Voluntary" | "Termination" | "Retirement" | "Abscond";
+  noticePeriodDays: number;
+  lastWorkingDate: string;
+  initiatedBy: string;
 }
 
-export interface ClearanceItem {
-  clearanceId: string;
-  department: string; // "HR", "IT", "Finance", "Admin"
-  status: ClearanceStatus;
-  approvedBy?: string;
-  approvedAt?: string;
-  comments?: string;
-  required: boolean;
+export interface ExitWorkflowResult {
+  success: boolean;
+  exitWorkflowId?: string;
+  exitWorkflow?: ExitWorkflow;
+  errors?: string[];
 }
 
-export interface FinalSettlement {
-  settlementId: string;
-  calculatedAt: string;
-  calculatedBy: string;
+const STORAGE_KEY = "EXIT_WORKFLOWS";
 
-  // Earnings
-  pendingSalary: number; // Pro-rated for days worked
-  leaveEncashment: number;
-  bonus: number;
-  otherEarnings: Record<string, number>;
-  totalEarnings: number;
+// ========== EXIT WORKFLOW SERVICE ==========
 
-  // Deductions
-  noticeShortfallDeduction: number;
-  advancesNotRepaid: number;
-  assetRecovery: number; // Missing asset costs
-  otherDeductions: Record<string, number>;
-  totalDeductions: number;
+class ExitWorkflowServiceClass {
+  /**
+   * Initiate exit workflow for employee
+   */
+  initiateExit(request: InitiateExitRequest): ExitWorkflowResult {
+    logger.log(`[ExitWorkflow] Initiating exit for ${request.employeeId}`);
 
-  // Final amount
-  netSettlement: number;
+    try {
+      // Validate employee exists and is active
+      const employee = employeeMasterService.getById(request.employeeId);
+      if (!employee) {
+        return {
+          success: false,
+          errors: ["Employee not found"],
+        };
+      }
 
-  // Payment
-  paymentStatus: "Pending" | "Processed" | "Paid";
-  paymentDate?: string;
-  paymentReference?: string;
-}
+      if (employee.status === "Exit") {
+        return {
+          success: false,
+          errors: ["Employee already exited"],
+        };
+      }
 
-// ========== SERVICE ==========
+      // Check if exit workflow already exists
+      const existing = this.getByEmployee(request.employeeId);
+      if (existing && !existing.completedAt) {
+        return {
+          success: false,
+          errors: ["Exit workflow already in progress"],
+        };
+      }
 
-class ExitWorkflowService {
-  private readonly STORAGE_KEY = "EXIT_WORKFLOWS";
+      // Create exit workflow
+      const exitWorkflowId = `EXIT-${Date.now()}`;
+      const now = new Date().toISOString();
+
+      const exitWorkflow: ExitWorkflow = {
+        exitWorkflowId,
+        employeeId: request.employeeId,
+        employeeName: employee.name,
+        roleId: employee.roleId,
+        cityId: employee.cityId,
+
+        exitReason: request.exitReason,
+        resignationType: request.resignationType,
+        initiatedDate: now.split("T")[0],
+        initiatedBy: request.initiatedBy,
+
+        noticePeriodDays: request.noticePeriodDays,
+        lastWorkingDate: request.lastWorkingDate,
+
+        currentStage: "Initiated",
+        stageHistory: [
+          {
+            stage: "Initiated",
+            completedAt: now,
+            completedBy: request.initiatedBy,
+            notes: request.exitReason,
+          },
+        ],
+
+        clearanceItems: this.getDefaultClearanceItems(),
+
+        isLocked: true, // Lock employee immediately
+
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Save workflow
+      const workflows = DataService.get<ExitWorkflow>(STORAGE_KEY) || [];
+      workflows.push(exitWorkflow);
+      DataService.setAll(STORAGE_KEY, workflows);
+
+      // Update employee status to Draft (exit in progress)
+      employeeMasterService.update(request.employeeId, {
+        status: "Draft", // Mark as draft during exit process
+        exitDate: request.lastWorkingDate,
+      });
+
+      // Audit log
+      auditLogService.logAction({
+        action: "INITIATE_EXIT",
+        entityType: "EXIT_WORKFLOW",
+        entityId: exitWorkflowId,
+        performedBy: request.initiatedBy,
+        details: {
+          employeeId: request.employeeId,
+          resignationType: request.resignationType,
+          lastWorkingDate: request.lastWorkingDate,
+        },
+      });
+
+      logger.log(`[ExitWorkflow] Exit initiated: ${exitWorkflowId}`);
+
+      return {
+        success: true,
+        exitWorkflowId,
+        exitWorkflow,
+      };
+    } catch (error) {
+      logger.error(`[ExitWorkflow] Failed to initiate exit for ${request.employeeId}`, error as Error);
+
+      return {
+        success: false,
+        errors: [error instanceof Error ? error.message : "Unknown error"],
+      };
+    }
+  }
 
   /**
-   * Initiate exit workflow
+   * Move to next stage
    */
-  initiateExit(data: {
-    employeeId: string;
-    employeeName: string;
-    cityId: string;
-    roleId: string;
-    exitType: ExitType;
-    initiatedBy: string;
-    reason?: string;
-    noticePeriodDays?: number;
-    lastWorkingDate?: string;
-  }): ExitWorkflow {
-    const now = new Date();
-    const noticePeriodDays = data.noticePeriodDays || 30; // Default 30 days
+  moveToNextStage(
+    exitWorkflowId: string,
+    completedBy: string,
+    notes?: string
+  ): ExitWorkflowResult {
+    logger.log(`[ExitWorkflow] Moving ${exitWorkflowId} to next stage`);
 
-    // Calculate last working date if not provided
-    let lastWorkingDate = data.lastWorkingDate;
-    if (!lastWorkingDate) {
-      const lwd = new Date(now);
-      lwd.setDate(lwd.getDate() + noticePeriodDays);
-      lastWorkingDate = lwd.toISOString().split('T')[0];
+    try {
+      const workflow = this.getById(exitWorkflowId);
+      if (!workflow) {
+        return {
+          success: false,
+          errors: ["Exit workflow not found"],
+        };
+      }
+
+      // Determine next stage
+      const stageOrder: ExitStage[] = [
+        "Initiated",
+        "Notice Period",
+        "Clearance",
+        "F&F Settlement",
+        "Exited",
+      ];
+
+      const currentIndex = stageOrder.indexOf(workflow.currentStage);
+      if (currentIndex === -1 || currentIndex === stageOrder.length - 1) {
+        return {
+          success: false,
+          errors: ["Already at final stage"],
+        };
+      }
+
+      const nextStage = stageOrder[currentIndex + 1];
+      const now = new Date().toISOString();
+
+      // Update workflow
+      workflow.currentStage = nextStage;
+      workflow.stageHistory.push({
+        stage: nextStage,
+        completedAt: now,
+        completedBy,
+        notes,
+      });
+      workflow.updatedAt = now;
+
+      // If reached Exited stage, complete the workflow
+      if (nextStage === "Exited") {
+        workflow.completedAt = now;
+        workflow.isLocked = true;
+
+        // Update employee to Exit status
+        employeeMasterService.update(workflow.employeeId, {
+          status: "Exit",
+        });
+      }
+
+      // Save
+      this.update(exitWorkflowId, workflow);
+
+      // Audit log
+      auditLogService.logAction({
+        action: "EXIT_STAGE_CHANGE",
+        entityType: "EXIT_WORKFLOW",
+        entityId: exitWorkflowId,
+        performedBy: completedBy,
+        details: {
+          employeeId: workflow.employeeId,
+          fromStage: stageOrder[currentIndex],
+          toStage: nextStage,
+          notes,
+        },
+      });
+
+      logger.log(`[ExitWorkflow] Moved to ${nextStage}: ${exitWorkflowId}`);
+
+      return {
+        success: true,
+        exitWorkflow: workflow,
+      };
+    } catch (error) {
+      logger.error(`[ExitWorkflow] Failed to move stage for ${exitWorkflowId}`, error as Error);
+
+      return {
+        success: false,
+        errors: [error instanceof Error ? error.message : "Unknown error"],
+      };
     }
+  }
 
-    const workflow: ExitWorkflow = {
-      exitId: this.generateExitId(),
-      employeeId: data.employeeId,
-      employeeName: data.employeeName,
-      cityId: data.cityId,
-      roleId: data.roleId,
-      exitType: data.exitType,
-      exitStatus: "Initiated",
-      initiatedDate: now.toISOString().split('T')[0],
-      initiatedBy: data.initiatedBy,
-      reason: data.reason,
-      noticePeriodDays,
-      lastWorkingDate,
-      noticePeriodServed: 0,
-      noticeShortfall: 0,
-      assets: this.createDefaultAssets(),
-      allAssetsReturned: false,
-      clearances: this.createDefaultClearances(),
-      allClearancesApproved: false,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    };
+  /**
+   * Update clearance items
+   */
+  updateClearance(
+    exitWorkflowId: string,
+    clearanceItems: ExitWorkflow["clearanceItems"]
+  ): ExitWorkflowResult {
+    logger.log(`[ExitWorkflow] Updating clearance for ${exitWorkflowId}`);
 
-    this.saveWorkflow(workflow);
+    try {
+      const workflow = this.getById(exitWorkflowId);
+      if (!workflow) {
+        return {
+          success: false,
+          errors: ["Exit workflow not found"],
+        };
+      }
 
-    logger.log("ExitWorkflow: Initiated", {
-      exitId: workflow.exitId,
-      employeeId: data.employeeId,
-      exitType: data.exitType,
-    });
+      workflow.clearanceItems = clearanceItems;
+      workflow.updatedAt = new Date().toISOString();
 
-    return workflow;
+      this.update(exitWorkflowId, workflow);
+
+      return {
+        success: true,
+        exitWorkflow: workflow,
+      };
+    } catch (error) {
+      logger.error(`[ExitWorkflow] Failed to update clearance for ${exitWorkflowId}`, error as Error);
+
+      return {
+        success: false,
+        errors: [error instanceof Error ? error.message : "Unknown error"],
+      };
+    }
+  }
+
+  /**
+   * Calculate and save F&F settlement
+   */
+  calculateSettlement(
+    exitWorkflowId: string,
+    settlement: ExitWorkflow["settlement"]
+  ): ExitWorkflowResult {
+    logger.log(`[ExitWorkflow] Calculating settlement for ${exitWorkflowId}`);
+
+    try {
+      const workflow = this.getById(exitWorkflowId);
+      if (!workflow) {
+        return {
+          success: false,
+          errors: ["Exit workflow not found"],
+        };
+      }
+
+      workflow.settlement = settlement;
+      workflow.updatedAt = new Date().toISOString();
+
+      this.update(exitWorkflowId, workflow);
+
+      return {
+        success: true,
+        exitWorkflow: workflow,
+      };
+    } catch (error) {
+      logger.error(`[ExitWorkflow] Failed to calculate settlement for ${exitWorkflowId}`, error as Error);
+
+      return {
+        success: false,
+        errors: [error instanceof Error ? error.message : "Unknown error"],
+      };
+    }
+  }
+
+  /**
+   * Check if employee is locked (cannot perform actions)
+   */
+  isEmployeeLocked(employeeId: string): boolean {
+    const workflow = this.getByEmployee(employeeId);
+    return workflow ? workflow.isLocked : false;
+  }
+
+  /**
+   * Get exit workflow by ID
+   */
+  getById(exitWorkflowId: string): ExitWorkflow | null {
+    const workflows = DataService.get<ExitWorkflow>(STORAGE_KEY) || [];
+    return workflows.find((w) => w.exitWorkflowId === exitWorkflowId) || null;
+  }
+
+  /**
+   * Get exit workflow by employee
+   */
+  getByEmployee(employeeId: string): ExitWorkflow | null {
+    const workflows = DataService.get<ExitWorkflow>(STORAGE_KEY) || [];
+    // Return the latest workflow for this employee
+    const employeeWorkflows = workflows.filter((w) => w.employeeId === employeeId);
+    if (employeeWorkflows.length === 0) return null;
+
+    return employeeWorkflows.sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )[0];
+  }
+
+  /**
+   * Get all exit workflows
+   */
+  getAll(): ExitWorkflow[] {
+    return DataService.get<ExitWorkflow>(STORAGE_KEY) || [];
+  }
+
+  /**
+   * Get active exit workflows (not completed)
+   */
+  getActive(): ExitWorkflow[] {
+    const workflows = this.getAll();
+    return workflows.filter((w) => !w.completedAt);
   }
 
   /**
    * Update exit workflow
    */
-  updateWorkflow(exitId: string, updates: Partial<ExitWorkflow>): ExitWorkflow | null {
-    const workflows = this.getAllWorkflows();
-    const index = workflows.findIndex(w => w.exitId === exitId);
+  private update(exitWorkflowId: string, updatedWorkflow: ExitWorkflow): void {
+    const workflows = DataService.get<ExitWorkflow>(STORAGE_KEY) || [];
+    const index = workflows.findIndex((w) => w.exitWorkflowId === exitWorkflowId);
 
-    if (index === -1) return null;
-
-    const updated: ExitWorkflow = {
-      ...workflows[index],
-      ...updates,
-      exitId, // Prevent ID change
-      updatedAt: new Date().toISOString(),
-    };
-
-    workflows[index] = updated;
-    DataService.setAll(this.STORAGE_KEY, workflows);
-
-    return updated;
+    if (index !== -1) {
+      workflows[index] = updatedWorkflow;
+      DataService.setAll(STORAGE_KEY, workflows);
+    }
   }
 
   /**
-   * Update asset status
+   * Get default clearance items
    */
-  updateAsset(
-    exitId: string,
-    assetId: string,
-    status: AssetStatus,
-    data?: {
-      returnedTo?: string;
-      condition?: string;
-      notes?: string;
-    }
-  ): ExitWorkflow | null {
-    const workflow = this.getById(exitId);
-    if (!workflow) return null;
-
-    const assetIndex = workflow.assets.findIndex(a => a.assetId === assetId);
-    if (assetIndex === -1) return null;
-
-    workflow.assets[assetIndex].status = status;
-    if (status === "Returned") {
-      workflow.assets[assetIndex].returnedDate = new Date().toISOString().split('T')[0];
-      workflow.assets[assetIndex].returnedTo = data?.returnedTo;
-      workflow.assets[assetIndex].condition = data?.condition;
-    }
-    if (data?.notes) {
-      workflow.assets[assetIndex].notes = data.notes;
-    }
-
-    // Check if all assets returned
-    workflow.allAssetsReturned = workflow.assets.every(
-      a => a.status === "Returned" || a.status === "Waived"
-    );
-
-    return this.updateWorkflow(exitId, {
-      assets: workflow.assets,
-      allAssetsReturned: workflow.allAssetsReturned,
-    });
-  }
-
-  /**
-   * Process clearance
-   */
-  processClearance(
-    exitId: string,
-    clearanceId: string,
-    status: ClearanceStatus,
-    approvedBy?: string,
-    comments?: string
-  ): ExitWorkflow | null {
-    const workflow = this.getById(exitId);
-    if (!workflow) return null;
-
-    const clearanceIndex = workflow.clearances.findIndex(c => c.clearanceId === clearanceId);
-    if (clearanceIndex === -1) return null;
-
-    workflow.clearances[clearanceIndex].status = status;
-    if (status === "Approved") {
-      workflow.clearances[clearanceIndex].approvedBy = approvedBy;
-      workflow.clearances[clearanceIndex].approvedAt = new Date().toISOString();
-    }
-    if (comments) {
-      workflow.clearances[clearanceIndex].comments = comments;
-    }
-
-    // Check if all required clearances approved
-    workflow.allClearancesApproved = workflow.clearances
-      .filter(c => c.required)
-      .every(c => c.status === "Approved");
-
-    return this.updateWorkflow(exitId, {
-      clearances: workflow.clearances,
-      allClearancesApproved: workflow.allClearancesApproved,
-    });
-  }
-
-  /**
-   * Calculate final settlement
-   */
-  calculateSettlement(
-    exitId: string,
-    calculatedBy: string,
-    data: {
-      pendingSalary: number;
-      leaveEncashment: number;
-      bonus?: number;
-      advancesNotRepaid?: number;
-      dailyRate?: number; // For notice shortfall calculation
-    }
-  ): FinalSettlement {
-    const workflow = this.getById(exitId);
-    if (!workflow) {
-      throw new Error("Exit workflow not found");
-    }
-
-    // Calculate notice shortfall deduction
-    const today = new Date().toISOString().split('T')[0];
-    const actualLastDate = workflow.actualLastDate || today;
-    const lastWorkingDate = new Date(workflow.lastWorkingDate);
-    const actualDate = new Date(actualLastDate);
-    const daysDiff = Math.ceil((lastWorkingDate.getTime() - actualDate.getTime()) / (1000 * 60 * 60 * 24));
-
-    const noticeShortfall = Math.max(0, daysDiff);
-    const dailyRate = data.dailyRate || 0;
-    const noticeShortfallDeduction = noticeShortfall * dailyRate;
-
-    // Calculate asset recovery
-    const missingAssets = workflow.assets.filter(a => a.status === "Missing");
-    const assetRecovery = missingAssets.reduce((sum, asset) => {
-      return sum + (asset.replacementCost || 0);
-    }, 0);
-
-    // Calculate totals
-    const totalEarnings =
-      data.pendingSalary +
-      data.leaveEncashment +
-      (data.bonus || 0);
-
-    const totalDeductions =
-      noticeShortfallDeduction +
-      (data.advancesNotRepaid || 0) +
-      assetRecovery;
-
-    const netSettlement = totalEarnings - totalDeductions;
-
-    const settlement: FinalSettlement = {
-      settlementId: `SETTLE-${exitId}`,
-      calculatedAt: new Date().toISOString(),
-      calculatedBy,
-      pendingSalary: data.pendingSalary,
-      leaveEncashment: data.leaveEncashment,
-      bonus: data.bonus || 0,
-      otherEarnings: {},
-      totalEarnings,
-      noticeShortfallDeduction,
-      advancesNotRepaid: data.advancesNotRepaid || 0,
-      assetRecovery,
-      otherDeductions: {},
-      totalDeductions,
-      netSettlement,
-      paymentStatus: "Pending",
-    };
-
-    // Update workflow with settlement
-    this.updateWorkflow(exitId, {
-      settlement,
-      noticePeriodServed: workflow.noticePeriodDays - noticeShortfall,
-      noticeShortfall,
-    });
-
-    logger.log("ExitWorkflow: Settlement calculated", {
-      exitId,
-      netSettlement,
-    });
-
-    return settlement;
-  }
-
-  /**
-   * Complete exit workflow
-   */
-  completeExit(exitId: string, completedBy: string): ExitWorkflow | null {
-    const workflow = this.getById(exitId);
-    if (!workflow) return null;
-
-    if (!workflow.allAssetsReturned) {
-      throw new Error("Cannot complete exit: Not all assets returned");
-    }
-
-    if (!workflow.allClearancesApproved) {
-      throw new Error("Cannot complete exit: Not all clearances approved");
-    }
-
-    if (!workflow.settlement) {
-      throw new Error("Cannot complete exit: Settlement not calculated");
-    }
-
-    return this.updateWorkflow(exitId, {
-      exitStatus: "Completed",
-      completedAt: new Date().toISOString(),
-      completedBy,
-    });
-  }
-
-  /**
-   * Get all workflows
-   */
-  getAllWorkflows(): ExitWorkflow[] {
-    return DataService.get<ExitWorkflow>(this.STORAGE_KEY);
-  }
-
-  /**
-   * Get by ID
-   */
-  getById(exitId: string): ExitWorkflow | null {
-    const workflows = this.getAllWorkflows();
-    return workflows.find(w => w.exitId === exitId) || null;
-  }
-
-  /**
-   * Get by employee
-   */
-  getByEmployee(employeeId: string): ExitWorkflow[] {
-    return this.getAllWorkflows()
-      .filter(w => w.employeeId === employeeId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }
-
-  /**
-   * Get by status
-   */
-  getByStatus(status: ExitStatus): ExitWorkflow[] {
-    return this.getAllWorkflows().filter(w => w.exitStatus === status);
-  }
-
-  /**
-   * Get active exits
-   */
-  getActiveExits(): ExitWorkflow[] {
-    return this.getAllWorkflows().filter(w => w.exitStatus !== "Completed");
-  }
-
-  // ========== PRIVATE METHODS ==========
-
-  /**
-   * Create default assets
-   */
-  private createDefaultAssets(): AssetItem[] {
+  private getDefaultClearanceItems(): ExitWorkflow["clearanceItems"] {
     return [
-      {
-        assetId: `ASSET-${Date.now()}-1`,
-        assetName: "ID Card",
-        assetType: "ID Card",
-        assignedDate: new Date().toISOString().split('T')[0],
-        status: "Pending",
-      },
-      {
-        assetId: `ASSET-${Date.now()}-2`,
-        assetName: "Office Keys",
-        assetType: "Keys",
-        assignedDate: new Date().toISOString().split('T')[0],
-        status: "Pending",
-      },
+      { item: "ID Card", status: "Pending" },
+      { item: "Laptop", status: "Not Applicable" },
+      { item: "Mobile Device", status: "Not Applicable" },
+      { item: "Access Cards", status: "Pending" },
+      { item: "Uniforms", status: "Pending" },
+      { item: "Equipment", status: "Pending" },
+      { item: "Documents", status: "Pending" },
     ];
-  }
-
-  /**
-   * Create default clearances
-   */
-  private createDefaultClearances(): ClearanceItem[] {
-    return [
-      {
-        clearanceId: `CLR-${Date.now()}-1`,
-        department: "HR",
-        status: "Pending",
-        required: true,
-      },
-      {
-        clearanceId: `CLR-${Date.now()}-2`,
-        department: "Finance",
-        status: "Pending",
-        required: true,
-      },
-      {
-        clearanceId: `CLR-${Date.now()}-3`,
-        department: "IT",
-        status: "Pending",
-        required: true,
-      },
-      {
-        clearanceId: `CLR-${Date.now()}-4`,
-        department: "Admin",
-        status: "Pending",
-        required: false,
-      },
-    ];
-  }
-
-  /**
-   * Generate exit ID
-   */
-  private generateExitId(): string {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substr(2, 6).toUpperCase();
-    return `EXIT-${timestamp}-${random}`;
-  }
-
-  /**
-   * Save workflow
-   */
-  private saveWorkflow(workflow: ExitWorkflow): void {
-    const workflows = this.getAllWorkflows();
-    workflows.push(workflow);
-    DataService.setAll(this.STORAGE_KEY, workflows);
   }
 }
 
 // ========== EXPORT ==========
 
-export const exitWorkflowService = new ExitWorkflowService();
+export const exitWorkflowService = new ExitWorkflowServiceClass();

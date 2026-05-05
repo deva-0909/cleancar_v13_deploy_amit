@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { useSearchParams } from "react-router";
+import { useSearchParams } from "react-router-dom";
 import { useCustomers } from "../../contexts/CustomerContext";
 import { organizationHierarchyService } from "../../services/organizationHierarchyService";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -88,7 +88,7 @@ const mockLeads_UNUSED: Lead[] = [
     numCars: 2,
     carTypes: ["Sedan", "SUV"],
     source: "Google Ads",
-    campaign: "Bangalore Premium Campaign",
+    campaign: "Surat Premium Campaign",
     assignedTo: "Priya Sharma",
     stage: "new",
     priority: "high",
@@ -141,7 +141,7 @@ const mockLeads_UNUSED: Lead[] = [
     numCars: 2,
     carTypes: ["Sedan", "Hatchback"],
     source: "Facebook Ads",
-    campaign: "North Bangalore Campaign",
+    campaign: "Mumbai Premium Campaign",
     assignedTo: "Amit Patel",
     stage: "demo_scheduled",
     priority: "high",
@@ -195,7 +195,7 @@ const mockLeads_UNUSED: Lead[] = [
     numCars: 1,
     carTypes: ["Sedan"],
     source: "Google Ads",
-    campaign: "East Bangalore Campaign",
+    campaign: "Ahmedabad Premium Campaign",
     assignedTo: "Rahul Verma",
     stage: "contacted",
     priority: "low",

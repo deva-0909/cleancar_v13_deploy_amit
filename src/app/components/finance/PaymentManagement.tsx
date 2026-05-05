@@ -111,7 +111,7 @@ const mockPayments: Payment[] = [
     paymentMode: "CASH",
     paymentReference: "",
     amount: 1000.0,
-    city: "Bangalore",
+    city: "Surat",
     cluster: "South Zone",
     createdAt: "2026-04-12T10:15:00Z",
     createdBy: "cashier@example.com",
@@ -449,8 +449,8 @@ export default function PaymentManagement() {
                 <SelectContent>
                   <SelectItem value="all">All Cities</SelectItem>
                   <SelectItem value="Surat">Surat</SelectItem>
-                  <SelectItem value="Bangalore">Bangalore</SelectItem>
                   <SelectItem value="Mumbai">Mumbai</SelectItem>
+                  <SelectItem value="Ahmedabad">Ahmedabad</SelectItem>
                 </SelectContent>
               </Select>
             </div>

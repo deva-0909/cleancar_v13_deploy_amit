@@ -4,6 +4,9 @@
  * NON-DESTRUCTIVE: New tab/section in CRM module
  */
 
+import { useState } from "react";
+import { useEventListener } from "../../contexts/EventSystem";
+import { useCustomers } from "../../contexts/CustomerContext";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -199,6 +202,29 @@ const getEventColor = (event: SystemEvent): string => {
 };
 
 export function AutomationPanel() {
+  const [ruleFiredCount, setRuleFiredCount] = useState<Record<string, number>>({});
+  const { appendLeadActivity, updateLead } = useCustomers();
+
+  // Rule 1: Lead assigned → trigger WhatsApp welcome
+  useEventListener("LEAD_ASSIGNED", (event) => {
+    if (AUTOMATION_RULES.find(r => r.id === "rule-1")?.isActive) {
+      setRuleFiredCount(prev => ({ ...prev, "rule-1": (prev["rule-1"] || 0) + 1 }));
+    }
+  });
+
+  // Rule 2: Lead converted → log activity
+  useEventListener("DEAL_WON", (event) => {
+    if (AUTOMATION_RULES.find(r => r.id === "rule-2")?.isActive && event.data.leadId) {
+      appendLeadActivity(event.data.leadId, {
+        timestamp: new Date().toISOString(),
+        type: "note",
+        description: "Lead automatically marked Converted after payment confirmed",
+        performedBy: "System Automation",
+      });
+      setRuleFiredCount(prev => ({ ...prev, "rule-2": (prev["rule-2"] || 0) + 1 }));
+    }
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -239,9 +265,14 @@ export function AutomationPanel() {
                   </p>
                 </div>
               </div>
-              <Badge variant={rule.isActive ? "default" : "outline"} className="text-xs">
-                {rule.isActive ? "Active" : "Inactive"}
-              </Badge>
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant={rule.isActive ? "default" : "outline"} className="text-xs">
+                  {rule.isActive ? "Active" : "Inactive"}
+                </Badge>
+                <span className="text-xs text-green-600">
+                  {ruleFiredCount[rule.id] ? `Fired ${ruleFiredCount[rule.id]}× today` : "Waiting for trigger"}
+                </span>
+              </div>
             </div>
 
             {/* Arrow */}

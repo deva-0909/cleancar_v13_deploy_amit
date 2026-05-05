@@ -47,6 +47,45 @@ export interface Lead {
   notes?: string;
   lastContact?: string;
   createdAt: string;
+
+  // City isolation
+  cityId: string;
+  city: string;
+
+  // Pipeline stage — stored separately from Customer.status
+  // Allows 8 granular stages without changing Customer status
+  stage: "new" | "contacted" | "interested" | "demo_scheduled" |
+          "demo_completed" | "proposal" | "converted" | "lost";
+
+  // Assignment
+  assignedTSE?: string;     // TSE display name
+  assignedAt?: string;
+
+  // Follow-up tracking
+  followUpDate?: string;    // ISO date
+  followUpType?: "call" | "whatsapp" | "visit" | "demo";
+  lastContactedAt?: string;
+
+  // Lead quality
+  temperature?: "hot" | "warm" | "cold";
+  priority?: "high" | "medium" | "low";
+  score?: number;           // 0-100 from leadAssignmentEngine
+
+  // Activity log — replaces mock timeline
+  timeline?: LeadActivity[];
+}
+
+export interface LeadActivity {
+  id: string;
+  timestamp: string;
+  type: "call" | "whatsapp" | "demo_scheduled" | "demo_completed" |
+        "note" | "stage_change" | "assigned" | "follow_up_set" |
+        "price_sent" | "converted";
+  description: string;
+  performedBy: string;        // employee name
+  outcome?: string;
+  nextAction?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface PaymentDetails {

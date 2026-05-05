@@ -11,6 +11,8 @@ import {
   type GSTEntryType,
   type PaymentMode,
 } from "../../services/accountingEntryService";
+import { gstComplianceService } from "../../services/gstComplianceService";
+import { toast } from "sonner";
 
 const ENTRY_TYPES: EntryType[] = ["Expense", "Purchase", "PurchaseReturn", "Sales", "SalesReturn", "AssetPurchase"];
 
@@ -39,6 +41,8 @@ export function AccountingEntry() {
 
   // Form state
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [selectedVendorId, setSelectedVendorId] = useState("");
+  const [selectedPackageCode, setSelectedPackageCode] = useState("");
   const [vendorName, setVendorName] = useState("");
   const [vendorGstin, setVendorGstin] = useState("");
   const [vendorStateCode, setVendorStateCode] = useState("");
@@ -59,11 +63,13 @@ export function AccountingEntry() {
   const [creditAccount, setCreditAccount] = useState("");
   const [narration, setNarration] = useState("");
   const [voucherPreview, setVoucherPreview] = useState("");
+  const [debitSearch, setDebitSearch] = useState("");
+  const [creditSearch, setCreditSearch] = useState("");
 
   // Auto-calculate GST when taxable value, rate, or vendor state changes
   useEffect(() => {
     if (taxableValue > 0 && vendorStateCode) {
-      const result = calculateGST(taxableValue, gstRate, vendorStateCode, gstEntryType);
+      const result = calculateGST(taxableValue, gstRate, vendorStateCode, gstEntryType, city);
       setCgst(result.cgst);
       setSgst(result.sgst);
       setIgst(result.igst);
@@ -74,24 +80,69 @@ export function AccountingEntry() {
       setIgst(0);
       setTotalBillValue(taxableValue);
     }
-  }, [taxableValue, gstRate, vendorStateCode, gstEntryType]);
+  }, [taxableValue, gstRate, vendorStateCode, gstEntryType, city]);
+
+  // Auto-fill vendor details when vendor is selected
+  useEffect(() => {
+    if (selectedVendorId) {
+      const vendors = gstComplianceService.getVendors();
+      const vendor = vendors.find(v => v.id === selectedVendorId);
+      if (vendor) {
+        setVendorName(vendor.name);
+        setVendorGstin(vendor.gstin);
+        setVendorStateCode(vendor.stateCode);
+
+        // Find vendor's ledger and auto-populate credit account
+        const allLedgers = accountingEntryService.getLedgers(city);
+        const vendorLedger = allLedgers.find(l => l.gstin === vendor.gstin && l.type === "vendor");
+        if (vendorLedger) {
+          setCreditAccount(vendorLedger.id);
+        }
+      }
+    }
+  }, [selectedVendorId, city]);
+
+  // Auto-fill credit account when package is selected (for Sales entries)
+  useEffect(() => {
+    if (activeTab === "Sales" && selectedPackageCode) {
+      const allLedgers = accountingEntryService.getLedgers(city);
+      const packageLedger = allLedgers.find(l => l.packageCode === selectedPackageCode && l.type === "sales");
+      if (packageLedger) {
+        setCreditAccount(packageLedger.id);
+      }
+    }
+  }, [activeTab, selectedPackageCode, city]);
 
   // Auto-fill debit/credit accounts based on payment mode and expense account
   useEffect(() => {
     if (expenseAccount) {
-      setDebitAccount(expenseAccount);
+      // Always resolve to ledger ID — find or create a ledger for this account head
+      const allLedgers = accountingEntryService.getLedgers(city);
+      const matching = allLedgers.find(l => l.accountHead === expenseAccount);
+      if (matching) {
+        setDebitAccount(matching.id);
+      } else {
+        // Fallback: use account head as debit if no ledger exists for it
+        setDebitAccount(expenseAccount);
+      }
     }
-  }, [expenseAccount]);
+  }, [expenseAccount, city]);
 
+  // Auto-fill credit account based on payment mode using actual ledger IDs
   useEffect(() => {
+    const allLedgers = accountingEntryService.getLedgers(city);
+
     if (paymentMode === "Bank") {
-      setCreditAccount("cash_bank");
+      const bankLedger = allLedgers.find(l => l.name === "Axis Bank" && l.type === "bank");
+      if (bankLedger) setCreditAccount(bankLedger.id);
     } else if (paymentMode === "Cash") {
-      setCreditAccount("cash_bank");
+      const cashLedger = allLedgers.find(l => l.name === "Petty Cash");
+      if (cashLedger) setCreditAccount(cashLedger.id);
     } else if (paymentMode === "PettyCash") {
-      setCreditAccount("cash_bank");
+      const cashLedger = allLedgers.find(l => l.name === "Petty Cash");
+      if (cashLedger) setCreditAccount(cashLedger.id);
     }
-  }, [paymentMode]);
+  }, [paymentMode, city]);
 
   // Generate voucher preview
   useEffect(() => {
@@ -122,23 +173,23 @@ export function AccountingEntry() {
   const handleSubmit = () => {
     // Validation
     if (vendorGstin && gstinError) {
-      alert("Please fix GSTIN errors before submitting.");
+      toast.error("Please fix GSTIN errors before submitting.");
       return;
     }
     if (vendorGstin && vendorStateCode) {
       const gstinStateCode = vendorGstin.substring(0, 2);
       if (gstinStateCode !== vendorStateCode) {
         const selectedStateName = GST_STATE_OPTIONS.find(s => s.code === vendorStateCode)?.name || vendorStateCode;
-        alert(`State code mismatch: GSTIN starts with ${gstinStateCode} but selected state is ${vendorStateCode} - ${selectedStateName}`);
+        toast.error(`State code mismatch: GSTIN starts with ${gstinStateCode} but selected state is ${vendorStateCode} - ${selectedStateName}`);
         return;
       }
     }
     if (taxableValue > 0 && gstRate > 0 && cgst === 0 && sgst === 0 && igst === 0) {
-      alert("GST calculation error. Please re-enter taxable value.");
+      toast.error("GST calculation error. Please re-enter taxable value.");
       return;
     }
     if (!invoiceNumber.trim()) {
-      alert("Invoice number is required.");
+      toast.error("Invoice number is required.");
       return;
     }
 
@@ -177,11 +228,13 @@ export function AccountingEntry() {
       cityInfo.displayName
     );
 
-    alert(`Entry saved: ${entry.voucherNumber}`);
+    toast.success(`Entry saved: ${entry.voucherNumber}`);
     resetForm();
   };
 
   const resetForm = () => {
+    setSelectedVendorId("");
+    setSelectedPackageCode("");
     setVendorName("");
     setVendorGstin("");
     setVendorStateCode("");
@@ -365,6 +418,46 @@ export function AccountingEntry() {
           <div className="space-y-4">
             <h3 className="font-semibold">Party & Invoice</h3>
             <div className="grid grid-cols-2 gap-4">
+              {/* Vendor Dropdown */}
+              {(activeTab === "Expense" || activeTab === "Purchase" || activeTab === "AssetPurchase") && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Select Vendor</label>
+                  <select
+                    value={selectedVendorId}
+                    onChange={(e) => setSelectedVendorId(e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  >
+                    <option value="">Select Vendor</option>
+                    {gstComplianceService.getVendors().map((vendor) => (
+                      <option key={vendor.id} value={vendor.id}>
+                        {vendor.name} - {vendor.gstin}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Package Dropdown for Sales */}
+              {activeTab === "Sales" && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Subscription Package</label>
+                  <select
+                    value={selectedPackageCode}
+                    onChange={(e) => setSelectedPackageCode(e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  >
+                    <option value="">Select Package</option>
+                    {accountingEntryService.getLedgers(city)
+                      .filter(l => l.type === "sales" && l.packageCode)
+                      .map((ledger) => (
+                        <option key={ledger.id} value={ledger.packageCode}>
+                          {ledger.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium mb-1">Vendor/Customer</label>
                 <input
@@ -589,33 +682,81 @@ export function AccountingEntry() {
               )}
               <div>
                 <label className="block text-sm font-medium mb-1">Debit Account</label>
+                <input
+                  className="w-full border rounded px-3 py-1.5 text-sm mb-1"
+                  placeholder="Type to search ledger..."
+                  value={debitSearch}
+                  onChange={e => setDebitSearch(e.target.value)}
+                />
                 <select
                   value={debitAccount}
-                  onChange={(e) => setDebitAccount(e.target.value)}
-                  className="w-full border rounded px-3 py-2"
+                  onChange={e => setDebitAccount(e.target.value)}
+                  size={5}
+                  className="w-full border rounded px-3 py-1 text-sm"
                 >
-                  <option value="">Select Account</option>
-                  {CHART_OF_ACCOUNTS_HEADS.map((h) => (
-                    <option key={h.value} value={h.value}>
-                      {h.label}
-                    </option>
-                  ))}
+                  <option value="">— Select —</option>
+                  {CHART_OF_ACCOUNTS_HEADS.map(head => {
+                    const ledgers = accountingEntryService.getLedgersByHead(head.value, city)
+                      .filter(l => !debitSearch || l.name.toLowerCase().includes(debitSearch.toLowerCase()));
+                    if (ledgers.length === 0) return null;
+                    return (
+                      <optgroup key={head.value} label={head.label}>
+                        {ledgers.map(ledger => {
+                          const bal = accountingEntryService.getLedgerBalance(ledger.id);
+                          return (
+                            <option key={ledger.id} value={ledger.id}>
+                              {ledger.name} — Bal: ₹{bal.balance.toLocaleString()} {bal.balanceType}
+                            </option>
+                          );
+                        })}
+                      </optgroup>
+                    );
+                  })}
                 </select>
+                {debitAccount && (
+                  <p className="text-xs text-blue-600 mt-0.5">
+                    Selected: {accountingEntryService.getLedgers(city).find(l => l.id === debitAccount)?.name}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Credit Account</label>
+                <input
+                  className="w-full border rounded px-3 py-1.5 text-sm mb-1"
+                  placeholder="Type to search ledger..."
+                  value={creditSearch}
+                  onChange={e => setCreditSearch(e.target.value)}
+                />
                 <select
                   value={creditAccount}
-                  onChange={(e) => setCreditAccount(e.target.value)}
-                  className="w-full border rounded px-3 py-2"
+                  onChange={e => setCreditAccount(e.target.value)}
+                  size={5}
+                  className="w-full border rounded px-3 py-1 text-sm"
                 >
-                  <option value="">Select Account</option>
-                  {CHART_OF_ACCOUNTS_HEADS.map((h) => (
-                    <option key={h.value} value={h.value}>
-                      {h.label}
-                    </option>
-                  ))}
+                  <option value="">— Select —</option>
+                  {CHART_OF_ACCOUNTS_HEADS.map(head => {
+                    const ledgers = accountingEntryService.getLedgersByHead(head.value, city)
+                      .filter(l => !creditSearch || l.name.toLowerCase().includes(creditSearch.toLowerCase()));
+                    if (ledgers.length === 0) return null;
+                    return (
+                      <optgroup key={head.value} label={head.label}>
+                        {ledgers.map(ledger => {
+                          const bal = accountingEntryService.getLedgerBalance(ledger.id);
+                          return (
+                            <option key={ledger.id} value={ledger.id}>
+                              {ledger.name} — Bal: ₹{bal.balance.toLocaleString()} {bal.balanceType}
+                            </option>
+                          );
+                        })}
+                      </optgroup>
+                    );
+                  })}
                 </select>
+                {creditAccount && (
+                  <p className="text-xs text-blue-600 mt-0.5">
+                    Selected: {accountingEntryService.getLedgers(city).find(l => l.id === creditAccount)?.name}
+                  </p>
+                )}
               </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium mb-1">Narration</label>

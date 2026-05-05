@@ -15,7 +15,7 @@ import {
   Package,
   BarChart3,
 } from "lucide-react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { MASTER_KPI_DATA, MASTER_INVENTORY, MASTER_APPROVALS } from "../../data/masterData";
 import { toast } from "sonner";
 

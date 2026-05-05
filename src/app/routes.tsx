@@ -1,6 +1,6 @@
 // Router Configuration - FIXED: Removed bad imports (Updated: 2026-03-26)
 import React, { lazy, Suspense } from "react";
-import { createBrowserRouter, Navigate, Outlet } from "react-router";
+import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { RootLayoutWrapper } from "./components/layouts/RootLayoutWrapper";
 
 // Loading fallback for lazy-loaded routes
@@ -15,6 +15,7 @@ const OnboardingPortal = lazy(() => import("./components/OnboardingPortal"));
 const HRModule = lazy(() => import("./components/modules/HRModule"));
 const ProfessionalLeaveManagement = lazy(() => import("./components/hr/ProfessionalLeaveManagement"));
 const StatutoryFormsOnboarding = lazy(() => import("./components/hr/StatutoryFormsOnboarding"));
+const TravelReimbursementModule = lazy(() => import("./components/travel/TravelReimbursementModule"));
 import CreateSalaryStructure from "./components/payroll/CreateSalaryStructure";
 const ChartOfAccounts = lazy(() => import("./components/finance/ChartOfAccounts"));
 const AdminPlanManagement = lazy(() => import("./components/subscription/AdminPlanManagement"));
@@ -107,6 +108,14 @@ import { AccountsDashboard } from "./components/accounts/AccountsDashboard";
 import { AccountingTransactionList } from "./components/accounts/AccountingTransactionList";
 import { AccountsLedger } from "./components/accounts/AccountsLedger";
 import { TrialBalance } from "./components/accounts/TrialBalance";
+import { BalanceSheet } from "./components/accounts/BalanceSheet";
+import { LedgerMaster } from "./components/accounts/LedgerMaster";
+import { RazorpayFlow } from "./components/accounts/RazorpayFlow";
+import { ExpenseVoucher } from "./components/accounts/ExpenseVoucher";
+import { ItemMaster } from "./components/accounts/ItemMaster";
+const TDSPayableModule = lazy(() => import("./components/accounts/TDSPayableModule"));
+const AdvanceTaxCalculator = lazy(() => import("./components/accounts/AdvanceTaxCalculator"));
+const PayablesDashboard = lazy(() => import("./components/accounts/PayablesDashboard"));
 // Phase 3 Accounting Reports
 import { GSTR2AReport } from "./components/accounts/GSTR2AReport";
 import { PurchaseSummaryReport } from "./components/accounts/PurchaseSummaryReport";
@@ -353,11 +362,19 @@ export const router = createBrowserRouter([
       { path: "accounts/gst-sub-types", element: <TransactionSubTypeManager /> },
       { path: "accounts/payroll-processing", element: <AccountsPayrollProcessing /> },
       { path: "accounts/accounting-entry", element: <AccountingEntry /> },
+      { path: "accounts/expense-voucher", element: <ExpenseVoucher /> },
+      { path: "accounts/item-master", element: <ItemMaster /> },
+      { path: "accounts/payables", element: <Suspense fallback={<PageLoader />}><PayablesDashboard /></Suspense> },
+      { path: "accounts/tds-payable", element: <Suspense fallback={<PageLoader />}><TDSPayableModule /></Suspense> },
+      { path: "accounts/advance-tax", element: <Suspense fallback={<PageLoader />}><AdvanceTaxCalculator /></Suspense> },
       { path: "accounts/journal-entry", element: <JournalEntry /> },
       { path: "accounts/dashboard", element: <AccountsDashboard /> },
       { path: "accounts/transactions", element: <AccountingTransactionList /> },
       { path: "accounts/ledger", element: <AccountsLedger /> },
+      { path: "accounts/ledger-master", element: <LedgerMaster /> },
+      { path: "accounts/razorpay-flow", element: <RazorpayFlow /> },
       { path: "accounts/trial-balance", element: <TrialBalance /> },
+      { path: "accounts/balance-sheet", element: <BalanceSheet /> },
       { path: "accounts/gstr2a", element: <GSTR2AReport /> },
       { path: "accounts/reports/purchase", element: <PurchaseSummaryReport /> },
       { path: "accounts/reports/sales", element: <SalesSummaryReport /> },
@@ -469,6 +486,8 @@ export const router = createBrowserRouter([
       { path: "advance/other-earnings", element: <OtherEarningsModule /> },
       { path: "advance/other-deductions", element: <OtherDeductionsModule /> },
       { path: "advance/adjustments-report", element: <AdjustmentsReport /> },
+      // Travel Reimbursement
+      { path: "travel", element: <TravelReimbursementModule /> },
 
       // Workflow Control & Incentive Engine
       { path: "workflow-demo", element: <DevOnlyRoute element={<WorkflowControlDemo />} /> },

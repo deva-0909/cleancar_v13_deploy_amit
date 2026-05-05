@@ -228,7 +228,7 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
 export function useApprovals() {
   const context = useContext(ApprovalContext);
   if (!context) {
-    console.warn("[Context] called outside provider — using safe defaults."); return null as any;
+    throw new Error("useApprovals must be used within ApprovalProvider");
   }
   return context;
 }

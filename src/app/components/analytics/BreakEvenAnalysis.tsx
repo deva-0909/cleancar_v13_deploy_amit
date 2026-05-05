@@ -1,6 +1,6 @@
 // Break-Even Analysis Dashboard
 import { useState, useMemo } from "react";
-import { useSearchParams } from "react-router";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -16,6 +16,8 @@ import {
   Plus,
 } from "lucide-react";
 import { useRole } from "../../contexts/RoleContext";
+import { useFinance } from "../../contexts/FinanceContext";
+import { useCity } from "../../contexts/CityContext";
 import {
   LineChart,
   Line,
@@ -34,27 +36,71 @@ import { MASTER_STORE_BREAKEVEN, MASTER_BREAKEVEN_TIMELINE } from "../../data/ma
 
 // Map stores to cities
 const STORE_CITY_MAP: Record<string, string> = {
-  "Koramangala": "bangalore",
-  "Indiranagar": "bangalore",
-  "Jahangirpura": "ahmedabad",
-  "Althan": "surat",
-  "Piplod": "surat",
+  "Adajan":      "surat",
+  "Vesu":        "surat",
+  "Althan":      "surat",
+  "Piplod":      "surat",
+  "Bandra":      "mumbai",
+  "Andheri":     "mumbai",
+  "Thane":       "mumbai",
+  "Dadar":       "mumbai",
+  "Navrangpura": "ahmedabad",
+  "Satellite":   "ahmedabad",
+  "Vastrapur":   "ahmedabad",
+  "Jahangirpura":"ahmedabad",
 };
 
 function BreakEvenAnalysis() {
   const [searchParams] = useSearchParams();
   const selectedCity = searchParams.get("city")?.toLowerCase() || "surat";
   const { currentRole } = useRole();
+  const { getRevenueByCity, getPayablesByCity } = useFinance();
+  const { availableCities } = useCity();
 
   // Filter stores by selected city
   const storeBreakEven = useMemo(() => {
-    return MASTER_STORE_BREAKEVEN.filter(store =>
+    return availableCities.map(cityDef => {
+      const cityId = cityDef.id;
+      const revenues = getRevenueByCity(cityId).filter(r => r.status === "Received");
+      const payables = getPayablesByCity(cityId).filter(p => p.status === "Paid");
+      const monthlyRevenue = revenues.reduce((s, r) => s + r.amount, 0);
+      const monthlyExpenses = payables.reduce((s, p) => s + p.amount, 0);
+      const setupCost = 1500000; // one-time capital — configurable in settings
+      const monthlyProfit = monthlyRevenue - monthlyExpenses;
+      const breakEvenMonths = monthlyProfit > 0
+        ? Math.ceil(setupCost / monthlyProfit)
+        : 999;
+      return {
+        id: cityDef.id,
+        store: cityDef.displayName,
+        totalInvestment: setupCost,
+        monthlyRevenue,
+        monthlyExpenses,
+        monthlyProfit,
+        breakEvenMonths,
+        breakEvenDate: new Date(Date.now() + breakEvenMonths * 30 * 86400000)
+          .toLocaleDateString("en-IN", { month: "short", year: "numeric" }),
+        progressToBreakEven: Math.min(
+          Math.round((revenues.reduce((s, r) => s + r.amount, 0) / setupCost) * 100),
+          100
+        ),
+        currentMonth: Math.ceil((Date.now() - new Date("2025-01-01").getTime()) / (30 * 86400000)),
+        status: monthlyProfit > 0 && breakEvenMonths <= 24 ? "Profitable" : "Pre Break-Even",
+      };
+    }).filter(store =>
+      STORE_CITY_MAP[store.store]?.toLowerCase() === selectedCity ||
+      store.store.toLowerCase().includes(selectedCity)
+    );
+  }, [selectedCity, availableCities, getRevenueByCity, getPayablesByCity]);
+
+  // Fallback to masterData when no real finance records
+  const displayStoreBreakEven = storeBreakEven.some(s => s.monthlyRevenue > 0)
+    ? storeBreakEven : MASTER_STORE_BREAKEVEN.filter(store =>
       STORE_CITY_MAP[store.store]?.toLowerCase() === selectedCity
     );
-  }, [selectedCity]);
 
   // Get the first store for the timeline chart
-  const primaryStore = storeBreakEven[0];
+  const primaryStore = displayStoreBreakEven[0];
   const breakEvenTimeline = primaryStore ? MASTER_BREAKEVEN_TIMELINE : [];
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const [calculatorInputs, setCalculatorInputs] = useState({
@@ -69,7 +115,7 @@ function BreakEvenAnalysis() {
 
   // Calculate summary statistics from actual data
   const summaryStats = useMemo(() => {
-    if (storeBreakEven.length === 0) {
+    if (displayStoreBreakEven.length === 0) {
       return {
         avgBreakEven: "0",
         avgInvestment: "0",
@@ -80,22 +126,22 @@ function BreakEvenAnalysis() {
       };
     }
 
-    const avgBreakEven = storeBreakEven.reduce((sum, store) => sum + store.breakEvenMonths, 0) / storeBreakEven.length;
-    const avgInvestment = storeBreakEven.reduce((sum, store) => sum + store.totalInvestment, 0) / storeBreakEven.length;
-    const profitableStores = storeBreakEven.filter(store => store.status === "Profitable").length;
-    const bestPerformer = storeBreakEven.reduce((best, store) =>
+    const avgBreakEven = displayStoreBreakEven.reduce((sum, store) => sum + store.breakEvenMonths, 0) / displayStoreBreakEven.length;
+    const avgInvestment = displayStoreBreakEven.reduce((sum, store) => sum + store.totalInvestment, 0) / displayStoreBreakEven.length;
+    const profitableStores = displayStoreBreakEven.filter(store => store.status === "Profitable").length;
+    const bestPerformer = displayStoreBreakEven.reduce((best, store) =>
       store.breakEvenMonths < best.breakEvenMonths ? store : best
-    , storeBreakEven[0]);
+    , displayStoreBreakEven[0]);
 
     return {
       avgBreakEven: avgBreakEven.toFixed(1),
       avgInvestment: (avgInvestment / 100000).toFixed(1), // in lakhs
       profitableCount: profitableStores,
-      totalStores: storeBreakEven.length,
+      totalStores: displayStoreBreakEven.length,
       bestPerformer: bestPerformer.store,
       bestPerformerMonths: bestPerformer.breakEvenMonths,
     };
-  }, [storeBreakEven]);
+  }, [displayStoreBreakEven]);
 
   if (!hasAccess) {
     return (
@@ -360,9 +406,9 @@ function BreakEvenAnalysis() {
           <CardTitle>Break-Even Period Comparison ({selectedCity.charAt(0).toUpperCase() + selectedCity.slice(1)})</CardTitle>
         </CardHeader>
         <CardContent>
-          {storeBreakEven.length > 0 ? (
+          {displayStoreBreakEven.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={storeBreakEven} id="breakeven-comparison-chart">
+              <BarChart data={displayStoreBreakEven} id="breakeven-comparison-chart">
                 <CartesianGrid key="comparison-grid" strokeDasharray="3 3" />
                 <XAxis key="comparison-xaxis" dataKey="store" tick={{ fontSize: 11 }} />
                 <YAxis key="comparison-yaxis" label={{ value: "Months", angle: -90, position: "insideLeft" }} />
@@ -384,7 +430,7 @@ function BreakEvenAnalysis() {
           <CardTitle>Store Break-Even Analysis Details ({selectedCity.charAt(0).toUpperCase() + selectedCity.slice(1)})</CardTitle>
         </CardHeader>
         <CardContent>
-          {storeBreakEven.length > 0 ? (
+          {displayStoreBreakEven.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -400,7 +446,7 @@ function BreakEvenAnalysis() {
                   </tr>
                 </thead>
                 <tbody>
-                  {storeBreakEven.map((store) => (
+                  {displayStoreBreakEven.map((store) => (
                     <tr key={store.id} className="border-b hover:bg-gray-50">
                       <td className="p-3 font-medium">{store.store}</td>
                       <td className="p-3 text-right">₹{(store.totalInvestment / 100000).toFixed(1)}L</td>

@@ -47,8 +47,8 @@ interface AddConsumableInputDialogProps {
 const WASHERS = [
   { id: "washer-001", name: "Suresh Kumar", city: "Mumbai" },
   { id: "washer-002", name: "Ramesh Patel", city: "Mumbai" },
-  { id: "washer-003", name: "Dinesh Sharma", city: "Pune" },
-  { id: "washer-004", name: "Vijay Singh", city: "Pune" },
+  { id: "washer-003", name: "Dinesh Sharma", city: "Mumbai" },
+  { id: "washer-004", name: "Vijay Singh", city: "Ahmedabad" },
 ];
 
 const CONSUMPTION_REASONS: ConsumableConsumptionReason[] = [

@@ -12,6 +12,8 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 import { DataService } from "../services/DataService";
+import { incentiveLedgerService } from "../services/incentiveLedger";
+import { useEvents } from "./EventSystem";
 
 // ========== TYPES ==========
 
@@ -51,12 +53,15 @@ export interface IncentivePlan {
   maxPayout?: number;
 
   isActive: boolean;
+  cityId?: string;   // Optional for backward compat — if absent, visible to all cities
+  city?: string;
   createdAt: string;
   updatedAt?: string;
 }
 
 export interface EmployeeIncentive {
   employeeId: string;
+  cityId?: string;
   planId: string;
 
   // Current period tracking
@@ -114,6 +119,8 @@ const IncentiveContext = createContext<IncentiveContextType | undefined>(undefin
 // ========== PROVIDER ==========
 
 export function IncentiveProvider({ children }: { children: ReactNode }) {
+  const { emit } = useEvents();
+
   const [incentivePlans, setIncentivePlans] = useState<IncentivePlan[]>(() => {
     const stored = DataService.get<IncentivePlan>("INCENTIVE_PLANS");
     console.log(`[IncentiveContext] Loaded ${stored.length} incentive plans`);
@@ -270,6 +277,15 @@ export function IncentiveProvider({ children }: { children: ReactNode }) {
         }
         break;
 
+      case "revenue_share":
+        // Revenue share: requires team revenue from FinanceContext
+        // Use revenueSharePercentage × the employee's team revenue this period
+        // Team revenue is passed via metadata — default to achievementAmount
+        calculatedAmount = Math.round(
+          (plan.rules.revenueSharePercentage || 0) / 100 * achieved
+        );
+        break;
+
       default:
         calculatedAmount = 0;
     }
@@ -304,19 +320,46 @@ export function IncentiveProvider({ children }: { children: ReactNode }) {
   // ========== APPROVAL WORKFLOW ==========
 
   const approveIncentive = useCallback((employeeId: string, approvedBy: string) => {
+    const incentive = getEmployeeIncentive(employeeId);
     updateEmployeeIncentive(employeeId, {
       status: "Approved",
       approvedBy,
       approvedAt: new Date().toISOString(),
     });
-  }, [updateEmployeeIncentive]);
+    // Write to incentiveLedger for unified history
+    if (incentive) {
+      try {
+        incentiveLedgerService.createRecord({
+          employeeId,
+          planId: incentive.planId,
+          period: incentive.currentPeriod.startDate.slice(0,7),
+          amount: incentive.calculatedAmount,
+          type: "per_car",
+          status: "Approved",
+          approvedBy,
+          cityId: incentive.cityId || "CITY-SURAT",
+        });
+      } catch (e) { console.warn("IncentiveLedger write failed", e); }
+    }
+  }, [updateEmployeeIncentive, getEmployeeIncentive]);
 
   const markIncentiveAsPaid = useCallback((employeeId: string) => {
+    const incentive = getEmployeeIncentive(employeeId);
     updateEmployeeIncentive(employeeId, {
       status: "Paid",
       paidAt: new Date().toISOString(),
     });
-  }, [updateEmployeeIncentive]);
+    // Emit event so FinanceContext can record the bank debit
+    if (incentive) {
+      emit("INCENTIVE_PAID", {
+        employeeId,
+        amount: incentive.calculatedAmount,
+        cityId: incentive.cityId || "CITY-SURAT",
+        period: incentive.currentPeriod.startDate.slice(0,7),
+        paidAt: new Date().toISOString(),
+      }, "IncentiveContext");
+    }
+  }, [updateEmployeeIncentive, getEmployeeIncentive, emit]);
 
   // ========== CONTEXT VALUE ==========
 
@@ -346,7 +389,7 @@ export function IncentiveProvider({ children }: { children: ReactNode }) {
 export function useIncentive() {
   const context = useContext(IncentiveContext);
   if (!context) {
-    console.warn("[Context] called outside provider — using safe defaults."); return null as any;
+    throw new Error("useIncentive must be used within IncentiveProvider");
   }
   return context;
 }

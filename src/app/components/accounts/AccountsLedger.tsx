@@ -1,28 +1,50 @@
 import { useState, useMemo } from "react";
 import { useCity } from "../../contexts/CityContext";
-import { accountingEntryService, CHART_OF_ACCOUNTS_HEADS } from "../../services/accountingEntryService";
-import { Download } from "lucide-react";
+import { accountingEntryService, CHART_OF_ACCOUNTS_HEADS, type LedgerMaster } from "../../services/accountingEntryService";
+import { Download, Search } from "lucide-react";
 
 export function AccountsLedger() {
   const { city } = useCity();
-  const [selectedAccount, setSelectedAccount] = useState("");
+  const [selectedHead, setSelectedHead] = useState("");
+  const [selectedLedgerId, setSelectedLedgerId] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [customerSearch, setCustomerSearch] = useState("");
 
-  // Get ledger entries for selected account
+  // Get ledgers for selected account head
+  const ledgersForHead = useMemo(() => {
+    if (!selectedHead) return [];
+    return accountingEntryService.getLedgersByHead(selectedHead, city);
+  }, [selectedHead, city]);
+
+  // Get selected ledger details
+  const selectedLedger = useMemo(() => {
+    if (!selectedLedgerId) return null;
+    return accountingEntryService.getLedgers(city).find(l => l.id === selectedLedgerId);
+  }, [selectedLedgerId, city]);
+
+  // Get ledger entries for selected ledger
   const ledgerEntries = useMemo(() => {
-    if (!selectedAccount) return [];
+    if (!selectedLedgerId) return [];
     const from = dateFrom || "1900-01-01";
     const to = dateTo || "2099-12-31";
-    const entries = accountingEntryService.getLedgerEntries(selectedAccount, city);
-    return entries.filter((e) => e.date >= from && e.date <= to).sort((a, b) => a.date.localeCompare(b.date));
-  }, [selectedAccount, dateFrom, dateTo, city]);
+    const allEntries = accountingEntryService.getAllEntries(city);
+    return allEntries
+      .filter((e) =>
+        (e.debitAccount === selectedLedgerId || e.creditAccount === selectedLedgerId) &&
+        e.date >= from && e.date <= to
+      )
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [selectedLedgerId, dateFrom, dateTo, city]);
 
   // Calculate running balance
   const ledgerWithBalance = useMemo(() => {
-    let runningBalance = 0;
+    const openingBal = selectedLedger?.openingBalance || 0;
+    const openingType = selectedLedger?.openingBalanceType || "Dr";
+    let runningBalance = openingType === "Dr" ? openingBal : -openingBal;
+
     return ledgerEntries.map((entry) => {
-      const isDebit = entry.debitAccount === selectedAccount;
+      const isDebit = entry.debitAccount === selectedLedgerId;
       const amount = entry.totalBillValue;
       runningBalance += isDebit ? amount : -amount;
       return {
@@ -32,14 +54,38 @@ export function AccountsLedger() {
         balance: runningBalance,
       };
     });
-  }, [ledgerEntries, selectedAccount]);
+  }, [ledgerEntries, selectedLedgerId, selectedLedger]);
 
-  const openingBalance = 0; // Simplified - can be enhanced
-  const closingBalance = ledgerWithBalance.length > 0 ? ledgerWithBalance[ledgerWithBalance.length - 1].balance : 0;
+  const openingBalance = selectedLedger?.openingBalance || 0;
+  const openingBalanceType = selectedLedger?.openingBalanceType || "Dr";
+  const closingBalance = ledgerWithBalance.length > 0 ? ledgerWithBalance[ledgerWithBalance.length - 1].balance : (openingBalanceType === "Dr" ? openingBalance : -openingBalance);
   const totalDebit = ledgerWithBalance.reduce((sum, e) => sum + e.debit, 0);
   const totalCredit = ledgerWithBalance.reduce((sum, e) => sum + e.credit, 0);
 
+  // Get ledger balance info
+  const ledgerBalance = useMemo(() => {
+    if (!selectedLedgerId) return null;
+    return accountingEntryService.getLedgerBalance(selectedLedgerId);
+  }, [selectedLedgerId]);
+
+  // Quick search: find customer ledgers
+  const handleCustomerSearch = (searchTerm: string) => {
+    setCustomerSearch(searchTerm);
+    if (!searchTerm.trim()) return;
+
+    const allLedgers = accountingEntryService.getLedgers(city);
+    const customerLedger = allLedgers.find(
+      l => l.type === "customer" && l.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (customerLedger) {
+      setSelectedHead(customerLedger.accountHead);
+      setSelectedLedgerId(customerLedger.id);
+    }
+  };
+
   const exportCSV = () => {
+    const ledgerName = selectedLedger?.name || selectedLedgerId;
     const headers = ["Date", "Voucher No", "Description", "Debit", "Credit", "Balance"];
     const rows = ledgerWithBalance.map((e) => [
       e.date,
@@ -54,7 +100,7 @@ export function AccountsLedger() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ledger-${selectedAccount}-${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `ledger-${ledgerName.replace(/\s+/g, "-")}-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
   };
 
@@ -66,7 +112,7 @@ export function AccountsLedger() {
           <h1 className="text-2xl font-bold">Ledger</h1>
           <p className="text-sm text-gray-600">Account-wise passbook in ledger format</p>
         </div>
-        {selectedAccount && (
+        {selectedLedgerId && (
           <button
             onClick={exportCSV}
             className="flex items-center gap-2 px-4 py-2 border rounded text-blue-600 hover:bg-blue-50"
@@ -77,16 +123,34 @@ export function AccountsLedger() {
         )}
       </div>
 
+      {/* Customer Quick Search */}
+      <div className="p-4 bg-blue-50 rounded border border-blue-200">
+        <label className="block text-sm font-medium mb-2">Customer Ledger Quick Search</label>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={customerSearch}
+            onChange={(e) => handleCustomerSearch(e.target.value)}
+            placeholder="Type customer name to find their debtor ledger..."
+            className="w-full border rounded px-10 py-2"
+          />
+        </div>
+      </div>
+
       {/* Filters */}
-      <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded">
+      <div className="grid grid-cols-4 gap-4 p-4 bg-gray-50 rounded">
         <div>
-          <label className="block text-sm font-medium mb-1">Account</label>
+          <label className="block text-sm font-medium mb-1">Account Head</label>
           <select
-            value={selectedAccount}
-            onChange={(e) => setSelectedAccount(e.target.value)}
+            value={selectedHead}
+            onChange={(e) => {
+              setSelectedHead(e.target.value);
+              setSelectedLedgerId("");
+            }}
             className="w-full border rounded px-3 py-2"
           >
-            <option value="">Select Account</option>
+            <option value="">Select Account Head</option>
             {["asset", "liability", "income", "expense"].map((nature) => (
               <optgroup key={nature} label={nature.toUpperCase()}>
                 {CHART_OF_ACCOUNTS_HEADS.filter((h) => h.nature === nature).map((h) => (
@@ -96,9 +160,22 @@ export function AccountsLedger() {
                 ))}
               </optgroup>
             ))}
-            <optgroup label="PAYMENT ACCOUNTS">
-              <option value="cash_bank">Cash & Bank</option>
-            </optgroup>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Ledger</label>
+          <select
+            value={selectedLedgerId}
+            onChange={(e) => setSelectedLedgerId(e.target.value)}
+            className="w-full border rounded px-3 py-2"
+            disabled={!selectedHead}
+          >
+            <option value="">Select Ledger</option>
+            {ledgersForHead.map((ledger) => (
+              <option key={ledger.id} value={ledger.id}>
+                {ledger.name}
+              </option>
+            ))}
           </select>
         </div>
         <div>
@@ -121,9 +198,41 @@ export function AccountsLedger() {
         </div>
       </div>
 
-      {!selectedAccount ? (
+      {/* Ledger Identity Card */}
+      {selectedLedger && ledgerBalance && (
+        <div className="p-4 bg-white border rounded shadow-sm">
+          <div className="grid grid-cols-5 gap-4">
+            <div>
+              <p className="text-xs text-gray-500">Ledger Name</p>
+              <p className="font-semibold">{selectedLedger.name}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Account Head</p>
+              <p className="font-semibold">{selectedLedger.accountHeadLabel}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Type</p>
+              <p className="font-semibold capitalize">{selectedLedger.type}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Current Balance</p>
+              <p className={`font-semibold ${ledgerBalance.balanceType === "Dr" ? "text-red-600" : "text-green-600"}`}>
+                ₹{ledgerBalance.balance.toFixed(2)} {ledgerBalance.balanceType}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Opening Balance</p>
+              <p className={`font-semibold ${openingBalanceType === "Dr" ? "text-red-600" : "text-green-600"}`}>
+                ₹{openingBalance.toFixed(2)} {openingBalanceType}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!selectedLedgerId ? (
         <div className="text-center py-12 text-gray-500">
-          <p>Select an account to view ledger</p>
+          <p>Select an account head and ledger to view passbook</p>
         </div>
       ) : (
         <div className="border rounded overflow-hidden">
@@ -144,9 +253,15 @@ export function AccountsLedger() {
                 <td className="px-4 py-3" colSpan={3}>
                   Opening Balance
                 </td>
-                <td className="px-4 py-3 text-right">-</td>
-                <td className="px-4 py-3 text-right">-</td>
-                <td className="px-4 py-3 text-right">₹{openingBalance.toFixed(2)}</td>
+                <td className="px-4 py-3 text-right text-red-600">
+                  {openingBalanceType === "Dr" ? `₹${openingBalance.toFixed(2)}` : "-"}
+                </td>
+                <td className="px-4 py-3 text-right text-green-600">
+                  {openingBalanceType === "Cr" ? `₹${openingBalance.toFixed(2)}` : "-"}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  ₹{(openingBalanceType === "Dr" ? openingBalance : -openingBalance).toFixed(2)}
+                </td>
               </tr>
 
               {/* Transactions */}

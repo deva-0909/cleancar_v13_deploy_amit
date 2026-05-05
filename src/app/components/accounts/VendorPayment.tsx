@@ -31,10 +31,13 @@ import {
 } from "../ui/dialog";
 import { AlertCircle, Upload, CheckCircle, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { gstComplianceService } from "../../services/gstComplianceService";
+import { accountingEntryService } from "../../services/accountingEntryService";
+import { useCity } from "../../contexts/CityContext";
 
 export function VendorPayment() {
+  const { city, cityInfo } = useCity();
   const savedVendors = gstComplianceService.getVendors();
   const getVendorName = (vendorId: string) =>
     savedVendors.find(v => v.id === vendorId)?.legalName || vendorId;
@@ -68,7 +71,7 @@ export function VendorPayment() {
 
   const handleSubmitPayment = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (!documentUploaded) {
       toast.error("Please upload supporting document!");
       return;
@@ -77,6 +80,36 @@ export function VendorPayment() {
     toast.success("Payment request submitted for Super Admin approval!");
     setPaymentDialogOpen(false);
     setDocumentUploaded(false);
+  };
+
+  const handleMarkPaid = (payment: any, paymentRef: string) => {
+    // Update local state
+    setPayments(prev => prev.map(p =>
+      p.id === payment.id ? { ...p, status: "Paid", paymentRef } : p
+    ));
+
+    // Post journal entry: DR Creditors, CR Bank
+    const creditorLedger = accountingEntryService.getLedgers(city)
+      .find(l => l.name === payment.vendor);
+    const bankLedger = accountingEntryService.getLedgers(city)
+      .find(l => l.name === "Axis Bank" && l.type === "bank");
+
+    if (creditorLedger && bankLedger) {
+      accountingEntryService.createJournal({
+        date: new Date().toISOString().split("T")[0],
+        narration: `Payment to ${payment.vendor} — Ref: ${paymentRef}`,
+        lines: [
+          { accountHead: creditorLedger.id, accountLabel: creditorLedger.name, debit: payment.amount, credit: 0 },
+          { accountHead: bankLedger.id,     accountLabel: bankLedger.name,     debit: 0, credit: payment.amount },
+        ],
+        city: cityInfo.displayName,
+        cityId: city,
+        createdBy: "Accounts",
+      }, cityInfo.displayName);
+      toast.success(`Payment of ₹${payment.amount.toLocaleString()} posted to ledger. Voucher generated.`);
+    } else {
+      toast.warning("Payment recorded but ledger entry skipped — creditor or bank ledger not found.");
+    }
   };
 
   return (
@@ -325,7 +358,13 @@ export function VendorPayment() {
                   </TableCell>
                   <TableCell>
                     {payment.status === "Approved" && (
-                      <Button size="sm" variant="default">Execute Payment</Button>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => handleMarkPaid(payment, payment.invoice)}
+                      >
+                        Execute Payment
+                      </Button>
                     )}
                     {payment.status === "Pending Approval" && (
                       <Button size="sm" variant="outline">View Details</Button>

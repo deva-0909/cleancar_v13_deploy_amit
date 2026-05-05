@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useCustomers } from "../../contexts/CustomerContext";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -63,7 +64,7 @@ const mockHistory: HistoryEvent[] = [
     performedBy: "System",
     performedByRole: "System",
     description: "Lead created from Google Ads campaign",
-    details: "Source: Google Ads | Campaign: Bangalore Premium Campaign",
+    details: "Source: Google Ads | Campaign: Surat Premium Campaign",
     systemGenerated: true,
   },
   {
@@ -266,9 +267,20 @@ type LeadHistoryProps = {
 };
 
 export function LeadHistory({ leadId, leadName, onClose }: LeadHistoryProps) {
-  const [history] = useState<HistoryEvent[]>(
-    mockHistory.filter((h) => h.leadId === leadId)
-  );
+  const { leads } = useCustomers();
+  const lead = leads.find(l => l.leadId === leadId);
+  const history = (lead?.timeline || []).map(t => ({
+    id: t.id, leadId,
+    eventType: t.type as any,
+    timestamp: t.timestamp,
+    performedBy: t.performedBy,
+    performedByRole: "TSE",
+    description: t.description,
+    systemGenerated: false,
+    metadata: t.metadata,
+    outcome: t.outcome,
+    details: t.nextAction,
+  }));
   const [filter, setFilter] = useState<"all" | "calls" | "stages" | "system">(
     "all"
   );

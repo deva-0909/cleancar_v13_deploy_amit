@@ -45,6 +45,26 @@ export interface Job {
   // Failure handling
   failureReason?: string;
   rescheduleRequested?: boolean;
+
+  // City isolation
+  cityId: string;
+  city: string;
+
+  // Denormalized display fields (avoid lookups in list views)
+  washerName?: string;
+  customerName?: string;
+  customerPhone?: string;
+
+  // Flattened convenience fields
+  area?: string;       // mirrors location.area
+  pinCode?: string;    // mirrors location.pinCode
+  vehicleType?: string;// mirrors vehicleDetails.category
+  vehicleReg?: string; // mirrors vehicleDetails.registration
+  units?: number;      // number of wash units in this job
+
+  // Revenue
+  amount?: number;     // price charged for this job — used in JOB_COMPLETED event
+
   // Timestamps
   assignedAt?: string;
   acknowledgedAt?: string;
@@ -70,7 +90,7 @@ interface JobContextType {
   deleteJob: (jobId: string) => void;
 
   // Job assignment
-  assignJobToWasher: (jobId: string, washerId: string) => void;
+  assignJobToWasher: (jobId: string, washerId: string, washerName?: string) => void;
   unassignJob: (jobId: string) => void;
 
   // Job lifecycle
@@ -81,7 +101,22 @@ interface JobContextType {
   markJobAsFailed: (jobId: string, reason: string, reschedule: boolean) => void;
 
   // Subscription-based job generation
-  generateJobsFromSubscription: (subscriptionId: string, customerId: string, count: number) => Job[];
+  generateJobsFromSubscription: (subscriptionId: string, customerId: string, count: number, subscriptionData?: {
+    packageName?: string;
+    vehicleCategory?: string;
+    vehicleRegistration?: string;
+    vehicleBrand?: string;
+    vehicleColor?: string;
+    area?: string;
+    addressLine1?: string;
+    pinCode?: string;
+    city?: string;
+    cityId?: string;
+    amount?: number;
+    customerName?: string;
+    customerPhone?: string;
+    timeSlot?: string;
+  }) => Job[];
 
   // Queries
   getJobById: (jobId: string) => Job | undefined;
@@ -89,6 +124,12 @@ interface JobContextType {
   getJobsByWasherId: (washerId: string) => Job[];
   getJobsByStatus: (status: Job["status"]) => Job[];
   getJobsForDate: (date: string) => Job[];
+
+  // City-scoped queries
+  getJobsByCityId: (cityId: string) => Job[];
+  getUnassignedByCity: (cityId: string) => Job[];
+  getAssignedByCity: (cityId: string) => Job[];
+  getCompletedByCity: (cityId: string) => Job[];
 }
 
 const JobContext = createContext<JobContextType | undefined>(undefined);
@@ -110,13 +151,24 @@ export function JobProvider({ children }: { children: ReactNode }) {
   useSync("JOBS", allJobs);
 
   // Derived state - filtered views
+  // City filter applied to all derived views — pass cityId when using these
   const unassignedJobs = allJobs.filter((j) => j.status === "Unassigned");
-  const assignedJobs = allJobs.filter((j) =>
+  const assignedJobs   = allJobs.filter((j) =>
     j.status === "Assigned" || j.status === "Acknowledged" || j.status === "In Progress"
   );
-  const completedJobs = allJobs.filter((j) =>
+  const completedJobs  = allJobs.filter((j) =>
     j.status === "Completed" || j.status === "Verified"
   );
+
+  // City-scoped helpers
+  const getJobsByCityId = (cityId: string): Job[] =>
+    allJobs.filter(j => j.cityId === cityId);
+  const getUnassignedByCity = (cityId: string): Job[] =>
+    allJobs.filter(j => j.status === "Unassigned" && j.cityId === cityId);
+  const getAssignedByCity = (cityId: string): Job[] =>
+    allJobs.filter(j => ["Assigned","Acknowledged","In Progress"].includes(j.status) && j.cityId === cityId);
+  const getCompletedByCity = (cityId: string): Job[] =>
+    allJobs.filter(j => ["Completed","Verified"].includes(j.status) && j.cityId === cityId);
 
   const createJob = (jobData: Omit<Job, "jobId" | "createdAt" | "updatedAt">): Job => {
     const newJob: Job = {
@@ -144,10 +196,11 @@ export function JobProvider({ children }: { children: ReactNode }) {
     setAllJobs((prev) => prev.filter((j) => j.jobId !== jobId));
   };
 
-  const assignJobToWasher = (jobId: string, washerId: string) => {
+  const assignJobToWasher = (jobId: string, washerId: string, washerName?: string) => {
     const job = allJobs.find(j => j.jobId === jobId);
     updateJob(jobId, {
       washerId,
+      washerName: washerName || washerId,
       status: "Assigned",
       assignedAt: new Date().toISOString(),
     });
@@ -157,7 +210,8 @@ export function JobProvider({ children }: { children: ReactNode }) {
       emit("JOB_ASSIGNED", {
         jobId,
         washerId,
-        customerName: job.customerId,
+        washerName: washerName || washerId,
+        customerName: job.customerName || job.customerId,
         scheduledDate: job.scheduledDate,
       }, "JobContext");
     }
@@ -201,11 +255,14 @@ export function JobProvider({ children }: { children: ReactNode }) {
     if (job) {
       emit("JOB_COMPLETED", {
         jobId,
-        washerId: job.washerId,
-        washerName: job.washerId || "Unknown Washer",
-        customerId: job.customerId,
+        washerId:    job.washerId,
+        washerName:  job.washerName || job.washerId || "Unknown Washer",
+        customerId:  job.customerId,
+        customerName:job.customerName,
         packageName: job.packageName,
-        qualityScore: verificationData?.qualityScore,
+        amount:      job.amount || 0,       // ← revenue amount now flows through
+        cityId:      job.cityId,
+        qualityScore:  verificationData?.qualityScore,
         complianceScore: verificationData?.complianceScore,
         completedAt: new Date().toISOString(),
       }, "JobContext");
@@ -234,48 +291,86 @@ export function JobProvider({ children }: { children: ReactNode }) {
   };
 
   const markJobAsFailed = (jobId: string, reason: string, reschedule: boolean) => {
-    updateJob(jobId, {
-      status: "Failed",
-      failureReason: reason,
-      rescheduleRequested: reschedule,
-    });
+    const failed = allJobs.find(j => j.jobId === jobId);
+    updateJob(jobId, { status: "Failed", failureReason: reason, rescheduleRequested: reschedule });
+
+    if (reschedule && failed) {
+      // Schedule replacement for next day
+      const nextDate = new Date(new Date(failed.scheduledDate).getTime() + 86400000)
+        .toISOString().split("T")[0];
+      createJob({
+        ...failed,
+        scheduledDate: nextDate,
+        status: "Unassigned",
+        washerId: undefined,
+        assignedAt: undefined,
+        startedAt: undefined,
+        completedAt: undefined,
+        verificationStatus: undefined,
+        failureReason: undefined,
+        rescheduleRequested: false,
+        qaAuditId: undefined,
+      });
+    }
   };
 
   const generateJobsFromSubscription = (
     subscriptionId: string,
     customerId: string,
-    count: number
+    count: number,
+    subscriptionData?: {
+      packageName?: string;
+      vehicleCategory?: string;
+      vehicleRegistration?: string;
+      vehicleBrand?: string;
+      vehicleColor?: string;
+      area?: string;
+      addressLine1?: string;
+      pinCode?: string;
+      city?: string;
+      cityId?: string;
+      amount?: number;
+      customerName?: string;
+      customerPhone?: string;
+      timeSlot?: string;
+    }
   ): Job[] => {
     const generatedJobs: Job[] = [];
-
-    // NOTE: This is a placeholder - actual implementation would fetch subscription details
-    // and generate jobs based on frequency, start date, etc.
     for (let i = 0; i < count; i++) {
       const job = createJob({
         customerId,
         subscriptionId,
         scheduledDate: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-        timeSlot: "07:00 - 08:00",
+        timeSlot: subscriptionData?.timeSlot || "07:00 - 08:00",
         status: "Unassigned",
         jobType: "Regular",
-        packageName: "Standard Package",
+        packageName:   subscriptionData?.packageName || "Standard Package",
+        customerName:  subscriptionData?.customerName,
+        customerPhone: subscriptionData?.customerPhone,
+        amount:        subscriptionData?.amount,
+        cityId:        subscriptionData?.cityId || "CITY-SURAT",
+        city:          subscriptionData?.city || "Surat",
+        area:          subscriptionData?.area,
+        pinCode:       subscriptionData?.pinCode,
+        vehicleType:   subscriptionData?.vehicleCategory,
+        vehicleReg:    subscriptionData?.vehicleRegistration,
+        units: 1,
         vehicleDetails: {
-          category: "Sedan",
-          color: "Unknown",
-          brand: "Unknown",
-          registration: "Unknown",
+          category:     subscriptionData?.vehicleCategory || "Sedan",
+          color:        subscriptionData?.vehicleColor    || "Unknown",
+          brand:        subscriptionData?.vehicleBrand    || "Unknown",
+          registration: subscriptionData?.vehicleRegistration || "Unknown",
         },
         location: {
-          addressLine1: "To be fetched from customer",
-          area: "Unknown",
-          city: "Unknown",
-          pinCode: "000000",
+          addressLine1: subscriptionData?.addressLine1 || "Address from customer profile",
+          area:         subscriptionData?.area    || "Unknown",
+          city:         subscriptionData?.city    || "Surat",
+          pinCode:      subscriptionData?.pinCode || "000000",
         },
         serviceDetails: {},
       });
       generatedJobs.push(job);
     }
-
     return generatedJobs;
   };
 
@@ -322,6 +417,10 @@ export function JobProvider({ children }: { children: ReactNode }) {
         getJobsByWasherId,
         getJobsByStatus,
         getJobsForDate,
+        getJobsByCityId,
+        getUnassignedByCity,
+        getAssignedByCity,
+        getCompletedByCity,
       }}
     >
       {children}
@@ -334,7 +433,7 @@ export function useJobs() {
   if (!context) {
     // PREVIEW FALLBACK: Safe no-op defaults for Figma Make iframe and dev HMR
     if (import.meta.hot || !import.meta.env?.PROD) {
-      const noop = () => { console.warn("[Context] called outside provider."); return null as any; };
+      const noop = () => { throw new Error("JobContext not available in preview"); };
       return {
         allJobs: [], unassignedJobs: [], assignedJobs: [], completedJobs: [],
         createJob: noop, updateJob: () => {}, deleteJob: () => {},
@@ -344,9 +443,11 @@ export function useJobs() {
         generateJobsFromSubscription: () => [], getJobById: () => undefined,
         getJobsByCustomerId: () => [], getJobsByWasherId: () => [],
         getJobsByStatus: () => [], getJobsForDate: () => [],
+        getJobsByCityId: () => [], getUnassignedByCity: () => [],
+        getAssignedByCity: () => [], getCompletedByCity: () => [],
       } as JobContextType;
     }
-    console.warn("[Context] called outside provider — using safe defaults."); return null as any;
+    throw new Error("useJobs must be used within JobProvider");
   }
   return context;
 }

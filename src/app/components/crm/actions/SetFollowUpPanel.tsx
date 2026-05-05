@@ -12,6 +12,9 @@ import {
 } from "../../ui/select";
 import { Clock, Save, X } from "lucide-react";
 import { toast } from "sonner";
+import { useCustomers } from "../../../contexts/CustomerContext";
+import { useRole } from "../../../contexts/RoleContext";
+import type { Lead } from "../../../services/leadConversionService";
 
 interface SetFollowUpPanelProps {
   lead: any;
@@ -24,9 +27,13 @@ export function SetFollowUpPanel({
   onClose,
   onComplete,
 }: SetFollowUpPanelProps) {
+  const { appendLeadActivity, updateLead } = useCustomers();
+  const { currentUser } = useRole();
+  const leadId = lead.leadId || lead.id;
   const [followUpDate, setFollowUpDate] = useState("");
   const [followUpType, setFollowUpType] = useState("call");
   const [note, setNote] = useState("");
+  const [priority, setPriority] = useState<"high" | "medium" | "low">("medium");
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +44,19 @@ export function SetFollowUpPanel({
     }
 
     toast.success("Follow-up scheduled successfully!");
+
+    updateLead(leadId, {
+      followUpDate: followUpDate,
+      followUpType: followUpType as Lead["followUpType"],
+    });
+    appendLeadActivity(leadId, {
+      timestamp: new Date().toISOString(),
+      type: "follow_up_set",
+      description: `Follow-up set: ${followUpType} on ${new Date(followUpDate).toLocaleDateString("en-IN")}`,
+      performedBy: currentUser?.name || "TSE",
+      metadata: { followUpDate, followUpType, priority },
+    });
+
     onComplete();
   };
 

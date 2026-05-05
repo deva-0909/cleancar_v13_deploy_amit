@@ -24,20 +24,30 @@ export const GST_STATE_OPTIONS = Object.entries(GST_STATES).map(([code, name]) =
 }));
 
 export const CHART_OF_ACCOUNTS_HEADS = [
-  { value: "fixed_assets",       label: "Fixed Assets",        nature: "asset" },
-  { value: "current_asset",      label: "Current Asset",       nature: "asset" },
-  { value: "loan_advance",       label: "Loan & Advance",      nature: "asset" },
-  { value: "cash_bank",          label: "Cash & Bank",         nature: "asset" },
-  { value: "capital",            label: "Capital",             nature: "liability" },
-  { value: "secured_loan",       label: "Secured Loan",        nature: "liability" },
-  { value: "unsecured_loan",     label: "Unsecured Loan",      nature: "liability" },
-  { value: "current_liabilities",label: "Current Liabilities", nature: "liability" },
-  { value: "sales",              label: "Sales",               nature: "income" },
-  { value: "direct_income",      label: "Direct Income",       nature: "income" },
-  { value: "indirect_income",    label: "Indirect Income",     nature: "income" },
-  { value: "purchase",           label: "Purchase",            nature: "expense" },
-  { value: "direct_expense",     label: "Direct Expense",      nature: "expense" },
-  { value: "indirect_expenses",  label: "Indirect Expenses",   nature: "expense" },
+  // ASSETS
+  { value: "fixed_assets",        label: "Fixed Assets",             nature: "asset" },
+  { value: "cash_bank",           label: "Cash & Bank",              nature: "asset" },
+  { value: "current_assets",      label: "Current Assets",           nature: "asset" },
+  { value: "accounts_receivable", label: "Accounts Receivable",      nature: "asset" },
+  { value: "gst_input",           label: "GST Input (ITC)",          nature: "asset" },
+  // LIABILITIES
+  { value: "equity",              label: "Capital & Equity",         nature: "liability" },
+  { value: "duties_taxes",        label: "Duties & Taxes",           nature: "liability" },
+  { value: "credit_cards",        label: "Credit Cards",             nature: "liability" },
+  { value: "non_current_liab",    label: "Non-Current Liabilities",  nature: "liability" },
+  { value: "other_liabilities",   label: "Other Liabilities",        nature: "liability" },
+  { value: "accounts_payable",    label: "Accounts Payable",         nature: "liability" },
+  // INCOME
+  { value: "sales_subscription",  label: "Sales — Subscription",     nature: "income" },
+  { value: "sales_service",       label: "Sales — Service",          nature: "income" },
+  { value: "sales_renewal",       label: "Sales — Renewal",          nature: "income" },
+  { value: "other_income",        label: "Other Income",             nature: "income" },
+  // EXPENSES
+  { value: "cogs",                label: "Cost of Goods Sold",       nature: "expense" },
+  { value: "direct_expenses",     label: "Direct Expenses",          nature: "expense" },
+  { value: "indirect_expenses",   label: "Indirect Expenses",        nature: "expense" },
+  { value: "depreciation",        label: "Depreciation",             nature: "expense" },
+  { value: "tds_payable",         label: "TDS Payable",              nature: "liability" },
 ] as const;
 
 export type EntryType =
@@ -121,6 +131,78 @@ export interface JournalLine {
   invoiceReference?: string;      // For adjustment against open invoice
 }
 
+export interface LedgerMaster {
+  id: string;
+  name: string;                        // "Axis Bank", "Razorpay", "Customer A1"
+  accountHead: string;                 // value from CHART_OF_ACCOUNTS_HEADS
+  accountHeadLabel: string;
+  nature: "asset" | "liability" | "income" | "expense";
+  type: "bank" | "customer" | "vendor" | "payment_gateway" | "sales" | "expense" | "other";
+  openingBalance: number;
+  openingBalanceType: "Dr" | "Cr";
+  gstin?: string;                      // For vendor/customer ledgers
+  mobile?: string;
+  email?: string;
+  city: string;
+  cityId: string;
+  isSystem: boolean;                   // System ledgers cannot be deleted
+  createdAt: string;
+  status: "Active" | "Inactive";
+
+  // Subscription-package ledgers only
+  packageCode?: string;               // "2W" | "4W" | "2W_WASH_SANITIZE" etc.
+
+  // Customer-debtor ledgers only
+  customerId?: string;
+  customerName?: string;
+  subscriptionPlan?: string;
+}
+
+export interface LedgerBalance {
+  ledgerId: string;
+  ledgerName: string;
+  accountHead: string;
+  totalDebit: number;
+  totalCredit: number;
+  balance: number;
+  balanceType: "Dr" | "Cr";
+}
+
+export interface ItemMaster {
+  id: string;
+  itemName: string;
+  hsnCode: string;
+  defaultExpenseLedgerId: string;
+  defaultExpenseLedgerName: string;
+  defaultGSTRate: 0 | 5 | 12 | 18 | 28 | 40;
+  unitOfMeasure?: string;
+  description?: string;
+  status: "Active" | "Inactive";
+  createdAt: string;
+}
+
+export interface TDSConfig {
+  section: string;       // "194J", "194C", etc.
+  nature: string;        // "Professional Fees", "Contractor"
+  rateIndividual: number;
+  rateCompany: number;
+  thresholdSingle?: number;
+  thresholdAnnual?: number;
+}
+
+export const TDS_RATE_CHART: TDSConfig[] = [
+  { section: "192",  nature: "Salary",                   rateIndividual: 0,   rateCompany: 0,   thresholdAnnual: 250000 },
+  { section: "194A", nature: "Interest Payment",         rateIndividual: 10,  rateCompany: 10,  thresholdAnnual: 10000 },
+  { section: "194C", nature: "Contractor",               rateIndividual: 1,   rateCompany: 2,   thresholdSingle: 30000, thresholdAnnual: 100000 },
+  { section: "194I", nature: "Rent (Land/Building)",     rateIndividual: 10,  rateCompany: 10,  thresholdSingle: 50000, thresholdAnnual: 600000 },
+  { section: "194I(a)", nature: "Rent (Plant/Machinery)",rateIndividual: 2,   rateCompany: 2,   thresholdSingle: 50000, thresholdAnnual: 600000 },
+  { section: "194J", nature: "Professional Fees",        rateIndividual: 10,  rateCompany: 10,  thresholdSingle: 50000 },
+  { section: "194J(b)", nature: "Technical Fees",        rateIndividual: 2,   rateCompany: 2,   thresholdSingle: 50000 },
+  { section: "194H", nature: "Commission/Brokerage",     rateIndividual: 2,   rateCompany: 2,   thresholdAnnual: 20000 },
+  { section: "194Q", nature: "Purchase of Goods",        rateIndividual: 0.1, rateCompany: 0.1, thresholdAnnual: 5000000 },
+  { section: "194B", nature: "Lottery/Gambling",         rateIndividual: 30,  rateCompany: 30,  thresholdSingle: 10000 },
+];
+
 // ─── Voucher Number Generator ────────────────────────────────────────────────
 
 const ENTRY_TYPE_CODES: Record<EntryType, string> = {
@@ -139,33 +221,48 @@ function generateVoucherNumber(
 ): string {
   const fy = getFinancialYear();
   const prefix = `${ENTRY_TYPE_CODES[entryType]}/${cityName.toUpperCase()}/${fy}`;
-  const existing = existingEntries.filter(
-    e => e.voucherNumber.startsWith(prefix)
-  ).length;
-  return `${prefix}/${String(existing + 1).padStart(4, "0")}`;
+  // Use max existing sequence number + 1, not count (safe against deletions and concurrent writes)
+  const maxSeq = existingEntries
+    .filter(e => e.voucherNumber.startsWith(prefix))
+    .map(e => parseInt(e.voucherNumber.split("/").pop() || "0", 10))
+    .reduce((max, n) => Math.max(max, n), 0);
+  return `${prefix}/${String(maxSeq + 1).padStart(4, "0")}`;
 }
 
 function generateJournalVoucherNumber(cityName: string, existing: JournalEntry[]): string {
   const fy = getFinancialYear();
   const prefix = `JV/${cityName.toUpperCase()}/${fy}`;
-  return `${prefix}/${String(existing.length + 1).padStart(4, "0")}`;
+  const maxSeq = existing
+    .filter(e => e.voucherNumber.startsWith(prefix))
+    .map(e => parseInt(e.voucherNumber.split("/").pop() || "0", 10))
+    .reduce((max, n) => Math.max(max, n), 0);
+  return `${prefix}/${String(maxSeq + 1).padStart(4, "0")}`;
 }
 
 // ─── GST Calculation Engine ──────────────────────────────────────────────────
 
-const COMPANY_STATE_CODE = "24"; // Gujarat — update this for each deployment city
+const CITY_STATE_CODES: Record<string, string> = {
+  "CITY-SURAT":     "24", // Gujarat
+  "CITY-MUMBAI":    "27", // Maharashtra
+  "CITY-AHMEDABAD": "24", // Gujarat
+};
+const DEFAULT_STATE_CODE = "24";
 
 export function calculateGST(
   taxableValue: number,
   gstRate: number,
   vendorStateCode: string,
-  gstEntryType: GSTEntryType
+  gstEntryType: GSTEntryType,
+  companyCityId?: string
 ): { cgst: number; sgst: number; igst: number; totalBillValue: number } {
   if (gstEntryType === "NonGST" || gstRate === 0) {
     return { cgst: 0, sgst: 0, igst: 0, totalBillValue: taxableValue };
   }
+  const companyStateCode = companyCityId
+    ? (CITY_STATE_CODES[companyCityId] || DEFAULT_STATE_CODE)
+    : DEFAULT_STATE_CODE;
   const totalTax = Math.round(taxableValue * gstRate) / 100;
-  const isSameState = vendorStateCode === COMPANY_STATE_CODE;
+  const isSameState = vendorStateCode === companyStateCode;
   if (isSameState) {
     const half = Math.round(totalTax * 50) / 100;
     return { cgst: half, sgst: half, igst: 0, totalBillValue: taxableValue + totalTax };
@@ -193,6 +290,21 @@ export function autoPostLedger(entry: AccountingEntry): JournalLine[] {
 class AccountingEntryService {
   private readonly ENTRIES_KEY = "cleancar_accounting_entries";
   private readonly JOURNAL_KEY = "cleancar_journal_entries";
+  private readonly LEDGER_KEY = "cleancar_ledger_masters";
+  private readonly ITEM_KEY = "ITEM_MASTER";
+
+  getItems(): ItemMaster[] {
+    return JSON.parse(localStorage.getItem(this.ITEM_KEY) || "[]");
+  }
+
+  saveItem(item: ItemMaster): void {
+    const all = this.getItems().filter(i => i.id !== item.id);
+    localStorage.setItem(this.ITEM_KEY, JSON.stringify([...all, item]));
+  }
+
+  deleteItem(id: string): void {
+    localStorage.setItem(this.ITEM_KEY, JSON.stringify(this.getItems().filter(i => i.id !== id)));
+  }
 
   private getEntries(): AccountingEntry[] {
     try { return JSON.parse(localStorage.getItem(this.ENTRIES_KEY) || "[]"); }
@@ -255,9 +367,19 @@ class AccountingEntryService {
   getByDateRange(from: string, to: string, cityId?: string): AccountingEntry[] {
     return this.getAllEntries(cityId).filter(e => e.date >= from && e.date <= to);
   }
-  getLedgerEntries(accountHead: string, cityId?: string): AccountingEntry[] {
+  // Get entries where a specific LEDGER ID appears as debit or credit
+  getLedgerEntries(ledgerId: string, cityId?: string): AccountingEntry[] {
     return this.getAllEntries(cityId).filter(
-      e => e.debitAccount === accountHead || e.creditAccount === accountHead
+      e => e.debitAccount === ledgerId || e.creditAccount === ledgerId
+    );
+  }
+
+  // Get entries by account HEAD (for grouping/reporting)
+  getLedgerEntriesByHead(accountHead: string, cityId?: string): AccountingEntry[] {
+    const ledgers = this.getLedgers(cityId).filter(l => l.accountHead === accountHead);
+    const ledgerIds = new Set(ledgers.map(l => l.id));
+    return this.getAllEntries(cityId).filter(
+      e => ledgerIds.has(e.debitAccount) || ledgerIds.has(e.creditAccount)
     );
   }
   createJournal(data: Omit<JournalEntry,"id"|"voucherNumber"|"createdAt"|"status"|"changeHistory"|"financialYear">, cityName: string): JournalEntry {
@@ -276,6 +398,211 @@ class AccountingEntryService {
   getAllJournals(cityId?: string): JournalEntry[] {
     const all = this.getJournals();
     return cityId ? all.filter(j => j.cityId === cityId) : all;
+  }
+
+  // Returns ALL debit/credit movements: both AccountingEntry and JournalEntry lines
+  getAllMovements(from: string, to: string, cityId?: string): Array<{
+    date: string; debitLedgerId: string; creditLedgerId: string; amount: number; voucherNumber: string; description: string;
+  }> {
+    const accEntries = this.getByDateRange(from, to, cityId).map(e => ({
+      date: e.date,
+      debitLedgerId:  e.debitAccount,
+      creditLedgerId: e.creditAccount,
+      amount: e.totalBillValue,
+      voucherNumber: e.voucherNumber,
+      description: e.narration || e.invoiceNumber || "",
+    }));
+
+    const jvEntries = this.getAllJournals(cityId)
+      .filter(j => j.date >= from && j.date <= to && j.status === "Posted")
+      .flatMap(j =>
+        j.lines.map(line => ({
+          date: j.date,
+          debitLedgerId:  line.debit  > 0 ? line.accountHead : "",
+          creditLedgerId: line.credit > 0 ? line.accountHead : "",
+          amount: Math.max(line.debit, line.credit),
+          voucherNumber: j.voucherNumber,
+          description: j.narration,
+        }))
+      );
+
+    return [...accEntries, ...jvEntries];
+  }
+
+  getLedgers(cityId?: string): LedgerMaster[] {
+    const all: LedgerMaster[] = JSON.parse(localStorage.getItem(this.LEDGER_KEY) || "[]");
+    // Ensure system ledgers always exist
+    const withSystem = this.ensureSystemLedgers(all, cityId || "CITY-SURAT");
+    return cityId ? withSystem.filter(l => l.cityId === cityId || l.isSystem) : withSystem;
+  }
+
+  private ensureSystemLedgers(existing: LedgerMaster[], cityId: string): LedgerMaster[] {
+    const cityDisplayName = cityId === "CITY-MUMBAI" ? "Mumbai"
+      : cityId === "CITY-AHMEDABAD" ? "Ahmedabad"
+      : "Surat"; // default
+    const systemLedgers: Omit<LedgerMaster, "id">[] = [
+      // ASSETS - Cash & Bank
+      { name: "Petty Cash", accountHead: "cash_bank", accountHeadLabel: "Cash & Bank", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Undeposited Funds", accountHead: "cash_bank", accountHeadLabel: "Cash & Bank", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Axis Bank", accountHead: "cash_bank", accountHeadLabel: "Cash & Bank", nature: "asset", type: "bank", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "HDFC - 906", accountHead: "cash_bank", accountHeadLabel: "Cash & Bank", nature: "asset", type: "bank", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // ASSETS - Current Assets
+      { name: "Prepaid Expenses", accountHead: "current_assets", accountHeadLabel: "Current Assets", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "TDS Receivable", accountHead: "current_assets", accountHeadLabel: "Current Assets", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Employee Advance", accountHead: "current_assets", accountHeadLabel: "Current Assets", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Advance Tax", accountHead: "current_assets", accountHeadLabel: "Current Assets", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // ASSETS - Accounts Receivable
+      { name: "Accounts Receivable", accountHead: "accounts_receivable", accountHeadLabel: "Accounts Receivable", nature: "asset", type: "customer", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // ASSETS - Fixed Assets
+      { name: "Furniture and Equipment", accountHead: "fixed_assets", accountHeadLabel: "Fixed Assets", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "WFH Table", accountHead: "fixed_assets", accountHeadLabel: "Fixed Assets", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // ASSETS - GST Input (ITC)
+      { name: "Input Tax Credits", accountHead: "gst_input", accountHeadLabel: "GST Input (ITC)", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Input IGST", accountHead: "gst_input", accountHeadLabel: "GST Input (ITC)", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Input CGST", accountHead: "gst_input", accountHeadLabel: "GST Input (ITC)", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Input SGST", accountHead: "gst_input", accountHeadLabel: "GST Input (ITC)", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Reverse Charge Tax Input not due", accountHead: "gst_input", accountHeadLabel: "GST Input (ITC)", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // LIABILITIES - TDS Payable
+      { name: "TDS Payable", accountHead: "tds_payable", accountHeadLabel: "TDS Payable", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Intermediate TDS Payable", accountHead: "tds_payable", accountHeadLabel: "TDS Payable", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // LIABILITIES - Duties & Taxes
+      { name: "GST Payable", accountHead: "duties_taxes", accountHeadLabel: "Duties & Taxes", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Output IGST", accountHead: "duties_taxes", accountHeadLabel: "Duties & Taxes", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Output CGST", accountHead: "duties_taxes", accountHeadLabel: "Duties & Taxes", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Output SGST", accountHead: "duties_taxes", accountHeadLabel: "Duties & Taxes", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "CGST RCM Output", accountHead: "duties_taxes", accountHeadLabel: "Duties & Taxes", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "SGST RCM Output", accountHead: "duties_taxes", accountHeadLabel: "Duties & Taxes", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Tax Payable", accountHead: "duties_taxes", accountHeadLabel: "Duties & Taxes", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // LIABILITIES - Credit Cards
+      { name: "One Card 5447", accountHead: "credit_cards", accountHeadLabel: "Credit Cards", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "ICICI 9004", accountHead: "credit_cards", accountHeadLabel: "Credit Cards", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "ICICI 4002 (Rupay)", accountHead: "credit_cards", accountHeadLabel: "Credit Cards", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "HDFC 6543", accountHead: "credit_cards", accountHeadLabel: "Credit Cards", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // LIABILITIES - Non-Current Liabilities
+      { name: "Mortgages", accountHead: "non_current_liab", accountHeadLabel: "Non-Current Liabilities", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Construction Loans", accountHead: "non_current_liab", accountHeadLabel: "Non-Current Liabilities", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // LIABILITIES - Other Liabilities
+      { name: "Employee Reimbursements", accountHead: "other_liabilities", accountHeadLabel: "Other Liabilities", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Unearned Revenue", accountHead: "other_liabilities", accountHeadLabel: "Other Liabilities", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // LIABILITIES - Accounts Payable
+      { name: "Accounts Payable", accountHead: "accounts_payable", accountHeadLabel: "Accounts Payable", nature: "liability", type: "vendor", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // INCOME - Sales Subscription
+      { name: "Subscription - 2W", accountHead: "sales_subscription", accountHeadLabel: "Sales — Subscription", nature: "income", type: "sales", packageCode: "2W", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Subscription - 4W", accountHead: "sales_subscription", accountHeadLabel: "Sales — Subscription", nature: "income", type: "sales", packageCode: "4W", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Subscription - 2W+W+S", accountHead: "sales_subscription", accountHeadLabel: "Sales — Subscription", nature: "income", type: "sales", packageCode: "2W_WASH_SANITIZE", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Subscription - 2W+W+W+S", accountHead: "sales_subscription", accountHeadLabel: "Sales — Subscription", nature: "income", type: "sales", packageCode: "2W_WASH_WASH_SANITIZE", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // INCOME - Sales Service
+      { name: "One-time Service", accountHead: "sales_service", accountHeadLabel: "Sales — Service", nature: "income", type: "sales", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // INCOME - Sales Renewal
+      { name: "Renewal Fees", accountHead: "sales_renewal", accountHeadLabel: "Sales — Renewal", nature: "income", type: "sales", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // INCOME - Other Income
+      { name: "General Income", accountHead: "other_income", accountHeadLabel: "Other Income", nature: "income", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Interest Income", accountHead: "other_income", accountHeadLabel: "Other Income", nature: "income", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Late Fee", accountHead: "other_income", accountHeadLabel: "Other Income", nature: "income", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Discount", accountHead: "other_income", accountHeadLabel: "Other Income", nature: "income", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // EXPENSES - COGS
+      { name: "Labor", accountHead: "cogs", accountHeadLabel: "Cost of Goods Sold", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Materials", accountHead: "cogs", accountHeadLabel: "Cost of Goods Sold", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Subcontractor", accountHead: "cogs", accountHeadLabel: "Cost of Goods Sold", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // EXPENSES - Direct Expenses
+      { name: "Salaries and Employee Wages", accountHead: "direct_expenses", accountHeadLabel: "Direct Expenses", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Raw Materials And Consumables", accountHead: "direct_expenses", accountHeadLabel: "Direct Expenses", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // EXPENSES - Indirect Expenses
+      { name: "Transaction Charges (Razorpay)", accountHead: "indirect_expenses", accountHeadLabel: "Indirect Expenses", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Bank Fees and Charges", accountHead: "indirect_expenses", accountHeadLabel: "Indirect Expenses", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Consultant Expense", accountHead: "indirect_expenses", accountHeadLabel: "Indirect Expenses", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Electricity Expense", accountHead: "indirect_expenses", accountHeadLabel: "Indirect Expenses", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Rent Expense", accountHead: "indirect_expenses", accountHeadLabel: "Indirect Expenses", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+
+      // EXPENSES - Depreciation
+      { name: "Depreciation Expense", accountHead: "depreciation", accountHeadLabel: "Depreciation", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+    ];
+
+    let updated = [...existing];
+    let changed = false;
+    for (const sl of systemLedgers) {
+      const exists = existing.find(e => e.name === sl.name && e.cityId === cityId);
+      if (!exists) {
+        updated.push({ ...sl, id: `SYS-${sl.name.replace(/\s+/g,"-")}-${cityId}` });
+        changed = true;
+      }
+    }
+    if (changed) localStorage.setItem(this.LEDGER_KEY, JSON.stringify(updated));
+    return updated;
+  }
+
+  saveLedger(ledger: LedgerMaster): void {
+    const all = this.getLedgers();
+    const idx = all.findIndex(l => l.id === ledger.id);
+    idx >= 0 ? all.splice(idx, 1, ledger) : all.push(ledger);
+    localStorage.setItem(this.LEDGER_KEY, JSON.stringify(all));
+  }
+
+  deleteLedger(id: string): boolean {
+    const all = this.getLedgers();
+    const ledger = all.find(l => l.id === id);
+    if (!ledger || ledger.isSystem) return false;
+    localStorage.setItem(this.LEDGER_KEY, JSON.stringify(all.filter(l => l.id !== id)));
+    return true;
+  }
+
+  getLedgersByHead(accountHead: string, cityId?: string): LedgerMaster[] {
+    return this.getLedgers(cityId).filter(l => l.accountHead === accountHead);
+  }
+
+  getLedgerBalance(ledgerId: string): LedgerBalance {
+    const ledger = this.getLedgers().find(l => l.id === ledgerId);
+    const entries = this.getEntries().filter(e =>
+      e.debitAccount === ledgerId || e.creditAccount === ledgerId
+    );
+    const totalDebit  = entries.reduce((s,e) => s + (e.debitAccount  === ledgerId ? e.totalBillValue : 0), 0);
+    const totalCredit = entries.reduce((s,e) => s + (e.creditAccount === ledgerId ? e.totalBillValue : 0), 0);
+    const balance     = totalDebit - totalCredit;
+    return {
+      ledgerId,
+      ledgerName:  ledger?.name || ledgerId,
+      accountHead: ledger?.accountHead || "",
+      totalDebit, totalCredit,
+      balance:     Math.abs(balance),
+      balanceType: balance >= 0 ? "Dr" : "Cr",
+    };
+  }
+
+  // Auto-create customer debtor ledger when a new subscriber is added
+  createCustomerLedger(customerId: string, customerName: string,
+      subscriptionPlan: string, cityId: string, city: string): LedgerMaster {
+    const existing = this.getLedgers(cityId).find(l => l.customerId === customerId);
+    if (existing) return existing;
+    const ledger: LedgerMaster = {
+      id: `CUST-LEDGER-${customerId}`,
+      name: customerName,
+      accountHead: "debtors",
+      accountHeadLabel: "Debtors (Customers)",
+      nature: "asset", type: "customer",
+      openingBalance: 0, openingBalanceType: "Dr",
+      city, cityId, isSystem: false,
+      status: "Active", createdAt: new Date().toISOString(),
+      customerId, customerName, subscriptionPlan,
+    };
+    this.saveLedger(ledger);
+    return ledger;
   }
 }
 

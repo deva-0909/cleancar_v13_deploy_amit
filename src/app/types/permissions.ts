@@ -35,7 +35,8 @@ export type Module =
   | "payroll-self-service"  // Employee payslip access (scoped, non-admin)
   | "reports"
   | "accounts"
-  | "store-manager";
+  | "store-manager"
+  | "travel";
 
 // Available actions per module
 export type Action =

@@ -3,7 +3,7 @@ import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Users, Calendar, CheckCircle, XCircle } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { MASTER_KPI_DATA } from "../../data/masterData";
 import { getActiveEmployees } from "../../data/employeeData";

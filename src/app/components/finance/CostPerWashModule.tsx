@@ -53,7 +53,7 @@ import { CostTrackingReports } from "./CostTrackingReports";
 import { CostTrendsDashboard } from "./CostTrendsDashboard";
 import { RecommendationsEngine } from "./RecommendationsEngine";
 import { AddOnComboAnalysis } from "./AddOnComboAnalysis";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
   PieChart,
@@ -244,7 +244,7 @@ export function CostPerWashModule() {
         { id: "c1", level: "Cluster", name: "Surat North", totalUnits: 1250, standardCost: 220, actualCost: 268, variance: 48, status: "high" },
         { id: "c2", level: "Cluster", name: "Surat South", totalUnits: 1120, standardCost: 220, actualCost: 258, variance: 38, status: "high" },
         { id: "c3", level: "Cluster", name: "Ahmedabad West", totalUnits: 980, standardCost: 220, actualCost: 248, variance: 28, status: "high" },
-        { id: "c4", level: "Cluster", name: "Baroda Central", totalUnits: 850, standardCost: 220, actualCost: 242, variance: 22, status: "high" },
+        { id: "c4", level: "Cluster", name: "Mumbai Central", totalUnits: 850, standardCost: 220, actualCost: 242, variance: 22, status: "high" },
         { id: "c5", level: "Cluster", name: "Ahmedabad East", totalUnits: 720, standardCost: 220, actualCost: 235, variance: 15, status: "moderate" },
       ],
     };

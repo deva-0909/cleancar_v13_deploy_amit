@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useSupervisor } from "../../contexts/SupervisorContext";
 import { useRole } from "../../contexts/RoleContext";
 import { SupervisorDashboard } from "./SupervisorDashboard";

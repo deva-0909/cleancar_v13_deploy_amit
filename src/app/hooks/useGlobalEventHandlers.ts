@@ -33,6 +33,8 @@ import { useCustomerSubscriptions } from "../contexts/CustomerSubscriptionContex
 import { useFinance } from "../contexts/FinanceContext";
 import { useJobs } from "../contexts/JobContext";
 import { useEmployeeData } from "./useEmployeeData";
+import { useIncentive } from "../contexts/IncentiveContext";
+import { accountingEntryService } from "../services/accountingEntryService";
 
 export function useGlobalEventHandlers() {
   // Get context APIs (hooks must be at top level)
@@ -41,6 +43,7 @@ export function useGlobalEventHandlers() {
   const financeContext = useFinance();
   const jobContext = useJobs();
   const employeeContext = useEmployeeData();
+  const incentiveContext = useIncentive();
 
   // ==================== LEAD_CONVERTED ====================
   // Updates: CustomerContext, SubscriptionContext, FinanceContext
@@ -123,6 +126,16 @@ export function useGlobalEventHandlers() {
           cityId, // ✅ Multi-city isolation
         });
         logger.debug("Revenue recorded", { amount, cityId });
+      }
+
+      // ✅ 3. Update washer's incentive achievement
+      const washerId = event.data.washerId;
+      if (washerId) {
+        const currentIncentive = incentiveContext.getEmployeeIncentive(washerId);
+        if (currentIncentive) {
+          incentiveContext.updateAchievement(washerId, currentIncentive.achieved + 1);
+          logger.debug("Incentive achievement updated", { washerId, achieved: currentIncentive.achieved + 1 });
+        }
       }
 
       // Toast notification (secondary)
@@ -294,6 +307,46 @@ export function useGlobalEventHandlers() {
       toast.error("Error approving payroll", {
         description: "Data update failed. Please check logs."
       });
+    }
+  });
+
+  // ==================== INVENTORY_PROCURED ====================
+  // Updates: FinanceContext (create vendor payable)
+  useEventListener("INVENTORY_PROCURED", (event) => {
+    try {
+      const { itemId, itemName, quantity, supplierId, amount, cityId } = event.data;
+      financeContext.createPayable({
+        type: "Vendor",
+        description: `Procurement — ${itemName} × ${quantity}`,
+        vendorId: supplierId,
+        amount,
+        dueDate: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
+        status: "Pending",
+        cityId,
+      });
+    } catch (e) {
+      logger.error("INVENTORY_PROCURED: Failed to create payable", e as Error);
+    }
+  });
+
+  // ==================== INCENTIVE_PAID ====================
+  // Updates: FinanceContext (create journal entry)
+  useEventListener("INCENTIVE_PAID", (event) => {
+    try {
+      const { employeeId, amount, cityId } = event.data;
+      // DR Incentive Payable, CR Bank
+      accountingEntryService.createJournal({
+        date: new Date().toISOString().split("T")[0],
+        narration: `Incentive payment — ${employeeId}`,
+        lines: [
+          { accountHead: "incentive_payable", accountLabel: "Incentive Payable", debit: amount, credit: 0 },
+          { accountHead: "bank",              accountLabel: "Axis Bank",           debit: 0, credit: amount },
+        ],
+        city: cityId === "CITY-MUMBAI" ? "Mumbai" : "Surat",
+        cityId, createdBy: "System",
+      }, cityId === "CITY-MUMBAI" ? "Mumbai" : "Surat");
+    } catch (e) {
+      logger.error("INCENTIVE_PAID: Journal entry failed", e as Error);
     }
   });
 }

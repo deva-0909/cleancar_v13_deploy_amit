@@ -63,7 +63,7 @@ import { MetricCard } from "./MetricCard";
 import { AnalyticsEmpty } from "./AnalyticsState";
 
 // City type
-type City = "ALL" | "SURAT" | "AHMEDABAD" | "BARODA";
+type City = "ALL" | "SURAT" | "MUMBAI" | "AHMEDABAD";
 
 // Employee efficiency data by city - From analyticsEngine
 interface EmployeeEfficiencyData {
@@ -93,17 +93,23 @@ function EmployeeEfficiency() {
     const completedJobs = (jobs || []).filter(job => job.status === "Completed" || job.status === "Verified");
 
     // Get unique cities from employees
-    const cities = Array.from(new Set(activeEmployees.map(emp => emp.city.toUpperCase())));
+    const cities = Array.from(new Set(activeEmployees.map(emp =>
+      (emp.city || emp.workLocation || "").toUpperCase()
+    ).filter(Boolean)));
 
     return cities.map(cityName => {
-      const cityEmployees = activeEmployees.filter(emp => emp.city.toUpperCase() === cityName);
-      const cityWashers = cityEmployees.filter(emp => emp.role === "Washer");
-      const citySupervisors = cityEmployees.filter(emp => emp.role === "Supervisor");
-      const cityJobs = completedJobs.filter(job => job.location.city.toUpperCase() === cityName);
+      const cityEmployees = activeEmployees.filter(emp =>
+        (emp.city || emp.workLocation || "").toUpperCase() === cityName
+      );
+      const cityWashers = cityEmployees.filter(emp => emp.designation === "Car Washer");
+      const citySupervisors = cityEmployees.filter(emp => emp.designation === "Supervisor");
+      const cityJobs = completedJobs.filter(job =>
+        (job.city?.toUpperCase() === cityName || job.cityId?.includes(cityName.toLowerCase()))
+      );
 
       // Calculate washes per washer for each washer
       const washerJobCounts = cityWashers.map(washer => {
-        return cityJobs.filter(job => job.washerId === washer.employeeId).length;
+        return cityJobs.filter(job => job.washerId === washer.id).length;
       });
 
       const totalEmployees = cityEmployees.length;
@@ -256,17 +262,19 @@ function EmployeeEfficiency() {
 
   // Performance distribution calculated from real washer data
   const performanceDistribution = useMemo(() => {
-    const activeWashers = (employees || []).filter(emp => emp.status === "Active" && emp.role === "Washer");
+    const activeWashers = (employees || []).filter(emp =>
+      emp.status === "Active" && emp.designation === "Car Washer"
+    );
     const completedJobs = (jobs || []).filter(job => job.status === "Completed" || job.status === "Verified");
 
     // Filter by city if selected
     const filteredWashers = selectedCity === "ALL"
       ? activeWashers
-      : activeWashers.filter(w => w.city.toUpperCase() === selectedCity);
+      : activeWashers.filter(w => (w.city || w.workLocation || "").toUpperCase() === selectedCity);
 
     // Calculate washes per washer
     const washerPerformance = filteredWashers.map(washer => {
-      return completedJobs.filter(job => job.washerId === washer.employeeId).length;
+      return completedJobs.filter(job => job.washerId === washer.id).length;
     });
 
     // Distribute into ranges

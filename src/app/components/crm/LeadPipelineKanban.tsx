@@ -46,6 +46,8 @@ import { ActivityTimeline } from "./ActivityTimeline";
 import { LeadHistory } from "./LeadHistory";
 import { useCustomers } from "../../contexts/AppProvider";
 import { EventBadge, type SystemEvent } from "./EventBadge";
+import { useRole } from "../../contexts/RoleContext";
+import type { Customer } from "../../contexts/CustomerContext";
 
 type LeadStage =
   | "new"
@@ -90,7 +92,8 @@ const stageConfig: Record<LeadStage, { label: string; color: string; icon: any; 
 };
 
 export function LeadPipelineKanban() {
-  const { customers, updateCustomer } = useCustomers();
+  const { customers, updateCustomer, leads: leadsData, updateLead, appendLeadActivity } = useCustomers();
+  const { currentUser } = useRole();
 
   // Convert customers to leads format (filtering for lead stages)
   const leads = useMemo(() => {
@@ -115,7 +118,7 @@ export function LeadPipelineKanban() {
           carTypes: customer.vehicleDetails ? [customer.vehicleDetails.category] : ["Unknown"],
           source: customer.leadSource || "Unknown",
           campaign: "Unknown Campaign",
-          assignedTo: "Priya Sharma",
+          assignedTo: customer.assignedTo || "Unassigned",
           stage,
           priority: "medium" as const,
           nextFollowUp: new Date(Date.now() + 86400000).toLocaleString(),
@@ -158,6 +161,34 @@ export function LeadPipelineKanban() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
+
+  const handleStageChange = (leadId: string, newStage: LeadStage) => {
+    // Map stage to customer status
+    const statusMap: Partial<Record<LeadStage, Customer["status"]>> = {
+      demo_scheduled: "Demo Scheduled",
+      converted: "Active",
+      lost: "Inactive",
+    };
+    const newStatus = statusMap[newStage];
+
+    // Update customer status if it maps to a Customer status
+    if (newStatus) {
+      updateCustomer(leadId, { status: newStatus });
+    }
+
+    // Persist stage to lead record (for intermediate stages)
+    const lead = leadsData.find(l => l.leadId === leadId);
+    if (lead) {
+      updateLead(leadId, { stage: newStage });
+      appendLeadActivity(leadId, {
+        timestamp: new Date().toISOString(),
+        type: "stage_change",
+        description: `Stage changed to ${newStage.replace(/_/g, " ")}`,
+        performedBy: currentUser?.name || "TSE",
+        metadata: { from: lead.stage, to: newStage },
+      });
+    }
+  };
 
   const executives = ["Priya Sharma", "Amit Patel", "Neha Singh", "Rahul Verma", "Sneha Gupta"];
 
@@ -499,7 +530,16 @@ export function LeadPipelineKanban() {
             const Icon = config.icon;
 
             return (
-              <div key={stage} className="flex-shrink-0 w-80">
+              <div
+                key={stage}
+                className="flex-shrink-0 w-80"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const draggedLeadId = e.dataTransfer.getData("leadId");
+                  if (draggedLeadId) handleStageChange(draggedLeadId, stage);
+                }}
+              >
                 <Card>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
@@ -520,6 +560,8 @@ export function LeadPipelineKanban() {
                             lead.priority
                           )} relative`}
                           onClick={() => setSelectedLead(lead)}
+                          draggable
+                          onDragStart={(e) => e.dataTransfer.setData("leadId", lead.id)}
                         >
                           {/* Event Badge Overlay */}
                           {leadConfig.event && (

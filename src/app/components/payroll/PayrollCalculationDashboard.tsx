@@ -22,6 +22,13 @@ import { SALARY_HOLD_STATUS } from "../../constants/payrollConstants";
 import { usePayroll } from "../../contexts/PayrollContext";
 import { useEmployee } from "../../contexts/EmployeeContext";
 import { useCity } from "../../contexts/CityContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 interface CalculationSummary {
   month: string;
@@ -60,6 +67,12 @@ export function PayrollCalculationDashboard() {
   );
 
   const calculations = payrollRuns.map(run => { const emp = employees.find(e => e.employeeId === run.employeeId); return { employeeId:run.employeeId, employeeName:emp?emp.firstName+" "+emp.lastName:run.employeeId, basic:Math.round((run.grossSalary||0)*0.5), hra:Math.round((run.grossSalary||0)*0.2), incentive:run.incentiveAmount||0, pf:run.deductions?.pf_employee||0, esic:run.deductions?.esic||0, pt:run.deductions?.pt||200, gross:run.grossSalary, net:run.netSalary }; });
+
+  const [employeeFilter, setEmployeeFilter] = useState("all");
+
+  const filteredCalculations = employeeFilter === "all"
+    ? calculations
+    : calculations.filter(c => c.employeeId === employeeFilter);
 
   const [summary, setSummary] = useState<CalculationSummary>({
     month: "March 2026",
@@ -148,7 +161,7 @@ export function PayrollCalculationDashboard() {
     toast.success(`Generating payslip for ${emp.name}...`);
   };
 
-  const blockedEmployees = calculations.filter((emp) => !isPayslipGenerationAllowed(emp.empId));
+  const blockedEmployees = filteredCalculations.filter((emp) => !isPayslipGenerationAllowed(emp.empId));
 
   return (
     <div className="space-y-6">
@@ -161,6 +174,19 @@ export function PayrollCalculationDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="All employees" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All employees ({activeEmployees.length})</SelectItem>
+              {activeEmployees.map(e => (
+                <SelectItem key={e.id} value={e.id}>
+                  {e.fullName} — {e.designation}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="outline" onClick={recalculate}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Recalculate
@@ -345,7 +371,7 @@ export function PayrollCalculationDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {calculations.map((emp) => {
+                {filteredCalculations.map((emp) => {
                   const holdRecord = getSalaryHoldStatus(emp.empId);
                   const isBlocked = !isPayslipGenerationAllowed(emp.empId);
 

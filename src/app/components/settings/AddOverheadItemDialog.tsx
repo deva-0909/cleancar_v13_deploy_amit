@@ -60,7 +60,7 @@ const COST_TYPES: OverheadCostType[] = [
   "Per Wash Direct",
 ];
 
-const ZONES = ["Mumbai", "Pune", "Bangalore", "Delhi"];
+const ZONES = ["Surat", "Mumbai", "Ahmedabad"];
 
 export function AddOverheadItemDialog({
   open,

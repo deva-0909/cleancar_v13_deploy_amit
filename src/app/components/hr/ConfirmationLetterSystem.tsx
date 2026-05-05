@@ -39,7 +39,7 @@ import {
 } from "../ui/select";
 import { employeeDatabaseService } from "../../services/employeeDatabaseService";
 import type { EmployeeDatabaseRecord } from "../../services/employeeDatabaseService";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 type ConfirmationStatus =
   | "Pending Initiation"

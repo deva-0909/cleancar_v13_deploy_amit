@@ -22,7 +22,7 @@ import {
   InvestmentTipCard,
 } from "../../components/payroll/SavingsInsightCard";
 import { Zap, HelpCircle, Calculator, Sparkles } from "lucide-react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 
 export default function OptimizationLayerDemo() {
   const [state] = useState<IndianState>("GJ");

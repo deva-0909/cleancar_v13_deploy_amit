@@ -7,7 +7,7 @@ import {
   Zap, Lock, TrendingUp, Award
 } from "lucide-react";
 import { useRole } from "../contexts/RoleContext";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { useCustomers } from "../contexts/CustomerContext";
 import { useFinance } from "../contexts/FinanceContext";
 import { useJobs } from "../contexts/JobContext";

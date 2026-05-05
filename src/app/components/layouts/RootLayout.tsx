@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet, Link, useLocation } from "react-router";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import {
   Users, BarChart3, UserCircle, Car, ClipboardList,
   AlertCircle, Package, DollarSign, UserCog, Menu, X,

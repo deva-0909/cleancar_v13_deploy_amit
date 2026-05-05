@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { employeeDatabaseService } from "../../services/employeeDatabaseService";
 import type { EmployeeDatabaseRecord } from "../../services/employeeDatabaseService";
 import { onboardingChecklistService } from "../../services/onboardingChecklistService";
@@ -55,6 +55,8 @@ import { EmployeeStatusBadge } from "../shared/EmployeeStatusBadge";
 import { hasPermission } from "../../utils/permissionEngine";
 import { useRole } from "../../contexts/RoleContext";
 import { useDebounce } from "../../hooks/useDebounce";
+import { useEmployee } from "../../contexts/EmployeeContext";
+import { useCity } from "../../contexts/CityContext";
 
 type EmployeeStatus = "Active" | "On Leave" | "Inactive" | "Exited";
 type EmployeeType = "Full Time" | "Contract" | "Part Time";
@@ -578,6 +580,8 @@ function TableSkeleton() {
 
 export function EmployeeDatabase({ openAddModal }: { openAddModal?: boolean } = {}) {
   const [employees, setEmployees] = useState<Employee[]>(() => employeeDatabaseService.getAll());
+  const { employees: contextEmployees } = useEmployee();
+  const { city } = useCity();
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -650,15 +654,30 @@ export function EmployeeDatabase({ openAddModal }: { openAddModal?: boolean } = 
     }
   }, [showAddModal, employees]);
 
-  // Auto-populate reporting manager
-  useEffect(() => {
-    if (formData.designation && formData.workLocation && isManagerFieldLocked) {
-      const manager = organizationalHierarchy[formData.designation]?.[formData.workLocation];
-      if (manager) {
-        setFormData(prev => ({ ...prev, reportingManager: manager }));
-      }
-    }
-  }, [formData.designation, formData.workLocation, isManagerFieldLocked]);
+  // Manager hierarchy: who should manage each role
+  const MANAGER_ROLE_FOR: Record<string, string[]> = {
+    "Car Washer":             ["Supervisor"],
+    "Supervisor":             ["Operations Manager", "Sr Operations Manager"],
+    "Operations Manager":     ["Cluster Manager", "Sr Operations Manager"],
+    "Sr Operations Manager":  ["Cluster Manager"],
+    "Cluster Manager":        ["City Manager"],
+    "TSE":                    ["TSM"],
+    "TSM":                    ["City Manager"],
+    "CCE":                    ["Admin", "City Manager"],
+    "Store Manager":          ["City Manager", "Admin"],
+    "HR":                     ["Admin"],
+    "Accounts":               ["Admin"],
+  };
+
+  const eligibleManagers = useMemo(() => {
+    if (!formData.designation || !formData.workLocation) return [];
+    const managerRoles = MANAGER_ROLE_FOR[formData.designation] || [];
+    return contextEmployees.filter(e =>
+      managerRoles.includes(e.designation) &&
+      e.status === "Active" &&
+      (e.workLocation === formData.workLocation || e.cityId === city)
+    );
+  }, [formData.designation, formData.workLocation, contextEmployees, city]);
 
   // Auto-compute full name
   useEffect(() => {
@@ -1506,15 +1525,23 @@ export function EmployeeDatabase({ openAddModal }: { openAddModal?: boolean } = 
                           )}
                         </Button>
                       </div>
-                      <Input
-                        placeholder={isManagerFieldLocked ? "Auto-populated based on role & location" : "Enter reporting manager manually"}
-                        value={formData.reportingManager || ""}
-                        disabled={isManagerFieldLocked}
-                        onChange={(e) => setFormData({ ...formData, reportingManager: e.target.value })}
-                        className={isManagerFieldLocked ? "bg-green-50 border-green-300" : "bg-amber-50 border-amber-300"}
-                      />
-                      {formData.reportingManager && isManagerFieldLocked && (
-                        <p className="text-xs text-green-600 mt-1">✓ Auto-assigned: {formData.designation} at {formData.workLocation}</p>
+                      <Select
+                        value={formData.reportingManager}
+                        onValueChange={(val) => setFormData(prev => ({ ...prev, reportingManager: val }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={eligibleManagers.length === 0 ? "No managers found for this role" : "Select reporting manager"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {eligibleManagers.map(m => (
+                            <SelectItem key={m.id} value={m.fullName}>
+                              {m.fullName} — {m.designation} ({m.pinCodes?.[0] || "No pincode"})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {eligibleManagers.length === 0 && formData.designation && (
+                        <p className="text-xs text-amber-600 mt-1">No active managers found. You can type a name manually.</p>
                       )}
                     </div>
                     

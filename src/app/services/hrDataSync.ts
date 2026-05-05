@@ -136,6 +136,14 @@ class HRDataSyncService {
       // Sync each legacy record
       legacyAttendance.forEach((legacyAtt: any) => {
         try {
+          // Skip if employeeId is missing or undefined
+          if (!legacyAtt.employeeId) {
+            failed++;
+            errors.push(`Invalid employeeId for attendance: ${legacyAtt.employeeId}`);
+            logger.warn("HRDataSync: Skipping attendance record with missing employeeId", { date: legacyAtt.date, record: legacyAtt });
+            return;
+          }
+
           const key = `${legacyAtt.employeeId}-${legacyAtt.date}`;
 
           // Skip if already in master
@@ -183,8 +191,8 @@ class HRDataSyncService {
     let skipped = 0;
 
     try {
-      // Get legacy payroll records
-      const legacyPayroll = DataService.get<any>("PAYROLL_RECORDS") || [];
+      // Get legacy payroll records (stored in PAYROLL_RUNS)
+      const legacyPayroll = DataService.get<any>("PAYROLL_RUNS") || [];
       logger.log(`HRDataSync: Found ${legacyPayroll.length} legacy payroll records`);
 
       // Get existing master records
@@ -196,10 +204,37 @@ class HRDataSyncService {
       // Sync each legacy record
       legacyPayroll.forEach((legacyPay: any) => {
         try {
+          // Skip if employeeId is missing or undefined
+          if (!legacyPay.employeeId) {
+            failed++;
+            errors.push(`Invalid employeeId for payroll: ${legacyPay.employeeId}`);
+            logger.warn("HRDataSync: Skipping payroll record with missing employeeId", { payrollId: legacyPay.payrollId, record: legacyPay });
+            return;
+          }
+
+          // Parse month from PayrollRun format (YYYY-MM)
           const monthNames = ["January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"];
-          const month = monthNames[legacyPay.month - 1] || "January";
-          const key = `${legacyPay.employeeId}-${month}-${legacyPay.year}`;
+          let month: string;
+          let year: number;
+
+          if (typeof legacyPay.month === 'string' && legacyPay.month.includes('-')) {
+            // PayrollRun format: "2026-04"
+            const [yearStr, monthStr] = legacyPay.month.split('-');
+            year = parseInt(yearStr);
+            const monthNum = parseInt(monthStr);
+            month = monthNames[monthNum - 1] || "January";
+          } else if (typeof legacyPay.month === 'number') {
+            // Old format: month number
+            month = monthNames[legacyPay.month - 1] || "January";
+            year = legacyPay.year;
+          } else {
+            failed++;
+            errors.push(`Invalid month format for payroll: ${legacyPay.month}`);
+            return;
+          }
+
+          const key = `${legacyPay.employeeId}-${month}-${year}`;
 
           // Skip if already in master
           if (existingKeys.has(key)) {
@@ -215,8 +250,11 @@ class HRDataSyncService {
             return;
           }
 
+          // Convert PayrollRun to LegacyPayrollRecord format if needed
+          const legacyPayrollRecord = this.convertToLegacyFormat(legacyPay, month, year);
+
           // Convert to master format
-          const masterPay = PayrollAdapter.toMaster(legacyPay);
+          const masterPay = PayrollAdapter.toMaster(legacyPayrollRecord);
 
           // Create in master (remove auto-generated fields)
           const { payrollId, createdAt, ...payData } = masterPay;
@@ -257,6 +295,14 @@ class HRDataSyncService {
       // Sync each legacy record
       legacyIncentives.forEach((legacyInc: any) => {
         try {
+          // Skip if employeeId is missing or undefined
+          if (!legacyInc.employeeId) {
+            failed++;
+            errors.push(`Invalid employeeId for incentive: ${legacyInc.employeeId}`);
+            logger.warn("HRDataSync: Skipping incentive record with missing employeeId", { incentiveId: legacyInc.incentiveId, record: legacyInc });
+            return;
+          }
+
           // Skip if already in master
           if (legacyInc.incentiveId && existingIds.has(legacyInc.incentiveId)) {
             skipped++;
@@ -338,6 +384,47 @@ class HRDataSyncService {
    */
   private markSyncComplete(): void {
     DataService.setAll("LAST_SYNC_TIME", [new Date().toISOString()]);
+  }
+
+  /**
+   * Convert PayrollRun format to LegacyPayrollRecord format
+   */
+  private convertToLegacyFormat(payrollRun: any, month: string, year: number): any {
+    // If it's already in legacy format (has earnings array), return as-is
+    if (payrollRun.earnings && Array.isArray(payrollRun.earnings)) {
+      return payrollRun;
+    }
+
+    // Convert PayrollRun to LegacyPayrollRecord
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"];
+    const monthNumber = monthNames.indexOf(month) + 1;
+
+    return {
+      payrollId: payrollRun.payrollId,
+      employeeId: payrollRun.employeeId,
+      month: monthNumber,
+      year: year,
+      earnings: [
+        { name: "Basic Salary", amount: payrollRun.baseSalary || 0 },
+        { name: "Incentive", amount: payrollRun.incentiveAmount || 0 },
+        { name: "Add-on Earnings", amount: payrollRun.addOnEarnings || 0 },
+        { name: "Allowances", amount: payrollRun.allowances || 0 },
+      ].filter(e => e.amount > 0),
+      deductions: [
+        { name: "EPF", amount: payrollRun.pf || 0 },
+        { name: "ESIC", amount: payrollRun.esic || 0 },
+        { name: "Professional Tax", amount: payrollRun.pt || 0 },
+        { name: "TDS", amount: payrollRun.tds || 0 },
+        { name: "Advances", amount: payrollRun.advances || 0 },
+        { name: "Penalties", amount: payrollRun.penalties || 0 },
+      ].filter(d => d.amount > 0),
+      grossPay: payrollRun.grossSalary || 0,
+      totalDeductions: payrollRun.totalDeductions || 0,
+      netPay: payrollRun.netSalary || 0,
+      status: payrollRun.status,
+      paymentDate: payrollRun.paidAt,
+    };
   }
 }
 

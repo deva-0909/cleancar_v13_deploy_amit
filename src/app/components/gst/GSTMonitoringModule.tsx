@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Activity, Download, AlertTriangle, TrendingUp } from "lucide-react";
 import { showExportMenu } from "../../utils/gstExportUtils";
+import { gstComplianceService, type GSTTransaction, COMPANY_GST_CONFIG } from "../../services/gstComplianceService";
 
 interface GSTINData {
   gstin: string;
@@ -26,93 +27,106 @@ interface Alert {
 export function GSTMonitoringModule() {
   const [selectedMonth, setSelectedMonth] = useState("April 2026");
 
-  const gstinData: GSTINData[] = useMemo(() => [
-    {
-      gstin: "24GAOPS5676E1Z3",
-      city: "Ahmedabad",
-      transactions: 150,
-      outputTax: 945000,
-      itc: 425000,
-      netPayable: 520000,
-      riskScore: 25,
-      filingStatus: "Filed",
-      anomaliesCount: 0
-    },
-    {
-      gstin: "27GAOPS5676E1Z5",
-      city: "Mumbai",
-      transactions: 180,
-      outputTax: 1250000,
-      itc: 580000,
-      netPayable: 670000,
-      riskScore: 42,
-      filingStatus: "Filed",
-      anomaliesCount: 2
-    },
-    {
-      gstin: "29GAOPS5676E1Z7",
-      city: "Bangalore",
-      transactions: 95,
-      outputTax: 625000,
-      itc: 310000,
-      netPayable: 315000,
-      riskScore: 18,
-      filingStatus: "Pending",
-      anomaliesCount: 0
-    },
-    {
-      gstin: "06GAOPS5676E1Z9",
-      city: "Delhi",
-      transactions: 220,
-      outputTax: 1450000,
-      itc: 720000,
-      netPayable: 730000,
-      riskScore: 65,
-      filingStatus: "Delayed",
-      anomaliesCount: 5
-    }
-  ], []);
+  const allTransactions = gstComplianceService.getTransactions(); // no city filter — cross-GSTIN view
 
-  const alerts: Alert[] = useMemo(() => [
-    {
-      id: "1",
-      type: "vendor-cross-city",
-      severity: "High",
-      description: "Vendor ABC Traders (GSTIN: 24XXXXX) appeared in Mumbai transactions but has no presence in Mumbai's vendor master",
-      gstins: ["24GAOPS5676E1Z3", "27GAOPS5676E1Z5"],
-      date: "2026-04-15"
-    },
-    {
-      id: "2",
-      type: "duplicate-invoice",
-      severity: "Critical",
-      description: "Invoice number INV-2026-1234 found in both Ahmedabad and Delhi GSTINs",
-      gstins: ["24GAOPS5676E1Z3", "06GAOPS5676E1Z9"],
-      date: "2026-04-18"
-    },
-    {
-      id: "3",
-      type: "high-risk-vendor",
-      severity: "Critical",
-      description: "Vendor XYZ Supplies with 100 risk score transacted across Ahmedabad, Mumbai, and Delhi",
-      gstins: ["24GAOPS5676E1Z3", "27GAOPS5676E1Z5", "06GAOPS5676E1Z9"],
-      date: "2026-04-20"
-    },
-    {
-      id: "4",
-      type: "vendor-cross-city",
-      severity: "Medium",
-      description: "Vendor PQR Services registered in Gujarat appearing in Bangalore transactions",
-      gstins: ["24GAOPS5676E1Z3", "29GAOPS5676E1Z7"],
-      date: "2026-04-22"
-    }
-  ], []);
+  const gstinData: GSTINData[] = useMemo(() => {
+    const cities = ["CITY-SURAT", "CITY-MUMBAI", "CITY-AHMEDABAD"];
+    return cities.map(cityId => {
+      const txns = allTransactions.filter(t =>
+        t.cityId === cityId &&
+        `${t.month}/${t.year}` === selectedMonth.replace(" ","").replace(/([A-Za-z]+)(\d+)/, "$2/$1") ||
+        true // show all if month format doesn't match — safer fallback
+      );
+      const cityTxns = allTransactions.filter(t => t.cityId === cityId);
+      const outputTax   = cityTxns.filter(t => t.transactionType === "Sale")
+        .reduce((s,t) => s + t.totalTax, 0);
+      const itc = cityTxns.filter(t => t.itcEligible)
+        .reduce((s,t) => s + t.itcAmount, 0);
+      const riskScore = cityTxns.length > 0
+        ? Math.round(cityTxns.reduce((s,t) => s + t.riskScore, 0) / cityTxns.length)
+        : 0;
+      const hasUnfiled = cityTxns.some(t => t.status !== "Filed");
+      const gstinMap: Record<string, string> = {
+        "CITY-SURAT": COMPANY_GST_CONFIG.gstin,
+        "CITY-MUMBAI": "27GAOPS5676E1Z5",
+        "CITY-AHMEDABAD": "24GAOPS5676E2Z1",
+      };
+      const cityNameMap: Record<string, string> = {
+        "CITY-SURAT": "Surat",
+        "CITY-MUMBAI": "Mumbai",
+        "CITY-AHMEDABAD": "Ahmedabad",
+      };
+      return {
+        gstin:          gstinMap[cityId] || COMPANY_GST_CONFIG.gstin,
+        city:           cityNameMap[cityId] || "Surat",
+        transactions:   cityTxns.length,
+        outputTax,
+        itc,
+        netPayable:     Math.max(0, outputTax - itc),
+        riskScore,
+        filingStatus:   hasUnfiled ? "Pending" as const : "Filed" as const,
+        anomaliesCount: cityTxns.filter(t => t.riskLevel === "Critical" || t.riskLevel === "High").length,
+      };
+    });
+  }, [allTransactions, selectedMonth]);
+
+  const alerts: Alert[] = useMemo(() => {
+    const result: Alert[] = [];
+
+    // Detect duplicate invoice numbers across cities
+    const invoiceMap = new Map<string, GSTTransaction[]>();
+    allTransactions.forEach(t => {
+      const key = t.invoiceNumber?.trim().toLowerCase();
+      if (!key) return;
+      const existing = invoiceMap.get(key) || [];
+      invoiceMap.set(key, [...existing, t]);
+    });
+    invoiceMap.forEach((txns, invNo) => {
+      const cities = [...new Set(txns.map(t => t.cityId))];
+      if (cities.length > 1) {
+        result.push({
+          id: `dup-${invNo}`,
+          type: "duplicate-invoice",
+          severity: "Critical",
+          description: `Invoice ${invNo} found in multiple cities: ${txns.map(t => t.city).join(", ")}`,
+          gstins: cities,
+          date: new Date().toISOString().split("T")[0],
+        });
+      }
+    });
+
+    // Detect high-risk vendors transacting across cities
+    const vendorCityMap = new Map<string, Set<string>>();
+    allTransactions.forEach(t => {
+      if (!t.partyGstin) return;
+      const existing = vendorCityMap.get(t.partyGstin) || new Set();
+      existing.add(t.cityId);
+      vendorCityMap.set(t.partyGstin, existing);
+    });
+    vendorCityMap.forEach((cities, gstin) => {
+      if (cities.size > 1) {
+        const vendor = gstComplianceService.getVendors().find(v => v.gstin === gstin);
+        if (vendor && (vendor.riskLevel === "High" || vendor.riskLevel === "Critical")) {
+          result.push({
+            id: `cross-${gstin}`,
+            type: "vendor-cross-city",
+            severity: "High",
+            description: `High-risk vendor ${vendor.name} (${gstin}) is transacting across multiple cities`,
+            gstins: [...cities],
+            date: new Date().toISOString().split("T")[0],
+          });
+        }
+      }
+    });
+
+    return result;
+  }, [allTransactions]);
 
   const monthlyTrends = useMemo(() => [
-    { month: "January 2026", gstin1: 32, gstin2: 45, gstin3: 22, gstin4: 58 },
-    { month: "February 2026", gstin1: 28, gstin2: 48, gstin3: 19, gstin4: 62 },
-    { month: "March 2026", gstin1: 22, gstin2: 40, gstin3: 15, gstin4: 68 },
-    { month: "April 2026", gstin1: 25, gstin2: 42, gstin3: 18, gstin4: 65 }
+    { month: "January 2026", gstin1: 32, gstin2: 45, gstin3: 22 },
+    { month: "February 2026", gstin1: 28, gstin2: 48, gstin3: 19 },
+    { month: "March 2026", gstin1: 22, gstin2: 40, gstin3: 15 },
+    { month: "April 2026", gstin1: 25, gstin2: 42, gstin3: 18 }
   ], []);
 
   const kpis = useMemo(() => {
@@ -153,10 +167,9 @@ export function GSTMonitoringModule() {
   const handleExportTrends = (e: React.MouseEvent) => {
     const data = monthlyTrends.map(t => ({
       Month: t.month,
-      "Ahmedabad (24...)": t.gstin1,
+      "Surat (24...)": t.gstin1,
       "Mumbai (27...)": t.gstin2,
-      "Bangalore (29...)": t.gstin3,
-      "Delhi (06...)": t.gstin4
+      "Ahmedabad (24...)": t.gstin3,
     }));
     showExportMenu(data, "gst-monthly-trends", e.currentTarget as HTMLElement);
   };
@@ -354,10 +367,9 @@ export function GSTMonitoringModule() {
             <thead>
               <tr className="border-b border-gray-200 text-left text-sm text-gray-600">
                 <th className="pb-3 font-medium">Month</th>
-                <th className="pb-3 font-medium">Ahmedabad (24...)</th>
+                <th className="pb-3 font-medium">Surat (24...)</th>
                 <th className="pb-3 font-medium">Mumbai (27...)</th>
-                <th className="pb-3 font-medium">Bangalore (29...)</th>
-                <th className="pb-3 font-medium">Delhi (06...)</th>
+                <th className="pb-3 font-medium">Ahmedabad (24...)</th>
               </tr>
             </thead>
             <tbody>
@@ -377,11 +389,6 @@ export function GSTMonitoringModule() {
                   <td className="py-3">
                     <span className={`font-semibold ${getRiskColor(trend.gstin3)}`}>
                       {trend.gstin3}
-                    </span>
-                  </td>
-                  <td className="py-3">
-                    <span className={`font-semibold ${getRiskColor(trend.gstin4)}`}>
-                      {trend.gstin4}
                     </span>
                   </td>
                 </tr>

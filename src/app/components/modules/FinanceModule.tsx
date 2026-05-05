@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { useCustomerSubscriptions, useFinance } from "../../contexts/AppProvider";
 import { useBusinessFlows } from "../../hooks/useBusinessFlows";
 import { useRole } from "../../contexts/RoleContext";
@@ -57,7 +57,7 @@ export function FinanceModule() {
 
   // Get financial snapshot(s) based on role
   const financialData = isAdmin
-    ? getMultiCityDashboard(["CITY-SURAT", "CITY-MUMBAI", "CITY-BANGALORE"])
+    ? getMultiCityDashboard(["CITY-SURAT", "CITY-MUMBAI", "CITY-AHMEDABAD"])
     : [getCityFinancialSnapshot(cityId)];
 
   // Aggregate metrics for display (sum across cities for admin, single city for managers)

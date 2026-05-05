@@ -168,7 +168,7 @@ export function StatutoryFormsVerification() {
         name: "Sunita Sharma",
         relationship: "Mother",
         dob: "1970-05-20",
-        address: "123, MG Road, Bangalore, Karnataka - 560001",
+        address: "123, MG Road, Surat, Gujarat - 395001",
         sharePercentage: 100,
       },
     ],
@@ -182,9 +182,9 @@ export function StatutoryFormsVerification() {
     fatherOrHusbandName: "Vijay Sharma",
     mobile: "9876543210",
     aadhaar: "1234 5678 9012",
-    permanentAddress: "123, MG Road, Bangalore, Karnataka - 560001",
-    dispensaryName: "ESIC Hospital Indiranagar",
-    dispensaryCity: "Bangalore",
+    permanentAddress: "123, MG Road, Surat, Gujarat - 395001",
+    dispensaryName: "ESIC Hospital Adajan",
+    dispensaryCity: "Surat",
     familyMembers: [
       {
         name: "Sunita Sharma",

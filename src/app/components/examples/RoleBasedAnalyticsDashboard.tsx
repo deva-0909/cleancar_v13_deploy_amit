@@ -47,7 +47,7 @@ import {
 import { usePermissions } from "../../hooks/usePermissions";
 import { formatCurrency } from "../../lib/formatters";
 
-type City = "ALL" | "SURAT" | "AHMEDABAD" | "BARODA";
+type City = "ALL" | "SURAT" | "MUMBAI" | "AHMEDABAD";
 
 interface DashboardData {
   totalRevenue: number;
@@ -71,7 +71,7 @@ export function RoleBasedAnalyticsDashboard() {
   const availableCities: City[] = (() => {
     const scope = permissions.getScope("analyticsEngine");
     if (scope === "ALL") {
-      return ["ALL", "SURAT", "AHMEDABAD", "BARODA"];
+      return ["ALL", "SURAT", "MUMBAI", "AHMEDABAD"];
     } else if (scope === "CITY") {
       // Only show user's city
       return [permissions.currentCity.toUpperCase() as City];

@@ -2,10 +2,12 @@ import { useState, useMemo } from "react";
 import { CheckCircle2, AlertCircle, Send, X, Check, TrendingDown } from "lucide-react";
 import { gstComplianceService, type GSTTransaction } from "../../services/gstComplianceService";
 import { analyzeTransaction, scoreAfterCorrection, type AICorrection } from "../../services/gstAIScoringService";
+import { useCity } from "../../contexts/CityContext";
 
 export function GSTValidationCentre() {
+  const { city } = useCity();
   const [activeTab, setActiveTab] = useState<"pending" | "resolved">("pending");
-  const [transactions, setTransactions] = useState<GSTTransaction[]>(gstComplianceService.getTransactions());
+  const [transactions, setTransactions] = useState<GSTTransaction[]>(gstComplianceService.getTransactions(city));
   const [selectedTxn, setSelectedTxn] = useState<GSTTransaction | null>(null);
 
   const pendingTransactions = useMemo(() =>
@@ -59,14 +61,14 @@ export function GSTValidationCentre() {
     updatedTxn.riskLevel = newScore < 30 ? "Clean" : newScore < 60 ? "Medium" : newScore < 80 ? "High" : "Critical";
 
     gstComplianceService.saveTransaction(updatedTxn);
-    setTransactions(gstComplianceService.getTransactions());
+    setTransactions(gstComplianceService.getTransactions(city));
   };
 
   const handleAction = (txn: GSTTransaction, action: "reviewed" | "approved" | "manager" | "rejected") => {
     const newStatus = action === "approved" ? "Approved" : action === "manager" ? "Validated" : "Draft";
     const updated = { ...txn, status: newStatus as any };
     gstComplianceService.saveTransaction(updated);
-    setTransactions(gstComplianceService.getTransactions());
+    setTransactions(gstComplianceService.getTransactions(city));
     setSelectedTxn(null);
   };
 

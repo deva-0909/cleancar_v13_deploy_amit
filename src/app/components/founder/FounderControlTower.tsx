@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -78,7 +78,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { toast } from "sonner";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
+import { useCity } from "../../../contexts/CityContext";
+import { useCustomers } from "../../../contexts/CustomerContext";
 import {
   Select,
   SelectContent,
@@ -18,7 +20,25 @@ interface LeadOverviewTabProps {
 }
 
 export function LeadOverviewTab({ lead }: LeadOverviewTabProps) {
+  const { availableCities } = useCity();
+  const { updateLead } = useCustomers();
   const [isEditing, setIsEditing] = useState<string | null>(null);
+  const [leadCity, setLeadCity] = useState(lead?.address?.city || "Surat");
+  const [leadPinCode, setLeadPinCode] = useState(lead?.address?.pinCode || "");
+
+  // Pincode options per city
+  const CITY_PINCODES: Record<string, string[]> = {
+    "Surat":  ["395001","395002","395003","395004","395005","395006","395007","395008","395009","395010"],
+    "Mumbai": ["400001","400002","400003","400004","400005","400006","400007","400008","400009","400010"],
+  };
+  const availablePins = CITY_PINCODES[leadCity] || [];
+
+  const PIN_TO_AREA: Record<string, string> = {
+    "395001": "Adajan", "395002": "Varachha", "395003": "Katargam",
+    "395005": "Althan", "395006": "Dumas", "395007": "Vesu",
+    "400001": "Bandra", "400002": "Andheri", "400003": "Dadar",
+    "400004": "Thane", "400005": "Borivali",
+  };
 
   const handleFieldSave = (field: string, value: string) => {
     toast.success("Field updated successfully", {
@@ -229,17 +249,27 @@ export function LeadOverviewTab({ lead }: LeadOverviewTabProps) {
             <div className="space-y-2">
               <Input placeholder="Address Line 1" />
               <div className="grid grid-cols-3 gap-2">
-                <Input placeholder="Area" defaultValue={lead.area} />
-                <Input placeholder="City" defaultValue="Surat" />
-                <div className="relative">
-                  <Input placeholder="PIN Code" />
-                  <div className="absolute right-2 top-2">
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                      <Check className="w-3 h-3 inline mr-1" />
-                      Serviceable
-                    </span>
-                  </div>
-                </div>
+                <Select
+                  value={leadPinCode}
+                  onValueChange={(val) => {
+                    setLeadPinCode(val);
+                    updateLead(lead.leadId, { address: { ...lead.address, pinCode: val, area: PIN_TO_AREA[val] || "" } });
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select PIN code" /></SelectTrigger>
+                  <SelectContent>
+                    {availablePins.map(pin => (
+                      <SelectItem key={pin} value={pin}>{pin} — {PIN_TO_AREA[pin] || "Area"}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  value={PIN_TO_AREA[leadPinCode] || lead.area || ""}
+                  readOnly
+                  className="bg-gray-50"
+                  placeholder="Auto-filled from PIN code"
+                />
+                <Input value={leadCity} readOnly className="bg-gray-50" placeholder="City" />
               </div>
             </div>
           </div>

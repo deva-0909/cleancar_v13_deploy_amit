@@ -49,9 +49,9 @@ export function BusinessFlowDemo() {
     phone: "9876543210",
     address: {
       line1: "123 Main Street",
-      area: "Koramangala",
-      city: "Bangalore",
-      pinCode: "560034",
+      area: "Adajan",
+      city: "Surat",
+      pinCode: "395001",
     },
     vehicleDetails: {
       category: "Sedan",

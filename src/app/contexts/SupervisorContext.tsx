@@ -10,6 +10,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { useRole } from "./RoleContext";
 import { useEmployeeData } from "../hooks/useEmployeeData";
 import { useEvents, useEventListener } from "./EventSystem";
+import { useJobs } from "./JobContext";
 import { supervisorDataService } from "../services/supervisorDataService";
 import type {
   WasherTeamMember,
@@ -92,6 +93,7 @@ export function SupervisorProvider({ children }: SupervisorProviderProps) {
   // IMPORTANT: All hooks must be called BEFORE any conditional returns (Rules of Hooks)
   const { employees, attendanceRecords } = useEmployeeData();
   const { emit } = useEvents();
+  const { getAssignedByCity, getCompletedByCity, getUnassignedByCity } = useJobs();
 
   // State - ALL useState hooks must be declared before any conditional returns
   const [summary, setSummary] = useState<TeamSummary>({
@@ -120,24 +122,9 @@ export function SupervisorProvider({ children }: SupervisorProviderProps) {
   const [error, setError] = useState<string | null>(null);
 
   // VALIDATION: Only activate for Supervisor role
-  // (Other roles can still have SupervisorProvider in the tree, but it won't initialize)
-  if (currentRole !== "Supervisor") {
-    // Pass through without error - this provider is inactive for non-supervisor roles
-    return <>{children}</>;
-  }
-
-  // VALIDATION: Ensure employeeId exists
-  if (!currentUser.employeeId) {
-    console.warn("[SupervisorContext] No employeeId found in currentUser", currentUser);
-    return <>{children}</>;
-  }
-
-  const supervisorId = currentUser.employeeId;
-
-  // Dev mode debug logging
-  if (import.meta.env.DEV) {
-    console.log(`[SupervisorContext] Logged in as: ${currentUser.name} (${supervisorId})`);
-  }
+  const isSupervisorRole = currentRole === "Supervisor";
+  const supervisorId = currentUser?.employeeId || "";
+  const hasValidSetup = isSupervisorRole && supervisorId;
 
   // Derived state
   const unreadAlertsCount = alerts.filter(a => !a.isRead).length;
@@ -148,6 +135,7 @@ export function SupervisorProvider({ children }: SupervisorProviderProps) {
   // ========== LOAD DATA ==========
 
   const loadData = () => {
+    if (!hasValidSetup) return;
     try {
       setIsLoading(true);
       setError(null);
@@ -202,14 +190,21 @@ export function SupervisorProvider({ children }: SupervisorProviderProps) {
       }
 
       // Calculate summary from real team data (derived from EmployeeContext)
+      // Get supervisor's city
+      const supervisorCityId = currentUser.cityId || "CITY-SURAT";
+
       const summary: TeamSummary = {
         totalWashers: teamMembers.length,
         checkedIn: teamMembers.filter(m => m.status === "CHECKED_IN" || m.status === "LATE").length,
         late: teamMembers.filter(m => m.status === "LATE").length,
         notYet: teamMembers.filter(m => m.status === "NOT_YET").length,
         onLeave: teamMembers.filter(m => m.isOnLeave).length,
-        completedJobs: teamMembers.reduce((sum, m) => sum + m.completedJobs, 0),
-        pendingJobs: 0, // Can be calculated from JobContext
+        todayJobs:     getAssignedByCity(supervisorCityId).filter(j =>
+                         j.scheduledDate === new Date().toISOString().split("T")[0]).length,
+        completedJobs: getCompletedByCity(supervisorCityId).filter(j =>
+                         j.completedAt?.startsWith(new Date().toISOString().split("T")[0])).length,
+        pendingJobs: getUnassignedByCity(supervisorCityId).filter(j =>
+          j.scheduledDate === new Date().toISOString().split("T")[0]).length,
       };
       setSummary(summary);
 
@@ -231,20 +226,20 @@ export function SupervisorProvider({ children }: SupervisorProviderProps) {
 
   // Load on mount and when supervisorId, employees, or attendance changes
   useEffect(() => {
-    if (supervisorId) {
+    if (hasValidSetup) {
       loadData();
     }
-  }, [supervisorId, employees, attendanceRecords]);
+  }, [hasValidSetup, employees, attendanceRecords]);
 
   // Auto-refresh every 30 seconds for real-time feel
   useEffect(() => {
-    if (supervisorId) {
-      const interval = setInterval(() => {
-        loadData();
-      }, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [supervisorId]);
+    if (!hasValidSetup) return;
+
+    const interval = setInterval(() => {
+      loadData();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [hasValidSetup]);
 
   // Real-time team updates via events
   useEventListener("EMPLOYEE_CREATED", () => {
@@ -383,7 +378,10 @@ export function SupervisorProvider({ children }: SupervisorProviderProps) {
 export function useSupervisor() {
   const context = useContext(SupervisorContext);
   if (context === undefined) {
-    console.warn("[Context] called outside provider."); return null as any;
+    throw new Error(
+      "useSupervisor must be used within a SupervisorProvider. " +
+      "Make sure: (1) You're logged in as a 'Supervisor' role, and (2) The component is wrapped with AppProvider."
+    );
   }
   return context;
 }

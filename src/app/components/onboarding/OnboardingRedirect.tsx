@@ -3,7 +3,7 @@
  * Redirects /onboard/:empId to /onboarding/:empId
  */
 
-import { Navigate, useParams } from "react-router";
+import { Navigate, useParams } from "react-router-dom";
 
 export function OnboardingRedirect() {
   const { empId } = useParams<{ empId: string }>();

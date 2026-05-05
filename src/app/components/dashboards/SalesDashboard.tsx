@@ -5,7 +5,7 @@ import { Badge } from "../ui/badge";
 import { Phone, UserPlus, TrendingUp, Clock, Target } from "lucide-react";
 import { MASTER_LEADS, MASTER_KPI_DATA } from "../../data/masterData";
 import { useRole } from "../../contexts/RoleContext";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { BackButton } from "../ui/back-button";
 

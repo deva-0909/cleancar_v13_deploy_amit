@@ -73,7 +73,7 @@ export function WasherCoreScreensDemo() {
     ownerName: "Arjun Mehta",
     vehicleType: "Sedan",
     package: "Elite Wash",
-    location: "Koramangala, Bangalore",
+    location: "Adajan, Surat",
   };
 
   const lastCar = {
@@ -81,7 +81,7 @@ export function WasherCoreScreensDemo() {
     ownerName: "Priya Sharma",
     vehicleType: "SUV",
     package: "Premium Wash",
-    location: "Indiranagar, Bangalore",
+    location: "Vesu, Surat",
     completedTime: "5:30 PM",
   };
 
@@ -92,7 +92,7 @@ export function WasherCoreScreensDemo() {
       ownerName: "Arjun Mehta",
       vehicleType: "Sedan",
       packageName: "Elite Wash",
-      location: "Koramangala, Bangalore",
+      location: "Adajan, Surat",
       status: "PENDING",
       isCover: false,
       isLocked: false,
@@ -105,7 +105,7 @@ export function WasherCoreScreensDemo() {
       ownerName: "Rahul Verma",
       vehicleType: "Hatchback",
       packageName: "Classic Wash",
-      location: "HSR Layout, Bangalore",
+      location: "Althan, Surat",
       status: "PENDING",
       isCover: false,
       isLocked: !isCheckedIn,
@@ -118,7 +118,7 @@ export function WasherCoreScreensDemo() {
       ownerName: "Priya Sharma",
       vehicleType: "SUV",
       packageName: "Premium Wash",
-      location: "Indiranagar, Bangalore",
+      location: "Vesu, Surat",
       status: "PENDING",
       isCover: true,
       isLocked: !isCheckedIn,
@@ -390,7 +390,7 @@ export function WasherCoreScreensDemo() {
                 ownerName: "Arjun Mehta",
                 vehicleType: "Sedan",
                 packageName: "Elite Wash",
-                location: "Koramangala, Bangalore",
+                location: "Adajan, Surat",
               }}
               steps={washSteps}
               consumables={consumables}

@@ -18,7 +18,7 @@ import {
   Settings,
   Sparkles,
 } from "lucide-react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { calculateCTCFromBasic } from "../../config/salaryConfiguration";
 import type { SalaryStructure } from "../../services/salaryStructureService";

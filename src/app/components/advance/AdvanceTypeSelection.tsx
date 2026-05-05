@@ -4,7 +4,7 @@
  * Financial Control > Ease of Use
  */
 
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { useRole } from "../../contexts/RoleContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Button } from "../ui/button";

@@ -10,6 +10,8 @@ import {
 } from "../../ui/select";
 import { FileText, Send, X, AlertCircle, Check } from "lucide-react";
 import { toast } from "sonner";
+import { useCustomers } from "../../../contexts/CustomerContext";
+import { useRole } from "../../../contexts/RoleContext";
 
 interface SendPlanPricePanelProps {
   lead: any;
@@ -22,6 +24,9 @@ export function SendPlanPricePanel({
   onClose,
   onComplete,
 }: SendPlanPricePanelProps) {
+  const { appendLeadActivity } = useCustomers();
+  const { currentUser } = useRole();
+  const leadId = lead.leadId || lead.id;
   const [selectedPlan, setSelectedPlan] = useState(lead.planOfInterest);
   const [vehicleCategory, setVehicleCategory] = useState(lead.vehicleCategory);
   const [channel, setChannel] = useState("both");
@@ -63,11 +68,20 @@ export function SendPlanPricePanel({
   };
 
   const handleSend = () => {
+    const planPrice = planPrices[selectedPlan]?.[vehicleCategory] || 0;
     toast.success(
       channel === "both"
         ? "Plan & Price sent via WhatsApp and Email!"
         : `Plan & Price sent via ${channel === "whatsapp" ? "WhatsApp" : "Email"}!`
     );
+
+    appendLeadActivity(leadId, {
+      timestamp: new Date().toISOString(),
+      type: "price_sent",
+      description: `Plan pricing sent: ${selectedPlan}`,
+      performedBy: currentUser?.name || "TSE",
+      metadata: { plan: selectedPlan, price: planPrice },
+    });
     
     setTimeout(() => {
       const moveStage = confirm("Move lead to 'Proposal Sent' stage?");

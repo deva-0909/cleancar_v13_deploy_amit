@@ -15,6 +15,7 @@ export interface InventoryIssueRequest {
   toId: string; // supervisorId or washerId
   requestedBy: string;
   reason?: string;
+  cityId?: string;
 }
 
 export interface InventoryIssueResult {
@@ -65,13 +66,14 @@ export class InventoryFlowService {
     request: InventoryIssueRequest,
     contexts: {
       inventory: InventoryItem[];
-      getItemById: (itemId: string) => InventoryItem | undefined;
+      getItemById: (itemId: string, cityId?: string) => InventoryItem | undefined;
       issueInventory: (
         itemId: string,
         quantity: number,
         toLocation: "Supervisor" | "Washer",
         toId: string,
-        requestedBy: string
+        requestedBy: string,
+        cityId?: string
       ) => void;
       transferInventory: (
         itemId: string,
@@ -86,7 +88,7 @@ export class InventoryFlowService {
     }
   ): InventoryIssueResult {
     try {
-      const item = contexts.getItemById(request.itemId);
+      const item = contexts.getItemById(request.itemId, request.cityId || "CITY-SURAT");
       if (!item) {
         return {
           success: false,
@@ -181,7 +183,8 @@ export class InventoryFlowService {
         request.quantity,
         request.toLocation,
         request.toId,
-        request.requestedBy
+        request.requestedBy,
+        request.cityId || "CITY-SURAT"
       );
 
       // Get the issue transaction (last transaction created)
@@ -233,6 +236,7 @@ export class InventoryFlowService {
     washerId: string,
     supervisorId: string,
     reason: string,
+    cityId: string | undefined,
     contexts: {
       transferInventory: (
         itemId: string,
@@ -242,12 +246,12 @@ export class InventoryFlowService {
         toLocation: "Central" | "Supervisor" | "Washer",
         toId: string | undefined
       ) => void;
-      getItemById: (itemId: string) => InventoryItem | undefined;
+      getItemById: (itemId: string, cityId?: string) => InventoryItem | undefined;
       emit: (event: string, data: any, source?: string) => void;
     }
   ): { success: boolean; error?: string } {
     try {
-      const item = contexts.getItemById(itemId);
+      const item = contexts.getItemById(itemId, cityId || "CITY-SURAT");
       if (!item) {
         return { success: false, error: "Item not found" };
       }
@@ -303,8 +307,9 @@ export class InventoryFlowService {
    */
   static getStockSummary(
     itemId: string,
+    cityId: string | undefined,
     contexts: {
-      getItemById: (itemId: string) => InventoryItem | undefined;
+      getItemById: (itemId: string, cityId?: string) => InventoryItem | undefined;
     }
   ): {
     itemId: string;
@@ -316,7 +321,7 @@ export class InventoryFlowService {
     supervisorBreakdown: Record<string, number>;
     washerBreakdown: Record<string, number>;
   } | null {
-    const item = contexts.getItemById(itemId);
+    const item = contexts.getItemById(itemId, cityId || "CITY-SURAT");
     if (!item) return null;
 
     const supervisorTotal = Object.values(item.supervisorStock).reduce((sum, qty) => sum + qty, 0);
@@ -342,8 +347,9 @@ export class InventoryFlowService {
     quantity: number,
     location: "Central" | "Supervisor" | "Washer",
     locationId: string | undefined,
+    cityId: string | undefined,
     contexts: {
-      getItemById: (itemId: string) => InventoryItem | undefined;
+      getItemById: (itemId: string, cityId?: string) => InventoryItem | undefined;
     }
   ): {
     available: boolean;
@@ -351,7 +357,7 @@ export class InventoryFlowService {
     requested: number;
     deficit?: number;
   } {
-    const item = contexts.getItemById(itemId);
+    const item = contexts.getItemById(itemId, cityId || "CITY-SURAT");
     if (!item) {
       return {
         available: false,

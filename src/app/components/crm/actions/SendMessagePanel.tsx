@@ -5,6 +5,8 @@ import { Label } from "../../ui/label";
 import { Textarea } from "../../ui/textarea";
 import { MessageSquare, Mail, Send, X } from "lucide-react";
 import { toast } from "sonner";
+import { useCustomers } from "../../../contexts/CustomerContext";
+import { useRole } from "../../../contexts/RoleContext";
 
 interface SendMessagePanelProps {
   lead: any;
@@ -17,9 +19,13 @@ export function SendMessagePanel({
   onClose,
   onComplete,
 }: SendMessagePanelProps) {
+  const { appendLeadActivity } = useCustomers();
+  const { currentUser } = useRole();
+  const leadId = lead.leadId || lead.id;
   const [channel, setChannel] = useState<"whatsapp" | "email" | "both">("whatsapp");
   const [message, setMessage] = useState("");
   const [useTemplate, setUseTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState("");
 
   const templates = [
     {
@@ -50,6 +56,15 @@ export function SendMessagePanel({
         ? "Message sent via WhatsApp and Email!"
         : `Message sent via ${channel === "whatsapp" ? "WhatsApp" : "Email"}!`
     );
+
+    appendLeadActivity(leadId, {
+      timestamp: new Date().toISOString(),
+      type: "whatsapp",
+      description: `WhatsApp sent: "${templateName || 'Custom message'}" template`,
+      performedBy: currentUser?.name || "TSE",
+      metadata: { templateName: templateName || 'Custom', channel: "whatsapp" },
+    });
+
     onComplete();
   };
 

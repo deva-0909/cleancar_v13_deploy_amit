@@ -290,13 +290,7 @@ export function useEmployee() {
       };
     }
 
-    console.warn("[EmployeeContext] useEmployee called outside EmployeeProvider — using defaults.");
-    return {
-      employees: [], cityEmployees: [],
-      getEmployeeById: () => undefined, getEmployeesByRole: () => [],
-      addEmployee: () => {}, updateEmployee: () => {}, deleteEmployee: () => {},
-      getEmployeesByCity: () => [], getEmployeesByDepartment: () => [],
-    } as any;
+    throw new Error("useEmployee must be used within EmployeeProvider");
   }
   return context;
 }

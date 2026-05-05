@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Users, Send, Clock, CheckCircle, XCircle, Package } from "lucide-react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 
 interface VendorRequest {
   id: string;

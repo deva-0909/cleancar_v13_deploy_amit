@@ -63,6 +63,7 @@ import {
   type VehicleCategory,
   type PlanType,
 } from "../../data/subscriptionPlans";
+import { usePlanDefinitions } from "../../contexts/PlanDefinitionContext";
 
 interface PackageCostData {
   packageName: PlanType;
@@ -80,6 +81,7 @@ interface PackageCostData {
 }
 
 export function PackageCostMatrix() {
+  const { getPlanPrice, vehicleCategories } = usePlanDefinitions();
   const [selectedVehicleCategory, setSelectedVehicleCategory] =
     useState<VehicleCategory>("Hatchback");
   const [targetEBITDA, setTargetEBITDA] = useState(TARGET_EBITDA_MARGIN);
@@ -185,10 +187,7 @@ export function PackageCostMatrix() {
       const totalCostToCompany =
         materialCost + consumableCost + manpowerCost + overheadCost;
 
-      const customerPricePerMonth =
-        CURRENT_PLAN_VERSION.pricingMatrix[selectedVehicleCategory][
-          packageName
-        ] || 0;
+      const customerPricePerMonth = getPlanPrice(packageName, selectedVehicleCategory as VehicleCategory) || 0;
       const washesPerMonth = getWashesPerMonth(packageName);
       const costPerWashToCustomer =
         typeof customerPricePerMonth === "number"

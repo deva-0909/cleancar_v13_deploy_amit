@@ -1234,7 +1234,7 @@ export const MOCK_CITY_DATA: CityAnalyticsData[] = [
     refundRate: 5.0,
   },
   {
-    city: "BARODA",
+    city: "AHMEDABAD",
     totalRevenue: 620000,
     totalRefunds: 93000,
     netRevenue: 527000,
@@ -1443,9 +1443,9 @@ export const MOCK_CLUSTER_DATA: ClusterAnalyticsData[] = [
     employeeCount: 4,
     refundRate: 5.0,
   },
-  // Baroda clusters
+  // Ahmedabad clusters
   {
-    city: "BARODA",
+    city: "AHMEDABAD",
     cluster: "ALKAPURI",
     totalRevenue: 220000,
     totalRefunds: 33000,
@@ -1462,7 +1462,7 @@ export const MOCK_CLUSTER_DATA: ClusterAnalyticsData[] = [
     refundRate: 15.0,
   },
   {
-    city: "BARODA",
+    city: "AHMEDABAD",
     cluster: "FATEHGUNJ",
     totalRevenue: 180000,
     totalRefunds: 27000,
@@ -1479,7 +1479,7 @@ export const MOCK_CLUSTER_DATA: ClusterAnalyticsData[] = [
     refundRate: 15.0,
   },
   {
-    city: "BARODA",
+    city: "AHMEDABAD",
     cluster: "MANJALPUR",
     totalRevenue: 140000,
     totalRefunds: 21000,
@@ -1496,7 +1496,7 @@ export const MOCK_CLUSTER_DATA: ClusterAnalyticsData[] = [
     refundRate: 15.0,
   },
   {
-    city: "BARODA",
+    city: "AHMEDABAD",
     cluster: "GOTRI",
     totalRevenue: 80000,
     totalRefunds: 12000,

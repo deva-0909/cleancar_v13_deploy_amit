@@ -33,7 +33,7 @@ import {
 } from "../ui/select";
 import { toast } from "sonner";
 import { calculateCTCFromGross, getSalaryConfigurationSummary } from "../../config/salaryConfiguration";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router-dom";
 import { salaryStructureService } from "../../services/salaryStructureService";
 import type { SalaryStructure, SalaryComponents } from "../../services/salaryStructureService";
 import { employeeDatabaseService } from "../../services/employeeDatabaseService";

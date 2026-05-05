@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useEventListener } from "../../contexts/EventSystem";
+import { useCustomers } from "../../contexts/CustomerContext";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -166,7 +168,61 @@ const notificationConfig = {
 };
 
 export function NotificationCenter() {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const { leads } = useCustomers();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  useEventListener("LEAD_CONVERTED", (event) => {
+    setNotifications(prev => [{
+      id: `NOTIF-${Date.now()}`,
+      type: "demo-scheduled" as const,
+      title: "Lead Converted",
+      message: `${event.data.customerName} is now an active subscriber — ₹${event.data.amount?.toLocaleString() || "0"}/month`,
+      timestamp: new Date().toISOString(),
+      read: false,
+      priority: "high",
+      actionRequired: false,
+      link: "/crm",
+    }, ...prev]);
+  });
+
+  useEventListener("JOB_COMPLETED", (event) => {
+    setNotifications(prev => [{
+      id: `NOTIF-${Date.now()}`,
+      type: "lead-update" as const,
+      title: "Job Completed",
+      message: `Job completed by ${event.data.washerName} for customer ${event.data.customerName || event.data.customerId}`,
+      timestamp: new Date().toISOString(),
+      read: false,
+      priority: "medium",
+      actionRequired: false,
+      link: "/operations",
+    }, ...prev]);
+  });
+
+  // SLA breach: leads with followUpDate in the past
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const overdue = leads.filter(l =>
+      l.followUpDate && l.followUpDate < today &&
+      l.stage !== "converted" && l.stage !== "lost"
+    );
+    overdue.forEach(l => {
+      setNotifications(prev => {
+        if (prev.some(n => n.id === `SLA-${l.leadId}`)) return prev;
+        return [{
+          id: `SLA-${l.leadId}`,
+          type: "followup-due" as const,
+          title: "Follow-up Overdue",
+          message: `${l.firstName} ${l.lastName} — follow-up was due ${l.followUpDate}`,
+          timestamp: new Date().toISOString(),
+          read: false,
+          priority: "high",
+          actionRequired: true,
+          link: "/crm",
+        }, ...prev];
+      });
+    });
+  }, [leads]);
   const [filter, setFilter] = useState<"all" | "unread" | "action-required">("all");
   const [showSettings, setShowSettings] = useState(false);
   const [preferences, setPreferences] = useState({

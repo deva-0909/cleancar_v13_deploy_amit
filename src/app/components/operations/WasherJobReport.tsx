@@ -13,6 +13,8 @@ import { Badge } from "../ui/badge";
 import { CheckSquare, Clock, Send } from "lucide-react";
 import { toast } from "sonner";
 import { calculateJobCost, JobCostRecord } from "../finance/JobCostTracking";
+import { useInventory } from "../../contexts/InventoryContext";
+import { useCity } from "../../contexts/CityContext";
 
 interface Product {
   id: string;
@@ -46,51 +48,31 @@ export function WasherJobReport({
   jobStartTime,
   onSubmit,
 }: WasherJobReportProps) {
-  // Mock products list based on package
-  const availableProducts: Product[] = [
-    {
-      id: "PROD-001",
-      name: "Car Shampoo",
-      cost: 8.5,
-      requiresReasonIfNotUsed: true,
-    },
-    {
-      id: "PROD-002",
-      name: "Wheel Cleaner",
-      cost: 5.2,
-      requiresReasonIfNotUsed: true,
-    },
-    {
-      id: "PROD-003",
-      name: "Tire Shine",
-      cost: 3.8,
-      requiresReasonIfNotUsed: false,
-    },
-    {
-      id: "PROD-004",
-      name: "Dashboard Polish",
-      cost: 4.5,
-      requiresReasonIfNotUsed: false,
-    },
-    {
-      id: "PROD-005",
-      name: "Glass Cleaner",
-      cost: 3.2,
-      requiresReasonIfNotUsed: false,
-    },
-    {
-      id: "PROD-006",
-      name: "Microfiber Cloth Set",
-      cost: 2.5,
-      requiresReasonIfNotUsed: false,
-    },
+  const { inventory, issueToWasher } = useInventory();
+  const { city } = useCity();
+
+  // Get consumable products from inventory for this city
+  const inventoryProducts = inventory
+    .filter(item => item.cityId === city && item.category === "Chemical" && item.centralStock > 0)
+    .map(item => ({
+      id:   item.itemId,
+      name: item.name,
+      cost: item.costPerUnit,
+      requiresReasonIfNotUsed: item.reorderLevel > 0,
+    }));
+
+  // Fallback to default products if inventory is empty
+  const products = inventoryProducts.length > 0 ? inventoryProducts : [
+    { id: "PROD-001", name: "Car Shampoo",    cost: 8.5,  requiresReasonIfNotUsed: true },
+    { id: "PROD-002", name: "Wheel Cleaner",  cost: 5.2,  requiresReasonIfNotUsed: false },
+    { id: "PROD-003", name: "Dashboard Polish",cost: 3.8, requiresReasonIfNotUsed: false },
   ];
 
   const [productsUsed, setProductsUsed] = useState<
     Map<string, { used: boolean; reasonNotUsed: string }>
   >(
     new Map(
-      availableProducts.map((p) => [p.id, { used: true, reasonNotUsed: "" }])
+      products.map((p) => [p.id, { used: true, reasonNotUsed: "" }])
     )
   );
 
@@ -112,7 +94,7 @@ export function WasherJobReport({
 
   const canSubmit = () => {
     // Check if all unchecked products that require reason have a reason
-    for (const product of availableProducts) {
+    for (const product of products) {
       const status = productsUsed.get(product.id);
       if (
         !status?.used &&
@@ -134,7 +116,7 @@ export function WasherJobReport({
     setIsSubmitting(true);
 
     // Prepare products data
-    const productsData = availableProducts.map((product) => {
+    const productsData = products.map((product) => {
       const status = productsUsed.get(product.id)!;
       return {
         productId: product.id,
@@ -144,9 +126,24 @@ export function WasherJobReport({
       };
     });
 
+    // Decrement inventory for used products
+    products.forEach(p => {
+      const usage = productsUsed.get(p.id);
+      if (usage?.used) {
+        issueToWasher?.({
+          itemId: p.id,
+          washerId,
+          quantity: 1,
+          jobId,
+          cityId: city,
+          issuedAt: new Date().toISOString(),
+        });
+      }
+    });
+
     // Calculate job cost
     const costConfig = {
-      materialCosts: availableProducts.map((p) => ({
+      materialCosts: products.map((p) => ({
         productId: p.id,
         cost: p.cost,
       })),
@@ -182,7 +179,7 @@ export function WasherJobReport({
   };
 
   const usedCount = Array.from(productsUsed.values()).filter((p) => p.used).length;
-  const totalMaterialCost = availableProducts
+  const totalMaterialCost = products
     .filter((p) => productsUsed.get(p.id)?.used)
     .reduce((sum, p) => sum + p.cost, 0);
 
@@ -222,12 +219,12 @@ export function WasherJobReport({
           <div className="flex items-center justify-between mb-3">
             <Label className="text-base font-medium">Products Used</Label>
             <Badge variant="outline">
-              {usedCount} of {availableProducts.length} used
+              {usedCount} of {products.length} used
             </Badge>
           </div>
 
           <div className="space-y-3">
-            {availableProducts.map((product) => {
+            {products.map((product) => {
               const status = productsUsed.get(product.id)!;
               return (
                 <Card

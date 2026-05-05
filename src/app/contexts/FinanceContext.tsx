@@ -89,7 +89,7 @@ interface FinanceContextType {
   updateMRR: (mrrId: string, updates: Partial<MRRData>) => void;
   removeMRREntry: (subscriptionId: string) => void;
   getMRRForMonth: (month: string) => MRRData[];
-  getTotalMRR: (month: string) => number;
+  getTotalMRR: (month: string, cityId?: string) => number;
 
   // Payables
   payables: Payable[];
@@ -97,11 +97,11 @@ interface FinanceContextType {
   updatePayable: (payableId: string, updates: Partial<Payable>) => void;
   markAsPaid: (payableId: string, paymentReference: string, paymentMethod: Payable["paymentMethod"]) => void;
   approvePayable: (payableId: string, approvedBy: string) => void;
-  getSalaryPayables: () => Payable[];
-  getVendorPayables: () => Payable[];
-  getStatutoryPayables: () => Payable[];
-  getPendingPayables: () => Payable[];
-  getOverduePayables: () => Payable[];
+  getSalaryPayables: (cityId?: string) => Payable[];
+  getVendorPayables: (cityId?: string) => Payable[];
+  getStatutoryPayables: (cityId?: string) => Payable[];
+  getPendingPayables: (cityId?: string) => Payable[];
+  getOverduePayables: (cityId?: string) => Payable[];
 
   // Revenue
   revenues: Revenue[];
@@ -124,9 +124,9 @@ interface FinanceContextType {
   getLedgerEntriesByCity: (cityId: string) => LedgerEntry[];
 
   // ✅ NEW: EBITDA + Margin Analytics (MC-06)
-  calculateEBITDA: (cityId: string) => number;
-  calculateMargin: (cityId: string) => number;
-  getCityFinancialSnapshot: (cityId: string) => CityFinancialSnapshot;
+  calculateEBITDA: (cityId: string, month?: string) => number;
+  calculateMargin: (cityId: string, month?: string) => number;
+  getCityFinancialSnapshot: (cityId: string, month?: string) => CityFinancialSnapshot;
   getMultiCityDashboard: (cityIds: string[]) => CityFinancialSnapshot[];
   getRevenueBreakdown: (cityId: string) => Record<string, number>;
   getExpenseBreakdown: (cityId: string) => Record<string, number>;
@@ -308,6 +308,29 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   useSync("FINANCE_ALERTS", alerts);
   useSync("FINANCE_RECOMMENDATIONS", recommendations);
 
+  // Auto-update Overdue status for past-due unpaid payables
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    const toUpdate = payables.filter(
+      p => p.status === "Pending" && p.dueDate < today
+    );
+    if (toUpdate.length > 0) {
+      setPayables(prev => prev.map(p =>
+        p.status === "Pending" && p.dueDate < today
+          ? { ...p, status: "Overdue" as const, updatedAt: new Date().toISOString() }
+          : p
+      ));
+    }
+  }, []); // Run on mount only
+
+  // Auto-run alert engine when financial data changes
+  useEffect(() => {
+    const cities = [...new Set([...revenues.map(r => r.cityId), ...payables.map(p => p.cityId)])];
+    cities.forEach(cityId => {
+      if (cityId) runAlertEngine(cityId);
+    });
+  }, [revenues.length, payables.length, budgets.length]);
+
   // MRR Operations
   const addMRREntry = (mrrEntryData: Omit<MRRData, "mrrId" | "createdAt" | "updatedAt">): MRRData => {
     const newMRR: MRRData = {
@@ -336,9 +359,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return mrrData.filter((m) => m.month === month);
   };
 
-  const getTotalMRR = (month: string): number => {
+  const getTotalMRR = (month: string, cityId?: string): number => {
     return mrrData
-      .filter((m) => m.month === month && m.status === "Active")
+      .filter((m) => m.month === month && m.status === "Active" && (!cityId || m.cityId === cityId))
       .reduce((sum, m) => sum + m.revenue, 0);
   };
 
@@ -353,6 +376,29 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       updatedAt: new Date().toISOString(),
     };
     setPayables((prev) => [...prev, newPayable]);
+
+    // Auto-post accrual ledger entries
+    const expenseAccountCode = payableData.type === "Salary" ? "5100"
+      : payableData.type === "Statutory" ? "5200"
+      : "5300";
+    const expenseAccountName = payableData.type === "Salary" ? "Salaries & Wages"
+      : payableData.type === "Statutory" ? "Statutory Contributions"
+      : "Vendor Expenses";
+    const entryBase = {
+      entryDate: payableData.dueDate,
+      description: `${payableData.type} Payable — ${payableData.description}`,
+      referenceType: "Expense" as const,
+      referenceId: newPayable.payableId,
+      cityId: payableData.cityId,
+      createdAt: new Date().toISOString(),
+    };
+    setLedgerEntries(prev => [...prev,
+      // DR Expense (Account 5xxx)
+      { ...entryBase, ledgerEntryId: `LED-${Date.now()}-DR`, accountCode: expenseAccountCode, accountName: expenseAccountName, entryType: "DEBIT" as const, amount: payableData.amount },
+      // CR Payable Liability (Account 2000)
+      { ...entryBase, ledgerEntryId: `LED-${Date.now() + 1}-CR`, accountCode: "2000", accountName: "Accounts Payable", entryType: "CREDIT" as const, amount: payableData.amount },
+    ]);
+
     return newPayable;
   };
 
@@ -371,12 +417,29 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     paymentReference: string,
     paymentMethod: Payable["paymentMethod"]
   ) => {
+    const payable = payables.find(p => p.payableId === payableId);
     updatePayable(payableId, {
       status: "Paid",
       paidAt: new Date().toISOString(),
       paymentReference,
       paymentMethod,
     });
+    // Settlement entry: DR Payable (clears liability), CR Bank
+    if (payable) {
+      const today = new Date().toISOString().split("T")[0];
+      const entryBase = {
+        entryDate: today,
+        description: `Payment — ${payable.description} (Ref: ${paymentReference})`,
+        referenceType: "Payment" as const,
+        referenceId: payableId,
+        cityId: payable.cityId,
+        createdAt: new Date().toISOString(),
+      };
+      setLedgerEntries(prev => [...prev,
+        { ...entryBase, ledgerEntryId: `LED-${Date.now()}-DR`, accountCode: "2000", accountName: "Accounts Payable", entryType: "DEBIT" as const, amount: payable.amount },
+        { ...entryBase, ledgerEntryId: `LED-${Date.now() + 1}-CR`, accountCode: "1000", accountName: "Bank Account", entryType: "CREDIT" as const, amount: payable.amount },
+      ]);
+    }
   };
 
   const approvePayable = (payableId: string, approvedBy: string) => {
@@ -387,25 +450,25 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const getSalaryPayables = (): Payable[] => {
-    return payables.filter((p) => p.type === "Salary");
+  const getSalaryPayables = (cityId?: string): Payable[] => {
+    return payables.filter((p) => p.type === "Salary" && (!cityId || p.cityId === cityId));
   };
 
-  const getVendorPayables = (): Payable[] => {
-    return payables.filter((p) => p.type === "Vendor");
+  const getVendorPayables = (cityId?: string): Payable[] => {
+    return payables.filter((p) => p.type === "Vendor" && (!cityId || p.cityId === cityId));
   };
 
-  const getStatutoryPayables = (): Payable[] => {
-    return payables.filter((p) => p.type === "Statutory");
+  const getStatutoryPayables = (cityId?: string): Payable[] => {
+    return payables.filter((p) => p.type === "Statutory" && (!cityId || p.cityId === cityId));
   };
 
-  const getPendingPayables = (): Payable[] => {
-    return payables.filter((p) => p.status === "Pending" || p.status === "Approved");
+  const getPendingPayables = (cityId?: string): Payable[] => {
+    return payables.filter((p) => ["Pending","Approved"].includes(p.status) && (!cityId || p.cityId === cityId));
   };
 
-  const getOverduePayables = (): Payable[] => {
+  const getOverduePayables = (cityId?: string): Payable[] => {
     const today = new Date().toISOString().split("T")[0];
-    return payables.filter((p) => p.status !== "Paid" && p.dueDate < today);
+    return payables.filter((p) => p.status !== "Paid" && p.dueDate < today && (!cityId || p.cityId === cityId));
   };
 
   // Revenue Operations
@@ -416,6 +479,24 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
     };
     setRevenues((prev) => [...prev, newRevenue]);
+
+    // Auto-post double-entry ledger entries
+    const entryBase = {
+      entryDate: revenueData.receivedDate,
+      description: `Revenue — ${revenueData.type} (${revenueData.invoiceNumber || newRevenue.revenueId})`,
+      referenceType: "Invoice" as const,
+      referenceId: newRevenue.revenueId,
+      cityId: revenueData.cityId,
+      serviceType: revenueData.type,
+      createdAt: new Date().toISOString(),
+    };
+    setLedgerEntries(prev => [...prev,
+      // DR Bank/Receivable (Account 1100)
+      { ...entryBase, ledgerEntryId: `LED-${Date.now()}-DR`, accountCode: "1100", accountName: "Accounts Receivable", entryType: "DEBIT" as const, amount: revenueData.amount },
+      // CR Revenue (Account 4100)
+      { ...entryBase, ledgerEntryId: `LED-${Date.now() + 1}-CR`, accountCode: "4100", accountName: "Service Revenue", entryType: "CREDIT" as const, amount: revenueData.amount },
+    ]);
+
     return newRevenue;
   };
 
@@ -496,30 +577,35 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   };
 
   // ✅ EBITDA + MARGIN ANALYTICS (MC-06)
-  const calculateEBITDA = (cityId: string): number => {
-    const cityRevenues = getRevenueByCity(cityId);
-    const cityPayables = getPayablesByCity(cityId);
+  const calculateEBITDA = (cityId: string, month?: string): number => {
+    const cityRevenues = getRevenueByCity(cityId)
+      .filter(r => r.status === "Received" && (!month || r.receivedDate.startsWith(month)));
+    const cityPayables = getPayablesByCity(cityId)
+      .filter(p => p.status === "Paid" && (!month || p.paidAt?.startsWith(month)));
 
     const totalRevenue = cityRevenues.reduce((sum, r) => sum + r.amount, 0);
     const totalExpenses = cityPayables.reduce((sum, p) => sum + p.amount, 0);
-
     return totalRevenue - totalExpenses;
   };
 
-  const calculateMargin = (cityId: string): number => {
-    const cityRevenues = getRevenueByCity(cityId);
+  const calculateMargin = (cityId: string, month?: string): number => {
+    const cityRevenues = getRevenueByCity(cityId)
+      .filter(r => r.status === "Received" && (!month || r.receivedDate.startsWith(month)));
     const totalRevenue = cityRevenues.reduce((sum, r) => sum + r.amount, 0);
 
     if (totalRevenue === 0) return 0;
 
-    const ebitda = calculateEBITDA(cityId);
+    const ebitda = calculateEBITDA(cityId, month);
     return (ebitda / totalRevenue) * 100;
   };
 
-  const getCityFinancialSnapshot = (cityId: string): CityFinancialSnapshot => {
-    const cityRevenues = getRevenueByCity(cityId);
-    const cityMRR = getMRRByCity(cityId);
-    const cityPayables = getPayablesByCity(cityId);
+  const getCityFinancialSnapshot = (cityId: string, month?: string): CityFinancialSnapshot => {
+    const cityRevenues = getRevenueByCity(cityId)
+      .filter(r => r.status === "Received" && (!month || r.receivedDate.startsWith(month)));
+    const cityMRR = getMRRByCity(cityId)
+      .filter(m => !month || m.month === month);
+    const cityPayables = getPayablesByCity(cityId)
+      .filter(p => p.status === "Paid" && (!month || p.paidAt?.startsWith(month)));
 
     const totalRevenue = cityRevenues.reduce((sum, r) => sum + r.amount, 0);
     const totalMRR = cityMRR.reduce((sum, m) => sum + m.revenue, 0);
@@ -774,6 +860,30 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       });
     }
 
+    // RULE 6: No revenue recorded this month (possible data entry gap)
+    const thisMonthRevenue = getRevenueByCity(cityId)
+      .filter(r => r.receivedDate.startsWith(currentMonth));
+    if (thisMonthRevenue.length === 0) {
+      newAlerts.push({
+        alertId: `ALERT-${Date.now()}-norev`,
+        cityId, type: "LOW_REVENUE",
+        message: `No revenue recorded for ${currentMonth}. Check if subscription payments have been entered.`,
+        severity: "HIGH", createdAt: now,
+      });
+    }
+
+    // RULE 7: Overdue payables exist
+    const overduePayables = getOverduePayables(cityId);
+    if (overduePayables.length > 0) {
+      const totalOverdue = overduePayables.reduce((s, p) => s + p.amount, 0);
+      newAlerts.push({
+        alertId: `ALERT-${Date.now()}-overdue`,
+        cityId, type: "EXPENSE_SPIKE",
+        message: `${overduePayables.length} overdue payables totalling ₹${(totalOverdue / 1000).toFixed(1)}K. Immediate payment required.`,
+        severity: overduePayables.length > 3 ? "HIGH" : "MEDIUM", createdAt: now,
+      });
+    }
+
     // Prevent duplicate alerts (check for same type in last hour)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const recentAlertTypes = alerts
@@ -925,32 +1035,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return recommendations.filter(r => r.cityId === cityId);
   };
 
-  // Auto-run alert engine when financial data changes
-  useEffect(() => {
-    // Get all unique cities from current data
-    const cities = new Set([
-      ...revenues.map(r => r.cityId),
-      ...payables.map(p => p.cityId),
-    ]);
-
-    cities.forEach(cityId => {
-      runAlertEngine(cityId);
-    });
-  }, [revenues, payables, budgets]); // Run when finance data or budgets change
-
-  // Auto-run decision engine when financial data changes
-  useEffect(() => {
-    // Get all unique cities from current data
-    const cities = new Set([
-      ...revenues.map(r => r.cityId),
-      ...payables.map(p => p.cityId),
-    ]);
-
-    cities.forEach(cityId => {
-      runDecisionEngine(cityId);
-    });
-  }, [revenues, payables]); // Run when revenue or expense data changes
-
   return (
     <FinanceContext.Provider
       value={{
@@ -1020,19 +1104,28 @@ export function useFinance() {
   const context = useContext(FinanceContext);
   if (!context) {
     // PREVIEW FALLBACK: Safe no-op defaults for Figma Make iframe and dev HMR
-    if (import.meta.hot || !import.meta.env?.PROD) {
-      const noop = () => { console.warn("[Context] called outside provider."); return null as any; };
-      return {
-        mrrData: [], addMRREntry: noop, updateMRR: () => {}, removeMRREntry: () => {},
-        getMRRForMonth: () => [], getTotalMRR: () => 0,
-        payables: [], createPayable: noop, updatePayable: () => {}, markAsPaid: () => {},
-        approvePayable: () => {}, getSalaryPayables: () => [], getVendorPayables: () => [],
-        getStatutoryPayables: () => [], getPendingPayables: () => [], getOverduePayables: () => [],
-        revenues: [], recordRevenue: noop, getRevenueForMonth: () => [], getTotalRevenue: () => 0,
-        ledgerEntries: [], createLedgerEntry: noop, getLedgerEntriesByAccount: () => [],
-      } as any;
-    }
-    console.warn("[Context] called outside provider — using safe defaults."); return null as any;
+    const noop = (): any => { console.warn("FinanceContext not available"); return {}; };
+    const noopArray = () => [];
+    const noopNumber = () => 0;
+    return {
+      mrrData: [], addMRREntry: noop, updateMRR: noop, removeMRREntry: noop,
+      getMRRForMonth: noopArray, getTotalMRR: noopNumber,
+      payables: [], createPayable: noop, updatePayable: noop, markAsPaid: noop,
+      approvePayable: noop, getSalaryPayables: noopArray, getVendorPayables: noopArray,
+      getStatutoryPayables: noopArray, getPendingPayables: noopArray, getOverduePayables: noopArray,
+      revenues: [], recordRevenue: noop, getRevenueForMonth: noopArray, getTotalRevenue: noopNumber,
+      ledgerEntries: [], createLedgerEntry: noop, getLedgerEntriesByAccount: noopArray,
+      getLedgerEntriesForPeriod: noopArray, getRevenueFromLedger: noopNumber, getExpensesFromLedger: noopNumber,
+      getMRRByCity: noopArray, getRevenueByCity: noopArray, getPayablesByCity: noopArray, getLedgerEntriesByCity: noopArray,
+      calculateEBITDA: noopNumber, calculateMargin: noopNumber,
+      getCityFinancialSnapshot: () => ({ cityId: '', totalRevenue: 0, totalMRR: 0, totalExpenses: 0, ebitda: 0, margin: 0 }),
+      getMultiCityDashboard: noopArray, getRevenueBreakdown: () => ({}), getExpenseBreakdown: () => ({}), getMonthlyTrend: () => ({}),
+      budgets: [], setBudget: noop, updateBudget: noop, getBudget: () => undefined,
+      getForecast: () => ({ cityId: '', month: '', projectedRevenue: 0, projectedExpenses: 0, projectedProfit: 0, confidence: 0 }),
+      getVariance: () => null,
+      alerts: [], runAlertEngine: noop, acknowledgeAlert: noop, getActiveAlerts: noopArray,
+      recommendations: [], runDecisionEngine: noop, getRecommendations: noopArray,
+    } as any;
   }
   return context;
 }

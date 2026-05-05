@@ -116,14 +116,14 @@ export function CostPerWashCompany() {
 
   const zones = [
     "All Zones",
-    "Koramangala (560034)",
-    "Indiranagar (560038)",
-    "HSR Layout (560102)",
-    "Whitefield (560066)",
-    "JP Nagar (560078)",
+    "Adajan (395001)",
+    "Althan (395005)",
+    "Vesu (395007)",
+    "Bandra (400001)",
+    "Navrangpura (380001)",
   ];
 
-  const cities = ["All Cities", "Bangalore", "Mumbai", "Delhi", "Pune", "Hyderabad"];
+  const cities = ["All Cities", "Surat", "Mumbai", "Ahmedabad"];
 
   const periods = [
     "This Month",

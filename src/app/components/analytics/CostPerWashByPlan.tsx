@@ -57,6 +57,8 @@ import {
 } from "../../data/costData";
 import { PLAN_TYPES, VEHICLE_CATEGORIES, type PlanType } from "../../data/subscriptionPlans";
 import { usePlanDefinitions } from "../../contexts/PlanDefinitionContext";
+import { useInventory } from "../../contexts/InventoryContext";
+import { useCity } from "../../contexts/CityContext";
 import {
   calculateCostPerWash as calculateCostPerWashCentral,
   type CostCalculationInputs,
@@ -83,8 +85,20 @@ interface ConsumptionData {
 
 function CostPerWashByPlan() {
   const { getPlanPrice, vehicleCategories } = usePlanDefinitions();
+  const { getCentralStock } = useInventory();
+  const { city } = useCity();
   const [selectedVehicle, setSelectedVehicle] = useState<string>(vehicleCategories[0]);
-  
+
+  // Override MATERIALS costs with real inventory unit costs
+  const realMaterialCosts = useMemo(() => {
+    const items = getCentralStock(city);
+    const costMap: Record<string, number> = {};
+    items.forEach(item => {
+      costMap[item.itemName] = item.unitCost;
+    });
+    return costMap;
+  }, [city, getCentralStock]);
+
   // Consumption multipliers (1.0 = ideal, >1.0 = overconsumption)
   const [consumptionMultipliers, setConsumptionMultipliers] = useState<Record<PlanType, number>>({
     "Basic": 1.0,
@@ -100,7 +114,18 @@ function CostPerWashByPlan() {
     // PHASE 2: Use central cost engine for calculations
 
     // Get base costs from centralized data
-    const idealMaterialCost = calculateMaterialCost(planType);
+    let idealMaterialCost = calculateMaterialCost(planType);
+
+    // Override with real inventory prices where available
+    const adjustedCost = MATERIALS.reduce((total, mat) => {
+      const realCost = realMaterialCosts[mat.name];
+      const unitCost = realCost !== undefined ? realCost / (mat.quantityPerWash * 100) : mat.costPerWash;
+      return total + unitCost;
+    }, 0);
+    if (adjustedCost > 0) {
+      idealMaterialCost = adjustedCost;
+    }
+
     const idealConsumablesCost = calculateConsumablesCost();
 
     // Actual costs based on washer consumption

@@ -137,7 +137,7 @@ export function EventSystemProvider({ children }: { children: ReactNode }) {
 export function useEvents() {
   const context = useContext(EventSystemContext);
   if (!context) {
-    console.warn("[Context] called outside provider — using safe defaults."); return null as any;
+    throw new Error("useEvents must be used within EventSystemProvider");
   }
   return context;
 }

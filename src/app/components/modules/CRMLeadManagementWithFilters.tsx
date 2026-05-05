@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -81,9 +81,8 @@ export function CRMLeadManagementWithFilters() {
     // Map city name to cityId
     const cityIdMap: Record<string, string> = {
       "surat": "CITY-SURAT",
-      "bangalore": "CITY-BANGALORE",
       "mumbai": "CITY-MUMBAI",
-      "delhi": "CITY-DELHI"
+      "ahmedabad": "CITY-AHMEDABAD",
     };
 
     const cityId = cityIdMap[selectedCity];

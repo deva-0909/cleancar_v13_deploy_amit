@@ -3,8 +3,9 @@
  * Used across: Inventory Module, Requisitions, Issuances, Procurement
  */
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useEvents } from "./EventSystem";
+import { DataService } from "../services/DataService";
 
 // Types
 export interface InventoryItem {
@@ -42,6 +43,7 @@ export interface StockTransaction {
   status: "Pending" | "Approved" | "Rejected" | "Completed";
   createdAt: string;
   completedAt?: string;
+  cityId?: string;
 }
 
 interface InventoryContextType {
@@ -92,7 +94,7 @@ interface InventoryContextType {
   getCentralStock: (cityId: string) => InventoryItem[];
   getSupervisorStock: (supervisorId: string, cityId: string) => InventoryItem[];
   getWasherStock: (washerId: string, cityId: string) => InventoryItem[];
-  getPendingTransactions: () => StockTransaction[];
+  getPendingTransactions: (cityId?: string) => StockTransaction[];
 }
 
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
@@ -103,14 +105,24 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const [inventory, setInventory] = useState<InventoryItem[]>(() => {
     // ✅ PHASE 1: Backward compatibility - normalize existing data
     // If old inventory exists without cityId, default to CITY-SURAT
-    const storedInventory: InventoryItem[] = []; // Would load from DataService in production
+    const storedInventory = DataService.get<InventoryItem>("INVENTORY_ITEMS");
     return storedInventory.map(item => ({
       ...item,
       cityId: item.cityId || DEFAULT_CITY, // ✅ Prevents crash for old data
     }));
   });
-  const [stockTransactions, setStockTransactions] = useState<StockTransaction[]>([]);
+  const [stockTransactions, setStockTransactions] = useState<StockTransaction[]>(() =>
+    DataService.get<StockTransaction>("STOCK_TRANSACTIONS")
+  );
   const { emit } = useEvents();
+
+  useEffect(() => {
+    DataService.setAll("INVENTORY_ITEMS", inventory);
+  }, [inventory]);
+
+  useEffect(() => {
+    DataService.setAll("STOCK_TRANSACTIONS", stockTransactions);
+  }, [stockTransactions]);
 
   // Inventory Item CRUD
   const addInventoryItem = (
@@ -120,7 +132,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     // ✅ SAFETY GUARD: Prevent operations without cityId
     if (!cityId) {
       console.warn("[InventoryContext] Blocked addInventoryItem: cityId missing");
-      console.warn("[Context] called outside provider."); return null as any;
+      throw new Error("cityId is required for inventory operations");
     }
 
     const newItem: InventoryItem = {
@@ -281,6 +293,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       toId,
       requestedBy,
       status: "Pending",
+      cityId,
     });
     // Auto-approve and complete for now (in real app, needs approval workflow)
     approveTransaction(transaction.transactionId, "System");
@@ -341,6 +354,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       toLocation,
       toId,
       status: "Approved",
+      cityId,
     });
     completeTransaction(transaction.transactionId);
   };
@@ -365,6 +379,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       fromLocation: "Central",
       toLocation: "Central",
       status: "Completed",
+      cityId,
     });
 
     // Directly add to central stock (city-filtered)
@@ -381,6 +396,14 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
           : item
       )
     );
+
+    emit("INVENTORY_PROCURED", {
+      itemId, itemName: item.itemName,
+      quantity, supplierId,
+      amount: item.unitCost * quantity,
+      cityId,
+      procuredAt: new Date().toISOString(),
+    }, "InventoryContext");
   };
 
   const adjustStock = (
@@ -430,6 +453,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       toId: locationId,
       reason,
       status: "Completed",
+      cityId,
     });
   };
 
@@ -468,8 +492,10 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const getPendingTransactions = (): StockTransaction[] => {
-    return stockTransactions.filter((t) => t.status === "Pending");
+  const getPendingTransactions = (cityId?: string): StockTransaction[] => {
+    return stockTransactions.filter(t =>
+      t.status === "Pending" && (!cityId || t.cityId === cityId)
+    );
   };
 
   return (
@@ -502,7 +528,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
 export function useInventory() {
   const context = useContext(InventoryContext);
   if (!context) {
-    console.warn("[Context] called outside provider — using safe defaults."); return null as any;
+    throw new Error("useInventory must be used within InventoryProvider");
   }
   return context;
 }

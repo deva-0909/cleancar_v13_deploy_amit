@@ -14,6 +14,7 @@ import { createContext, useContext, useState, ReactNode, useEffect, useCallback 
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 import { useRole } from "./RoleContext";
+import { useFinance } from "./FinanceContext";
 import { calculateStatutoryDeductions, type ComplianceStatus } from "../services/payroll/complianceEngine";
 import { type PayrollStatus, canTransition, canEdit } from "../utils/payrollWorkflow";
 
@@ -163,6 +164,7 @@ const withCityFallback = <T extends { cityId?: string }>(item: T, defaultCityId:
 export function PayrollProvider({ children }: { children: ReactNode }) {
   const { currentUser } = useRole();
   const currentCityId = currentUser.cityId || DEFAULT_CITY;
+  const { createPayable } = useFinance();
 
   const [payrollRuns, setPayrollRuns] = useState<PayrollRun[]>(() => {
     const stored = DataService.get<PayrollRun>("PAYROLL_RUNS");
@@ -266,6 +268,20 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
           } else if (nextStatus === "approved") {
             updated.approvedBy = userId;
             updated.approvedAt = now;
+
+            // Auto-create Salary Payable in FinanceContext
+            if (createPayable) {
+              createPayable({
+                type: "Salary",
+                employeeId: p.employeeId,
+                payrollId: p.payrollId,
+                amount: p.netSalary,
+                dueDate: p.month + "-28",
+                status: "Pending",
+                description: `Salary — ${p.employeeId} — ${p.month}`,
+                cityId: p.cityId,
+              });
+            }
           } else if (nextStatus === "disbursed") {
             updated.disbursedBy = userId;
             updated.disbursedAt = now;
@@ -574,7 +590,7 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
 export function usePayroll() {
   const context = useContext(PayrollContext);
   if (!context) {
-    console.warn("[Context] called outside provider — using safe defaults."); return null as any;
+    throw new Error("usePayroll must be used within PayrollProvider");
   }
   return context;
 }

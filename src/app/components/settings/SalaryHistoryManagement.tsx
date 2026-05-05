@@ -38,8 +38,8 @@ import {
 const EMPLOYEES = [
   { id: "washer-001", name: "Suresh Kumar", role: "Washer", city: "Mumbai" },
   { id: "washer-002", name: "Ramesh Patel", role: "Washer", city: "Mumbai" },
-  { id: "washer-003", name: "Dinesh Sharma", role: "Washer", city: "Pune" },
-  { id: "washer-004", name: "Vijay Singh", role: "Senior Washer", city: "Pune" },
+  { id: "washer-003", name: "Dinesh Sharma", role: "Washer", city: "Surat" },
+  { id: "washer-004", name: "Vijay Singh", role: "Senior Washer", city: "Ahmedabad" },
   { id: "supervisor-001", name: "Karthik Menon", role: "Supervisor", city: "Mumbai" },
 ];
 

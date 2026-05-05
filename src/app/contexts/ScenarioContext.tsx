@@ -39,7 +39,13 @@ export function ScenarioProvider({ children }: { children: ReactNode }) {
 export function useScenario() {
   const context = useContext(ScenarioContext);
   if (!context) {
-    console.warn("[Context] called outside provider — using safe defaults."); return null as any;
+    // Return safe defaults when provider is not available
+    return {
+      scenario: "normal" as Scenario,
+      setScenario: () => {},
+      scenarioData: getScenarioData("normal"),
+      isScenarioActive: (scenarioName: Scenario) => scenarioName === "normal",
+    };
   }
   return context;
 }

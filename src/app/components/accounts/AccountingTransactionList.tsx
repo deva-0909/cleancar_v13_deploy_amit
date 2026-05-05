@@ -8,7 +8,7 @@ import {
   type PaymentMode,
   CHART_OF_ACCOUNTS_HEADS,
 } from "../../services/accountingEntryService";
-import { Download, Upload, Eye, Edit, FileText, X } from "lucide-react";
+import { Download, Upload, Eye, Edit, FileText, X, RefreshCw } from "lucide-react";
 
 const ENTRY_TYPE_COLORS: Record<EntryType, string> = {
   Expense: "bg-red-100 text-red-800",
@@ -22,6 +22,7 @@ const ENTRY_TYPE_COLORS: Record<EntryType, string> = {
 export function AccountingTransactionList() {
   const { city } = useCity();
   const [entries, setEntries] = useState<AccountingEntry[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Filters
   const [dateFrom, setDateFrom] = useState("");
@@ -41,7 +42,14 @@ export function AccountingTransactionList() {
   useEffect(() => {
     const allEntries = accountingEntryService.getAllEntries(city);
     setEntries(allEntries);
-  }, [city]);
+  }, [city, refreshKey]); // re-fetch when city changes or refresh triggered
+
+  // Refresh when component gains focus (user navigated back from AccountingEntry)
+  useEffect(() => {
+    const handleFocus = () => setRefreshKey(k => k + 1);
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
 
   // Filtered entries
   const filteredEntries = useMemo(() => {
@@ -106,6 +114,13 @@ export function AccountingTransactionList() {
           <p className="text-sm text-gray-600">Master transaction register</p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setRefreshKey(k => k + 1)}
+            className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </button>
           <button
             onClick={exportCSV}
             className="flex items-center gap-2 px-4 py-2 border rounded text-blue-600 hover:bg-blue-50"

@@ -5,9 +5,33 @@ import { Badge } from "../ui/badge";
 import { Plus, FileText, Package, CheckCircle } from "lucide-react";
 import { useRole } from "../../contexts/RoleContext";
 import { mockMRFs, mockPurchaseRequests } from "../../lib/materialRequisition";
+import { useInventory } from "../../contexts/InventoryContext";
+import { useCity } from "../../contexts/CityContext";
+import { useEmployee } from "../../contexts/EmployeeContext";
 
 export function MaterialRequisition() {
   const { currentRole } = useRole();
+  const { stockTransactions, getPendingTransactions, procureInventory,
+          getCentralStock, inventory } = useInventory();
+  const { city, cityInfo } = useCity();
+  const { employees } = useEmployee();
+
+  // Derive MRFs from pending stock transactions
+  const liveMRFs = getPendingTransactions(city).map(t => {
+    const item = inventory.find(i => i.itemId === t.itemId && i.cityId === city);
+    return {
+      id: t.transactionId,
+      itemName: item?.itemName || t.itemId,
+      quantity: t.quantity,
+      requestedBy: t.requestedBy || "Unknown",
+      status: t.status,
+      createdAt: t.createdAt,
+      type: t.type,
+    };
+  });
+
+  // Use live MRFs — fall back to mock only if empty (for demo)
+  const displayMRFs = liveMRFs.length > 0 ? liveMRFs : mockMRFs;
   
   const canCreateMRF = ["Supervisor", "Operations Manager", "Store Manager"].includes(currentRole);
   const canApproveMRF = ["Store Manager"].includes(currentRole);
@@ -37,7 +61,7 @@ export function MaterialRequisition() {
             Material Requisition Forms (MRF)
           </h3>
           <div className="space-y-3">
-            {mockMRFs.map((mrf) => (
+            {displayMRFs.map((mrf) => (
               <div 
                 key={mrf.id} 
                 className={`p-4 rounded-lg border-2 ${

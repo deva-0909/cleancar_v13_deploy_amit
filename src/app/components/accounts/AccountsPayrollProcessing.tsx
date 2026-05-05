@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { DollarSign, CheckCircle2, ArrowRight, PlusCircle, MinusCircle } from "lucide-react";
@@ -20,6 +20,8 @@ import type { PayrollSnapshot } from "../payroll/PayrollSnapshot";
 import { toast } from "sonner";
 import { otherAdjustmentsService } from "../../services/otherAdjustmentsService";
 import { useCity } from "../../contexts/CityContext";
+import { usePayroll } from "../../contexts/PayrollContext";
+import { useEmployee } from "../../contexts/EmployeeContext";
 
 // Mock snapshot data (same data, but status = approved)
 const getMockSnapshot = (cityName: string): PayrollSnapshot => ({
@@ -101,7 +103,48 @@ const getMockSnapshot = (cityName: string): PayrollSnapshot => ({
 export function AccountsPayrollProcessing() {
   const navigate = useNavigate();
   const { city, cityInfo } = useCity();
-  const [snapshot, setSnapshot] = useState<PayrollSnapshot>(() => getMockSnapshot(cityInfo.displayName));
+  const { payrollRuns } = usePayroll();
+  const { employees } = useEmployee();
+
+  // Get the latest approved payroll run for this city
+  const latestRun = [...payrollRuns]
+    .filter(r => r.cityId === city && r.status === "Approved")
+    .sort((a, b) => b.processedAt.localeCompare(a.processedAt))[0];
+
+  const snapshot = latestRun ? {
+    id: latestRun.id,
+    month: latestRun.month,
+    year: String(latestRun.year),
+    city: cityInfo.displayName,
+    status: latestRun.status.toLowerCase() as "approved" | "paid",
+    employees: (latestRun.employees || []).map((emp: any) => {
+      const empDetails = employees.find(e => e.employeeId === emp.employeeId);
+      return {
+        snapshotId: `SNAP-${latestRun.id}-${emp.employeeId}`,
+        employeeId: emp.employeeId,
+        employeeName: empDetails ? `${empDetails.firstName} ${empDetails.lastName}` : emp.employeeId,
+        role: empDetails?.designation || "Employee",
+        bankName: empDetails?.bankDetails?.bankName || "",
+        accountNumber: empDetails?.bankDetails?.accountNumber || "",
+        ifscCode: empDetails?.bankDetails?.ifscCode || "",
+        basePay: emp.grossSalary || 0,
+        incentive: emp.incentiveAmount || 0,
+        deductions: (emp.deductions?.pf_employee || 0) + (emp.deductions?.esic || 0) + (emp.deductions?.pt || 0),
+        totalPay: emp.netSalary || 0,
+        generatedAt: latestRun.processedAt,
+        generatedBy: "Payroll Engine",
+        units: 0,
+        validUnits: 0,
+        complianceScore: 0,
+        complianceAdjustment: 0,
+      };
+    }),
+    totalEmployees: (latestRun.employees || []).length,
+    totalPayout: (latestRun.employees || []).reduce((sum: number, e: any) => sum + (e.netSalary || 0), 0),
+    generatedAt: latestRun.processedAt,
+    generatedBy: "Payroll Processing Engine",
+  } : null;
+
   const [adjustmentsSummary, setAdjustmentsSummary] = useState({
     advances: 0,
     otherEarnings: 0,
@@ -149,6 +192,27 @@ export function AccountsPayrollProcessing() {
 
     toast.success("Payroll marked as paid successfully");
   };
+
+  if (!snapshot) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Accounts Payroll Processing</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Process approved payroll payments
+            </p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="p-12 text-center">
+            <p className="text-gray-500">No approved payroll runs found for this city.</p>
+            <p className="text-sm text-gray-400 mt-2">Approved payroll runs will appear here for processing.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">

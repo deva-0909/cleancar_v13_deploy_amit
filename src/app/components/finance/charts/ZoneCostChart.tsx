@@ -30,12 +30,11 @@ export function ZoneCostChart({ period }: ZoneCostChartProps) {
   const [showPreview, setShowPreview] = useState(false);
 
   const zoneData = [
-    { zone: "560066 (Whitefield)", cost: 94.5, standard: 89.5 },
-    { zone: "560038 (Indiranagar)", cost: 92.8, standard: 89.5 },
-    { zone: "560034 (Koramangala)", cost: 91.2, standard: 89.5 },
-    { zone: "560078 (JP Nagar)", cost: 90.3, standard: 89.5 },
-    { zone: "560102 (HSR Layout)", cost: 88.5, standard: 89.5 },
-    { zone: "560095 (Banashankari)", cost: 87.2, standard: 89.5 },
+    { zone: "395001 (Adajan)", cost: 91.2, standard: 89.5 },
+    { zone: "395005 (Althan)", cost: 88.4, standard: 89.5 },
+    { zone: "395007 (Vesu)", cost: 92.8, standard: 89.5 },
+    { zone: "400001 (Bandra)", cost: 97.6, standard: 89.5 },
+    { zone: "380001 (Navrangpura)", cost: 87.9, standard: 89.5 },
   ].sort((a, b) => b.cost - a.cost); // Sort by cost descending
 
   const getBarColor = (cost: number, standard: number) => {

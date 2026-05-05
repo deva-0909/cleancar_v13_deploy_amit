@@ -68,9 +68,13 @@ import {
   calculateCostPerWash as calculateCostPerWashCentral,
   type CostCalculationInputs,
 } from "../../services/centralCostEngine";
+import { usePayroll } from "../../contexts/PayrollContext";
+import { useEmployee } from "../../contexts/EmployeeContext";
+import { useJobs } from "../../contexts/JobContext";
+import { useCity } from "../../contexts/CityContext";
 
 // City type
-type City = "ALL" | "SURAT" | "AHMEDABAD" | "BARODA";
+type City = "ALL" | "SURAT" | "MUMBAI" | "AHMEDABAD";
 
 // Labour cost data by city - From analyticsEngine
 interface LabourCostData {
@@ -86,46 +90,6 @@ interface LabourCostData {
   labourEfficiencyScore: number;   // Derived: target vs actual
 }
 
-// Mock city data - In production from analyticsEngine
-const CITY_LABOUR_DATA: LabourCostData[] = [
-  {
-    city: "SURAT",
-    totalLabourCost: 285000,
-    unitsCompleted: 1850,
-    labourCostPerWash: 154,
-    washerCost: 180000,
-    supervisorCost: 65000,
-    managerCost: 25000,
-    incentiveCost: 15000,
-    avgWashesPerWasher: 185,
-    labourEfficiencyScore: 92,
-  },
-  {
-    city: "AHMEDABAD",
-    totalLabourCost: 398000,
-    unitsCompleted: 2650,
-    labourCostPerWash: 150,
-    washerCost: 252000,
-    supervisorCost: 90000,
-    managerCost: 35000,
-    incentiveCost: 21000,
-    avgWashesPerWasher: 191,
-    labourEfficiencyScore: 96,
-  },
-  {
-    city: "BARODA",
-    totalLabourCost: 248000,
-    unitsCompleted: 1380,
-    labourCostPerWash: 180,
-    washerCost: 156000,
-    supervisorCost: 58000,
-    managerCost: 22000,
-    incentiveCost: 12000,
-    avgWashesPerWasher: 172,
-    labourEfficiencyScore: 86,
-  },
-];
-
 // Labour cost breakdown colors
 const ROLE_COLORS = {
   washer: "#3b82f6",      // Blue
@@ -136,6 +100,64 @@ const ROLE_COLORS = {
 
 function LabourCostPerWash() {
   const [selectedCity, setSelectedCity] = useState<City>("ALL");
+
+  const { payrollRuns } = usePayroll();
+  const { employees } = useEmployee();
+  const { allJobs } = useJobs();
+  const { availableCities } = useCity();
+
+  const CITY_LABOUR_DATA: LabourCostData[] = useMemo(() => {
+    return availableCities.map(cityDef => {
+      const cityId = cityDef.id;
+      const cityName = cityDef.displayName.toUpperCase();
+
+      const cityPayroll = payrollRuns.filter(r => r.cityId === cityId && r.status === "Paid");
+      const cityEmps    = employees.filter(e => (e.workLocation === cityId || e.cityId === cityId) && e.status === "Active");
+      const cityJobs    = allJobs.filter(j => j.cityId === cityId && (j.status === "Completed" || j.status === "Verified"));
+
+      const washerPay     = cityPayroll.filter(r => {
+        const emp = employees.find(e => e.id === r.employeeId);
+        return emp?.designation === "Car Washer";
+      }).reduce((s, r) => s + (r.grossSalary || 0), 0);
+
+      const supervisorPay = cityPayroll.filter(r => {
+        const emp = employees.find(e => e.id === r.employeeId);
+        return emp?.designation === "Supervisor";
+      }).reduce((s, r) => s + (r.grossSalary || 0), 0);
+
+      const managerPay    = cityPayroll.filter(r => {
+        const emp = employees.find(e => e.id === r.employeeId);
+        return emp?.designation?.includes("Manager") || emp?.designation?.includes("Admin");
+      }).reduce((s, r) => s + (r.grossSalary || 0), 0);
+
+      const incentivePay  = cityPayroll.reduce((s, r) => s + (r.incentiveAmount || 0), 0);
+      const totalLabour   = washerPay + supervisorPay + managerPay + incentivePay;
+      const units         = cityJobs.length;
+
+      const cityWashers = cityEmps.filter(e => e.designation === "Car Washer");
+      const washerJobCounts = cityWashers.map(w =>
+        cityJobs.filter(j => j.washerId === w.id).length
+      );
+      const avgWashesPerWasher = cityWashers.length > 0
+        ? Math.round(washerJobCounts.reduce((s, n) => s + n, 0) / cityWashers.length)
+        : 0;
+
+      return {
+        city: cityName as City,
+        totalLabourCost:   totalLabour,
+        unitsCompleted:    units,
+        labourCostPerWash: units > 0 ? Math.round(totalLabour / units) : 0,
+        washerCost:        washerPay,
+        supervisorCost:    supervisorPay,
+        managerCost:       managerPay,
+        incentiveCost:     incentivePay,
+        avgWashesPerWasher,
+        labourEfficiencyScore: avgWashesPerWasher > 0
+          ? Math.min(Math.round((avgWashesPerWasher / 180) * 100), 100)
+          : 0,
+      };
+    });
+  }, [availableCities, payrollRuns, employees, allJobs]);
 
   // PHASE 2: Labour cost calculations use central engine internally
   // Note: CITY_LABOUR_DATA already contains pre-calculated values

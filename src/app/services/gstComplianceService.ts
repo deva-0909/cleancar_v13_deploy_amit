@@ -1,3 +1,12 @@
+// Single source of truth for company GST configuration
+// Update this object for each deployment, never hardcode in components
+export const COMPANY_GST_CONFIG = {
+  stateCode:    "24",
+  stateName:    "Gujarat",
+  gstin:        "24GAOPS5676E1Z3",
+  companyName:  "24/9 Car Washing Private Limited",
+} as const;
+
 export type VendorRiskLevel = "Clean" | "Medium" | "High" | "Critical";
 export type TransactionStatus = "Draft" | "Validated" | "Flagged" | "Approved" | "Filed";
 export type GSTType = "B2B" | "B2C" | "B2CL" | "EXPORT";
@@ -51,6 +60,8 @@ export interface GSTCustomer {
   createdBy: string;
   createdAt: string;
   status: "Active" | "Inactive";
+  cityId: string;
+  city: string;
 }
 
 export interface GSTTransaction {
@@ -92,8 +103,22 @@ export interface GSTTransaction {
   approvedBy?: string;
   approvedAt?: string;
   filedInReturn?: string;
-  month: string;
+  gstr1GeneratedAt?: string;
+  month: number;          // Store as integer 1–12. Never locale string.
   year: number;
+  cityId: string;
+  city: string;
+  supplyNature: "Taxable" | "ZeroRated" | "NilRated" | "Exempt" | "NonGST";
+  changeHistory: GSTChangeLog[];
+}
+
+export interface GSTChangeLog {
+  timestamp: string;
+  changedBy: string;
+  action: string;         // "Submitted" | "Approved" | "Rejected" | "Filed" | "AI Correction Applied" | "Override"
+  previousStatus?: string;
+  newStatus?: string;
+  note?: string;
 }
 
 export interface GSTReconciliationRecord {
@@ -134,13 +159,21 @@ class GSTComplianceService {
     return gstin && gstin.trim().length === 15 ? "B2B" : "B2C";
   }
 
-  calculateGST(taxableValue: number, gstRate: number, supplyState: string, companyState: string)
-    : { cgst: number; sgst: number; igst: number; totalTax: number } {
-    const tax = taxableValue * (gstRate / 100);
-    if (supplyState === companyState) {
-      return { cgst: tax / 2, sgst: tax / 2, igst: 0, totalTax: tax };
+  calculateGST(
+    taxableValue: number,
+    gstRate: number,
+    supplyType: "INTRA_STATE" | "INTER_STATE" | "EXPORT" | "RCM_INTRA" | "RCM_INTER"
+  ): { cgst: number; sgst: number; igst: number; totalTax: number; invoiceTotal: number } {
+    if (gstRate === 0 || supplyType === "EXPORT") {
+      return { cgst: 0, sgst: 0, igst: 0, totalTax: 0, invoiceTotal: taxableValue };
     }
-    return { cgst: 0, sgst: 0, igst: tax, totalTax: tax };
+    const rate = gstRate / 100;
+    const isIntra = supplyType === "INTRA_STATE" || supplyType === "RCM_INTRA";
+    const cgst   = isIntra ? Math.round(taxableValue * rate / 2 * 100) / 100 : 0;
+    const sgst   = isIntra ? Math.round(taxableValue * rate / 2 * 100) / 100 : 0;
+    const igst   = !isIntra ? Math.round(taxableValue * rate * 100) / 100 : 0;
+    const totalTax = cgst + sgst + igst;
+    return { cgst, sgst, igst, totalTax, invoiceTotal: taxableValue + totalTax };
   }
 
   initVendorRisk(gstin: string): number {
@@ -158,8 +191,14 @@ class GSTComplianceService {
   }
 
   getVendors(): GSTVendor[]       { return this.getList<GSTVendor>(this.VENDOR_KEY); }
-  getCustomers(): GSTCustomer[]   { return this.getList<GSTCustomer>(this.CUSTOMER_KEY); }
-  getTransactions(): GSTTransaction[] { return this.getList<GSTTransaction>(this.TXN_KEY); }
+  getCustomers(cityId?: string): GSTCustomer[] {
+    const all = this.getList<GSTCustomer>(this.CUSTOMER_KEY);
+    return cityId ? all.filter(c => c.cityId === cityId) : all;
+  }
+  getTransactions(cityId?: string): GSTTransaction[] {
+    const all = this.getList<GSTTransaction>(this.TXN_KEY);
+    return cityId ? all.filter(t => t.cityId === cityId) : all;
+  }
   getReconciliation(): GSTReconciliationRecord[] { return this.getList<GSTReconciliationRecord>(this.RECON_KEY); }
 
   saveVendor(v: GSTVendor): void {
@@ -187,11 +226,20 @@ class GSTComplianceService {
     this.saveList(this.RECON_KEY, list);
   }
 
-  getTransactionsByMonth(month: string, year: number): GSTTransaction[] {
-    return this.getTransactions().filter(t => t.month === month && t.year === year);
+  getTransactionsByMonth(month: number, year: number, cityId?: string): GSTTransaction[] {
+    return this.getTransactions(cityId).filter(t => t.month === month && t.year === year);
   }
-  getPendingApproval(): GSTTransaction[] {
-    return this.getTransactions().filter(t => t.status === "Validated" || t.status === "Flagged");
+  getPendingApproval(cityId?: string): GSTTransaction[] {
+    return this.getTransactions(cityId).filter(t => t.status === "Validated" || t.status === "Flagged");
+  }
+
+  appendChangeLog(txnId: string, entry: GSTChangeLog): void {
+    const all = this.getTransactions();
+    const idx = all.findIndex(t => t.id === txnId);
+    if (idx < 0) return;
+    const updated = { ...all[idx], changeHistory: [...(all[idx].changeHistory || []), entry] };
+    all.splice(idx, 1, updated);
+    this.saveList(this.TXN_KEY, all);
   }
 }
 

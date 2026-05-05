@@ -4,7 +4,7 @@
  * All buttons are functional and connected to services
  */
 
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { WasherHomeDashboard, type DayStatus } from "./WasherHomeDashboard";
 import { useWasher, useWasherStats } from "../../contexts/WasherContext";
 import { useRole } from "../../contexts/RoleContext";

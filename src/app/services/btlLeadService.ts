@@ -750,6 +750,35 @@ class BTLLeadService {
       notes: `BTL lead captured by ${supervisorName}. Interest: ${interestLevel}. GPS: ${gpsLocation.lat.toFixed(4)}, ${gpsLocation.lng.toFixed(4)}. ${tseAssignment.message}`
     };
 
+    // Persist to localStorage under the same key CustomerContext reads from
+    const STORAGE_KEY = "LEADS";
+    try {
+      const existing = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      const duplicate = existing.find((l: any) => l.phone === crmLead.mobile);
+      if (!duplicate) {
+        existing.push({
+          ...crmLead,
+          leadId: crmLead.id || `BTL-${Date.now()}`,
+          firstName: name.split(" ")[0],
+          lastName: name.split(" ").slice(1).join(" ") || name.split(" ")[0],
+          phone: mobile,
+          email: "",
+          cityId: "surat",
+          city: "Surat",
+          stage: "new",
+          source: "BTL",
+          address: { line1: "", line2: "", area, city: "Surat", state: "Gujarat", pinCode: pincode },
+          vehicleCategory: carTypeMap[vehicleType],
+          planOfInterest: "CleanCar Basic",
+          createdAt: now.toISOString(),
+          assignedTo: assignedTSE,
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+      }
+    } catch (e) {
+      console.error("BTL lead persist failed", e);
+    }
+
     // Push to central CRM lead storage
     MASTER_LEADS.push(crmLead);
 

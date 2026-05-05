@@ -25,7 +25,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useRole } from "../../contexts/RoleContext";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import {
   ALL_PLAN_VERSIONS,
   getActivePlanVersion,

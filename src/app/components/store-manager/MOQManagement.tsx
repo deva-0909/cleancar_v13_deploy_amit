@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "../ui/table";
 import { Search, Save, AlertTriangle, Package, Edit2, Check, X } from "lucide-react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 
 interface Product {
   id: string;

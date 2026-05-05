@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useCustomers } from "../../contexts/CustomerContext";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -113,7 +114,33 @@ type ActivityTimelineProps = {
 };
 
 export function ActivityTimeline({ leadId, leadName }: ActivityTimelineProps) {
-  const [activities, setActivities] = useState<Activity[]>(mockActivities);
+  const { leads, appendLeadActivity } = useCustomers();
+  const lead = leads.find(l => l.leadId === leadId);
+  const realTimeline = lead?.timeline || [];
+
+  // Map LeadActivity to Activity format for display
+  const [activities, setActivities] = useState<Activity[]>(() =>
+    realTimeline.map(t => ({
+      id: t.id,
+      type: t.type,
+      title: t.description,
+      description: t.outcome || t.nextAction || "",
+      timestamp: t.timestamp,
+      status: "completed" as const,
+      performedBy: t.performedBy,
+      reminderSent: false,
+    }))
+  );
+
+  // Sync when lead timeline changes
+  useEffect(() => {
+    const updated = (lead?.timeline || []).map(t => ({
+      id: t.id, type: t.type, title: t.description,
+      description: t.outcome || "", timestamp: t.timestamp,
+      status: "completed" as const, performedBy: t.performedBy, reminderSent: false,
+    }));
+    setActivities(updated);
+  }, [lead?.timeline?.length]);
   const [showAddActivity, setShowAddActivity] = useState(false);
   const [activityType, setActivityType] = useState<ActivityType>("call");
   const [activityTitle, setActivityTitle] = useState("");
@@ -122,25 +149,24 @@ export function ActivityTimeline({ leadId, leadName }: ActivityTimelineProps) {
   const [scheduledTime, setScheduledTime] = useState("");
   const [sendReminder, setSendReminder] = useState(true);
 
+  const addActivity = (text: string) => {
+    appendLeadActivity(leadId, {
+      timestamp: new Date().toISOString(),
+      type: "note",
+      description: text,
+      performedBy: "TSE",
+    });
+  };
+
   const handleAddActivity = () => {
-    const now = new Date();
-    const timestamp = scheduledDate && scheduledTime
-      ? `${scheduledDate} ${scheduledTime}`
-      : now.toISOString().split('T')[0] + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-
-    const newActivity: Activity = {
-      id: `ACT${String(activities.length + 1).padStart(3, '0')}`,
+    appendLeadActivity(leadId, {
+      timestamp: new Date().toISOString(),
       type: activityType,
-      title: activityTitle,
-      description: activityDescription,
-      timestamp,
-      status: scheduledDate && scheduledTime ? "scheduled" : "completed",
-      performedBy: "Current User",
-      reminderSent: scheduledDate && scheduledTime ? sendReminder : undefined,
-    };
+      description: `${activityTitle}: ${activityDescription}`,
+      performedBy: "TSE",
+      outcome: scheduledDate && scheduledTime ? `Scheduled for ${scheduledDate} ${scheduledTime}` : undefined,
+    });
 
-    setActivities([newActivity, ...activities]);
-    
     // Reset form
     setActivityTitle("");
     setActivityDescription("");
@@ -152,7 +178,7 @@ export function ActivityTimeline({ leadId, leadName }: ActivityTimelineProps) {
     // Show success message
     alert(
       scheduledDate && scheduledTime
-        ? `Follow-up scheduled for ${timestamp}${sendReminder ? '. Reminder will be sent 1 hour before.' : ''}`
+        ? `Follow-up scheduled for ${scheduledDate} ${scheduledTime}${sendReminder ? '. Reminder will be sent 1 hour before.' : ''}`
         : `Activity logged successfully!`
     );
   };

@@ -8,7 +8,7 @@ unauthenticated users to login.
 Create a new file with this complete component:
  
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { Building2, Eye, EyeOff, Phone, Lock, AlertTriangle, ArrowRight } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";

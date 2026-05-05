@@ -235,9 +235,9 @@ export function ExportWithFilters({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               >
                 <option value="">All Cities</option>
-                <option value="CITY-001">Mumbai</option>
-                <option value="CITY-002">Delhi</option>
-                <option value="CITY-003">Bangalore</option>
+                <option value="CITY-SURAT">Surat</option>
+                <option value="CITY-MUMBAI">Mumbai</option>
+                <option value="CITY-AHMEDABAD">Ahmedabad</option>
               </select>
             </div>
           )}

@@ -140,8 +140,11 @@ class AnalyticsServiceClass {
     const totalRevenue = conversionEvents.reduce((sum, e) => sum + (e.data.revenue || 0), 0);
     const averageRevenue = totalConversions > 0 ? totalRevenue / totalConversions : 0;
 
-    // Calculate conversion rate (would need total leads count in real app)
-    const conversionRate = 0; // Placeholder - would calculate from leads
+    // Calculate conversion rate from all leads vs converted leads
+    const allLeadEvents = this.getEvents("LEAD_CREATED").length;
+    const conversionRate = allLeadEvents > 0
+      ? Math.round((totalConversions / allLeadEvents) * 100 * 10) / 10
+      : 0;
 
     // Calculate TSE performance
     const tsePerformance = new Map<string, { name: string; conversions: number; revenue: number }>();

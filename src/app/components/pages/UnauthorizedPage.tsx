@@ -8,7 +8,7 @@
  * 3. Manual redirect from route guards
  */
 
-import { Link, useNavigate, useLocation } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useRole } from "../../contexts/RoleContext";
 import { Shield, Home, ArrowLeft } from "lucide-react";
 import { Button } from "../ui/button";

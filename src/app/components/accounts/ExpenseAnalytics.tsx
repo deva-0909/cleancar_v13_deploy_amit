@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "../ui/table";
 import { Filter, Download, FileText, Eye } from "lucide-react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend

@@ -130,9 +130,9 @@ export function LeadConversionModal({ lead, open, onOpenChange, onSuccess }: Lea
         },
         vehicleDetails: {
           category: lead.carType,
-          brand: "Unknown",
-          color: "Unknown",
-          registrationNumber: "Unknown",
+          brand: lead.vehicleDetails?.brand || "",
+          color: lead.vehicleDetails?.color || "",
+          registrationNumber: lead.vehicleDetails?.registrationNumber || "",
         },
         leadSource: lead.leadSource,
         status: "Demo Completed" as const,
@@ -181,6 +181,13 @@ export function LeadConversionModal({ lead, open, onOpenChange, onSuccess }: Lea
           </DialogHeader>
 
           <div className="space-y-6 py-4">
+            {/* Vehicle Details Warning */}
+            {!lead.vehicleDetails?.registrationNumber && (
+              <div className="text-amber-700 bg-amber-50 border border-amber-200 rounded p-3 text-sm mb-3">
+                ⚠️ Vehicle registration not captured. The washer will not have vehicle identification. Consider updating before conversion.
+              </div>
+            )}
+
             {/* Payment Section */}
             <Card className="p-4 border-2 border-purple-200 bg-purple-50">
               <div className="flex items-center gap-2 mb-3">

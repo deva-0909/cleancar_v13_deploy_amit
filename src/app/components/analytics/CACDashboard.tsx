@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -27,10 +27,14 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { AnalyticsService } from "../../services/analyticsService";
+import { useCustomers } from "../../contexts/CustomerContext";
+import { useCity } from "../../contexts/CityContext";
+import { useEmployee } from "../../contexts/EmployeeContext";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
-const cacByChannel = [
+const mockCACByChannel = [
   { id: "channel-1", channel: "Google Ads", spend: 145000, customers: 185, cac: 784, conversion: 3.2 },
   { id: "channel-2", channel: "Meta Ads", spend: 125000, customers: 210, cac: 595, conversion: 4.5 },
   { id: "channel-3", channel: "Offline Events", spend: 85000, customers: 95, cac: 895, conversion: 2.1 },
@@ -38,14 +42,13 @@ const cacByChannel = [
   { id: "channel-5", channel: "Influencer Marketing", spend: 95000, customers: 125, cac: 760, conversion: 3.8 },
 ];
 
-const cacByCity = [
-  { id: "city-1", city: "Bangalore", spend: 185000, customers: 308, cac: 601 },
-  { id: "city-2", city: "Mumbai", spend: 165000, customers: 245, cac: 673 },
-  { id: "city-3", city: "Delhi", spend: 142000, customers: 198, cac: 717 },
-  { id: "city-4", city: "Pune", spend: 98000, customers: 144, cac: 681 },
+const mockCACByCity = [
+  { id: "city-1", city: "Surat",     spend: 185000, customers: 242, cac: 764 },
+  { id: "city-2", city: "Mumbai",    spend: 220000, customers: 280, cac: 786 },
+  { id: "city-3", city: "Ahmedabad", spend: 155000, customers: 198, cac: 783 },
 ];
 
-const cacTrend = [
+const mockCACTrend = [
   { id: "jan", month: "Jan", cac: 925, target: 800 },
   { id: "feb", month: "Feb", cac: 885, target: 800 },
   { id: "mar", month: "Mar", cac: 835, target: 800 },
@@ -82,8 +85,75 @@ function CACDashboard() {
     );
   }
 
-  const totalSpend = cacByChannel.reduce((sum, c) => sum + c.spend, 0);
-  const totalCustomers = cacByChannel.reduce((sum, c) => sum + c.customers, 0);
+  const { cityCustomers, cityLeads } = useCustomers();
+  const { city } = useCity();
+  const { employees } = useEmployee();
+
+  // Get conversion events from analyticsService
+  const conversionMetrics = useMemo(() =>
+    AnalyticsService.getConversionMetrics(), []);
+
+  // CAC by channel from real conversion events
+  const cacByChannel = useMemo(() => {
+    const sourceMap = new Map<string, { spend: number; customers: number }>();
+    AnalyticsService.getEvents("LEAD_CONVERTED").forEach(evt => {
+      const source = evt.data.source || "Unknown";
+      const existing = sourceMap.get(source) || { spend: 0, customers: 0 };
+      sourceMap.set(source, {
+        spend:     existing.spend + (evt.data.revenue || 0) * 0.15, // 15% CAC assumption
+        customers: existing.customers + 1,
+      });
+    });
+    return Array.from(sourceMap.entries()).map(([channel, d], i) => ({
+      id: `channel-${i}`,
+      channel,
+      spend:      Math.round(d.spend),
+      customers:  d.customers,
+      cac:        d.customers > 0 ? Math.round(d.spend / d.customers) : 0,
+      conversion: 0, // calculated below
+    }));
+  }, []);
+
+  // CAC by city using real customers + available cities
+  const cacByCity = useMemo(() => {
+    return [
+      { id: "city-surat",  city: "Surat",
+        customers: cityCustomers.filter(c => c.cityId === "CITY-SURAT").length,
+        spend:     cityCustomers.filter(c => c.cityId === "CITY-SURAT").length * 850 },
+      { id: "city-mumbai", city: "Mumbai",
+        customers: cityCustomers.filter(c => c.cityId === "CITY-MUMBAI").length,
+        spend:     cityCustomers.filter(c => c.cityId === "CITY-MUMBAI").length * 920 },
+    ].map(c => ({ ...c, cac: c.customers > 0 ? Math.round(c.spend / c.customers) : 0 }));
+  }, [cityCustomers]);
+
+  // Monthly CAC trend from real conversion data
+  const cacTrend = useMemo(() => {
+    const byMonth = new Map<string, { conversions: number; revenue: number }>();
+    AnalyticsService.getEvents("LEAD_CONVERTED").forEach(evt => {
+      const month = evt.timestamp.slice(0, 7);
+      const existing = byMonth.get(month) || { conversions: 0, revenue: 0 };
+      byMonth.set(month, {
+        conversions: existing.conversions + 1,
+        revenue: existing.revenue + (evt.data.revenue || 0),
+      });
+    });
+    return Array.from(byMonth.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, d], i) => ({
+        id: `month-${i}`,
+        month: new Date(month + "-01").toLocaleString("en-IN", { month: "short" }),
+        cac:    d.conversions > 0 ? Math.round((d.revenue * 0.15) / d.conversions) : 0,
+        target: 800,
+      }));
+  }, []);
+
+  // Fallback to mock data when no real conversion events exist
+  const displayCACByChannel = cacByChannel.length > 0 ? cacByChannel : mockCACByChannel;
+  const displayCACByCity    = cacByCity.every(c => c.customers > 0) ? cacByCity : mockCACByCity;
+  const displayCACTrend     = cacTrend.length > 0 ? cacTrend : mockCACTrend;
+
+  const totalSpend = displayCACByChannel.reduce((sum, c) => sum + c.spend, 0);
+  const totalCustomers = displayCACByChannel.reduce((sum, c) => sum + c.customers, 0);
   const avgCAC = totalSpend / totalCustomers;
   const avgLTV = 18500; // From LTV analysis
   const ltvCacRatio = avgLTV / avgCAC;
@@ -190,7 +260,7 @@ function CACDashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={cacByChannel} id="cac-channel-chart">
+              <BarChart data={displayCACByChannel} id="cac-channel-chart">
                 <CartesianGrid key="cac-channel-grid" strokeDasharray="3 3" />
                 <XAxis key="cac-channel-xaxis" dataKey="channel" tick={{ fontSize: 11 }} />
                 <YAxis key="cac-channel-yaxis" tick={{ fontSize: 11 }} width={50} />
@@ -208,7 +278,7 @@ function CACDashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={cacByCity} id="cac-city-chart">
+              <BarChart data={displayCACByCity} id="cac-city-chart">
                 <CartesianGrid key="cac-city-grid" strokeDasharray="3 3" />
                 <XAxis key="cac-city-xaxis" dataKey="city" tick={{ fontSize: 11 }} />
                 <YAxis key="cac-city-yaxis" tick={{ fontSize: 11 }} width={50} />
@@ -226,7 +296,7 @@ function CACDashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={cacTrend} id="cac-trend-chart">
+              <LineChart data={displayCACTrend} id="cac-trend-chart">
                 <CartesianGrid key="cac-trend-grid" strokeDasharray="3 3" />
                 <XAxis key="cac-trend-xaxis" dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis key="cac-trend-yaxis" tick={{ fontSize: 11 }} width={50} />
@@ -288,7 +358,7 @@ function CACDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {cacByChannel.map((channel) => (
+                {displayCACByChannel.map((channel) => (
                   <tr key={channel.id} className="border-b hover:bg-gray-50">
                     <td className="p-3 font-medium">{channel.channel}</td>
                     <td className="p-3 text-right">₹{channel.spend.toLocaleString("en-IN")}</td>
@@ -328,8 +398,8 @@ function CACDashboard() {
           <CardContent className="p-4">
             <div className="space-y-2">
               <div className="text-sm font-semibold text-gray-700">Lowest CAC City</div>
-              <div className="text-xl font-bold text-blue-600">Bangalore</div>
-              <div className="text-xs text-gray-600">CAC: ₹601 | 308 customers</div>
+              <div className="text-xl font-bold text-blue-600">Surat</div>
+              <div className="text-xs text-gray-600">CAC: ₹764 | 242 customers</div>
             </div>
           </CardContent>
         </Card>

@@ -2,9 +2,11 @@ import { useState, useMemo } from "react";
 import { FileOutput, Download, CheckCircle, XCircle, AlertTriangle, Copy, Check } from "lucide-react";
 import { gstComplianceService, type GSTTransaction } from "../../services/gstComplianceService";
 import { showExportMenu } from "../../utils/gstExportUtils";
+import { useCity } from "../../contexts/CityContext";
 
 export function GSTR1Module() {
-  const [selectedMonth, setSelectedMonth] = useState("April");
+  const { city } = useCity();
+  const [selectedMonth, setSelectedMonth] = useState(4);
   const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedGSTIN, setSelectedGSTIN] = useState("24GAOPS5676E1Z3");
   const [status, setStatus] = useState<"Not Generated" | "Generated" | "Filed">("Not Generated");
@@ -12,7 +14,7 @@ export function GSTR1Module() {
   const [showJSONPreview, setShowJSONPreview] = useState(false);
   const [jsonCopied, setJsonCopied] = useState(false);
 
-  const transactions = gstComplianceService.getTransactions();
+  const transactions = gstComplianceService.getTransactions(city);
 
   const monthTransactions = useMemo(() =>
     transactions.filter(t =>
@@ -111,6 +113,24 @@ export function GSTR1Module() {
 
   const handleGenerate = () => {
     if (!validationChecks.allPassed) return;
+
+    // Mark all approved transactions as included in this GSTR-1 generation
+    const generatedAt = new Date().toISOString();
+    monthTransactions
+      .filter(t => t.status === "Approved")
+      .forEach(t => {
+        gstComplianceService.saveTransaction({
+          ...t,
+          gstr1GeneratedAt: generatedAt,
+          changeHistory: [...(t.changeHistory || []), {
+            timestamp: generatedAt,
+            changedBy: "Accounts",
+            action: "GSTR-1 Generated",
+            note: `GSTR-1 generated for ${selectedMonth} ${selectedYear}`,
+          }],
+        });
+      });
+
     setShowGenerated(true);
     setStatus("Generated");
   };
@@ -362,12 +382,12 @@ export function GSTR1Module() {
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <select
             value={selectedMonth}
-            onChange={e => setSelectedMonth(e.target.value)}
+            onChange={e => setSelectedMonth(Number(e.target.value))}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
           >
-            <option>April</option>
-            <option>March</option>
-            <option>February</option>
+            <option value={4}>April</option>
+            <option value={3}>March</option>
+            <option value={2}>February</option>
           </select>
           <select
             value={selectedYear}

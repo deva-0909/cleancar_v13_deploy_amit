@@ -2,10 +2,12 @@ import { useState, useMemo } from "react";
 import { ClipboardCheck, Check, AlertTriangle, X, Brain } from "lucide-react";
 import { gstComplianceService, type GSTTransaction } from "../../services/gstComplianceService";
 import { analyzeTransaction, scoreAfterCorrection, type AICorrection } from "../../services/gstAIScoringService";
+import { useCity } from "../../contexts/CityContext";
 
 export function GSTManagerReview() {
+  const { city } = useCity();
   const [activeTab, setActiveTab] = useState<"pending" | "approved" | "overridden" | "ai-history">("pending");
-  const [transactions, setTransactions] = useState<GSTTransaction[]>(gstComplianceService.getTransactions());
+  const [transactions, setTransactions] = useState<GSTTransaction[]>(gstComplianceService.getTransactions(city));
   const [selectedTxn, setSelectedTxn] = useState<GSTTransaction | null>(null);
   const [overrideReason, setOverrideReason] = useState("");
   const [selectedCorrection, setSelectedCorrection] = useState<{ txn: GSTTransaction; correction: AICorrection; index: number } | null>(null);
@@ -50,7 +52,14 @@ export function GSTManagerReview() {
       approvedAt: new Date().toISOString()
     };
     gstComplianceService.saveTransaction(updated);
-    setTransactions(gstComplianceService.getTransactions());
+    gstComplianceService.appendChangeLog(txn.id, {
+      timestamp: new Date().toISOString(),
+      changedBy: "Manager",
+      action: "Approved",
+      previousStatus: txn.status,
+      newStatus: "Approved",
+    });
+    setTransactions(gstComplianceService.getTransactions(city));
     setSelectedTxn(null);
   };
 
@@ -67,7 +76,15 @@ export function GSTManagerReview() {
       validationErrors: [...selectedTxn.validationErrors, `Override: ${overrideReason}`]
     };
     gstComplianceService.saveTransaction(updated);
-    setTransactions(gstComplianceService.getTransactions());
+    gstComplianceService.appendChangeLog(selectedTxn.id, {
+      timestamp: new Date().toISOString(),
+      changedBy: "Manager",
+      action: "Override",
+      previousStatus: selectedTxn.status,
+      newStatus: "Approved",
+      note: overrideReason,
+    });
+    setTransactions(gstComplianceService.getTransactions(city));
     setSelectedTxn(null);
     setOverrideReason("");
   };
@@ -78,7 +95,7 @@ export function GSTManagerReview() {
       status: "Draft"
     };
     gstComplianceService.saveTransaction(updated);
-    setTransactions(gstComplianceService.getTransactions());
+    setTransactions(gstComplianceService.getTransactions(city));
   };
 
   const handleApproveCorrection = () => {
@@ -125,7 +142,7 @@ export function GSTManagerReview() {
     updatedTxn.approvedAt = new Date().toISOString();
 
     gstComplianceService.saveTransaction(updatedTxn);
-    setTransactions(gstComplianceService.getTransactions());
+    setTransactions(gstComplianceService.getTransactions(city));
     setSelectedCorrection(null);
   };
 

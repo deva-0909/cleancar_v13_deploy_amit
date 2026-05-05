@@ -8,7 +8,7 @@ export function CityDashboard() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900">City Management Dashboard</h2>
-        <p className="text-sm text-gray-500 mt-1">Delhi Operations Overview</p>
+        <p className="text-sm text-gray-500 mt-1">City Operations Overview</p>
       </div>
 
       {/* Stats */}

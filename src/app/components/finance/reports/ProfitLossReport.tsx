@@ -1,372 +1,251 @@
-/**
- * Profit & Loss Report - Ledger-driven P&L statement
- *
- * Data Source: ledger_entries table ONLY
- *
- * Logic:
- * - Revenue = SUM(credit) WHERE account IN (4000-4999) [Revenue accounts]
- * - Expenses = SUM(debit) WHERE account IN (5000-5999) [Expense accounts]
- * - Net Profit = Revenue - Expenses
- *
- * Breakdown by:
- * - Account category (Revenue type, Expense type)
- * - Time period (monthly trend)
- * - City (if filtered)
- *
- * @component
- */
-
-import { useState, useEffect } from "react";
-import { formatCurrency } from "../../../lib/formatters";
-import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
-import { Badge } from "../../ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../ui/table";
-import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  RefreshCw,
-  AlertCircle,
-} from "lucide-react";
+import { useState, useMemo } from "react";
+import { accountingEntryService } from "../../../services/accountingEntryService";
+import { useCity } from "../../../contexts/CityContext";
+import { Download, FileText, ChevronRight, ChevronDown } from "lucide-react";
 import { ReportFilters } from "../FinancialReportsModule";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-} from "recharts";
-
-// ============================================================================
-// TYPE DEFINITIONS
-// ============================================================================
-
-interface PLCategory {
-  category: string;
-  account: string;
-  amount: number;
-  percentage: number;
-}
-
-interface PLSummary {
-  totalRevenue: number;
-  totalExpenses: number;
-  netProfit: number;
-  profitMargin: number;
-}
-
-interface MonthlyTrend {
-  month: string;
-  revenue: number;
-  expenses: number;
-  profit: number;
-}
-
-// ============================================================================
-// MOCK DATA (will be replaced with API calls to ledger)
-// ============================================================================
-
-const mockRevenue: PLCategory[] = [
-  { category: "Subscription Revenue", account: "4100", amount: 2850000, percentage: 65.5 },
-  { category: "On-Demand Revenue", account: "4200", amount: 980000, percentage: 22.5 },
-  { category: "Deep Clean Revenue", account: "4300", amount: 520000, percentage: 12.0 },
-];
-
-const mockExpenses: PLCategory[] = [
-  { category: "Salaries & Wages", account: "5100", amount: 1625000, percentage: 45.2 },
-  { category: "Employer Contributions", account: "5120", amount: 285000, percentage: 7.9 },
-  { category: "Materials & Supplies", account: "5200", amount: 450000, percentage: 12.5 },
-  { category: "Vehicle Expenses", account: "5300", amount: 320000, percentage: 8.9 },
-  { category: "Rent & Utilities", account: "5400", amount: 280000, percentage: 7.8 },
-  { category: "Marketing", account: "5500", amount: 380000, percentage: 10.6 },
-  { category: "Other Expenses", account: "5900", amount: 255000, percentage: 7.1 },
-];
-
-const mockMonthlyTrend: MonthlyTrend[] = [
-  { month: "Jan", revenue: 3200000, expenses: 3100000, profit: 100000 },
-  { month: "Feb", revenue: 3400000, expenses: 3150000, profit: 250000 },
-  { month: "Mar", revenue: 3650000, expenses: 3280000, profit: 370000 },
-  { month: "Apr", revenue: 4350000, expenses: 3595000, profit: 755000 },
-];
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-// ============================================================================
-// MAIN COMPONENT
-// ============================================================================
 
 interface ProfitLossReportProps {
   filters: ReportFilters;
 }
 
 export function ProfitLossReport({ filters }: ProfitLossReportProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [revenue, setRevenue] = useState<PLCategory[]>(mockRevenue);
-  const [expenses, setExpenses] = useState<PLCategory[]>(mockExpenses);
-  const [monthlyTrend, setMonthlyTrend] = useState<MonthlyTrend[]>(mockMonthlyTrend);
+  const { city } = useCity();
+  const [fromDate, setFromDate] = useState(filters.startDate || "2026-04-01");
+  const [toDate, setToDate] = useState(filters.endDate || new Date().toISOString().split('T')[0]);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    loadPLData();
-  }, [filters]);
-
-  async function loadPLData() {
-    setIsLoading(true);
-    try {
-      // In production: Query ledger_entries table
-      /*
-      const plData = await financeEngine.getProfitLoss({
-        city: filters.city,
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        serviceType: filters.serviceType
-      });
-
-      // SQL Query example:
-      // SELECT
-      //   account_category,
-      //   account_code,
-      //   SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) as revenue,
-      //   SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) as expenses
-      // FROM ledger_entries
-      // WHERE
-      //   posting_date BETWEEN ? AND ?
-      //   AND (city = ? OR ? = 'ALL')
-      //   AND account_code BETWEEN '4000' AND '5999'
-      // GROUP BY account_category, account_code
-      */
-
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      setRevenue(mockRevenue);
-      setExpenses(mockExpenses);
-      setMonthlyTrend(mockMonthlyTrend);
-    } catch (error) {
-      console.error("Failed to load P&L data:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  const summary: PLSummary = {
-    totalRevenue: revenue.reduce((sum, item) => sum + item.amount, 0),
-    totalExpenses: expenses.reduce((sum, item) => sum + item.amount, 0),
-    netProfit: 0,
-    profitMargin: 0,
+  const toggleGroup = (groupKey: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
+      return next;
+    });
   };
 
-  summary.netProfit = summary.totalRevenue - summary.totalExpenses;
-  summary.profitMargin = (summary.netProfit / summary.totalRevenue) * 100;
+  const { incomeGroups, expenseGroups, grossIncome, grossExpenditure, netProfit } = useMemo(() => {
+    const movements = accountingEntryService.getAllMovements(fromDate, toDate, city);
+    const ledgers = accountingEntryService.getLedgers(city);
 
-  const isProfitable = summary.netProfit > 0;
+    // Define income and expense groups
+    const INCOME_GROUPS = [
+      { key: "sales", label: "Sales", heads: ["sales_subscription", "sales_service", "sales_renewal"] },
+      { key: "other_income", label: "Other Income", heads: ["other_income"] },
+    ];
+    const EXPENSE_GROUPS = [
+      { key: "cogs", label: "Cost of Goods Sold", heads: ["cogs"] },
+      { key: "direct", label: "Direct Expenses", heads: ["direct_expenses"] },
+      { key: "indirect", label: "Indirect Expenses", heads: ["indirect_expenses"] },
+      { key: "depreciation", label: "Depreciation", heads: ["depreciation"] },
+    ];
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-12">
-          <div className="text-center">
-            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600">Loading P&L data from ledger...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+    // For each group, sum all ledger movements in that account head
+    const groupTotals = (groups: typeof INCOME_GROUPS, isIncome: boolean) =>
+      groups.map(g => {
+        const groupLedgers = ledgers.filter(l => g.heads.includes(l.accountHead));
+        const ledgerRows = groupLedgers.map(ldr => {
+          const cr = movements.filter(m => m.creditLedgerId === ldr.id).reduce((s, m) => s + m.amount, 0);
+          const dr = movements.filter(m => m.debitLedgerId === ldr.id).reduce((s, m) => s + m.amount, 0);
+          // Income: credit > debit, Expense: debit > credit
+          const amount = isIncome ? (cr - dr) : (dr - cr);
+          return { name: ldr.name, amount };
+        }).filter(r => r.amount > 0.01); // Only show non-zero ledgers
+        const total = ledgerRows.reduce((s, r) => s + r.amount, 0);
+        return { ...g, ledgerRows, total };
+      });
+
+    const incomeGroups = groupTotals(INCOME_GROUPS, true);
+    const expenseGroups = groupTotals(EXPENSE_GROUPS, false);
+
+    const grossIncome = incomeGroups.reduce((s, g) => s + g.total, 0);
+    const grossExpenditure = expenseGroups.reduce((s, g) => s + g.total, 0);
+    const netProfit = grossIncome - grossExpenditure;
+
+    return { incomeGroups, expenseGroups, grossIncome, grossExpenditure, netProfit };
+  }, [fromDate, toDate, city]);
+
+  const exportPDF = () => {
+    window.print();
+  };
+
+  const exportExcel = () => {
+    const rows: string[][] = [
+      ["PROFIT & LOSS ACCOUNT"],
+      [`For the period: ${fromDate} to ${toDate}`],
+      [""],
+      ["INCOME", "Amount (₹)"],
+    ];
+
+    incomeGroups.forEach(group => {
+      rows.push([group.label, group.total.toFixed(2)]);
+      group.ledgerRows.forEach(row => {
+        rows.push([`  ${row.name}`, row.amount.toFixed(2)]);
+      });
+    });
+    rows.push(["GROSS INCOME", grossIncome.toFixed(2)]);
+    rows.push([""]);
+    rows.push(["EXPENDITURE", "Amount (₹)"]);
+    expenseGroups.forEach(group => {
+      rows.push([group.label, group.total.toFixed(2)]);
+      group.ledgerRows.forEach(row => {
+        rows.push([`  ${row.name}`, row.amount.toFixed(2)]);
+      });
+    });
+    rows.push(["GROSS EXPENDITURE", grossExpenditure.toFixed(2)]);
+    rows.push([""]);
+    rows.push([netProfit >= 0 ? "NET PROFIT" : "NET LOSS", Math.abs(netProfit).toFixed(2)]);
+
+    const csv = rows.map(row => row.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `profit-loss-${fromDate}-to-${toDate}.csv`;
+    a.click();
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-2 border-green-300 bg-green-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-green-700">
-                  {formatCurrency(summary.totalRevenue)}
-                </p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-red-300 bg-red-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Expenses</p>
-                <p className="text-2xl font-bold text-red-700">
-                  {formatCurrency(summary.totalExpenses)}
-                </p>
-              </div>
-              <TrendingDown className="w-8 h-8 text-red-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className={`border-2 ${isProfitable ? 'border-blue-300 bg-blue-50' : 'border-orange-300 bg-orange-50'}`}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Net Profit</p>
-                <p className={`text-2xl font-bold ${isProfitable ? 'text-blue-700' : 'text-orange-700'}`}>
-                  {formatCurrency(summary.netProfit)}
-                </p>
-              </div>
-              <DollarSign className={`w-8 h-8 ${isProfitable ? 'text-blue-600' : 'text-orange-600'}`} />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-2 border-purple-300 bg-purple-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Profit Margin</p>
-                <p className="text-2xl font-bold text-purple-700">
-                  {summary.profitMargin.toFixed(1)}%
-                </p>
-              </div>
-              <Badge className={`${isProfitable ? 'bg-green-600' : 'bg-red-600'}`}>
-                {isProfitable ? 'Profitable' : 'Loss'}
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Monthly Trend Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Monthly Trend</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyTrend}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-              <YAxis tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`} />
-              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              <Legend />
-              <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} name="Revenue" />
-              <Line type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2} name="Expenses" />
-              <Line type="monotone" dataKey="profit" stroke="#3b82f6" strokeWidth={2} name="Profit" />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Revenue Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Revenue Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Account</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">%</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {revenue.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">{item.category}</TableCell>
-                    <TableCell className="text-sm text-gray-500">{item.account}</TableCell>
-                    <TableCell className="text-right font-semibold text-green-600">
-                      {formatCurrency(item.amount)}
-                    </TableCell>
-                    <TableCell className="text-right text-sm text-gray-600">
-                      {item.percentage.toFixed(1)}%
-                    </TableCell>
-                  </TableRow>
-                ))}
-                <TableRow className="bg-green-50 font-bold">
-                  <TableCell colSpan={2}>Total Revenue</TableCell>
-                  <TableCell className="text-right text-green-700">
-                    {formatCurrency(summary.totalRevenue)}
-                  </TableCell>
-                  <TableCell className="text-right">100%</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        {/* Expense Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Expense Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Account</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">%</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {expenses.map((item, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-medium">{item.category}</TableCell>
-                    <TableCell className="text-sm text-gray-500">{item.account}</TableCell>
-                    <TableCell className="text-right font-semibold text-red-600">
-                      {formatCurrency(item.amount)}
-                    </TableCell>
-                    <TableCell className="text-right text-sm text-gray-600">
-                      {item.percentage.toFixed(1)}%
-                    </TableCell>
-                  </TableRow>
-                ))}
-                <TableRow className="bg-red-50 font-bold">
-                  <TableCell colSpan={2}>Total Expenses</TableCell>
-                  <TableCell className="text-right text-red-700">
-                    {formatCurrency(summary.totalExpenses)}
-                  </TableCell>
-                  <TableCell className="text-right">100%</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Ledger Query Info */}
-      <Card className="border-blue-300 bg-blue-50">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-            <div className="text-sm text-blue-900">
-              <p className="font-semibold">Data Source: ledger_entries table</p>
-              <p className="mt-1">
-                Revenue = SUM(credit_amount) WHERE account_code IN (4000-4999)<br />
-                Expenses = SUM(debit_amount) WHERE account_code IN (5000-5999)<br />
-                Net Profit = Revenue - Expenses
-              </p>
-            </div>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b pb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <FileText className="w-6 h-6 text-blue-600" />
+            <h1 className="text-2xl font-bold">Profit & Loss Account</h1>
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-sm text-gray-600 mt-1">Tally-format vertical report</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={exportPDF}
+            className="flex items-center gap-2 px-4 py-2 border rounded text-gray-700 hover:bg-gray-50"
+          >
+            <Download className="w-4 h-4" />
+            Export PDF
+          </button>
+          <button
+            onClick={exportExcel}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          >
+            <Download className="w-4 h-4" />
+            Export Excel
+          </button>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="w-full px-3 py-2 border rounded"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="w-full px-3 py-2 border rounded"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+          <div className="px-3 py-2 border rounded bg-white text-gray-700">{city}</div>
+        </div>
+      </div>
+
+      {/* Tally Format Report */}
+      <div className="font-mono text-sm bg-white border-2 border-gray-800 rounded-xl p-6">
+        <div className="text-center font-bold text-base mb-1">PROFIT & LOSS ACCOUNT</div>
+        <div className="text-center text-gray-500 text-xs mb-4">
+          For the period: {fromDate} to {toDate}
+        </div>
+        <div className="border-t-2 border-gray-800 pt-3">
+          {/* INCOME section */}
+          <div className="flex justify-between font-bold text-gray-700 mb-2">
+            <span>INCOME</span><span className="mr-16">₹</span>
+          </div>
+          {incomeGroups.map(group => (
+            <div key={group.key} className="mb-1">
+              <button
+                className="w-full flex items-center justify-between hover:bg-gray-50 px-1 py-0.5 rounded"
+                onClick={() => toggleGroup(group.key)}
+              >
+                <span className="flex items-center gap-1 font-medium">
+                  {expandedGroups.has(group.key) ? (
+                    <ChevronDown className="w-3 h-3" />
+                  ) : (
+                    <ChevronRight className="w-3 h-3" />
+                  )}
+                  {group.label}
+                </span>
+                <span className="mr-16">₹{group.total.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </button>
+              {expandedGroups.has(group.key) && group.ledgerRows.map(row => (
+                <div key={row.name} className="flex justify-between pl-8 text-gray-600 text-xs py-0.5">
+                  <span>{row.name}</span>
+                  <span className="mr-16">₹{row.amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+          {/* Gross Income */}
+          <div className="border-t border-gray-400 mt-2 pt-1 flex justify-between font-bold">
+            <span>GROSS INCOME</span>
+            <span className="mr-16">₹{grossIncome.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+
+          {/* EXPENDITURE section */}
+          <div className="flex justify-between font-bold text-gray-700 mb-2 mt-6">
+            <span>EXPENDITURE</span><span className="mr-16">₹</span>
+          </div>
+          {expenseGroups.map(group => (
+            <div key={group.key} className="mb-1">
+              <button
+                className="w-full flex items-center justify-between hover:bg-gray-50 px-1 py-0.5 rounded"
+                onClick={() => toggleGroup(group.key)}
+              >
+                <span className="flex items-center gap-1 font-medium">
+                  {expandedGroups.has(group.key) ? (
+                    <ChevronDown className="w-3 h-3" />
+                  ) : (
+                    <ChevronRight className="w-3 h-3" />
+                  )}
+                  {group.label}
+                </span>
+                <span className="mr-16">₹{group.total.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </button>
+              {expandedGroups.has(group.key) && group.ledgerRows.map(row => (
+                <div key={row.name} className="flex justify-between pl-8 text-gray-600 text-xs py-0.5">
+                  <span>{row.name}</span>
+                  <span className="mr-16">₹{row.amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+          {/* Gross Expenditure */}
+          <div className="border-t border-gray-400 mt-2 pt-1 flex justify-between font-bold">
+            <span>GROSS EXPENDITURE</span>
+            <span className="mr-16">₹{grossExpenditure.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+
+          {/* Net Profit/Loss */}
+          <div className={`border-t-2 border-gray-800 mt-4 pt-2 flex justify-between text-base font-bold ${
+            netProfit >= 0 ? "text-green-700" : "text-red-700"
+          }`}>
+            <span>{netProfit >= 0 ? "NET PROFIT" : "NET LOSS"}</span>
+            <span className="mr-16">₹{Math.abs(netProfit).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

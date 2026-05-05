@@ -5,13 +5,22 @@
  */
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { useRole } from "../../contexts/RoleContext";
 import { advanceManagementService } from "../../services/advanceManagementService";
+import { useEmployee } from "../../contexts/EmployeeContext";
+import { useCity } from "../../contexts/CityContext";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import {
   AlertCircle,
   CheckCircle,
@@ -25,6 +34,13 @@ import {
 export function ShortTermAdvanceForm() {
   const navigate = useNavigate();
   const { currentUser } = useRole();
+  const { employees } = useEmployee();
+  const { currentRole } = useRole();
+  const { city } = useCity();
+  const [targetEmployeeId, setTargetEmployeeId] = useState(currentUser?.employeeId || "");
+  const isHRView = currentRole === "HR" || currentRole === "Admin" || currentRole === "Super Admin";
+
+  const targetEmployee = employees.find(e => e.id === targetEmployeeId);
 
   // Mock employee data (in production, fetch from attendance system)
   const [daysWorked, setDaysWorked] = useState(20);
@@ -135,6 +151,38 @@ export function ShortTermAdvanceForm() {
             Quick advance based on earned salary • Single-cycle recovery
           </p>
         </div>
+
+        {/* HR Employee Picker */}
+        {isHRView && (
+          <Card className="mb-4">
+            <CardContent className="p-4">
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
+                  Processing advance for:
+                </label>
+                <Select value={targetEmployeeId} onValueChange={setTargetEmployeeId}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select employee..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees
+                      .filter(e => e.status === "Active" && (e.workLocation === city || e.cityId === city))
+                      .map(e => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.fullName} — {e.designation} ({e.mobile})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {targetEmployee && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Role: {targetEmployee.designation} | Gross: ₹{targetEmployee.gross?.toLocaleString() || "—"}
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Auto-Calculation Panel (Read-Only) */}
         <Card className="mb-6 border-2 border-blue-200 bg-blue-50">

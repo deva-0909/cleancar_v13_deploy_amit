@@ -14,7 +14,7 @@ import {
   FileText, Download, AlertCircle,
   TrendingUp, IndianRupee, Receipt, Calendar, TrendingDown
 } from "lucide-react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer

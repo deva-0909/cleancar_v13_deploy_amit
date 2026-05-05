@@ -101,10 +101,9 @@ export function CityProvider({ children }: CityProviderProps) {
 export function useCity() {
   const context = useContext(CityContext);
   if (context === undefined) {
-    // SAFE FALLBACK: Return default city instead of crashing.
-    // Covers: Figma Make preview, dev HMR, and any edge case where
-    // a component renders before the provider tree is fully mounted.
-    console.warn("[CityContext] useCity called outside CityProvider — using default city.");
+    // PREVIEW FALLBACK: Safe defaults for Figma Make iframe, dev HMR, and standalone component previews
+    // Always return fallback instead of throwing to prevent preview errors
+    console.warn('useCity called outside CityProvider - using fallback defaults');
     return {
       city: "CITY-SURAT" as CityId,
       cityInfo: CITIES["CITY-SURAT"],

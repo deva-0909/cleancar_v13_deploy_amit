@@ -226,7 +226,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 export function useOrg() {
   const context = useContext(OrgContext);
   if (!context) {
-    console.warn("[Context] called outside provider — using safe defaults."); return null as any;
+    throw new Error("useOrg must be used within OrgProvider");
   }
   return context;
 }

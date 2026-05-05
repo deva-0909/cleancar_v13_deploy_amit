@@ -537,6 +537,57 @@ function VendorDetail({ vendor, onEdit, onClose, onUpdate }: {
             </div>
           </div>
 
+          {/* Linked transactions */}
+          {(() => {
+            const linked = gstComplianceService.getTransactions()
+              .filter(t => t.partyId === vendor.id);
+            if (linked.length === 0) return (
+              <div className="text-sm text-gray-500 italic">No transactions found for this vendor.</div>
+            );
+            const totalTaxable = linked.reduce((s, t) => s + t.taxableValue, 0);
+            const totalITC     = linked.filter(t => t.itcEligible).reduce((s, t) => s + t.itcAmount, 0);
+            return (
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                  Linked Transactions ({linked.length}) — Total Taxable: ₹{totalTaxable.toLocaleString()} | ITC Claimed: ₹{totalITC.toLocaleString()}
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="text-left p-2 border border-gray-200">Invoice No.</th>
+                        <th className="text-left p-2 border border-gray-200">Date</th>
+                        <th className="text-right p-2 border border-gray-200">Taxable (₹)</th>
+                        <th className="text-right p-2 border border-gray-200">GST (₹)</th>
+                        <th className="text-left p-2 border border-gray-200">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {linked.slice(0, 10).map(t => (
+                        <tr key={t.id} className="border-b border-gray-100">
+                          <td className="p-2 font-mono">{t.invoiceNumber}</td>
+                          <td className="p-2">{t.invoiceDate}</td>
+                          <td className="p-2 text-right">{t.taxableValue.toLocaleString()}</td>
+                          <td className="p-2 text-right">{t.totalTax.toLocaleString()}</td>
+                          <td className="p-2">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                              t.status === "Filed" ? "bg-purple-100 text-purple-700"
+                              : t.status === "Approved" ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-600"
+                            }`}>{t.status}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {linked.length > 10 && (
+                    <p className="text-xs text-gray-500 mt-1">Showing 10 of {linked.length} transactions.</p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="flex justify-between items-center pt-4 border-t">
             <div className="flex gap-2">
               <button

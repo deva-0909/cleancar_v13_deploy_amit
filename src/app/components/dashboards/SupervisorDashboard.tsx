@@ -1,5 +1,5 @@
 // Dashboard for Supervisor role
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { useRole } from "../../contexts/RoleContext";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";

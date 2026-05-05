@@ -18,7 +18,9 @@ import {
   TableRow,
 } from "../ui/table";
 import { ArrowLeft, TrendingUp, TrendingDown, AlertTriangle, FileText } from "lucide-react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router-dom";
+import { useInventory } from "../../contexts/InventoryContext";
+import { useCity } from "../../contexts/CityContext";
 
 // Mock ledger data for a washer
 const ledgerTransactions = [
@@ -113,21 +115,47 @@ const washerInfo = {
 };
 
 export function WasherStockLedger() {
+  const { stockTransactions, getWasherStock, inventory } = useInventory();
+  const { city } = useCity();
   const [searchParams] = useSearchParams();
-  const washerId = searchParams.get("washerId") || "1";
+  const selectedWasherId = searchParams.get("washerId") || "";
   const [selectedMaterial, setSelectedMaterial] = useState("shampoo");
 
+  // Build ledger from real stock transactions
+  const washerTxns = stockTransactions
+    .filter(t => (t.toId === selectedWasherId || t.fromId === selectedWasherId) && t.status === "Completed")
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+
+  let runningBalance = 0;
+  const liveLedger = washerTxns.map((t, i) => {
+    const item = inventory.find(x => x.itemId === t.itemId && x.cityId === city);
+    const isIn = t.toId === selectedWasherId;
+    runningBalance += isIn ? t.quantity : -t.quantity;
+    return {
+      id: i + 1,
+      date: t.createdAt.split("T")[0],
+      type: t.type,
+      quantityIn:  isIn ? t.quantity : 0,
+      quantityOut: isIn ? 0 : t.quantity,
+      runningBalance,
+      reference: t.transactionId,
+      itemName: item?.itemName || t.itemId,
+    };
+  });
+
+  const displayLedger = liveLedger.length > 0 ? liveLedger : ledgerTransactions;
+
   // Calculate summary
-  const totalIssued = ledgerTransactions
-    .filter(t => t.type === "Issued")
+  const totalIssued = displayLedger
+    .filter(t => t.type === "Issue" || t.type === "Issued")
     .reduce((sum, t) => sum + t.quantityIn, 0);
-  
-  const totalConsumed = ledgerTransactions
+
+  const totalConsumed = displayLedger
     .filter(t => t.type.includes("Consumed"))
     .reduce((sum, t) => sum + t.quantityOut, 0);
-  
-  const currentBalance = ledgerTransactions[ledgerTransactions.length - 1]?.runningBalance || 0;
-  const openingBalance = ledgerTransactions[0]?.quantityIn || 0;
+
+  const currentBalance = displayLedger[displayLedger.length - 1]?.runningBalance || 0;
+  const openingBalance = displayLedger[0]?.quantityIn || 0;
 
   return (
     <div className="space-y-6">
@@ -279,7 +307,7 @@ export function WasherStockLedger() {
                   </TableRow>
                 </TableHeader>
             <TableBody>
-              {ledgerTransactions.map((txn) => (
+              {displayLedger.map((txn) => (
                 <TableRow key={txn.id}>
                   <TableCell className="text-sm">{txn.date}</TableCell>
                   <TableCell>

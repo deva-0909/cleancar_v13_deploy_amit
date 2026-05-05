@@ -20,7 +20,7 @@
  */
 
 import { ReactNode } from "react";
-import { Navigate, useLocation } from "react-router";
+import { Navigate, useLocation } from "react-router-dom";
 import { useRole } from "../../contexts/RoleContext";
 import { useEmployee } from "../../contexts/EmployeeContext";
 import { hasPermission } from "../../utils/permissionEngine";
@@ -28,7 +28,7 @@ import { getRouteConfig, getDefaultRoute, isPublicRoute } from "../../config/rou
 import type { Module } from "../../types/permissions";
 import { AlertCircle, Home, Shield } from "lucide-react";
 import { Button } from "../ui/button";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: ReactNode;

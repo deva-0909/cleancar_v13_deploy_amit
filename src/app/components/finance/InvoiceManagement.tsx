@@ -46,6 +46,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Badge } from "../ui/badge";
 import { useCity } from "../../contexts/CityContext";
+import { useFinance } from "../../contexts/FinanceContext";
 import { useCustomers } from "../../contexts/AppProvider";
 import { useCustomerSubscriptions } from "../../contexts/AppProvider";
 
@@ -139,7 +140,7 @@ const mockInvoices: Invoice[] = [
     balanceDue: 1024.0,
     status: "PARTIAL",
     paymentStatus: "PARTIAL",
-    city: "Bangalore",
+    city: "Surat",
     cluster: "South Zone",
     createdAt: "2026-04-10T14:20:00Z",
   },
@@ -192,22 +193,38 @@ const mockInvoices: Invoice[] = [
 // ============================================================================
 
 async function fetchInvoices(
-  filters: InvoiceFilters
+  filters: InvoiceFilters,
+  revenues: any[],
+  customers: any[]
 ): Promise<InvoiceListResponse> {
-  // In production: Replace with real API call
-  // const response = await fetch('/api/invoices?' + new URLSearchParams({
-  //   city: filters.city,
-  //   status: filters.status,
-  //   dateRange: filters.dateRange,
-  //   search: filters.searchQuery,
-  // }));
-  // return await response.json();
-
   // Mock delay
   await new Promise((resolve) => setTimeout(resolve, 600));
 
-  // Mock filtering
-  let filtered = [...mockInvoices];
+  // Derive invoices from revenue records
+  const liveInvoices = revenues.map(r => {
+    const customer = customers.find(c => c.customerId === r.customerId);
+    return {
+      id: r.revenueId,
+      invoiceNumber: r.invoiceNumber || r.revenueId,
+      customerId: r.customerId,
+      customerName: customer ? `${customer.firstName} ${customer.lastName}` : "Unknown Customer",
+      serviceType: r.type,
+      invoiceDate: r.receivedDate,
+      dueDate: r.receivedDate,
+      subtotal: r.amount,
+      taxAmount: 0,
+      discountAmount: 0,
+      totalAmount: r.amount,
+      paidAmount: r.status === "Received" ? r.amount : 0,
+      balanceDue: r.status === "Received" ? 0 : r.amount,
+      status: r.status === "Received" ? "PAID" as const : r.status === "Pending" ? "UNPAID" as const : "CANCELLED" as const,
+      paymentStatus: r.status === "Received" ? "COMPLETED" as const : "PENDING" as const,
+      city: r.cityId,
+      createdAt: r.createdAt,
+    };
+  });
+
+  let filtered = liveInvoices.length > 0 ? [...liveInvoices] : [...mockInvoices];
 
   if (filters.city !== "all") {
     filtered = filtered.filter((inv) => inv.city === filters.city);
@@ -236,25 +253,28 @@ async function fetchInvoices(
 
 async function recordPayment(
   invoiceId: string,
-  paymentData: PaymentFormData
+  paymentData: PaymentFormData,
+  invoice: Invoice,
+  recordRevenueFn: any,
+  cityId: string
 ): Promise<void> {
-  // In production: Replace with real API call
-  // const response = await fetch('/api/payments', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({
-  //     invoiceId,
-  //     amount: parseFloat(paymentData.amount),
-  //     paymentMode: paymentData.paymentMode,
-  //     paymentReference: paymentData.paymentReference,
-  //     paymentDate: paymentData.paymentDate,
-  //   }),
-  // });
-  // if (!response.ok) throw new Error('Failed to record payment');
-
   // Mock delay
   await new Promise((resolve) => setTimeout(resolve, 800));
-  console.log("Payment recorded:", { invoiceId, paymentData });
+
+  // Bridge invoice payment to Revenue in FinanceContext
+  recordRevenueFn({
+    customerId: invoice.customerId || "UNKNOWN",
+    subscriptionId: invoice.serviceId,
+    type: invoice.serviceType?.toLowerCase().includes("subscription") ? "Subscription" : "One-Time",
+    amount: parseFloat(paymentData.amount),
+    receivedDate: paymentData.paymentDate,
+    paymentMethod: paymentData.paymentMode === "CASH" ? "Cash" : paymentData.paymentMode === "UPI" ? "UPI" : "Bank Transfer",
+    invoiceNumber: invoice.invoiceNumber,
+    status: "Received",
+    cityId: cityId,
+  });
+
+  console.log("Payment recorded and revenue created:", { invoiceId, paymentData });
 }
 
 // ============================================================================
@@ -304,7 +324,8 @@ function isOverdue(dueDate: string, status: Invoice["status"]): boolean {
 // ============================================================================
 
 export default function InvoiceManagement() {
-  const { cityInfo } = useCity();
+  const { city, cityInfo } = useCity();
+  const { recordRevenue, revenues } = useFinance();
   const { customers } = useCustomers();
   const { subscriptions } = useCustomerSubscriptions();
 
@@ -373,7 +394,7 @@ export default function InvoiceManagement() {
     setError(null);
 
     try {
-      const data = await fetchInvoices(filters);
+      const data = await fetchInvoices(filters, revenues, customers);
       setInvoices(data.invoices);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load invoices");
@@ -414,7 +435,7 @@ export default function InvoiceManagement() {
     setIsSubmittingPayment(true);
 
     try {
-      await recordPayment(selectedInvoice.id, paymentForm);
+      await recordPayment(selectedInvoice.id, paymentForm, selectedInvoice, recordRevenue, city);
       setIsPaymentDrawerOpen(false);
       loadInvoices(); // Reload to get updated invoice status
       alert("Payment recorded successfully");
@@ -500,9 +521,9 @@ export default function InvoiceManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Cities</SelectItem>
-                  <SelectItem value={cityInfo?.displayName || "Surat"}>{cityInfo?.displayName || "Surat"}</SelectItem>
-                  <SelectItem value="Bangalore">Bangalore</SelectItem>
+                  <SelectItem value="Surat">Surat</SelectItem>
                   <SelectItem value="Mumbai">Mumbai</SelectItem>
+                  <SelectItem value="Ahmedabad">Ahmedabad</SelectItem>
                 </SelectContent>
               </Select>
             </div>

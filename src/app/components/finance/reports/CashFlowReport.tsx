@@ -18,6 +18,8 @@
 
 import { useState, useEffect } from "react";
 import { formatCurrency } from "../../../lib/formatters";
+import { useFinance } from "../../../contexts/FinanceContext";
+import { useCity } from "../../../contexts/CityContext";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Badge } from "../../ui/badge";
 import {
@@ -121,8 +123,10 @@ interface CashFlowReportProps {
 }
 
 export function CashFlowReport({ filters }: CashFlowReportProps) {
+  const { getRevenueByCity, getPayablesByCity } = useFinance();
+  const { city } = useCity();
   const [isLoading, setIsLoading] = useState(false);
-  const [cashFlowByActivity, setCashFlowByActivity] = useState<CashFlowCategory[]>(mockCashFlowByActivity);
+  const [cashFlowByActivity, setCashFlowByActivity] = useState<CashFlowCategory[]>([]);
   const [cashFlowByType, setCashFlowByType] = useState<CashFlowCategory[]>(mockCashFlowByType);
   const [dailyCashFlow, setDailyCashFlow] = useState<DailyCashFlow[]>(mockDailyCashFlow);
 
@@ -133,30 +137,20 @@ export function CashFlowReport({ filters }: CashFlowReportProps) {
   async function loadCashFlowData() {
     setIsLoading(true);
     try {
-      // In production: Query ledger_entries table
-      /*
-      const cashFlowData = await financeEngine.getCashFlow({
-        city: filters.city,
-        startDate: filters.startDate,
-        endDate: filters.endDate
-      });
-
-      // SQL Query example:
-      // SELECT
-      //   transaction_type,
-      //   SUM(CASE WHEN entry_type = 'DEBIT' THEN amount ELSE 0 END) as inflow,
-      //   SUM(CASE WHEN entry_type = 'CREDIT' THEN amount ELSE 0 END) as outflow
-      // FROM ledger_entries
-      // WHERE
-      //   posting_date BETWEEN ? AND ?
-      //   AND account_code IN ('1100', '1110', '1120') -- Cash/Bank accounts
-      //   AND (city = ? OR ? = 'ALL')
-      // GROUP BY transaction_type
-      */
-
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      setCashFlowByActivity(mockCashFlowByActivity);
+      // Operating: received revenues
+      const operating = getRevenueByCity(city)
+        .filter(r => r.status === "Received")
+        .reduce((s, r) => s + r.amount, 0);
+      // Expenses paid
+      const expenses = getPayablesByCity(city)
+        .filter(p => p.status === "Paid")
+        .reduce((s, p) => s + p.amount, 0);
+      const liveActivity: CashFlowCategory[] = [
+        { category: "Operating Activities", inflow: operating, outflow: expenses, netFlow: operating - expenses },
+      ];
+      setCashFlowByActivity(liveActivity.length > 0 ? liveActivity : mockCashFlowByActivity);
       setCashFlowByType(mockCashFlowByType);
       setDailyCashFlow(mockDailyCashFlow);
     } catch (error) {

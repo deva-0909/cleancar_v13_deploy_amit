@@ -192,6 +192,15 @@ export function OperationsDataCapture() {
     count: units.filter(u => u.shiftBand === shift.name).length,
   }));
 
+  if (todayJobs.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+        <p className="text-lg font-medium">No jobs scheduled for today</p>
+        <p className="text-sm mt-1">Jobs will appear here when assigned for {todayStr}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
       {/* Header */}

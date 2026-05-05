@@ -21,14 +21,19 @@ import {
 } from "../ui/table";
 import { Textarea } from "../ui/textarea";
 import { ArrowLeft, CheckCircle, AlertTriangle, Info } from "lucide-react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { employeeDatabaseService } from "../../services/employeeDatabaseService";
 import { useCity } from "../../contexts/CityContext";
+import { useInventory } from "../../contexts/InventoryContext";
+import { useEmployee } from "../../contexts/EmployeeContext";
+import { useEffect } from "react";
 
 // Mock verification data
 const verificationWorksheet = [
   {
+    itemId: "ITEM-SHAMPOO",
+    itemName: "Car Shampoo",
     material: "Car Shampoo",
     unit: "ml",
     openingBalance: 50,
@@ -41,6 +46,8 @@ const verificationWorksheet = [
     verifiedConsumption: 0
   },
   {
+    itemId: "ITEM-WAX",
+    itemName: "Wax Polish",
     material: "Wax Polish",
     unit: "ml",
     openingBalance: 100,
@@ -53,6 +60,8 @@ const verificationWorksheet = [
     verifiedConsumption: 0
   },
   {
+    itemId: "ITEM-TYRE",
+    itemName: "Tyre Dressing",
     material: "Tyre Dressing",
     unit: "ml",
     openingBalance: 75,
@@ -65,6 +74,8 @@ const verificationWorksheet = [
     verifiedConsumption: 0
   },
   {
+    itemId: "ITEM-MICROFIBER",
+    itemName: "Microfiber Cloth",
     material: "Microfiber Cloth",
     unit: "pieces",
     openingBalance: 2,
@@ -80,11 +91,36 @@ const verificationWorksheet = [
 
 export function MonthEndVerification() {
   const { city } = useCity();
-  const washers = employeeDatabaseService.getAll().filter(e => e.role==="Car Washer" && e.city===city);
-  const [selectedWasher, setSelectedWasher] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState("2026-03");
+  const { adjustStock, getWasherStock, inventory } = useInventory();
+  const { employees } = useEmployee();
+  const [selectedWasherId, setSelectedWasherId] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("");
   const [worksheetData, setWorksheetData] = useState(verificationWorksheet);
   const [showWorksheet, setShowWorksheet] = useState(false);
+
+  const washers = employees.filter(e =>
+    e.designation === "Car Washer" && e.status === "Active" &&
+    (e.workLocation === city || e.cityId === city)
+  );
+
+  // Load worksheet when washer + month selected
+  useEffect(() => {
+    if (!selectedWasherId) return;
+    const washerItems = getWasherStock(selectedWasherId, city);
+    if (washerItems.length > 0) {
+      setWorksheetData(washerItems.map(item => ({
+        itemId: item.itemId, itemName: item.itemName, unit: item.unit,
+        openingBalance: 0,
+        totalIssued: 0,
+        estimatedConsumption: 0,
+        systemEstimatedClosing: item.washerStock[selectedWasherId] || 0,
+        physicalCount: item.washerStock[selectedWasherId] || 0, variance: 0,
+        varianceReason: "",
+        verifiedConsumption: 0,
+      })));
+      setShowWorksheet(true);
+    }
+  }, [selectedWasherId, city, getWasherStock]);
 
   const handlePhysicalCountChange = (index: number, value: string) => {
     const physicalCount = parseFloat(value) || 0;
@@ -105,11 +141,10 @@ export function MonthEndVerification() {
   };
 
   const handleLoadWorksheet = () => {
-    if (!selectedWasher || !selectedMonth) {
+    if (!selectedWasherId || !selectedMonth) {
       toast.error("Please select washer and month");
       return;
     }
-    setShowWorksheet(true);
     toast.success("Verification worksheet loaded");
   };
 
@@ -129,6 +164,18 @@ export function MonthEndVerification() {
       toast.error("Please provide variance reason for materials with >10% variance");
       return;
     }
+
+    // Persist physical count as new stock level
+    worksheetData.forEach(row => {
+      if ((row as any).itemId) {
+        adjustStock(
+          (row as any).itemId, "Washer", selectedWasherId,
+          row.physicalCount,
+          `Month-end verification — ${selectedMonth}`,
+          city
+        );
+      }
+    });
 
     toast.success("Month-end verification completed successfully! Carry-forward posted for next month.");
   };
@@ -176,38 +223,35 @@ export function MonthEndVerification() {
           <CardTitle>Step 1 — Select Washer and Period</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Washer *</Label>
-              <Select value={selectedWasher} onValueChange={setSelectedWasher}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select washer" />
-                </SelectTrigger>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Select Washer</label>
+              <Select value={selectedWasherId} onValueChange={setSelectedWasherId}>
+                <SelectTrigger><SelectValue placeholder="Choose washer to verify" /></SelectTrigger>
                 <SelectContent>
                   {washers.map(w => (
-                    <SelectItem key={w.employeeId} value={w.employeeId}>
-                      {w.firstName} {w.lastName}
+                    <SelectItem key={w.id} value={w.id}>
+                      {w.fullName} — {w.pinCodes?.[0] || "No zone"}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label>Month-Year *</Label>
-              <Input 
-                type="month" 
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-              />
-            </div>
-
-            <div className="flex items-end">
-              <Button onClick={handleLoadWorksheet} className="w-full">
-                Load Verification Worksheet
-              </Button>
+            <div>
+              <label className="block text-sm font-medium mb-1">Month</label>
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger><SelectValue placeholder="Select month" /></SelectTrigger>
+                <SelectContent>
+                  {["January","February","March","April","May","June",
+                    "July","August","September","October","November","December"]
+                    .map((m, i) => <SelectItem key={i} value={String(i+1)}>{m} 2026</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
+          {!selectedWasherId && (
+            <div className="text-center py-12 text-gray-400">Select a washer and month to load the verification worksheet.</div>
+          )}
         </CardContent>
       </Card>
 
@@ -245,8 +289,8 @@ export function MonthEndVerification() {
                       const needsReason = variancePct > 10;
 
                       return (
-                        <TableRow key={row.material}>
-                          <TableCell className="font-medium">{row.material}</TableCell>
+                        <TableRow key={(row as any).itemId || row.material}>
+                          <TableCell className="font-medium">{(row as any).itemName || row.material}</TableCell>
                           <TableCell className="text-right">
                             {row.openingBalance} {row.unit}
                           </TableCell>
@@ -328,8 +372,8 @@ export function MonthEndVerification() {
                 {worksheetData
                   .filter(row => row.physicalCount > 0)
                   .map(row => (
-                    <div key={row.material} className="bg-white p-3 rounded border border-green-200">
-                      <p className="text-xs text-gray-600">{row.material}</p>
+                    <div key={(row as any).itemId || row.material} className="bg-white p-3 rounded border border-green-200">
+                      <p className="text-xs text-gray-600">{(row as any).itemName || row.material}</p>
                       <p className="text-lg font-bold text-green-700">
                         {row.physicalCount} {row.unit}
                       </p>

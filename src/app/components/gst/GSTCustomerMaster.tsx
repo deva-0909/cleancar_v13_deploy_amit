@@ -3,9 +3,11 @@ import { Users, Plus, Search, Download, X, Check, AlertCircle } from "lucide-rea
 import { gstComplianceService, type GSTCustomer } from "../../services/gstComplianceService";
 import { showExportMenu } from "../../utils/gstExportUtils";
 import { GST_STATE_OPTIONS, GST_STATES } from "../../services/accountingEntryService";
+import { useCity } from "../../contexts/CityContext";
 
 export function GSTCustomerMaster() {
-  const [customers, setCustomers] = useState<GSTCustomer[]>(gstComplianceService.getCustomers());
+  const { city, cityInfo } = useCity();
+  const [customers, setCustomers] = useState<GSTCustomer[]>(gstComplianceService.getCustomers(city));
   const [searchTerm, setSearchTerm] = useState("");
   const [filterState, setFilterState] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -44,8 +46,9 @@ export function GSTCustomerMaster() {
   };
 
   const handleSaveCustomer = (customer: GSTCustomer) => {
-    gstComplianceService.saveCustomer(customer);
-    setCustomers(gstComplianceService.getCustomers());
+    const customerWithCity = { ...customer, cityId: city, city: cityInfo.displayName };
+    gstComplianceService.saveCustomer(customerWithCity);
+    setCustomers(gstComplianceService.getCustomers(city));
     setShowAddForm(false);
     setEditingCustomer(null);
   };

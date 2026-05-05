@@ -2,12 +2,16 @@ import { useState, useMemo } from "react";
 import { GitCompare, Upload, Download } from "lucide-react";
 import { gstComplianceService, type GSTReconciliationRecord } from "../../services/gstComplianceService";
 import { showExportMenu } from "../../utils/gstExportUtils";
+import { useCity } from "../../contexts/CityContext";
 
 export function GSTReconciliation() {
+  const { city } = useCity();
   const [activeTab, setActiveTab] = useState<"upload" | "results" | "itc">("upload");
   const [records, setRecords] = useState<GSTReconciliationRecord[]>(gstComplianceService.getReconciliation());
   const [filterMatch, setFilterMatch] = useState("");
   const [searchVendor, setSearchVendor] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const filteredRecords = useMemo(() => {
     return records.filter(r => {
@@ -57,13 +61,47 @@ export function GSTReconciliation() {
           itcStatus: "Not Claimed",
           vendorFilingStatus: values[6] || "Filed",
           notes: "",
-          month: "April",
-          year: 2026
+          month: selectedMonth,
+          year: selectedYear
         };
       });
 
-      newRecords.forEach(rec => gstComplianceService.saveReconciliationRecord(rec));
+      // Auto-match each 2B record against existing system transactions
+      const systemTransactions = gstComplianceService.getTransactions(city);
+
+      const matchedRecords = newRecords.map(rec => {
+        const match = systemTransactions.find(t =>
+          t.transactionType === "Purchase" &&
+          t.invoiceNumber?.trim().toLowerCase() === rec.invoiceNumber?.trim().toLowerCase() &&
+          t.partyGstin?.trim().toUpperCase() === rec.vendorGstin?.trim().toUpperCase()
+        );
+
+        if (!match) return rec; // stays "In 2B Only"
+
+        const systemGST = match.cgst + match.sgst + match.igst;
+        const diff = Math.abs(systemGST - rec.gstAmount);
+
+        return {
+          ...rec,
+          vendorId: match.partyId,
+          inSystemBooks: true,
+          matchStatus: diff < 1
+            ? "Matched" as const
+            : diff < 10
+            ? "Amount Mismatch" as const
+            : "Amount Mismatch" as const,
+          differenceAmount: diff,
+          itcClaimable: match.itcEligible,
+          itcStatus: match.itcEligible ? "Provisional" as const : "Blocked" as const,
+        };
+      });
+
+      matchedRecords.forEach(rec => gstComplianceService.saveReconciliationRecord(rec));
       setRecords(gstComplianceService.getReconciliation());
+
+      const matched   = matchedRecords.filter(r => r.matchStatus === "Matched").length;
+      const unmatched = matchedRecords.filter(r => r.matchStatus !== "Matched").length;
+      alert(`Upload complete. ${matched} matched, ${unmatched} unmatched. Review the Results tab.`);
       setActiveTab("results");
     };
     reader.readAsText(file);

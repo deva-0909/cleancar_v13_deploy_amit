@@ -44,7 +44,7 @@ import { Textarea } from "../ui/textarea";
 import { BackButton } from "../ui/back-button";
 import { Switch } from "../ui/switch";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import {
   Calendar, User, Clock, TrendingUp, AlertCircle,
   CheckCircle, XCircle, FileText, Download, Info,

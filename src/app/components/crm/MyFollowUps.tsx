@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
+import { useCustomers } from "../../contexts/CustomerContext";
+import { useCity } from "../../contexts/CityContext";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -62,6 +64,8 @@ interface FollowUpLead {
 
 export function MyFollowUps() {
   const { currentUser, role } = useRole();
+  const { cityLeads } = useCustomers();
+  const { city } = useCity();
   const [selectedLead, setSelectedLead] = useState<FollowUpLead | null>(null);
   const [stageFilter, setStageFilter] = useState<string[]>([]);
   const [temperatureFilter, setTemperatureFilter] = useState<string>("all");
@@ -76,8 +80,33 @@ export function MyFollowUps() {
   } | null>(null);
   const [actionedLeads, setActionedLeads] = useState<Set<string>>(new Set());
 
-  // Mock follow-up leads data
-  const allFollowUpLeads: FollowUpLead[] = [
+  const allFollowUpLeads = cityLeads
+    .filter(l => l.followUpDate && l.stage !== "converted" && l.stage !== "lost")
+    .map(l => ({
+      id: l.leadId,
+      customerName: `${l.firstName} ${l.lastName}`,
+      mobile: l.phone,
+      email: l.email || "",
+      vehicleCategory: (l.vehicleCategory || "Sedan") as "Hatchback" | "Sedan" | "SUV",
+      planOfInterest: l.planOfInterest || "CleanCar Basic",
+      stage: l.stage || "new",
+      temperature: (l.temperature || "Cold") as "Hot" | "Warm" | "Cold",
+      priority: "Medium" as "High" | "Medium" | "Low",
+      urgencyReason: l.followUpDate && l.followUpDate < new Date().toISOString().split("T")[0] ? "Follow-up overdue" : "Follow-up due",
+      lastActivity: l.lastContactedAt
+        ? `Last contacted ${new Date(l.lastContactedAt).toLocaleDateString("en-IN")}`
+        : "No contact yet",
+      lastActivityTime: l.lastContactedAt
+        ? new Date(l.lastContactedAt).toLocaleString("en-IN")
+        : "Never",
+      followUpDue: l.followUpDate || "",
+      assignedTSE: l.assignedTSE || l.assignedTo || "Unassigned",
+      area: l.address.area,
+      createdAt: l.createdAt,
+    }));
+
+  // Old mock data removed
+  const oldMockLeads: FollowUpLead[] = [
     {
       id: "L001",
       customerName: "Rajesh Sharma",

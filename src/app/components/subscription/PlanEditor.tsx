@@ -34,7 +34,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { useRole } from "../../contexts/RoleContext";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import {

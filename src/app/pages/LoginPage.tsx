@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Building2, Eye, EyeOff, Phone, Lock, AlertTriangle, ArrowRight } from "lucide-react";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { toast } from "sonner";
 import { authService } from "../services/authService";
-import { seedDummyLogins } from "../utils/seedDummyLogins";
 
 type LoginView = "login" | "forgot_otp_request" | "forgot_otp_verify" | "forgot_reset";
 
@@ -30,17 +29,6 @@ export function LoginPage() {
   const [forgotError, setForgotError] = useState("");
   const [forgotInfo, setForgotInfo] = useState("");
 
-  // ── SEED DEMO ACCOUNTS ON MOUNT ──────────────────────────────
-  // This ensures demo accounts exist in localStorage even if App.tsx
-  // useEffect hasn't fired yet (e.g. on first load / Vercel cold start).
-  useEffect(() => {
-    try {
-      seedDummyLogins();
-    } catch (err) {
-      console.error("[LoginPage] Failed to seed demo logins:", err);
-    }
-  }, []);
-
   const handleLogin = async () => {
     if (!loginMobile || !loginPassword) {
       setLoginError("Please enter your mobile number and password.");
@@ -49,9 +37,6 @@ export function LoginPage() {
     setIsLoading(true);
     setLoginError("");
     try {
-      // Guard: ensure demo accounts are seeded before auth check
-      seedDummyLogins();
-
       const result = authService.login({ loginMobile, password: loginPassword });
 
       if (result.success) {
@@ -288,40 +273,7 @@ export function LoginPage() {
           )}
         </div>
 
-        {/* Demo credentials panel */}
-        <details className="mt-6 rounded-xl border border-blue-800/40 bg-blue-950/40 text-xs text-blue-200 overflow-hidden">
-          <summary className="cursor-pointer px-4 py-2.5 font-semibold text-blue-300 select-none">
-            🔑 Demo login credentials
-          </summary>
-          <div className="px-4 pb-3 pt-1 space-y-1 font-mono">
-            <p className="text-blue-400 mb-2">Password for all accounts: <span className="text-white font-bold">Demo@1234</span></p>
-            {[
-              ["9000000001", "Super Admin"],
-              ["9000000002", "Admin"],
-              ["9000000003", "City Manager"],
-              ["9000000004", "Cluster Manager"],
-              ["9000000005", "Sr Operations Manager"],
-              ["9000000006", "Operations Manager"],
-              ["9000000007", "Manager"],
-              ["9000000008", "Supervisor"],
-              ["9000000009", "Car Washer"],
-              ["9000000010", "TSM"],
-              ["9000000011", "TSE"],
-              ["9000000012", "CCE"],
-              ["9000000013", "Store Manager"],
-              ["9000000014", "Procurement Manager"],
-              ["9000000015", "Accounts"],
-              ["9000000016", "HR"],
-            ].map(([mobile, role]) => (
-              <div key={mobile} className="flex justify-between gap-4 py-0.5 border-b border-blue-800/30">
-                <span className="text-blue-300">{mobile}</span>
-                <span className="text-blue-100">{role}</span>
-              </div>
-            ))}
-          </div>
-        </details>
-
-        <p className="text-center text-blue-400 text-xs mt-4">
+        <p className="text-center text-blue-400 text-xs mt-6">
           © 2026 CleanCar 360° · Shine. Trust. Speed.
         </p>
       </div>

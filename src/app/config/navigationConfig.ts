@@ -21,7 +21,7 @@ import {
   FileSearch, BarChart2, Layers, Coins,
   PlusCircle, MinusCircle, FileBarChart, Brain, ShieldCheck, LayoutDashboard,
   Building2, CheckCircle2, ClipboardCheck, GitCompare, FileOutput, ReceiptText,
-  Upload, BookOpen, List, Scale
+  Upload, BookOpen, List, Scale, Zap, Car, Percent
 } from "lucide-react";
 
 export interface NavItem {
@@ -169,6 +169,7 @@ export const NAV_CONFIG: NavItem[] = [
       { label: "Leave Management", path: "/hr/professional-leave", icon: Calendar, module: "leave", match: "prefix" },
       { label: "Documents", path: "/hr/letters-documents", icon: FileText, module: "hr", match: "prefix" },
       { label: "Advances", path: "/advance/hr-management", icon: Banknote, module: "hr", match: "prefix" },
+      { label: "Travel Reimbursement", path: "/travel", icon: Car, module: "hr", match: "prefix" },
       { label: "Other Earnings", path: "/advance/other-earnings", icon: PlusCircle, module: "hr", match: "prefix" },
       { label: "Other Deductions", path: "/advance/other-deductions", icon: MinusCircle, module: "hr", match: "prefix" },
       { label: "Role Suggestions", path: "/hr/role-suggestions", icon: Target, module: "hr", match: "prefix" },
@@ -232,10 +233,15 @@ export const NAV_CONFIG: NavItem[] = [
     children: [
       { label: "Dashboard",          path: "/accounts/dashboard",        icon: LayoutDashboard, module: "accounts", match: "exact" },
       { label: "Accounting Entry",   path: "/accounts/accounting-entry", icon: FileText,        module: "accounts", match: "prefix" },
+      { label: "Expense Voucher",    path: "/accounts/expense-voucher",  icon: Receipt,         module: "accounts", match: "prefix" },
+      { label: "Item Master",        path: "/accounts/item-master",      icon: Package,         module: "accounts", match: "prefix" },
       { label: "Journal Entry",      path: "/accounts/journal-entry",    icon: BookOpen,        module: "accounts", match: "prefix" },
       { label: "Transaction List",   path: "/accounts/transactions",     icon: List,            module: "accounts", match: "prefix" },
       { label: "Ledger",             path: "/accounts/ledger",           icon: BookUser,        module: "accounts", match: "prefix" },
+      { label: "Ledger Master",      path: "/accounts/ledger-master",    icon: Layers,          module: "accounts", match: "prefix" },
+      { label: "Razorpay Flow",      path: "/accounts/razorpay-flow",    icon: Zap,             module: "accounts", match: "prefix" },
       { label: "Trial Balance",      path: "/accounts/trial-balance",    icon: Scale,           module: "accounts", match: "prefix" },
+      { label: "Balance Sheet",      path: "/accounts/balance-sheet",    icon: BarChart2,       module: "accounts", match: "prefix" },
       { label: "GSTR-2A Report",     path: "/accounts/gstr2a",           icon: FileSearch,      module: "accounts", match: "prefix" },
       { label: "Purchase Summary",   path: "/accounts/reports/purchase", icon: ShoppingCart,    module: "accounts", match: "prefix" },
       { label: "Sales Summary",      path: "/accounts/reports/sales",    icon: TrendingUp,      module: "accounts", match: "prefix" },
@@ -243,6 +249,9 @@ export const NAV_CONFIG: NavItem[] = [
       { label: "Vendor Master",      path: "/gst/vendors",               icon: Building2,       module: "accounts", match: "prefix" },
       { label: "Vendor Payment",     path: "/accounts/vendor-payment",   icon: Building,        module: "accounts", match: "prefix" },
       { label: "Payroll Processing", path: "/accounts/payroll-processing",icon: Calculator,     module: "accounts", match: "prefix" },
+      { label: "Payables",           path: "/accounts/payables",         icon: CreditCard,      module: "accounts", match: "prefix" },
+      { label: "TDS Payable",        path: "/accounts/tds-payable",      icon: Percent,         module: "accounts", match: "prefix" },
+      { label: "Advance Tax",        path: "/accounts/advance-tax",      icon: Calendar,        module: "accounts", match: "prefix" },
     ]
   },
 

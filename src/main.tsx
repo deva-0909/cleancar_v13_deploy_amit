@@ -2,12 +2,45 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/index.css";
 import App from "./app/App";
+import MinimalTest from "./app/MinimalTest";
+import { EmergencyFallback } from "./app/EmergencyFallback";
+
+// EMERGENCY DEBUG MODE - Set to true to test if React works at all
+const USE_MINIMAL_TEST = false;
+const USE_EMERGENCY_FALLBACK = false;
+const isPreviewMode = new URLSearchParams(window.location.search).get("preview-route") !== null
+  || import.meta.env.MODE === "development";
+
+// FIX 8: Handle Figma Make ?preview-route= query param.
+// createHashRouter reads window.location.hash, not the path.
+// Figma Make sets preview-route as a query param — convert it to a hash
+// so the router picks it up correctly before React mounts.
+const params = new URLSearchParams(window.location.search);
+const previewRoute = params.get("preview-route");
+if (previewRoute && window.location.pathname === "/") {
+  const cleanRoute = previewRoute.startsWith("/") ? previewRoute : "/" + previewRoute;
+  history.replaceState(null, "", cleanRoute);
+}
 
 const container = document.getElementById("root");
-if (!container) throw new Error("Root element #root not found in index.html");
+if (!container) {
+  throw new Error("Root element #root not found in index.html");
+}
 
-createRoot(container).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+const getComponent = () => {
+  if (USE_EMERGENCY_FALLBACK) return <EmergencyFallback />;
+  if (USE_MINIMAL_TEST) return <MinimalTest />;
+  return <App />;
+};
+
+try {
+  createRoot(container).render(
+    <StrictMode>
+      {getComponent()}
+    </StrictMode>
+  );
+} catch (error) {
+  console.error("Fatal error rendering app:", error);
+  // Last resort - render without StrictMode
+  createRoot(container).render(<EmergencyFallback />);
+}

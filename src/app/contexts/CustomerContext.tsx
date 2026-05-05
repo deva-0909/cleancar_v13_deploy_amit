@@ -6,7 +6,7 @@
  */
 
 import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
-import { LeadConversionService, type Lead, type SubscriptionPlan, type ConversionResult } from "../services/leadConversionService";
+import { LeadConversionService, type Lead, type LeadActivity, type SubscriptionPlan, type ConversionResult } from "../services/leadConversionService";
 import { useCustomerSubscriptions } from "./CustomerSubscriptionContext";
 import { useJobs } from "./JobContext";
 import { useFinance } from "./FinanceContext";
@@ -15,6 +15,7 @@ import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 import { useSync } from "../hooks/useSync";
 import { useCity } from "./CityContext";
+import { AnalyticsService } from "../services/analyticsService";
 
 // Types
 export interface Customer {
@@ -53,9 +54,11 @@ interface CustomerContextType {
   getCustomersByStatus: (status: Customer["status"]) => Customer[];
   deleteCustomer: (customerId: string) => void;
   leads: Lead[];
+  cityLeads: Lead[];
   addLead: (lead: Omit<Lead, "leadId" | "createdAt">) => Lead;
   updateLead: (id: string, updates: Partial<Lead>) => void;
   deleteLead: (id: string) => void;
+  appendLeadActivity: (leadId: string, activity: Omit<LeadActivity, "id">) => void;
 }
 
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
@@ -84,6 +87,15 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       c.city === cityId
     );
   }, [customers, city, cityInfo]);
+
+  const cityLeads = useMemo(() => {
+    const cityId   = city;
+    const cityName = cityInfo.displayName.toLowerCase();
+    return leads.filter(l =>
+      l.cityId === cityId ||
+      l.city?.toLowerCase() === cityName
+    );
+  }, [leads, city, cityInfo]);
 
   const { emit } = useEvents();
 
@@ -158,6 +170,14 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     };
 
     setLeads((prev) => [...prev, newLead]);
+
+    // Track lead creation in analytics
+    AnalyticsService.track("LEAD_CREATED", {
+      leadId: newLead.leadId,
+      source: newLead.leadSource || "Unknown",
+      cityId: newLead.cityId || city,
+    });
+
     return newLead;
   };
 
@@ -169,6 +189,17 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
           : lead
       )
     );
+  };
+
+  const appendLeadActivity = (leadId: string, activity: Omit<LeadActivity, "id">) => {
+    const newActivity: LeadActivity = {
+      ...activity,
+      id: `ACT-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+    };
+    updateLead(leadId, {
+      timeline: [...(leads.find(l => l.leadId === leadId)?.timeline || []), newActivity],
+      lastContactedAt: new Date().toISOString(),
+    });
   };
 
   const deleteLead = (id: string) => {
@@ -186,9 +217,11 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         getCustomersByStatus,
         deleteCustomer,
         leads,
+        cityLeads,
         addLead,
         updateLead,
         deleteLead,
+        appendLeadActivity,
       }}
     >
       {children}
@@ -201,19 +234,14 @@ export function useCustomers() {
   if (!context) {
     // PREVIEW FALLBACK: Safe no-op defaults for Figma Make iframe and dev HMR
     if (import.meta.hot || !import.meta.env?.PROD) {
-      const noop = () => { console.warn("[Context] called outside provider."); return null as any; };
+      const noop = () => { throw new Error("CustomerContext not available in preview"); };
       return {
         customers: [], cityCustomers: [], addCustomer: noop, updateCustomer: () => {}, deleteCustomer: () => {},
         getCustomerById: () => undefined, getCustomersByStatus: () => [],
-        leads: [], addLead: noop, updateLead: () => {}, deleteLead: () => {},
+        leads: [], cityLeads: [], addLead: noop, updateLead: () => {}, deleteLead: () => {}, appendLeadActivity: () => {},
       } as CustomerContextType;
     }
-    console.warn("[CustomerContext] useCustomers called outside CustomerProvider — using defaults.");
-    return {
-      customers: [], cityCustomers: [],
-      addCustomer: () => {}, updateCustomer: () => {}, deleteCustomer: () => {},
-      getCustomerById: () => undefined, getCustomersByStatus: () => [],
-    } as any;
+    throw new Error("useCustomers must be used within CustomerProvider");
   }
   return context;
 }

@@ -42,6 +42,9 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useCity } from "../../contexts/CityContext";
+import { useEmployee } from "../../contexts/EmployeeContext";
+import { useInventory } from "../../contexts/InventoryContext";
+import { useJobs } from "../../contexts/JobContext";
 import {
   BarChart,
   Bar,
@@ -65,12 +68,12 @@ import {
 
 const COLORS = ["#3B82F6", "#10B981", "#8B5CF6", "#F59E0B", "#EC4899"];
 
-// Mock consumption data for washers
-const WASHER_CONSUMPTION_DATA = [
+// Mock consumption data for washers (fallback)
+const MOCK_WASHER_CONSUMPTION_DATA = [
   {
     washerId: "CW-101",
     washerName: "Ravi Verma",
-    city: cityInfo.displayName,
+    city: "Surat",
     supervisor: "Karthik Iyer",
     totalWashes: 145,
     materialCost: 8520, // Total material cost for the month
@@ -84,7 +87,7 @@ const WASHER_CONSUMPTION_DATA = [
   {
     washerId: "CW-102",
     washerName: "Suresh Yadav",
-    city: cityInfo.displayName,
+    city: "Surat",
     supervisor: "Karthik Iyer",
     totalWashes: 138,
     materialCost: 8142,
@@ -98,7 +101,7 @@ const WASHER_CONSUMPTION_DATA = [
   {
     washerId: "CW-103",
     washerName: "Mohan Singh",
-    city: cityInfo.displayName,
+    city: "Surat",
     supervisor: "Karthik Iyer",
     totalWashes: 152,
     materialCost: 8968,
@@ -144,7 +147,7 @@ const SUPERVISOR_TEAMS = [
   {
     supervisorId: "FS-301",
     supervisorName: "Karthik Iyer",
-    city: cityInfo.displayName,
+    city: "Surat",
     teamWashers: ["CW-101", "CW-102", "CW-103"],
     totalWashes: 435, // Sum of team
     totalMaterialCost: 25630,
@@ -176,7 +179,7 @@ const SUPERVISOR_TEAMS = [
 // Mock city-level data
 const CITY_CONSUMPTION_DATA = [
   {
-    city: cityInfo.displayName,
+    city: "Surat",
     totalWashers: 8,
     totalSupervisors: 2,
     totalWashes: 1248,
@@ -207,14 +210,56 @@ const CITY_CONSUMPTION_DATA = [
 
 function CostPerWashByConsumption() {
   const { city, cityInfo } = useCity();
+  const { employees } = useEmployee();
+  const { inventory, stockTransactions } = useInventory();
+  const { allJobs } = useJobs();
+
+  const WASHER_CONSUMPTION_DATA = useMemo(() => {
+    const cityWashers = employees.filter(e =>
+      e.designation === "Car Washer" && e.status === "Active" &&
+      (e.workLocation === city || e.cityId === city)
+    );
+    return cityWashers.map(w => {
+      const washerJobs = allJobs.filter(j =>
+        j.washerId === w.id && (j.status === "Completed" || j.status === "Verified")
+      );
+      const issuances = stockTransactions.filter(t =>
+        t.toId === w.id && t.type === "Issue" && t.status === "Completed"
+      );
+      const materialCost = issuances.reduce((s, t) => {
+        const item = inventory.find(i => i.itemId === t.itemId);
+        return s + t.quantity * (item?.unitCost || 0);
+      }, 0);
+      const supervisorEmp = employees.find(e => e.id === w.reportingManager || e.fullName === w.reportingManager);
+      return {
+        washerId: w.id,
+        washerName: w.fullName,
+        city: cityInfo.displayName,
+        supervisor: supervisorEmp?.fullName || w.reportingManager || "Unknown",
+        totalWashes: washerJobs.length,
+        materialCost,
+        consumablesCost: Math.round(materialCost * 0.25),
+        waterCost: washerJobs.length,
+        fuelCost: Math.round(washerJobs.length * 15),
+        overheadAllocation: Math.round(washerJobs.length * 25),
+        equipmentCost: Math.round(washerJobs.length * 6),
+        period: new Date().toLocaleString("en-IN", { month: "long", year: "numeric" }),
+      };
+    });
+  }, [city, employees, allJobs, inventory, stockTransactions, cityInfo.displayName]);
+
+  // Fallback to mock if no real data
+  const displayWasherData = WASHER_CONSUMPTION_DATA.length > 0
+    ? WASHER_CONSUMPTION_DATA : MOCK_WASHER_CONSUMPTION_DATA;
+
   const [selectedLevel, setSelectedLevel] = useState<"washer" | "supervisor" | "city">("washer");
-  const [selectedWasher, setSelectedWasher] = useState(WASHER_CONSUMPTION_DATA[0].washerId);
+  const [selectedWasher, setSelectedWasher] = useState(displayWasherData[0].washerId);
   const [selectedSupervisor, setSelectedSupervisor] = useState(SUPERVISOR_TEAMS[0].supervisorId);
   const [selectedCity, setSelectedCity] = useState(() => cityInfo.displayName);
 
   // Calculate washer cost per wash using central engine
   const calculateWasherCost = (washerId: string) => {
-    const washer = WASHER_CONSUMPTION_DATA.find((w) => w.washerId === washerId);
+    const washer = displayWasherData.find((w) => w.washerId === washerId);
     if (!washer) return null;
 
     // Map washer data to central engine inputs
@@ -387,7 +432,7 @@ function CostPerWashByConsumption() {
                 <CardTitle className="text-lg">Select Washer</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {WASHER_CONSUMPTION_DATA.map((washer) => (
+                {displayWasherData.map((washer) => (
                   <Button
                     key={washer.washerId}
                     variant={selectedWasher === washer.washerId ? "default" : "outline"}
@@ -688,7 +733,7 @@ function CostPerWashByConsumption() {
                           <div className="text-sm text-gray-600 mb-2">Team Members:</div>
                           <div className="flex flex-wrap gap-2">
                             {supervisorResult.team.teamWashers.map((washerId) => {
-                              const washer = WASHER_CONSUMPTION_DATA.find((w) => w.washerId === washerId);
+                              const washer = displayWasherData.find((w) => w.washerId === washerId);
                               return (
                                 <Badge key={washerId} variant="outline">
                                   {washer?.washerName || washerId}

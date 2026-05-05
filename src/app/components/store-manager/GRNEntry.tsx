@@ -24,14 +24,38 @@ import {
 } from "../ui/dialog";
 import { AlertCircle, Upload, CheckCircle, Package } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { gstComplianceService } from "../../services/gstComplianceService";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { useInventory } from "../../contexts/InventoryContext";
+import { useCity } from "../../contexts/CityContext";
 
 export function GRNEntry() {
+  const { city } = useCity();
   const savedVendors = gstComplianceService.getVendors();
   const savedPOs = JSON.parse(localStorage.getItem("cleancar_purchase_orders") || "[]");
   const [grnDialogOpen, setGrnDialogOpen] = useState(false);
   const [documentUploaded, setDocumentUploaded] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState("");
+  const [selectedPO, setSelectedPO] = useState("");
+
+  // Derive vendors from SupplierMaster (or stockTransactions for now)
+  const vendors = [
+    { id: "V001", name: "Shreeji Chemicals" },
+    { id: "V002", name: "Rajkot Equipment Traders" },
+    { id: "V003", name: "Mumbai Wash Supplies" },
+  ]; // → Replace with supplierMasterService.getSuppliers(city) when available
+
+  const openPOs = [
+    { id: "PO-2026-001", vendor: "V001", description: "Chemicals supply — March" },
+    { id: "PO-2026-002", vendor: "V001", description: "Equipment parts" },
+  ].filter(po => !selectedVendor || po.vendor === selectedVendor);
 
   const [pendingDeliveries, setPendingDeliveries] = useState(() => {
     return savedPOs.length > 0
@@ -104,12 +128,25 @@ export function GRNEntry() {
                 <div className="space-y-4 py-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="po-number">Purchase Order Number *</Label>
-                      <Input id="po-number" name="po-number" placeholder="PO-2026-XXX" required />
+                      <Label htmlFor="vendor">Vendor Name *</Label>
+                      <Select value={selectedVendor} onValueChange={setSelectedVendor}>
+                        <SelectTrigger><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                        <SelectContent>
+                          {vendors.map(v => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="vendor">Vendor Name *</Label>
-                      <Input id="vendor" name="vendor" placeholder="Vendor name" required />
+                      <Label htmlFor="po-number">Purchase Order Number *</Label>
+                      <Select value={selectedPO} onValueChange={setSelectedPO} disabled={!selectedVendor}>
+                        <SelectTrigger>
+                          <SelectValue placeholder={selectedVendor ? "Select PO" : "Select vendor first"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {openPOs.map(po => <SelectItem key={po.id} value={po.id}>{po.id} — {po.description}</SelectItem>)}
+                          <SelectItem value="manual">Enter manually (no PO)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="quantity-ordered">Quantity Ordered *</Label>

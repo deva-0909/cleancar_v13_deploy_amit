@@ -5,9 +5,11 @@
  */
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { useRole } from "../../contexts/RoleContext";
 import { advanceManagementService } from "../../services/advanceManagementService";
+import { useEmployee } from "../../contexts/EmployeeContext";
+import { useCity } from "../../contexts/CityContext";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -33,6 +35,13 @@ import type { SecurityCheque, ApprovalAuthority } from "../../types/advanceManag
 export function LongTermAdvanceForm() {
   const navigate = useNavigate();
   const { currentUser } = useRole();
+  const { employees } = useEmployee();
+  const { currentRole } = useRole();
+  const { city } = useCity();
+  const [targetEmployeeId, setTargetEmployeeId] = useState(currentUser?.employeeId || "");
+  const isHRView = currentRole === "HR" || currentRole === "Admin" || currentRole === "Super Admin";
+
+  const targetEmployee = employees.find(e => e.id === targetEmployeeId);
 
   // Form state
   const [advanceAmount, setAdvanceAmount] = useState<number>(0);
@@ -230,6 +239,38 @@ export function LongTermAdvanceForm() {
                     </p>
                   ))}
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* HR Employee Picker */}
+        {isHRView && (
+          <Card className="mb-4">
+            <CardContent className="p-4">
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <label className="block text-sm font-medium text-blue-800 mb-1">
+                  Processing advance for:
+                </label>
+                <Select value={targetEmployeeId} onValueChange={setTargetEmployeeId}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Select employee..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees
+                      .filter(e => e.status === "Active" && (e.workLocation === city || e.cityId === city))
+                      .map(e => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.fullName} — {e.designation} ({e.mobile})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {targetEmployee && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    Role: {targetEmployee.designation} | Gross: ₹{targetEmployee.gross?.toLocaleString() || "—"}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

@@ -115,9 +115,6 @@ const backupSalaryData = (data: SalaryStructure[]): boolean => {
 const CITY_STATE_MAP: Record<string, string> = {
   "CITY-SURAT": "GJ",
   "CITY-MUMBAI": "MH",
-  "CITY-BANGALORE": "KA",
-  "CITY-DELHI": "DL",
-  "CITY-PUNE": "MH",
   "CITY-AHMEDABAD": "GJ",
 };
 

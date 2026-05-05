@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -25,6 +25,9 @@ import { useRole } from "../../contexts/RoleContext";
 import { usePlanDefinitions } from "../../contexts/PlanDefinitionContext";
 import { useCustomerSubscriptions, useCustomers, useJobs } from "../../contexts/AppProvider";
 import { useGlobalFilters } from "../navigation/GlobalFilterBar";
+import { useFinance } from "../../contexts/FinanceContext";
+import { useCity } from "../../contexts/CityContext";
+import { AnalyticsService } from "../../services/analyticsService";
 import {
   LineChart,
   Line,
@@ -129,8 +132,57 @@ function UnitEconomicsDashboard() {
   const revenuePerCustomer = totalCustomers > 0 ? Math.round(totalMonthlyRevenue / totalCustomers) : 0;
   const revenuePerWash = totalWashes > 0 ? Math.round(totalMonthlyRevenue / totalWashes) : 0;
 
+  const { getPayablesByCity, getRevenueByCity } = useFinance();
+  const { city } = useCity();
+
+  // Derive costPerWash from real paid payables
+  const realCostPerWash = useMemo(() => {
+    const paidPayables = getPayablesByCity(city).filter(p => p.status === "Paid");
+    const totalCost = paidPayables.reduce((s, p) => s + p.amount, 0);
+    return totalWashes > 0 && totalCost > 0
+      ? Math.round(totalCost / totalWashes)
+      : 245; // fallback if no payables recorded
+  }, [city, totalWashes, getPayablesByCity]);
+
+  // Derive real CAC from analyticsService
+  const realCAC = useMemo(() => {
+    const events = AnalyticsService.getEvents("LEAD_CONVERTED");
+    const totalRevenue = events.reduce((s, e) => s + (e.data.revenue || 0), 0);
+    const totalConversions = events.length;
+    return totalConversions > 0
+      ? Math.round((totalRevenue * 0.15) / totalConversions)
+      : 850;
+  }, []);
+
+  // Build real revenue vs cost trend from FinanceContext
+  const realRevenueCostTrend = useMemo(() => {
+    const revenues = getRevenueByCity(city).filter(r => r.status === "Received");
+    const payables = getPayablesByCity(city).filter(p => p.status === "Paid");
+    const byMonth = new Map<string, { revenue: number; cost: number }>();
+    revenues.forEach(r => {
+      const m = r.receivedDate?.slice(0, 7) || "";
+      if (!m) return;
+      const ex = byMonth.get(m) || { revenue: 0, cost: 0 };
+      byMonth.set(m, { ...ex, revenue: ex.revenue + r.amount });
+    });
+    payables.forEach(p => {
+      const m = p.paidAt?.slice(0, 7) || "";
+      if (!m) return;
+      const ex = byMonth.get(m) || { revenue: 0, cost: 0 };
+      byMonth.set(m, { ...ex, cost: ex.cost + p.amount });
+    });
+    const trend = Array.from(byMonth.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, d], i) => ({
+        id: `m-${i}`,
+        month: new Date(month + "-01").toLocaleString("en-IN", { month: "short" }),
+        ...d,
+      }));
+    return trend.length > 0 ? trend : revenueVsCostTrend; // fallback
+  }, [city, getRevenueByCity, getPayablesByCity]);
+
   // Estimated cost per wash (labor + materials + overhead)
-  const costPerWash = 245;
+  const costPerWash = realCostPerWash;
   const totalCost = totalWashes * costPerWash;
   const costPerCustomer = totalCustomers > 0 ? Math.round(totalCost / totalCustomers) : 0;
   const grossMarginPerWash = revenuePerWash - costPerWash;
@@ -138,7 +190,7 @@ function UnitEconomicsDashboard() {
   // LTV and CAC (simplified estimates)
   const avgRetentionMonths = 16.8;
   const customerLTV = revenuePerCustomer * avgRetentionMonths;
-  const customerCAC = 850; // Assumed customer acquisition cost
+  const customerCAC = realCAC;
   const ltvCacRatio = customerCAC > 0 ? Number((customerLTV / customerCAC).toFixed(1)) : 0;
   const contributionMargin = revenuePerWash > 0 ? Number(((grossMarginPerWash / revenuePerWash) * 100).toFixed(1)) : 0;
 
@@ -156,7 +208,7 @@ function UnitEconomicsDashboard() {
 
   // Memoize static chart data to prevent re-renders
   const memoizedCostTrend = useMemo(() => costPerWashTrend, []);
-  const memoizedRevenueCostTrend = useMemo(() => revenueVsCostTrend, []);
+  const memoizedRevenueCostTrend = realRevenueCostTrend;
   const memoizedCostBreakdown = useMemo(() => costBreakdown, []);
 
   // Calculate subscription profitability from real data

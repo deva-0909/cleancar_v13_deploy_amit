@@ -199,8 +199,7 @@ export function PlanDefinitionProvider({ children }: { children: ReactNode }) {
 export function usePlanDefinitions() {
   const context = useContext(PlanDefinitionContext);
   if (context === undefined) {
-    console.warn("[Context] usePlanDefinitions must be used within a PlanDefinitionProvider — using safe defaults.");
-    return null as any;
+    throw new Error("usePlanDefinitions must be used within a PlanDefinitionProvider");
   }
   return context;
 }

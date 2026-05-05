@@ -12,6 +12,8 @@ import {
 } from "../../ui/select";
 import { Phone, Save, X } from "lucide-react";
 import { toast } from "sonner";
+import { useCustomers } from "../../../contexts/CustomerContext";
+import { useRole } from "../../../contexts/RoleContext";
 
 interface LogCallPanelProps {
   lead: any;
@@ -20,6 +22,9 @@ interface LogCallPanelProps {
 }
 
 export function LogCallPanel({ lead, onClose, onComplete }: LogCallPanelProps) {
+  const { appendLeadActivity, updateLead } = useCustomers();
+  const { currentUser } = useRole();
+  const leadId = lead.leadId || lead.id;
   const [callOutcome, setCallOutcome] = useState("");
   const [talkDuration, setTalkDuration] = useState("");
   const [callNotes, setCallNotes] = useState("");
@@ -47,6 +52,19 @@ export function LogCallPanel({ lead, onClose, onComplete }: LogCallPanelProps) {
     }
 
     toast.success("Call logged successfully!");
+
+    appendLeadActivity(leadId, {
+      timestamp: new Date().toISOString(),
+      type: "call",
+      description: `Call ${callOutcome === "Connected" ? "connected" : "not connected"}. ${callNotes}`,
+      performedBy: currentUser?.name || "TSE",
+      outcome: callOutcome,
+      nextAction: followUpDate || undefined,
+    });
+    if (temperature) {
+      updateLead(leadId, { temperature: temperature as "hot" | "warm" | "cold", lastContactedAt: new Date().toISOString() });
+    }
+
     onComplete();
   };
 

@@ -25,6 +25,8 @@ import { createContext, useContext, useState, ReactNode, useEffect } from "react
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 import { useSync } from "../hooks/useSync";
+import { useFinance } from "./FinanceContext";
+import { useCity } from "./CityContext";
 
 // Types
 export interface CustomerSubscription {
@@ -77,6 +79,9 @@ interface CustomerSubscriptionContextType {
 const CustomerSubscriptionContext = createContext<CustomerSubscriptionContextType | undefined>(undefined);
 
 export function CustomerSubscriptionProvider({ children }: { children: ReactNode }) {
+  const { addMRREntry, removeMRREntry } = useFinance();
+  const { city } = useCity();
+
   const [subscriptions, setSubscriptions] = useState<CustomerSubscription[]>(() => {
     const stored = DataService.get<CustomerSubscription>("SUBSCRIPTIONS");
     logger.debug("CustomerSubscriptionContext loaded", { count: stored.length });
@@ -104,6 +109,20 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
     };
 
     setSubscriptions((prev) => [...prev, newSubscription]);
+
+    // Auto-create MRR entry in FinanceContext when subscription goes Active
+    if (newSubscription.status === "Active" && addMRREntry) {
+      const monthKey = new Date().toISOString().slice(0, 7); // "2026-04"
+      addMRREntry({
+        month: monthKey,
+        subscriptionId: newSubscription.subscriptionId,
+        customerId: newSubscription.customerId,
+        revenue: newSubscription.priceLocked,
+        status: "Active",
+        cityId: city,
+      });
+    }
+
     return newSubscription;
   };
 
@@ -183,6 +202,11 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
 
   const cancelSubscription = (subscriptionId: string) => {
     updateSubscriptionStatus(subscriptionId, "Cancelled");
+
+    // Remove MRR entry when subscription is cancelled
+    if (removeMRREntry) {
+      removeMRREntry(subscriptionId);
+    }
   };
 
   const deleteSubscription = (subscriptionId: string) => {
@@ -213,7 +237,7 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
 export function useCustomerSubscriptions() {
   const context = useContext(CustomerSubscriptionContext);
   if (!context) {
-    console.warn("[Context] called outside provider — using safe defaults."); return null as any;
+    throw new Error("useCustomerSubscriptions must be used within CustomerSubscriptionProvider");
   }
   return context;
 }

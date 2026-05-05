@@ -23,6 +23,7 @@ import { formatCurrency } from "../../../lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Badge } from "../../ui/badge";
 import { useFinance } from "../../../contexts/FinanceContext"; // ✅ NEW: Real finance data
+import { useCity } from "../../../contexts/CityContext";
 import {
   Table,
   TableBody,
@@ -78,11 +79,9 @@ interface CityMetrics {
 
 interface ComparisonMetric {
   metric: string;
-  BLR: number;
-  DEL: number;
+  SUR: number;
   MUM: number;
-  HYD: number;
-  CHN: number;
+  AHD: number;
 }
 
 // ============================================================================
@@ -91,8 +90,8 @@ interface ComparisonMetric {
 
 const mockCityMetrics: CityMetrics[] = [
   {
-    city: "BLR",
-    cityName: "Bangalore",
+    city: "SUR",
+    cityName: "Surat",
     revenue: 4350000,
     expenses: 3595000,
     profit: 755000,
@@ -103,20 +102,6 @@ const mockCityMetrics: CityMetrics[] = [
     profitPerWash: 25.36,
     cashFlow: 605000,
     rank: 1,
-  },
-  {
-    city: "DEL",
-    cityName: "Delhi",
-    revenue: 3850000,
-    expenses: 3465000,
-    profit: 385000,
-    profitMargin: 10.0,
-    washes: 27500,
-    revenuePerWash: 140.00,
-    costPerWash: 126.00,
-    profitPerWash: 14.00,
-    cashFlow: 285000,
-    rank: 3,
   },
   {
     city: "MUM",
@@ -133,41 +118,27 @@ const mockCityMetrics: CityMetrics[] = [
     rank: 2,
   },
   {
-    city: "HYD",
-    cityName: "Hyderabad",
-    revenue: 3200000,
-    expenses: 2880000,
-    profit: 320000,
+    city: "AHD",
+    cityName: "Ahmedabad",
+    revenue: 3850000,
+    expenses: 3465000,
+    profit: 385000,
     profitMargin: 10.0,
-    washes: 24800,
-    revenuePerWash: 129.03,
-    costPerWash: 116.13,
-    profitPerWash: 12.90,
-    cashFlow: 240000,
-    rank: 4,
-  },
-  {
-    city: "CHN",
-    cityName: "Chennai",
-    revenue: 2900000,
-    expenses: 2755000,
-    profit: 145000,
-    profitMargin: 5.0,
-    washes: 22100,
-    revenuePerWash: 131.22,
-    costPerWash: 124.66,
-    profitPerWash: 6.56,
-    cashFlow: 95000,
-    rank: 5,
+    washes: 27500,
+    revenuePerWash: 140.00,
+    costPerWash: 126.00,
+    profitPerWash: 14.00,
+    cashFlow: 285000,
+    rank: 3,
   },
 ];
 
 const mockRadarData: ComparisonMetric[] = [
-  { metric: "Revenue", BLR: 100, DEL: 88, MUM: 94, HYD: 74, CHN: 67 },
-  { metric: "Profit", BLR: 100, DEL: 51, MUM: 54, HYD: 42, CHN: 19 },
-  { metric: "Profit Margin", BLR: 100, DEL: 57, MUM: 57, HYD: 57, CHN: 29 },
-  { metric: "Rev/Wash", BLR: 100, DEL: 96, MUM: 107, HYD: 88, CHN: 90 },
-  { metric: "Cash Flow", BLR: 100, DEL: 47, MUM: 53, HYD: 40, CHN: 16 },
+  { metric: "Revenue", SUR: 100, MUM: 94, AHD: 88 },
+  { metric: "Profit", SUR: 100, MUM: 54, AHD: 51 },
+  { metric: "Profit Margin", SUR: 100, MUM: 57, AHD: 57 },
+  { metric: "Rev/Wash", SUR: 100, MUM: 107, AHD: 96 },
+  { metric: "Cash Flow", SUR: 100, MUM: 53, AHD: 47 },
 ];
 
 // ============================================================================
@@ -192,6 +163,7 @@ export function MultiCityComparisonReport({ filters }: MultiCityComparisonReport
 
   // ✅ REPLACE FAKE financeEngine WITH REAL CONTEXT DATA
   const { getMRRByCity, getRevenueByCity, getPayablesByCity } = useFinance();
+  const { availableCities } = useCity();
 
   useEffect(() => {
     loadMultiCityData();
@@ -201,21 +173,13 @@ export function MultiCityComparisonReport({ filters }: MultiCityComparisonReport
     setIsLoading(true);
     try {
       // ✅ REAL DATA: Build metrics from actual FinanceContext data
-      const cities = ["CITY-SURAT", "CITY-MUMBAI", "CITY-AHMEDABAD", "CITY-DELHI", "CITY-BANGALORE"];
-      const cityNameMap: Record<string, string> = {
-        "CITY-SURAT": "Surat",
-        "CITY-MUMBAI": "Mumbai",
-        "CITY-AHMEDABAD": "Ahmedabad",
-        "CITY-DELHI": "Delhi",
-        "CITY-BANGALORE": "Bangalore",
-      };
-      const cityCodeMap: Record<string, string> = {
-        "CITY-SURAT": "SUR",
-        "CITY-MUMBAI": "MUM",
-        "CITY-AHMEDABAD": "AHD",
-        "CITY-DELHI": "DEL",
-        "CITY-BANGALORE": "BLR",
-      };
+      const cities = availableCities.map(c => c.id);
+      const cityNameMap: Record<string, string> = {};
+      const cityCodeMap: Record<string, string> = {};
+      availableCities.forEach(c => {
+        cityNameMap[c.id] = c.displayName;
+        cityCodeMap[c.id] = c.code;
+      });
 
       const buildCityMetrics = (cityId: string): CityMetrics => {
         const revenue = getRevenueByCity(cityId);
@@ -396,11 +360,9 @@ export function MultiCityComparisonReport({ filters }: MultiCityComparisonReport
               <PolarGrid />
               <PolarAngleAxis dataKey="metric" />
               <PolarRadiusAxis angle={90} domain={[0, 120]} />
-              <Radar name="Bangalore" dataKey="BLR" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
-              <Radar name="Delhi" dataKey="DEL" stroke="#ef4444" fill="#ef4444" fillOpacity={0.4} />
-              <Radar name="Mumbai" dataKey="MUM" stroke="#10b981" fill="#10b981" fillOpacity={0.4} />
-              <Radar name="Hyderabad" dataKey="HYD" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.3} />
-              <Radar name="Chennai" dataKey="CHN" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.3} />
+              <Radar name="Surat" dataKey="SUR" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
+              <Radar name="Mumbai" dataKey="MUM" stroke="#10b981" fill="#10b981" fillOpacity={0.5} />
+              <Radar name="Ahmedabad" dataKey="AHD" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.5} />
               <Legend />
             </RadarChart>
           </ResponsiveContainer>
@@ -518,7 +480,7 @@ export function MultiCityComparisonReport({ filters }: MultiCityComparisonReport
               <div className="text-sm text-blue-900">
                 <p className="font-semibold">Best Profit Margin</p>
                 <p className="mt-1">
-                  Bangalore achieves <strong>17.4% margin</strong>, significantly above company average of 11.2%
+                  Surat achieves the highest margin, significantly above company average
                 </p>
               </div>
             </div>
@@ -532,7 +494,7 @@ export function MultiCityComparisonReport({ filters }: MultiCityComparisonReport
               <div className="text-sm text-orange-900">
                 <p className="font-semibold">Improvement Opportunity</p>
                 <p className="mt-1">
-                  Chennai shows <strong>5% margin</strong> - focus on cost optimization and revenue growth
+                  Focus on cost optimization across all cities to improve profitability
                 </p>
               </div>
             </div>

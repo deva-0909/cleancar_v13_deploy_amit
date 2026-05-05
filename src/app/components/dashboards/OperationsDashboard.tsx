@@ -4,7 +4,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Award, Users, AlertCircle, TrendingUp, Calculator, ArrowRight, Lightbulb, DollarSign, Package } from "lucide-react";
 import { MASTER_KPI_DATA, MASTER_COMPLAINTS } from "../../data/masterData";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 export function OperationsDashboard() {

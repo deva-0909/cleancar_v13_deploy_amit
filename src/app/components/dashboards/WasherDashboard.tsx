@@ -1,6 +1,6 @@
 // Dashboard for Car Washer role
 import { useRole } from "../../contexts/RoleContext";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";

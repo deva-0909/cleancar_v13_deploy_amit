@@ -71,6 +71,8 @@ import {
   calculateManpowerCost,
   AVG_WASHES_PER_MONTH,
 } from "../../data/costData";
+import { useCity } from "../../contexts/CityContext";
+import { useInventory } from "../../contexts/InventoryContext";
 import {
   calculateCostPerWash as calculateCostPerWashCentral,
   type CostCalculationInputs,
@@ -79,11 +81,21 @@ import {
 const COLORS = ["#3B82F6", "#10B981", "#8B5CF6", "#F59E0B", "#EC4899"];
 
 function CostPerWashCalculatorEnhanced() {
+  const { city, cityInfo } = useCity();
+  const { getCentralStock } = useInventory();
+
+  // City-specific cost multipliers
+  const CITY_COST_FACTORS: Record<string, { rentMultiplier: number; labourMultiplier: number }> = {
+    "CITY-SURAT":  { rentMultiplier: 1.0, labourMultiplier: 1.0 },
+    "CITY-MUMBAI": { rentMultiplier: 1.6, labourMultiplier: 1.2 },
+  };
+  const cityFactor = CITY_COST_FACTORS[city] || { rentMultiplier: 1.0, labourMultiplier: 1.0 };
+
   // Calculate default values from centralized data
   const defaultMaterialCost = calculateMaterialCost("Premium");
   const defaultConsumablesCost = calculateConsumablesCost();
   const defaultManpowerCost = calculateManpowerCost(2);
-  
+
   const washerRole = MANPOWER_ROLES.find(r => r.role === "Washer");
   const supervisorRole = MANPOWER_ROLES.find(r => r.role === "Supervisor");
 
@@ -153,11 +165,11 @@ function CostPerWashCalculatorEnhanced() {
         parseFloat(inputs.water);
 
       const totalLaborMonthly =
-        parseFloat(inputs.washerSalary) +
-        parseFloat(inputs.supervisorAllocation);
+        (parseFloat(inputs.washerSalary) +
+        parseFloat(inputs.supervisorAllocation)) * cityFactor.labourMultiplier;
 
       const totalOverheadMonthly =
-        parseFloat(inputs.rent) +
+        (parseFloat(inputs.rent) * cityFactor.rentMultiplier) +
         parseFloat(inputs.utilities) +
         parseFloat(inputs.insurance) +
         parseFloat(inputs.other);
@@ -315,7 +327,12 @@ function CostPerWashCalculatorEnhanced() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Cost per Wash Calculator</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Cost per Wash Calculator
+            <span className="text-sm text-gray-500 ml-2">
+              Showing costs for: <strong>{cityInfo.displayName}</strong>
+            </span>
+          </h2>
           <p className="text-sm text-gray-500 mt-1">
             Calculate your unit economics with detailed cost breakdown and insights
           </p>
@@ -869,7 +886,7 @@ function CostPerWashCalculatorEnhanced() {
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={profitabilityData}>
                       <CartesianGrid strokeDasharray="3 3" key="bar-grid" />
-                      <XAxis dataKey="price" tick={{ fontSize: 12 }} key="bar-xaxis" />
+                      <XAxis dataKey="price" tick={{ fontSize: 11 }} tick={{ fontSize: 12 }} key="bar-xaxis" />
                       <YAxis tick={{ fontSize: 12 }} key="bar-yaxis" />
                       <Tooltip key="bar-tooltip" />
                       <Bar dataKey="profit" fill="#10B981" key="profit-bar" />

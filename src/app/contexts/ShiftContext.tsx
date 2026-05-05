@@ -160,7 +160,7 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 export function useShift() {
   const context = useContext(ShiftContext);
   if (!context) {
-    console.warn("[Context] called outside provider — using safe defaults."); return null as any;
+    throw new Error("useShift must be used within ShiftProvider");
   }
   return context;
 }

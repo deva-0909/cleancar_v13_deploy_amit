@@ -90,6 +90,6 @@ export function CustomRoleProvider({ children }: { children: ReactNode }) {
 
 export function useCustomRoles() {
   const ctx = useContext(CustomRoleContext);
-  if (!ctx) { console.warn("[Context] called outside provider — using defaults."); return null as any; }
+  if (!ctx) throw new Error("useCustomRoles must be used within CustomRoleProvider");
   return ctx;
 }

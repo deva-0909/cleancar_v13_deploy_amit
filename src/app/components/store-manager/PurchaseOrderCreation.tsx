@@ -22,7 +22,7 @@ import {
 } from "../ui/table";
 import { AlertCircle, ShoppingCart, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { gstComplianceService } from "../../services/gstComplianceService";
 
 export function PurchaseOrderCreation() {

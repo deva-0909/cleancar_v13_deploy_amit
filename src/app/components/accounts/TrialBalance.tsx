@@ -1,16 +1,18 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useCity } from "../../contexts/CityContext";
-import { accountingEntryService, CHART_OF_ACCOUNTS_HEADS } from "../../services/accountingEntryService";
+import { accountingEntryService, CHART_OF_ACCOUNTS_HEADS, type LedgerMaster } from "../../services/accountingEntryService";
 import { Download } from "lucide-react";
 
-interface AccountBalance {
-  account: string;
-  accountLabel: string;
+interface LedgerBalance {
+  ledgerId: string;
+  ledgerName: string;
+  accountHead: string;
+  accountHeadLabel: string;
   nature: string;
   openingDr: number;
   openingCr: number;
-  transactionDr: number;
-  transactionCr: number;
+  periodDr: number;
+  periodCr: number;
   closingDr: number;
   closingCr: number;
 }
@@ -24,42 +26,45 @@ export function TrialBalance() {
   });
   const [asOnDate, setAsOnDate] = useState(new Date().toISOString().split("T")[0]);
 
-  // Calculate trial balance
+  // Calculate trial balance by individual ledgers
   const trialBalance = useMemo(() => {
+    const allLedgers = accountingEntryService.getLedgers(city);
     const entries = accountingEntryService.getByDateRange("1900-01-01", asOnDate, city);
-    const balances: Record<string, AccountBalance> = {};
+    const balances: Record<string, LedgerBalance> = {};
 
-    // Initialize all accounts
-    CHART_OF_ACCOUNTS_HEADS.forEach((head) => {
-      balances[head.value] = {
-        account: head.value,
-        accountLabel: head.label,
-        nature: head.nature,
-        openingDr: 0,
-        openingCr: 0,
-        transactionDr: 0,
-        transactionCr: 0,
+    // Initialize all ledgers
+    allLedgers.forEach((ledger) => {
+      const head = CHART_OF_ACCOUNTS_HEADS.find(h => h.value === ledger.accountHead);
+      balances[ledger.id] = {
+        ledgerId: ledger.id,
+        ledgerName: ledger.name,
+        accountHead: ledger.accountHead,
+        accountHeadLabel: ledger.accountHeadLabel,
+        nature: ledger.nature,
+        openingDr: ledger.openingBalanceType === "Dr" ? ledger.openingBalance : 0,
+        openingCr: ledger.openingBalanceType === "Cr" ? ledger.openingBalance : 0,
+        periodDr: 0,
+        periodCr: 0,
         closingDr: 0,
         closingCr: 0,
       };
     });
 
-    // Calculate transactions
-    entries.forEach((entry) => {
-      // Debit account
-      if (entry.debitAccount && balances[entry.debitAccount]) {
-        balances[entry.debitAccount].transactionDr += entry.totalBillValue;
+    // Calculate period transactions — includes both AccountingEntry and JournalEntry lines
+    const allMovements = accountingEntryService.getAllMovements("1900-01-01", asOnDate, city);
+    allMovements.forEach((mov) => {
+      if (mov.debitLedgerId && balances[mov.debitLedgerId]) {
+        balances[mov.debitLedgerId].periodDr += mov.amount;
       }
-      // Credit account
-      if (entry.creditAccount && balances[entry.creditAccount]) {
-        balances[entry.creditAccount].transactionCr += entry.totalBillValue;
+      if (mov.creditLedgerId && balances[mov.creditLedgerId]) {
+        balances[mov.creditLedgerId].periodCr += mov.amount;
       }
     });
 
     // Calculate closing balances
     Object.values(balances).forEach((bal) => {
-      const netDebit = bal.openingDr + bal.transactionDr;
-      const netCredit = bal.openingCr + bal.transactionCr;
+      const netDebit = bal.openingDr + bal.periodDr;
+      const netCredit = bal.openingCr + bal.periodCr;
       if (netDebit > netCredit) {
         bal.closingDr = netDebit - netCredit;
         bal.closingCr = 0;
@@ -69,37 +74,63 @@ export function TrialBalance() {
       }
     });
 
-    return Object.values(balances).filter((b) => b.transactionDr > 0 || b.transactionCr > 0);
+    // Return only ledgers with activity
+    return Object.values(balances).filter((b) =>
+      b.openingDr > 0 || b.openingCr > 0 || b.periodDr > 0 || b.periodCr > 0
+    );
   }, [asOnDate, city]);
 
-  // Group by nature
-  const grouped = useMemo(() => {
-    const groups: Record<string, AccountBalance[]> = {
-      asset: [],
-      liability: [],
-      income: [],
-      expense: [],
-    };
+  // Group by account head
+  const groupedByHead = useMemo(() => {
+    const headGroups: Record<string, LedgerBalance[]> = {};
+
     trialBalance.forEach((bal) => {
-      if (groups[bal.nature]) {
-        groups[bal.nature].push(bal);
+      if (!headGroups[bal.accountHead]) {
+        headGroups[bal.accountHead] = [];
       }
+      headGroups[bal.accountHead].push(bal);
     });
-    return groups;
+
+    return headGroups;
   }, [trialBalance]);
 
-  // Totals
+  // Calculate subtotals per account head
+  const headSubtotals = useMemo(() => {
+    const subtotals: Record<string, Omit<LedgerBalance, "ledgerId" | "ledgerName">> = {};
+
+    Object.entries(groupedByHead).forEach(([head, ledgers]) => {
+      const headInfo = CHART_OF_ACCOUNTS_HEADS.find(h => h.value === head);
+      subtotals[head] = ledgers.reduce(
+        (acc, ledger) => ({
+          accountHead: head,
+          accountHeadLabel: headInfo?.label || head,
+          nature: ledger.nature,
+          openingDr: acc.openingDr + ledger.openingDr,
+          openingCr: acc.openingCr + ledger.openingCr,
+          periodDr: acc.periodDr + ledger.periodDr,
+          periodCr: acc.periodCr + ledger.periodCr,
+          closingDr: acc.closingDr + ledger.closingDr,
+          closingCr: acc.closingCr + ledger.closingCr,
+        }),
+        { accountHead: head, accountHeadLabel: headInfo?.label || head, nature: ledger.nature, openingDr: 0, openingCr: 0, periodDr: 0, periodCr: 0, closingDr: 0, closingCr: 0 }
+      );
+    });
+
+    return subtotals;
+  }, [groupedByHead]);
+
+  // Grand totals
   const totals = useMemo(() => {
     return trialBalance.reduce(
       (acc, bal) => ({
         openingDr: acc.openingDr + bal.openingDr,
         openingCr: acc.openingCr + bal.openingCr,
-        transactionDr: acc.transactionDr + bal.transactionDr,
-        transactionCr: acc.transactionCr + bal.transactionCr,
+        periodDr: acc.periodDr + bal.periodDr,
+        periodCr: acc.periodCr + bal.periodCr,
         closingDr: acc.closingDr + bal.closingDr,
         closingCr: acc.closingCr + bal.closingCr,
       }),
-      { openingDr: 0, openingCr: 0, transactionDr: 0, transactionCr: 0, closingDr: 0, closingCr: 0 }
+      { openingDr: 0, openingCr: 0, periodDr: 0, periodCr: 0, closingDr: 0, closingCr: 0 }
     );
   }, [trialBalance]);
 
@@ -108,20 +139,22 @@ export function TrialBalance() {
 
   const exportCSV = () => {
     const headers = [
-      "Account",
+      "Ledger Name",
+      "Account Head",
       "Opening Dr",
       "Opening Cr",
-      "Transaction Dr",
-      "Transaction Cr",
+      "Period Dr",
+      "Period Cr",
       "Closing Dr",
       "Closing Cr",
     ];
     const rows = trialBalance.map((b) => [
-      b.accountLabel,
+      b.ledgerName,
+      b.accountHeadLabel,
       b.openingDr.toFixed(2),
       b.openingCr.toFixed(2),
-      b.transactionDr.toFixed(2),
-      b.transactionCr.toFixed(2),
+      b.periodDr.toFixed(2),
+      b.periodCr.toFixed(2),
       b.closingDr.toFixed(2),
       b.closingCr.toFixed(2),
     ]);
@@ -189,111 +222,69 @@ export function TrialBalance() {
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Account</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Ledger Name</th>
               <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">Opening Dr</th>
               <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">Opening Cr</th>
-              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">Transaction Dr</th>
-              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">Transaction Cr</th>
+              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">Period Dr</th>
+              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">Period Cr</th>
               <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">Closing Dr</th>
               <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">Closing Cr</th>
             </tr>
           </thead>
           <tbody>
-            {/* Assets */}
-            {grouped.asset.length > 0 && (
-              <>
-                <tr className="bg-blue-50">
-                  <td className="px-4 py-2 font-bold text-sm" colSpan={7}>
-                    ASSETS
-                  </td>
-                </tr>
-                {grouped.asset.map((bal) => (
-                  <tr key={bal.account} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-sm">{bal.accountLabel}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.openingDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.openingCr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.transactionDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.transactionCr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right font-medium">₹{bal.closingDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right font-medium">₹{bal.closingCr.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </>
-            )}
+            {/* Render ledgers grouped by account head */}
+            {CHART_OF_ACCOUNTS_HEADS.map((head) => {
+              const ledgersInHead = groupedByHead[head.value];
+              if (!ledgersInHead || ledgersInHead.length === 0) return null;
 
-            {/* Liabilities */}
-            {grouped.liability.length > 0 && (
-              <>
-                <tr className="bg-red-50">
-                  <td className="px-4 py-2 font-bold text-sm" colSpan={7}>
-                    LIABILITIES
-                  </td>
-                </tr>
-                {grouped.liability.map((bal) => (
-                  <tr key={bal.account} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-sm">{bal.accountLabel}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.openingDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.openingCr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.transactionDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.transactionCr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right font-medium">₹{bal.closingDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right font-medium">₹{bal.closingCr.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </>
-            )}
+              const subtotal = headSubtotals[head.value];
+              const bgColor = head.nature === "asset" ? "bg-blue-50" :
+                              head.nature === "liability" ? "bg-red-50" :
+                              head.nature === "income" ? "bg-green-50" : "bg-amber-50";
 
-            {/* Income */}
-            {grouped.income.length > 0 && (
-              <>
-                <tr className="bg-green-50">
-                  <td className="px-4 py-2 font-bold text-sm" colSpan={7}>
-                    INCOME
-                  </td>
-                </tr>
-                {grouped.income.map((bal) => (
-                  <tr key={bal.account} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-sm">{bal.accountLabel}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.openingDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.openingCr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.transactionDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.transactionCr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right font-medium">₹{bal.closingDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right font-medium">₹{bal.closingCr.toFixed(2)}</td>
+              return (
+                <React.Fragment key={head.value}>
+                  {/* Account Head Section Header */}
+                  <tr className={`${bgColor} border-t-2 border-gray-300`}>
+                    <td className="px-4 py-2 font-bold text-sm" colSpan={7}>
+                      {head.label.toUpperCase()}
+                    </td>
                   </tr>
-                ))}
-              </>
-            )}
 
-            {/* Expenses */}
-            {grouped.expense.length > 0 && (
-              <>
-                <tr className="bg-amber-50">
-                  <td className="px-4 py-2 font-bold text-sm" colSpan={7}>
-                    EXPENSES
-                  </td>
-                </tr>
-                {grouped.expense.map((bal) => (
-                  <tr key={bal.account} className="hover:bg-gray-50">
-                    <td className="px-4 py-2 text-sm">{bal.accountLabel}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.openingDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.openingCr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.transactionDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{bal.transactionCr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right font-medium">₹{bal.closingDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right font-medium">₹{bal.closingCr.toFixed(2)}</td>
+                  {/* Individual Ledger Rows */}
+                  {ledgersInHead.map((ledger) => (
+                    <tr key={ledger.ledgerId} className="hover:bg-gray-50">
+                      <td className="px-4 py-2 text-sm pl-8">{ledger.ledgerName}</td>
+                      <td className="px-4 py-2 text-sm text-right">₹{ledger.openingDr.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-sm text-right">₹{ledger.openingCr.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-sm text-right">₹{ledger.periodDr.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-sm text-right">₹{ledger.periodCr.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-sm text-right font-medium">₹{ledger.closingDr.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-sm text-right font-medium">₹{ledger.closingCr.toFixed(2)}</td>
+                    </tr>
+                  ))}
+
+                  {/* Subtotal Row */}
+                  <tr className={`${bgColor} border-b border-gray-300 font-semibold`}>
+                    <td className="px-4 py-2 text-sm">Subtotal — {head.label}</td>
+                    <td className="px-4 py-2 text-sm text-right">₹{subtotal.openingDr.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-sm text-right">₹{subtotal.openingCr.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-sm text-right">₹{subtotal.periodDr.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-sm text-right">₹{subtotal.periodCr.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-sm text-right">₹{subtotal.closingDr.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-sm text-right">₹{subtotal.closingCr.toFixed(2)}</td>
                   </tr>
-                ))}
-              </>
-            )}
+                </React.Fragment>
+              );
+            })}
 
             {/* Grand Total */}
             <tr className="bg-gray-900 text-white font-bold">
               <td className="px-4 py-3">GRAND TOTAL</td>
               <td className="px-4 py-3 text-right">₹{totals.openingDr.toFixed(2)}</td>
               <td className="px-4 py-3 text-right">₹{totals.openingCr.toFixed(2)}</td>
-              <td className="px-4 py-3 text-right">₹{totals.transactionDr.toFixed(2)}</td>
-              <td className="px-4 py-3 text-right">₹{totals.transactionCr.toFixed(2)}</td>
+              <td className="px-4 py-3 text-right">₹{totals.periodDr.toFixed(2)}</td>
+              <td className="px-4 py-3 text-right">₹{totals.periodCr.toFixed(2)}</td>
               <td className={`px-4 py-3 text-right ${isBalanced ? "text-green-400" : "text-red-400"}`}>
                 ₹{totals.closingDr.toFixed(2)}
               </td>

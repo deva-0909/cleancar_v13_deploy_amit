@@ -11,6 +11,7 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 import { useRole } from "./RoleContext";
 import { useEmployeeData } from "../hooks/useEmployeeData";
 import { useEvents } from "./EventSystem";
+import { useJobs } from "./JobContext";
 import { logger } from "../services/logger";
 import { washerDataService } from "../services/washerDataService";
 import { incentiveEngineService } from "../services/incentiveEngineService";
@@ -105,6 +106,7 @@ export function WasherProvider({ children }: WasherProviderProps) {
   const { currentUser, currentRole } = useRole();
   const { addAttendanceRecord, updateAttendance, attendanceRecords } = useEmployeeData();
   const { emit } = useEvents();
+  const jobContext = useJobs();
 
   // Check if this provider should be active
   const isCarWasherRole = currentRole === "Car Washer";
@@ -187,8 +189,31 @@ export function WasherProvider({ children }: WasherProviderProps) {
         });
       }
 
-      // Load jobs
-      const jobsData = washerDataService.getTodayJobs(washerId);
+      // Load jobs - Bridge to JobContext (single source of truth)
+      const realJobs = jobContext.getJobsByWasherId(washerId).filter(j =>
+        j.scheduledDate === new Date().toISOString().split("T")[0] ||
+        j.status === "In Progress" || j.status === "Assigned" || j.status === "Acknowledged"
+      );
+      // Map JobContext.Job to WasherContext's CustomerJob format
+      // Keep washerDataService fallback if no real jobs assigned yet
+      const jobsData = realJobs.length > 0 ? realJobs.map(j => ({
+        id:           j.jobId,
+        customerId:   j.customerId,
+        customerName: j.customerName || j.customerId,
+        packageType:  j.packageName,
+        vehicleCategory: j.vehicleType || j.vehicleDetails?.category || "4W",
+        vehicleReg:   j.vehicleReg || j.vehicleDetails?.registration || "",
+        address:      j.location?.addressLine1 || "",
+        pinCode:      j.pinCode || j.location?.pinCode || "",
+        status:       j.status === "Assigned" ? "ASSIGNED"
+                    : j.status === "Acknowledged" ? "ACKNOWLEDGED"
+                    : j.status === "In Progress" ? "IN_PROGRESS"
+                    : j.status === "Completed" ? "COMPLETED" : "PENDING",
+        amount:       j.amount || 0,
+        cityId:       j.cityId,
+        scheduledDate:j.scheduledDate,
+        timeSlot:     j.timeSlot,
+      } as CustomerJob)) : washerDataService.getTodayJobs(washerId);
       setJobs(jobsData);
 
       // Load stats
@@ -360,7 +385,41 @@ export function WasherProvider({ children }: WasherProviderProps) {
     if (!shouldActivate || !activeJob) return;
 
     washerDataService.completeJob(activeJob.id);
-    loadData(); // Refresh all data
+
+    // ✅ Bridge: update the canonical JobContext record
+    const jobContextJob = jobContext.getJobById(activeJob.id);
+    if (jobContextJob) {
+      jobContext.completeJob(activeJob.id, {
+        qualityScore:   activeJob.qualityScore   || 85,
+        complianceScore:activeJob.complianceScore || 90,
+      });
+      // emit is handled inside jobContext.completeJob with the amount field
+    } else {
+      // Job only exists in washer service — emit event directly
+      emit("JOB_COMPLETED", {
+        jobId:       activeJob.id,
+        washerId:    washerId,
+        washerName:  profile?.name || washerId,
+        customerId:  activeJob.customerId,
+        packageName: activeJob.packageType,
+        amount:      activeJob.amount || 0,
+        cityId:      activeJob.cityId,
+        completedAt: new Date().toISOString(),
+      }, "WasherContext");
+    }
+
+    // ✅ Trigger incentive calculation after job completion
+    if (washerId) {
+      incentiveEngineService.processJobCompletion?.({
+        washerId,
+        jobId:      activeJob.id,
+        cityId:     activeJob.cityId,
+        packageName:activeJob.packageType,
+        completedAt:new Date().toISOString(),
+      });
+    }
+
+    loadData();
   };
 
   const refreshData = () => {
@@ -404,7 +463,10 @@ export function WasherProvider({ children }: WasherProviderProps) {
 export function useWasher() {
   const context = useContext(WasherContext);
   if (!context) {
-    console.warn("[Context] called outside provider."); return null as any;
+    throw new Error(
+      "useWasher must be used within WasherProvider. " +
+      "Make sure: (1) You're logged in as a 'Car Washer' role, and (2) The component is wrapped with AppProvider."
+    );
   }
   return context;
 }

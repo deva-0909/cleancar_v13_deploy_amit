@@ -2,15 +2,17 @@ import { useState, useMemo } from "react";
 import { ReceiptText, Download, AlertTriangle, Lock } from "lucide-react";
 import { gstComplianceService } from "../../services/gstComplianceService";
 import { showExportMenu } from "../../utils/gstExportUtils";
+import { useCity } from "../../contexts/CityContext";
 
 export function GSTR3BModule() {
-  const [selectedMonth, setSelectedMonth] = useState("April");
+  const { city } = useCity();
+  const [selectedMonth, setSelectedMonth] = useState(4);
   const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedGSTIN, setSelectedGSTIN] = useState("24GAOPS5676E1Z3");
   const [status, setStatus] = useState<"Not Generated" | "Generated" | "Approved" | "Ready to File">("Not Generated");
   const [isApproved, setIsApproved] = useState(false);
 
-  const transactions = gstComplianceService.getTransactions();
+  const transactions = gstComplianceService.getTransactions(city);
   const reconciliation = gstComplianceService.getReconciliation();
 
   const monthTransactions = useMemo(() =>
@@ -33,32 +35,87 @@ export function GSTR3BModule() {
   );
 
   const table31 = useMemo(() => {
-    const taxableOutward = salesTransactions.reduce((s, t) => s + t.taxableValue, 0);
-    const zeroRated = salesTransactions.filter(t => t.gstRate === 0).reduce((s, t) => s + t.taxableValue, 0);
-    const nilRated = 0;
-    const exempted = 0;
-    const total = taxableOutward + zeroRated + nilRated + exempted;
+    // Row (a): Outward taxable supplies (other than zero rated, nil rated, exempt)
+    const taxableSupplies = salesTransactions.filter(t =>
+      t.supplyNature === "Taxable" || (!t.supplyNature && t.gstRate > 0)
+    );
+    const taxableValue = taxableSupplies.reduce((s, t) => s + t.taxableValue, 0);
+    const taxableIGST = taxableSupplies.reduce((s, t) => s + t.igst, 0);
+    const taxableCGST = taxableSupplies.reduce((s, t) => s + t.cgst, 0);
+    const taxableSGST = taxableSupplies.reduce((s, t) => s + t.sgst, 0);
 
-    return { taxableOutward, zeroRated, nilRated, exempted, total };
+    // Row (b): Zero rated outward supplies
+    const zeroRatedSupplies = salesTransactions.filter(t => t.supplyNature === "ZeroRated");
+    const zeroRatedValue = zeroRatedSupplies.reduce((s, t) => s + t.taxableValue, 0);
+
+    // Row (c): Nil rated, exempt
+    const nilExemptSupplies = salesTransactions.filter(t =>
+      t.supplyNature === "NilRated" || t.supplyNature === "Exempt"
+    );
+    const nilExemptValue = nilExemptSupplies.reduce((s, t) => s + t.taxableValue, 0);
+
+    // Row (d): Inward supplies liable to Reverse Charge (from purchase transactions)
+    const rcmSupplies = purchaseTransactions.filter(t => t.reverseCharge);
+    const rcmValue = rcmSupplies.reduce((s, t) => s + t.taxableValue, 0);
+    const rcmIGST = rcmSupplies.reduce((s, t) => s + t.igst, 0);
+    const rcmCGST = rcmSupplies.reduce((s, t) => s + t.cgst, 0);
+    const rcmSGST = rcmSupplies.reduce((s, t) => s + t.sgst, 0);
+
+    // Row (e): Non-GST outward supplies
+    const nonGSTSupplies = salesTransactions.filter(t => t.supplyNature === "NonGST");
+    const nonGSTValue = nonGSTSupplies.reduce((s, t) => s + t.taxableValue, 0);
+
+    return {
+      taxableValue, taxableIGST, taxableCGST, taxableSGST,
+      zeroRatedValue,
+      nilExemptValue,
+      rcmValue, rcmIGST, rcmCGST, rcmSGST,
+      nonGSTValue
+    };
+  }, [salesTransactions, purchaseTransactions]);
+
+  // Table 3.2 — Inter-State Supplies (state-wise breakdown for inter-state B2C)
+  const table32 = useMemo(() => {
+    const interStateB2C = salesTransactions.filter(t =>
+      t.supplyType === "INTER_STATE" && !t.customerGSTIN
+    );
+    const stateWise = interStateB2C.reduce((acc, t) => {
+      const state = t.customerState || "Unknown";
+      if (!acc[state]) {
+        acc[state] = { taxableValue: 0, igst: 0 };
+      }
+      acc[state].taxableValue += t.taxableValue;
+      acc[state].igst += t.igst;
+      return acc;
+    }, {} as Record<string, { taxableValue: number; igst: number }>);
+    return stateWise;
   }, [salesTransactions]);
 
+  // Table 4 — Eligible ITC
   const itcData = useMemo(() => {
-    const itcFromBooks = purchaseTransactions
-      .filter(t => t.itcEligible)
+    // A(5) "All other ITC" — from purchase transactions itcEligible === true
+    const allOtherITC = purchaseTransactions
+      .filter(t => t.itcEligible && !t.reverseCharge)
       .reduce((s, t) => s + t.itcAmount, 0);
 
+    // A(4) "Self-assessed tax on RCM" — from RCM transactions after payment tagged
+    const rcmITC = purchaseTransactions
+      .filter(t => t.reverseCharge && t.itcEligible)
+      .reduce((s, t) => s + t.itcAmount, 0);
+
+    // B "ITC Reversed" — manual entry field (placeholder for now)
+    const itcReversed = 0;
+
+    // C "Net ITC" — calculated
+    const netITC = allOtherITC + rcmITC - itcReversed;
+
+    // Reconciliation with GSTR-2B
     const itcFrom2B = reconciliation
       .filter(r => r.month === selectedMonth && r.year === selectedYear && r.itcClaimable)
       .reduce((s, r) => s + r.gstAmount, 0);
+    const difference = netITC - itcFrom2B;
 
-    const itcIneligible = purchaseTransactions
-      .filter(t => !t.itcEligible)
-      .reduce((s, t) => s + t.totalTax, 0);
-
-    const netITCAvailable = itcFromBooks;
-    const difference = itcFromBooks - itcFrom2B;
-
-    return { itcFromBooks, itcFrom2B, itcIneligible, netITCAvailable, difference };
+    return { allOtherITC, rcmITC, itcReversed, netITC, itcFrom2B, difference };
   }, [purchaseTransactions, reconciliation, selectedMonth, selectedYear]);
 
   const table6 = useMemo(() => {
@@ -75,24 +132,65 @@ export function GSTR3BModule() {
   };
 
   const handleExport31 = (e: React.MouseEvent) => {
-    const data = [{
-      "Taxable Outward Supplies": table31.taxableOutward,
-      "Zero-rated": table31.zeroRated,
-      "Nil-rated": table31.nilRated,
-      "Exempted": table31.exempted,
-      "Total": table31.total
-    }];
+    const data = [
+      {
+        "Nature of Supply": "(a) Outward taxable supplies",
+        "Taxable Value": table31.taxableValue,
+        "IGST": table31.taxableIGST,
+        "CGST": table31.taxableCGST,
+        "SGST": table31.taxableSGST
+      },
+      {
+        "Nature of Supply": "(b) Zero-rated supplies",
+        "Taxable Value": table31.zeroRatedValue,
+        "IGST": 0,
+        "CGST": 0,
+        "SGST": 0
+      },
+      {
+        "Nature of Supply": "(c) Nil/Exempt supplies",
+        "Taxable Value": table31.nilExemptValue,
+        "IGST": 0,
+        "CGST": 0,
+        "SGST": 0
+      },
+      {
+        "Nature of Supply": "(d) RCM supplies",
+        "Taxable Value": table31.rcmValue,
+        "IGST": table31.rcmIGST,
+        "CGST": table31.rcmCGST,
+        "SGST": table31.rcmSGST
+      },
+      {
+        "Nature of Supply": "(e) Non-GST supplies",
+        "Taxable Value": table31.nonGSTValue,
+        "IGST": 0,
+        "CGST": 0,
+        "SGST": 0
+      }
+    ];
     showExportMenu(data, "gstr3b-table-3.1", e.currentTarget as HTMLElement);
   };
 
   const handleExportITC = (e: React.MouseEvent) => {
-    const data = [{
-      "ITC from Books": itcData.itcFromBooks,
-      "ITC from GSTR-2B": itcData.itcFrom2B,
-      "Difference": itcData.difference,
-      "ITC Ineligible": itcData.itcIneligible,
-      "Net ITC Available": itcData.netITCAvailable
-    }];
+    const data = [
+      {
+        "Description": "A(5) All other ITC",
+        "Amount": itcData.allOtherITC
+      },
+      {
+        "Description": "A(4) Self-assessed RCM",
+        "Amount": itcData.rcmITC
+      },
+      {
+        "Description": "B ITC Reversed",
+        "Amount": -itcData.itcReversed
+      },
+      {
+        "Description": "C Net ITC",
+        "Amount": itcData.netITC
+      }
+    ];
     showExportMenu(data, "gstr3b-table-4-itc", e.currentTarget as HTMLElement);
   };
 
@@ -134,27 +232,40 @@ export function GSTR3BModule() {
 
     // Table 3.1 — Outward Supplies
     buildSection(
-      "Table 3.1 — Outward and Inward Supplies",
-      ["Description", "Amount (₹)"],
+      "Table 3.1 — Details of Outward Supplies",
+      ["Nature of Supply", "Txbl. Value (₹)", "IGST (₹)", "CGST (₹)", "SGST (₹)", "Cess (₹)"],
       [
-        ["Taxable outward supplies", table31.taxableOutward.toFixed(2)],
-        ["Zero-rated supplies", table31.zeroRated.toFixed(2)],
-        ["Nil-rated supplies", table31.nilRated.toFixed(2)],
-        ["Exempted supplies", table31.exempted.toFixed(2)],
-        ["Total", table31.total.toFixed(2)]
+        ["(a) Outward taxable supplies", table31.taxableValue.toFixed(2), table31.taxableIGST.toFixed(2), table31.taxableCGST.toFixed(2), table31.taxableSGST.toFixed(2), "0.00"],
+        ["(b) Zero-rated supplies", table31.zeroRatedValue.toFixed(2), "0.00", "0.00", "0.00", "0.00"],
+        ["(c) Nil/Exempt supplies", table31.nilExemptValue.toFixed(2), "0.00", "0.00", "0.00", "0.00"],
+        ["(d) RCM supplies", table31.rcmValue.toFixed(2), table31.rcmIGST.toFixed(2), table31.rcmCGST.toFixed(2), table31.rcmSGST.toFixed(2), "0.00"],
+        ["(e) Non-GST supplies", table31.nonGSTValue.toFixed(2), "0.00", "0.00", "0.00", "0.00"]
       ]
     );
 
-    // Table 4 — ITC Available
+    // Table 3.2 — Inter-State Supplies
+    if (Object.entries(table32).length > 0) {
+      const stateRows = Object.entries(table32).map(([state, data]) => [
+        state,
+        data.taxableValue.toFixed(2),
+        data.igst.toFixed(2)
+      ]);
+      buildSection(
+        "Table 3.2 — Inter-State Supplies",
+        ["State", "Taxable Value (₹)", "IGST (₹)"],
+        stateRows
+      );
+    }
+
+    // Table 4 — Eligible ITC
     buildSection(
-      "Table 4 — ITC Available (Input Tax Credit)",
-      ["Description", "Amount (₹)"],
+      "Table 4 — Eligible ITC",
+      ["Description", "IGST (₹)", "CGST (₹)", "SGST (₹)", "Cess (₹)"],
       [
-        ["ITC as per books", itcData.itcFromBooks.toFixed(2)],
-        ["ITC as per GSTR-2B", itcData.itcFrom2B.toFixed(2)],
-        ["Difference", itcData.difference.toFixed(2)],
-        ["ITC ineligible", itcData.itcIneligible.toFixed(2)],
-        ["Net ITC available", itcData.netITCAvailable.toFixed(2)]
+        ["A(5) All other ITC", (itcData.allOtherITC * 0.5).toFixed(2), (itcData.allOtherITC * 0.25).toFixed(2), (itcData.allOtherITC * 0.25).toFixed(2), "0.00"],
+        ["A(4) Self-assessed RCM", (itcData.rcmITC * 0.5).toFixed(2), (itcData.rcmITC * 0.25).toFixed(2), (itcData.rcmITC * 0.25).toFixed(2), "0.00"],
+        ["B ITC Reversed", itcData.itcReversed.toFixed(2), "0.00", "0.00", "0.00"],
+        ["C Net ITC", (itcData.netITC * 0.5).toFixed(2), (itcData.netITC * 0.25).toFixed(2), (itcData.netITC * 0.25).toFixed(2), "0.00"]
       ]
     );
 
@@ -239,13 +350,13 @@ export function GSTR3BModule() {
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <select
             value={selectedMonth}
-            onChange={e => setSelectedMonth(e.target.value)}
+            onChange={e => setSelectedMonth(Number(e.target.value))}
             disabled={isApproved}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm disabled:opacity-50"
           >
-            <option>April</option>
-            <option>March</option>
-            <option>February</option>
+            <option value={4}>April</option>
+            <option value={3}>March</option>
+            <option value={2}>February</option>
           </select>
           <select
             value={selectedYear}
@@ -265,7 +376,7 @@ export function GSTR3BModule() {
 
       <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">Table 3.1 — Outward and Inward Supplies</h3>
+          <h3 className="font-semibold text-gray-900">Table 3.1 — Details of Outward Supplies</h3>
           <button
             onClick={handleExport31}
             className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
@@ -283,34 +394,119 @@ export function GSTR3BModule() {
         )}
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-sm text-gray-600">
-                <th className="pb-3 font-medium">Description</th>
-                <th className="pb-3 font-medium text-right">Amount (₹)</th>
+              <tr className="border-b-2 border-gray-300 text-left text-xs text-gray-600">
+                <th className="pb-3 font-medium">Nature of Supply</th>
+                <th className="pb-3 font-medium text-right">Txbl. Value (₹)</th>
+                <th className="pb-3 font-medium text-right">IGST (₹)</th>
+                <th className="pb-3 font-medium text-right">CGST (₹)</th>
+                <th className="pb-3 font-medium text-right">State/UT Tax (₹)</th>
+                <th className="pb-3 font-medium text-right">Cess (₹)</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-gray-100 text-sm">
-                <td className="py-3 text-gray-900">Taxable outward supplies</td>
-                <td className="py-3 text-right font-medium text-gray-900">₹{table31.taxableOutward.toLocaleString()}</td>
+              <tr className="border-b border-gray-100">
+                <td className="py-2 text-gray-900">(a) Outward taxable supplies (other than zero rated, nil rated, exempt)</td>
+                <td className="py-2 text-right font-medium">₹{table31.taxableValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right">₹{table31.taxableIGST.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right">₹{table31.taxableCGST.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right">₹{table31.taxableSGST.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right text-gray-400">—</td>
               </tr>
-              <tr className="border-b border-gray-100 text-sm">
-                <td className="py-3 text-gray-900">Zero-rated supplies</td>
-                <td className="py-3 text-right text-gray-700">₹{table31.zeroRated.toLocaleString()}</td>
+              <tr className="border-b border-gray-100">
+                <td className="py-2 text-gray-900">(b) Outward taxable supplies (zero rated)</td>
+                <td className="py-2 text-right">₹{table31.zeroRatedValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
               </tr>
-              <tr className="border-b border-gray-100 text-sm">
-                <td className="py-3 text-gray-900">Nil-rated supplies</td>
-                <td className="py-3 text-right text-gray-700">₹{table31.nilRated.toLocaleString()}</td>
+              <tr className="border-b border-gray-100">
+                <td className="py-2 text-gray-900">(c) Other outward supplies (nil rated, exempted)</td>
+                <td className="py-2 text-right">₹{table31.nilExemptValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
               </tr>
-              <tr className="border-b border-gray-100 text-sm">
-                <td className="py-3 text-gray-900">Exempted supplies</td>
-                <td className="py-3 text-right text-gray-700">₹{table31.exempted.toLocaleString()}</td>
+              <tr className="border-b border-gray-100 bg-amber-50">
+                <td className="py-2 text-gray-900 font-medium">(d) Inward supplies (liable to reverse charge)</td>
+                <td className="py-2 text-right font-medium">₹{table31.rcmValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right">₹{table31.rcmIGST.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right">₹{table31.rcmCGST.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right">₹{table31.rcmSGST.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right text-gray-400">—</td>
               </tr>
-              <tr className="text-sm bg-gray-50">
-                <td className="py-3 font-semibold text-gray-900">Total</td>
-                <td className="py-3 text-right font-semibold text-gray-900">₹{table31.total.toLocaleString()}</td>
+              <tr className="border-b border-gray-100">
+                <td className="py-2 text-gray-900">(e) Non-GST outward supplies</td>
+                <td className="py-2 text-right">₹{table31.nonGSTValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
               </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Table 3.1.1 — E-Commerce Operator Supplies */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+        <h3 className="font-semibold text-gray-900">Table 3.1.1 — E-Commerce Operator Supplies u/s 9(5)</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b-2 border-gray-300 text-left text-xs text-gray-600">
+                <th className="pb-3 font-medium">Description</th>
+                <th className="pb-3 font-medium text-right">Txbl. Value (₹)</th>
+                <th className="pb-3 font-medium text-right">IGST (₹)</th>
+                <th className="pb-3 font-medium text-right">CGST (₹)</th>
+                <th className="pb-3 font-medium text-right">State/UT Tax (₹)</th>
+                <th className="pb-3 font-medium text-right">Cess (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-gray-100">
+                <td className="py-2 text-gray-500 text-xs">Not applicable for CleanCar</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Table 3.2 — Inter-State Supplies */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+        <h3 className="font-semibold text-gray-900">Table 3.2 — Inter-State Supplies</h3>
+        <p className="text-sm text-gray-600">State-wise breakdown for inter-state B2C transactions</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b-2 border-gray-300 text-left text-xs text-gray-600">
+                <th className="pb-3 font-medium">State</th>
+                <th className="pb-3 font-medium text-right">Taxable Value (₹)</th>
+                <th className="pb-3 font-medium text-right">IGST (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(table32).length > 0 ? (
+                Object.entries(table32).map(([state, data]) => (
+                  <tr key={state} className="border-b border-gray-100">
+                    <td className="py-2 text-gray-900">{state}</td>
+                    <td className="py-2 text-right">₹{data.taxableValue.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="py-2 text-right">₹{data.igst.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={3} className="py-4 text-center text-gray-500 text-xs">No inter-state B2C transactions for this period</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -318,7 +514,7 @@ export function GSTR3BModule() {
 
       <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">Table 4 — ITC Available</h3>
+          <h3 className="font-semibold text-gray-900">Table 4 — Eligible ITC</h3>
           <button
             onClick={handleExportITC}
             className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
@@ -330,17 +526,17 @@ export function GSTR3BModule() {
 
         <div className="grid grid-cols-3 gap-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div>
-            <p className="text-sm text-blue-900 mb-1">ITC as per books</p>
-            <p className="text-xl font-semibold text-blue-900">₹{itcData.itcFromBooks.toLocaleString()}</p>
+            <p className="text-sm text-blue-900 mb-1">Net ITC</p>
+            <p className="text-xl font-semibold text-blue-900">₹{itcData.netITC.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           <div>
             <p className="text-sm text-blue-900 mb-1">ITC as per 2B</p>
-            <p className="text-xl font-semibold text-blue-900">₹{itcData.itcFrom2B.toLocaleString()}</p>
+            <p className="text-xl font-semibold text-blue-900">₹{itcData.itcFrom2B.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           <div>
             <p className="text-sm text-blue-900 mb-1">Difference</p>
             <p className={`text-xl font-semibold ${Math.abs(itcData.difference) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-              ₹{itcData.difference.toLocaleString()}
+              ₹{itcData.difference.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
         </div>
@@ -356,29 +552,70 @@ export function GSTR3BModule() {
         )}
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200 text-left text-sm text-gray-600">
+              <tr className="border-b-2 border-gray-300 text-left text-xs text-gray-600">
                 <th className="pb-3 font-medium">Description</th>
-                <th className="pb-3 font-medium text-right">Amount (₹)</th>
+                <th className="pb-3 font-medium text-right">IGST (₹)</th>
+                <th className="pb-3 font-medium text-right">CGST (₹)</th>
+                <th className="pb-3 font-medium text-right">State/UT Tax (₹)</th>
+                <th className="pb-3 font-medium text-right">Cess (₹)</th>
               </tr>
             </thead>
             <tbody>
-              <tr className="border-b border-gray-100 text-sm">
-                <td className="py-3 text-gray-900">ITC from GSTR-2B imports</td>
-                <td className="py-3 text-right text-gray-700">₹{itcData.itcFrom2B.toLocaleString()}</td>
+              <tr className="border-b border-gray-100">
+                <td className="py-2 text-gray-900">A(5) All other ITC</td>
+                <td className="py-2 text-right">₹{(itcData.allOtherITC * 0.5).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right">₹{(itcData.allOtherITC * 0.25).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right">₹{(itcData.allOtherITC * 0.25).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right text-gray-400">—</td>
               </tr>
-              <tr className="border-b border-gray-100 text-sm">
-                <td className="py-3 text-gray-900">ITC ineligible</td>
-                <td className="py-3 text-right text-gray-700">₹{itcData.itcIneligible.toLocaleString()}</td>
+              <tr className="border-b border-gray-100 bg-amber-50">
+                <td className="py-2 text-gray-900 font-medium">A(4) Self-assessed tax on RCM</td>
+                <td className="py-2 text-right">₹{(itcData.rcmITC * 0.5).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right">₹{(itcData.rcmITC * 0.25).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right">₹{(itcData.rcmITC * 0.25).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right text-gray-400">—</td>
               </tr>
-              <tr className="text-sm bg-green-50">
-                <td className="py-3 font-semibold text-gray-900">Net ITC available</td>
-                <td className="py-3 text-right font-semibold text-green-600">₹{itcData.netITCAvailable.toLocaleString()}</td>
+              <tr className="border-b border-gray-100">
+                <td className="py-2 text-gray-900">B ITC Reversed</td>
+                <td className="py-2 text-right text-red-600">-₹{itcData.itcReversed.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right text-red-600">—</td>
+                <td className="py-2 text-right text-red-600">—</td>
+                <td className="py-2 text-right text-gray-400">—</td>
+              </tr>
+              <tr className="bg-green-50 font-semibold">
+                <td className="py-2 text-gray-900">C Net ITC Available</td>
+                <td className="py-2 text-right text-green-700">₹{(itcData.netITC * 0.5).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right text-green-700">₹{(itcData.netITC * 0.25).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right text-green-700">₹{(itcData.netITC * 0.25).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-2 text-right text-gray-400">—</td>
               </tr>
             </tbody>
           </table>
         </div>
+
+        {/* RCM ITC Register sub-section */}
+        {itcData.rcmITC > 0 && (
+          <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <h4 className="text-sm font-semibold text-gray-900 mb-2">RCM ITC (paid & eligible)</h4>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600">IGST:</span>
+                <span className="ml-2 font-medium">₹{(itcData.rcmITC * 0.5).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">CGST:</span>
+                <span className="ml-2 font-medium">₹{(itcData.rcmITC * 0.25).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">SGST:</span>
+                <span className="ml-2 font-medium">₹{(itcData.rcmITC * 0.25).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+            <p className="text-xs text-amber-700 mt-2">Note: "Reverse Charge Tax Input not due" transfers to "Input Tax Credits" upon payment</p>
+          </div>
+        )}
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">

@@ -6,7 +6,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { TrendingUp, TrendingDown, DollarSign, Package, MapPin } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
 import {
   BarChart,
   Bar,

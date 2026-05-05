@@ -17,7 +17,7 @@
  */
 
 import { useEffect } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useRole } from "../../contexts/RoleContext";
 import { useEmployee } from "../../contexts/EmployeeContext";
 import { hasPermission } from "../../utils/permissionEngine";
