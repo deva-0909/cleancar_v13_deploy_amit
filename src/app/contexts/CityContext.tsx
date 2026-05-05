@@ -59,9 +59,15 @@ interface CityProviderProps {
 export function CityProvider({ children }: CityProviderProps) {
   const { currentUser, currentRole } = useRole();
 
-  // Default to user's city or Surat
-  const defaultCity = (currentUser?.cityId as CityId) || "CITY-SURAT";
+  // Default to user's city, then persisted selection, then Surat
+  const persistedCity = localStorage.getItem("cleancar_selected_city") as CityId | null;
+  const defaultCity = (currentUser?.cityId as CityId) || persistedCity || "CITY-SURAT";
   const [city, setCityState] = useState<CityId>(defaultCity);
+
+  // Persist city selection on change
+  useEffect(() => {
+    localStorage.setItem("cleancar_selected_city", city);
+  }, [city]);
 
   // Determine if city is locked based on role
   const isLocked = currentRole === "City Manager";

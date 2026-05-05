@@ -56,7 +56,17 @@ const roleToEmployeeRole: Record<Role, EmployeeRole> = {
 };
 
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const [currentRole, setCurrentRole] = useState<Role>("Super Admin");
+  const [currentRole, setCurrentRole] = useState<Role>(() => {
+    // Read role from auth session (set by LoginPage on login)
+    try {
+      const session = localStorage.getItem("cc360_session");
+      if (session) {
+        const parsed = JSON.parse(session);
+        if (parsed.role) return parsed.role as Role;
+      }
+    } catch (e) {}
+    return "Super Admin"; // fallback
+  });
   const roleConfig = getRoleConfig(currentRole);
 
   /**
@@ -64,8 +74,31 @@ export function RoleProvider({ children }: { children: ReactNode }) {
    * Uses hardcoded defaults until EmployeeContext integration is complete
    */
   const currentUser = useMemo(() => {
-    // Temporary fallback user based on role
-    // TODO: Replace stubs with real EmployeeContext lookup after auth is implemented
+    // Read real user from auth session
+    try {
+      const session = localStorage.getItem("cc360_session");
+      if (session) {
+        const parsed = JSON.parse(session);
+        if (parsed.employeeId) {
+          // Enrich with real employee data
+          const empDb = JSON.parse(localStorage.getItem("EMPLOYEE_DATABASE_RECORDS") || "[]");
+          const emp = empDb.find((e: any) => e.id === parsed.employeeId || e.employeeId === parsed.employeeId);
+          return {
+            employeeId: parsed.employeeId,
+            name: emp?.fullName || parsed.employeeName || parsed.role,
+            email: emp?.email || "",
+            city: emp?.city || emp?.workLocation || "Surat",
+            cityId: emp?.cityId || emp?.workLocation || "CITY-SURAT",
+            role: parsed.role || currentRole,
+            designation: emp?.designation || emp?.role || parsed.role,
+            assignedPincodes: emp?.pinCodes || emp?.assignedPincodes || [],
+            clusterId: emp?.clusterId || null,
+            mobile: emp?.mobile || emp?.loginMobile || "",
+          };
+        }
+      }
+    } catch (e) {}
+    // Fallback to default stubs if no session
     const defaultUsers: Record<Role, any> = {
       "Super Admin": {
         employeeId: "EMP-SA-001",

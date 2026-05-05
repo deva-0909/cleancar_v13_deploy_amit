@@ -1,3 +1,4 @@
+import { employeeDatabaseService } from "../services/employeeDatabaseService";
 /**
  * ApprovalContext - Centralized approval workflow management
  * Handles approvals across all modules: HR, Finance, Operations, Inventory
@@ -158,7 +159,7 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
         const employeeId = approval.relatedId;
 
         if (newMobile && employeeId) {
-          const { employeeDatabaseService } = require("../services/employeeDatabaseService");
+          
           employeeDatabaseService.update(employeeId, {
             loginMobile: newMobile,
             mobile: newMobile,

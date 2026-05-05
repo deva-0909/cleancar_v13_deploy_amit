@@ -1,3 +1,4 @@
+import { useIncentive } from "../../contexts/IncentiveContext";
 /**
  * Incentive Configuration Panel
  *

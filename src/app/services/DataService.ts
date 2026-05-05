@@ -46,25 +46,35 @@ const STORAGE_KEYS = {
   LEADS: "leads",
   SUBSCRIPTIONS: "subscriptions",
   JOBS: "jobs",
-  ATTENDANCE_RECORDS: "attendance_records", // Unified attendance system
-  PAYROLL: "payroll",
-  PAYROLL_RUNS: "payroll_runs", // PHASE 4: PayrollContext
-  SALARY_STRUCTURES: "salary_structures", // PHASE 4: PayrollContext
-  INCENTIVE_PLANS: "incentive_plans", // PHASE 4: IncentiveContext
-  EMPLOYEE_INCENTIVES: "employee_incentives", // PHASE 4: IncentiveContext
-  DEPARTMENTS: "departments", // PHASE 4: OrgContext
-  DESIGNATIONS: "designations", // PHASE 4: OrgContext
-  PUBLIC_HOLIDAYS: "public_holidays", // PHASE 4: OrgContext
-  CITY_CONFIG: "city_config", // Dynamic city/zone/cluster/pincode configuration
+  ATTENDANCE_RECORDS: "attendance_records",     // Canonical attendance key
+  ATTENDANCE: "attendance_records",              // Alias — same key (fixes split-brain P0-B2)
+  PAYROLL: "payroll_runs",                       // Unified — was "payroll" (fixes P1-B13)
+  PAYROLL_RUNS: "payroll_runs",
+  SALARY_STRUCTURES: "salary_structures",
+  INCENTIVE_PLANS: "incentive_plans",
+  EMPLOYEE_INCENTIVES: "employee_incentives",
+  DEPARTMENTS: "departments",
+  DESIGNATIONS: "designations",
+  PUBLIC_HOLIDAYS: "public_holidays",
+  CITY_CONFIG: "city_config",
   INVENTORY: "inventory",
+  INVENTORY_ITEMS: "inventory",                  // Alias — fixes P0-B5 / P1-B8 INVENTORY_ITEMS unrecognised
+  STOCK_TRANSACTIONS: "stock_transactions",
   FINANCE_PAYABLES: "payables",
   FINANCE_REVENUES: "revenues",
   FINANCE_MRR: "mrr",
   FINANCE_LEDGER: "ledger",
+  FINANCE_BUDGETS: "finance_budgets",            // Fixes P1-B12 missing keys
+  FINANCE_ALERTS: "finance_alerts",              // Fixes P1-B12
+  FINANCE_RECOMMENDATIONS: "finance_recommendations", // Fixes P1-B12
+  APPROVALS: "approvals",                        // Fixes P0-B1 ApprovalContext
+  DEMOS: "demos",                                // Fixes P0-B2 DemoContext
+  ITEM_MASTER: "item_master",                    // Fixes P2-B25 accounting item key
   CUSTOM_ROLES: "custom_roles",
   ROLE_PERMISSION_OVERRIDES: "role_permission_overrides",
-  CUSTOM_TRANSACTION_SUB_TYPES: "custom_transaction_sub_types", // GST transaction categorization
+  CUSTOM_TRANSACTION_SUB_TYPES: "custom_transaction_sub_types",
   MOBILE_CHANGE_REQUESTS: "mobile_change_requests",
+  BUSINESS_RULES: "business_rules",              // Fixes P2-B16 BusinessRulesContext
 } as const;
 
 type EntityType = keyof typeof STORAGE_KEYS;
