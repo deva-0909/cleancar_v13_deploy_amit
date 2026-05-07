@@ -254,12 +254,13 @@ export function NotificationCenter() {
 
   const handleCallNow = (leadName: string, leadId: string) => {
     alert(`Calling ${leadName} (${leadId})...`);
-    window.location.href = 'tel:+919876543210';
+    // Phone number should come from selected lead/customer context
+      toast.info('Please use the lead contact details to call.');
   };
 
   const handleWhatsApp = (leadName: string, leadId: string) => {
     const message = encodeURIComponent(`Hi ${leadName}, following up on your inquiry about our car washing service.`);
-    window.open(`https://wa.me/919876543210?text=${message}`, '_blank');
+    toast.info('WhatsApp integration requires real customer mobile number from CRM.');
   };
 
   const handleViewDetails = (link?: string, leadId?: string) => {

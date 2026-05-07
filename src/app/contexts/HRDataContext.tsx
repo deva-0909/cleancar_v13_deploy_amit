@@ -255,7 +255,7 @@ function initializeEmployees(): Employee[] {
  * Initialize attendance from DataService
  */
 function initializeAttendance(): AttendanceRecord[] {
-  const loaded = DataService.get<AttendanceRecord>("ATTENDANCE");
+  const loaded = DataService.get<AttendanceRecord>("ATTENDANCE_RECORDS");
   console.log(`[HRDataContext] Loaded ${loaded.length} attendance records`);
   return loaded;
 }
@@ -401,8 +401,8 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
       createdAt: new Date().toISOString(),
     };
 
-    DataService.insert("ATTENDANCE", newRecord);
-    const updated = DataService.get<AttendanceRecord>("ATTENDANCE");
+    DataService.insert("ATTENDANCE_RECORDS", newRecord);
+    const updated = DataService.get<AttendanceRecord>("ATTENDANCE_RECORDS");
     setAttendanceRecords(updated);
 
     console.log(`[HRDataContext] Added attendance: ${newRecord.attendanceId}`);
@@ -438,8 +438,8 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
       createdAt: existingRecord.createdAt, // Prevent createdAt change
     };
 
-    DataService.update("ATTENDANCE", attendanceId, updatedRecord);
-    const updated = DataService.get<AttendanceRecord>("ATTENDANCE");
+    DataService.update("ATTENDANCE_RECORDS", attendanceId, updatedRecord);
+    const updated = DataService.get<AttendanceRecord>("ATTENDANCE_RECORDS");
     setAttendanceRecords(updated);
 
     console.log(`[HRDataContext] Updated attendance: ${attendanceId}`);

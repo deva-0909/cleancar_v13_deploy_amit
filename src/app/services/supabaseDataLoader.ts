@@ -61,11 +61,12 @@ function normalizeEmployee(e: any): any {
 
 function normalizeJob(j: any): any {
   if (!j) return j;
-  // Ensure scheduledDate is a full ISO string for date comparisons
+  // Normalise scheduledDate to YYYY-MM-DD (10 chars) for consistent === comparisons
   const d = j.scheduledDate || "";
+  const normalized = d.length > 10 ? d.split("T")[0] : d;
   return {
     ...j,
-    scheduledDate: d.length === 10 ? d + "T00:00:00.000Z" : d,
+    scheduledDate: normalized,
   };
 }
 

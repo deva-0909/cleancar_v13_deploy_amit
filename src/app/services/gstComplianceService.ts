@@ -143,10 +143,16 @@ export interface GSTReconciliationRecord {
 }
 
 class GSTComplianceService {
-  private readonly VENDOR_KEY   = "cleancar_gst_vendors";
-  private readonly CUSTOMER_KEY = "cleancar_gst_customers";
-  private readonly TXN_KEY      = "cleancar_gst_transactions";
-  private readonly RECON_KEY    = "cleancar_gst_reconciliation";
+  private cityId: string = "CITY-SURAT";
+
+  setCityId(cityId: string): void {
+    this.cityId = cityId;
+  }
+
+  private get VENDOR_KEY()   { return `cleancar_${this.cityId}_gst_vendors`; }
+  private get CUSTOMER_KEY() { return `cleancar_${this.cityId}_gst_customers`; }
+  private get TXN_KEY()      { return `cleancar_${this.cityId}_gst_transactions`; }
+  private get RECON_KEY()    { return `cleancar_${this.cityId}_gst_reconciliation`; }
 
   validateGSTIN(gstin: string): { valid: boolean; stateCode: string; error?: string } {
     const pattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;

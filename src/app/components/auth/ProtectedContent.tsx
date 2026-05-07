@@ -10,6 +10,7 @@ import { usePermissions } from "../../hooks/usePermissions";
 import { type EngineType, type Permission, type DataScope } from "../../lib/accessControl";
 import { Badge } from "../ui/badge";
 import { Lock, Eye, EyeOff } from "lucide-react";
+import { Button } from "../ui/button";
 
 // ==================== PROTECTED CONTENT ====================
 
@@ -216,9 +217,6 @@ export function ConditionalButton({
 }: ConditionalButtonProps) {
   const { can } = usePermissions();
   const hasPermission = can(engine, permission);
-
-  // Import Button component
-  const { Button } = require("../ui/button");
 
   return (
     <Button

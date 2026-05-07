@@ -1,3 +1,4 @@
+import { DataService } from "./DataService";
 /**
  * Cloth Tracking Service
  * Manages cloth state, scanning, and exchange logic
@@ -15,13 +16,28 @@ import type {
 } from "../types/clothTracking";
 
 class ClothTrackingService {
-  private cloths: Map<string, ClothItem> = new Map();
-  private exchanges: ClothExchange[] = [];
-  private scanTimestamps: Map<string, number> = new Map();
+  private scanTimestamps: Map<string, number> = new Map(); // in-memory only (scan rate limiting)
 
-  // Initialize with mock data
+  private get clothMap(): Map<string, ClothItem> {
+    const stored = DataService.get<ClothItem>("CLOTH_ITEMS");
+    return new Map(stored.map(c => [c.barcode, c]));
+  }
+  private get exchangeList(): ClothExchange[] {
+    return DataService.get<ClothExchange>("CLOTH_EXCHANGES");
+  }
+  private saveClothMap(map: Map<string, ClothItem>): void {
+    DataService.setAll("CLOTH_ITEMS", Array.from(map.values()));
+  }
+  private saveExchanges(exchanges: ClothExchange[]): void {
+    DataService.setAll("CLOTH_EXCHANGES", exchanges);
+  }
+
   constructor() {
-    this.seedMockData();
+    // Only seed if no data exists
+    const existing = DataService.get<ClothItem>("CLOTH_ITEMS");
+    if (existing.length === 0) {
+      this.seedMockData();
+    }
   }
 
   // === CORE SCAN LOGIC ===
@@ -34,7 +50,7 @@ class ClothTrackingService {
     const startTime = Date.now();
 
     // Find cloth
-    const cloth = this.cloths.get(barcode);
+    const cloth = this.clothMap.get(barcode);
     if (!cloth) {
       return {
         success: false,
@@ -148,7 +164,7 @@ class ClothTrackingService {
 
   private countByType(clothIds: string[], type: ClothType): number {
     return clothIds.filter((id) => {
-      const cloth = this.cloths.get(id);
+      const cloth = this.clothMap.get(id);
       return cloth && cloth.type === type;
     }).length;
   }
@@ -156,11 +172,11 @@ class ClothTrackingService {
   // === CLOTH OPERATIONS ===
 
   getCloth(id: string): ClothItem | undefined {
-    return this.cloths.get(id);
+    return this.clothMap.get(id);
   }
 
   lockCloth(id: string, lockedBy: string): void {
-    const cloth = this.cloths.get(id);
+    const cloth = this.clothMap.get(id);
     if (cloth) {
       cloth.isLocked = true;
       cloth.lockedBy = lockedBy;
@@ -169,7 +185,7 @@ class ClothTrackingService {
   }
 
   unlockCloth(id: string): void {
-    const cloth = this.cloths.get(id);
+    const cloth = this.clothMap.get(id);
     if (cloth) {
       cloth.isLocked = false;
       cloth.lockedBy = undefined;
@@ -178,7 +194,7 @@ class ClothTrackingService {
   }
 
   updateClothStatus(id: string, status: ClothStatus): void {
-    const cloth = this.cloths.get(id);
+    const cloth = this.clothMap.get(id);
     if (cloth) {
       cloth.status = status;
       cloth.updatedAt = new Date().toISOString();
@@ -213,7 +229,7 @@ class ClothTrackingService {
       timestamp: new Date().toISOString(),
     };
 
-    this.exchanges.push(exchange);
+    this.exchangeList.push(exchange);
 
     // Update cloth statuses
     dirtyIds.forEach((id) => this.updateClothStatus(id, "IN_LAUNDRY_PROCESS"));
@@ -223,7 +239,7 @@ class ClothTrackingService {
   }
 
   getExchanges(): ClothExchange[] {
-    return this.exchanges;
+    return this.exchangeList;
   }
 
   // === ANALYTICS ===
@@ -261,7 +277,7 @@ class ClothTrackingService {
         updatedAt: new Date().toISOString(),
       };
 
-      this.cloths.set(id, cloth);
+      this.clothMap.set(id, cloth);
     }
 
     // Add some locked cloths
@@ -269,7 +285,7 @@ class ClothTrackingService {
     this.lockCloth("CLO00000010", "LAUNDRY-BATCH-1");
 
     // Add some expired cloths
-    const expiredCloth = this.cloths.get("CLO00000015");
+    const expiredCloth = this.clothMap.get("CLO00000015");
     if (expiredCloth) {
       expiredCloth.status = "EXPIRED";
       expiredCloth.expiryDate = "2026-01-01";
@@ -278,12 +294,12 @@ class ClothTrackingService {
 
   // Get all cloths by status
   getClothsByStatus(status: ClothStatus): ClothItem[] {
-    return Array.from(this.cloths.values()).filter((c) => c.status === status);
+    return Array.from(this.clothMap.values()).filter((c) => c.status === status);
   }
 
   // Get all cloths by type and status
   getClothsByTypeAndStatus(type: ClothType, status: ClothStatus): ClothItem[] {
-    return Array.from(this.cloths.values()).filter(
+    return Array.from(this.clothMap.values()).filter(
       (c) => c.type === type && c.status === status
     );
   }

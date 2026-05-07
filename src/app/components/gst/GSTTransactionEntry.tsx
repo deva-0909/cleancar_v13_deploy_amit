@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { accountingEntryService } from "../../services/accountingEntryService";
 import { FileText, Save, CheckCircle, AlertTriangle, Brain, TrendingDown, CheckCircle2 } from "lucide-react";
 import { gstComplianceService, type GSTTransaction, COMPANY_GST_CONFIG } from "../../services/gstComplianceService";
 import { analyzeTransaction, type ScoringResult, type AICorrection, scoreAfterCorrection } from "../../services/gstAIScoringService";
@@ -245,8 +246,6 @@ export function GSTTransactionEntry() {
 
     // RCM Journal Entry auto-generation
     if (formData.isRCM && formData.transactionType === "Purchase") {
-      const { accountingEntryService } = require("../../services/accountingEntryService");
-
       // Determine if intra-state or inter-state RCM
       const isIntraState = formData.supplyType === "INTRA_STATE";
 

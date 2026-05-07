@@ -590,17 +590,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return mrrData.filter(item => item.cityId === cityId);
   };
 
-  const getRevenueByCity = (cityId: string): Revenue[] => {
+  const getRevenueByCity = useCallback((cityId: string): Revenue[] => {
     return revenues.filter(item => item.cityId === cityId);
-  };
+  }, [revenues]);
 
-  const getPayablesByCity = (cityId: string): Payable[] => {
+  const getPayablesByCity = useCallback((cityId: string): Payable[] => {
     return payables.filter(item => item.cityId === cityId);
-  };
+  }, [payables]);
 
-  const getLedgerEntriesByCity = (cityId: string): LedgerEntry[] => {
+  const getLedgerEntriesByCity = useCallback((cityId: string): LedgerEntry[] => {
     return ledgerEntries.filter(item => item.cityId === cityId);
-  };
+  }, [ledgerEntries]);
 
   // ✅ EBITDA + MARGIN ANALYTICS (MC-06)
   const calculateEBITDA = (cityId: string, month?: string): number => {

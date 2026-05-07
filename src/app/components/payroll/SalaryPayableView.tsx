@@ -7,6 +7,7 @@
  * @component
  */
 
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { formatCurrency } from "../../lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -92,6 +93,7 @@ function formatDate(dateString: string): string {
 // ============================================================================
 
 export function SalaryPayableView() {
+  const navigate = useNavigate();
   const { payrollRuns } = usePayroll();
   const { employees } = useEmployee();
 
@@ -168,7 +170,7 @@ export function SalaryPayableView() {
 
   const handleBulkPayment = () => {
     // Navigate to payment screen
-    window.location.href = `/payroll/salary-payment?month=${selectedMonth}&year=${selectedYear}`;
+    navigate(`/payroll/salary-payment?month=${selectedMonth}&year=${selectedYear}`);
   };
 
   return (
@@ -374,7 +376,7 @@ export function SalaryPayableView() {
                         variant="ghost"
                         size="sm"
                         onClick={() =>
-                          (window.location.href = `/payroll/salary-payment?employeeId=${payable.employeeId}`)
+                          navigate(`/payroll/salary-payment?employeeId=${payable.employeeId}`)
                         }
                       >
                         <ArrowRight className="w-4 h-4" />

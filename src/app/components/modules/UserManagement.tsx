@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -8,6 +9,7 @@ import { Plus, Edit, Trash2, Download, X, Check, Shield, Activity, MapPin, Shiel
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { useEmployee } from "../../contexts/EmployeeContext";
 import { useHRData } from "../../contexts/HRDataContext";
+import { useCity } from "../../contexts/CityContext";
 import { useRole } from "../../contexts/RoleContext";
 import { useCustomRoles } from "../../contexts/CustomRoleContext";
 import { EmployeePermissionOverridePanel } from "../admin/EmployeePermissionOverridePanel";
@@ -35,6 +37,7 @@ type User = {
 };
 
 export function UserManagement() {
+  const navigate = useNavigate();
   const { employees } = useEmployee();
   const { addEmployee, updateEmployee, deleteEmployee } = useHRData();
   const { currentRole } = useRole();
@@ -81,7 +84,7 @@ export function UserManagement() {
     name: "",
     email: "",
     role: "Car Washer",
-    city: "Surat",
+    city: cityInfo?.displayName || "Surat",
     phone: "",
     status: "Active"
   });
@@ -147,7 +150,7 @@ export function UserManagement() {
         name: "",
         email: "",
         role: "Car Washer",
-        city: "Surat",
+        city: cityInfo?.displayName || "Surat",
         phone: "",
         status: "Active"
       });
@@ -231,7 +234,7 @@ export function UserManagement() {
           icon: <Download className="w-4 h-4 mr-2" />,
         }}
         breadcrumbs={[
-          { label: "Dashboard", onClick: () => window.location.href = "/" },
+          { label: "Dashboard", onClick: () => navigate("/") },
           { label: "User Management" },
         ]}
       />
@@ -254,7 +257,7 @@ export function UserManagement() {
                     name: "",
                     email: "",
                     role: "Car Washer",
-                    city: "Surat",
+                    city: cityInfo?.displayName || "Surat",
                     phone: "",
                     status: "Active"
                   });
@@ -304,7 +307,7 @@ export function UserManagement() {
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   options={[
-                    { value: "Surat", label: "Surat" },
+                    { value: cityInfo?.displayName || "Surat", label: cityInfo?.displayName || "Surat" },
                     { value: "Ahmedabad", label: "Ahmedabad" },
                     { value: "Vadodara", label: "Vadodara" },
                     { value: "Rajkot", label: "Rajkot" },

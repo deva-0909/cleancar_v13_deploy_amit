@@ -169,16 +169,53 @@ export function PayrollRun() {
     setHasRun(false);
 
     try {
-      // Simulate API call to payrollEngine
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Process payroll for each eligible employee
+      const monthIndex = ["January","February","March","April","May","June",
+        "July","August","September","October","November","December"].indexOf(selectedMonth);
+      const monthStr = `${selectedYear}-${String(monthIndex + 1).padStart(2, "0")}`;
 
-      // In production: const result = await payrollEngine.runPayroll({ month, year, city, cluster })
-      // For now, we're just marking that we've run the calculation
-      // The results are automatically computed from HRDataContext in the useMemo above
+      let processed = 0;
+      for (const emp of cityEmployees) {
+        if (!emp.employeeId || !emp.baseSalary) continue;
+        const grossSalary = emp.baseSalary;
+        const pfEmployee = Math.round(Math.min(grossSalary * 0.5, 15000) * 0.12);
+        const esic = grossSalary <= 21000 ? Math.round(grossSalary * 0.0075) : 0;
+        // PT from STATUTORY_RULES via payrollCalculationEngine (max ₹200 for Gujarat)
+        const pt = grossSalary >= 12000 ? 200 : grossSalary >= 9000 ? 150 : grossSalary >= 6000 ? 80 : 0;
+        const netSalary = grossSalary - pfEmployee - esic - pt;
+        processPayroll({
+          employeeId: emp.employeeId,
+          month: monthStr,
+          period: {
+            startDate: `${monthStr}-01`,
+            endDate: `${monthStr}-${new Date(parseInt(selectedYear), monthIndex + 1, 0).getDate()}`,
+          },
+          baseSalary: grossSalary,
+          incentiveAmount: 0,
+          addOnEarnings: 0,
+          allowances: 0,
+          grossSalary,
+          pf: pfEmployee,
+          esic,
+          tds: 0,
+          advances: 0,
+          penalties: pt,
+          totalDeductions: pfEmployee + esic + pt,
+          netSalary: Math.max(0, netSalary),
+          status: "Draft",
+          employerPF: Math.round(Math.min(grossSalary * 0.5, 15000) * 0.12),
+          processedDate: new Date().toISOString(),
+          processedBy: "System",
+          employeeCount: cityEmployees.length,
+          totalAmount: netSalary,
+        });
+        processed++;
+      }
 
       setHasRun(true);
-      toast.success("Payroll calculated successfully!");
+      toast.success(`Payroll run complete — ${processed} employee records created.`);
     } catch (err) {
+      console.error("Payroll run error:", err);
       setError("Failed to process payroll. Please try again.");
       toast.error("Payroll processing failed");
     } finally {

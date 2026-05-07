@@ -1,5 +1,6 @@
 // Supervisor Module - Updated to align with Car Washer Module data
 import { useState } from "react";
+import { useEmployee } from "../../contexts/EmployeeContext";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -134,7 +135,7 @@ export function SupervisorModuleUpdated() {
       customerFirstName: "Arjun",
       area: "Adajan",
       pinCode: "395009",
-      city: "Surat",
+      city: currentUser?.cityId || "CITY-SURAT",
       addressLine1: "B-204, Sigma Heights",
       vehicleCategory: "Mid-Size Sedan",
       vehicleColor: "White",
@@ -159,7 +160,7 @@ export function SupervisorModuleUpdated() {
       customerFirstName: "Priya",
       area: "Vesu",
       pinCode: "395007",
-      city: "Surat",
+      city: currentUser?.cityId || "CITY-SURAT",
       addressLine1: "A-101, Green Avenue",
       vehicleCategory: "Hatchback",
       vehicleColor: "Red",
@@ -181,7 +182,7 @@ export function SupervisorModuleUpdated() {
       customerFirstName: "Rajesh",
       area: "Adajan West",
       pinCode: "395009",
-      city: "Surat",
+      city: currentUser?.cityId || "CITY-SURAT",
       addressLine1: "C-505, Royal Residency",
       vehicleCategory: "Mid/Large SUV",
       vehicleColor: "Black",
@@ -203,7 +204,7 @@ export function SupervisorModuleUpdated() {
       customerFirstName: "Sneha",
       area: "Adajan",
       pinCode: "395009",
-      city: "Surat",
+      city: currentUser?.cityId || "CITY-SURAT",
       vehicleCategory: "Compact SUV",
       vehicleColor: "Silver",
       vehicleBrand: "Hyundai",
@@ -224,7 +225,7 @@ export function SupervisorModuleUpdated() {
       customerFirstName: "Vikram",
       area: "Vesu",
       pinCode: "395007",
-      city: "Surat",
+      city: currentUser?.cityId || "CITY-SURAT",
       vehicleCategory: "Luxury Sedan",
       vehicleColor: "Black",
       vehicleBrand: "BMW",
@@ -1312,7 +1313,7 @@ export function SupervisorModuleUpdated() {
                 <div>
                   <p className="text-lg font-bold">Adajan Circle</p>
                   <p className="text-sm text-gray-600 mt-1">
-                    Adajan, Surat - 395009
+                    
                   </p>
                 </div>
               </CardContent>
@@ -1413,7 +1414,7 @@ export function SupervisorModuleUpdated() {
                 <div>
                   <p className="text-lg font-bold">Adajan Circle</p>
                   <p className="text-sm text-gray-600 mt-1">
-                    Adajan, Surat - 395009
+                    
                   </p>
                 </div>
               </CardContent>

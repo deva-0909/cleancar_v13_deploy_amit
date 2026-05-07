@@ -7,7 +7,6 @@ import { Button } from "../components/ui/button";
 import { toast } from "sonner";
 import { authService } from "../services/authService";
 import { employeeDatabaseService } from "../services/employeeDatabaseService";
-import { loadAllDataFromSupabase } from "../services/supabaseDataLoader";
 
 type LoginView = "login" | "forgot_otp_request" | "forgot_otp_verify" | "forgot_reset";
 
@@ -32,18 +31,20 @@ export function LoginPage() {
   const [forgotError, setForgotError] = useState("");
   const [forgotInfo, setForgotInfo] = useState("");
 
-  // Load employee data from Supabase before allowing login
+  // Data is pre-loaded by App.tsx bootstrap — just verify employees are available
   useEffect(() => {
-    loadAllDataFromSupabase().then(() => {
-      return employeeDatabaseService.loadFromSupabase();
-    }).then(() => {
-      const employees = employeeDatabaseService.getAll();
+    // App.tsx already awaited loadAllDataFromSupabase() before mounting
+    // We just need to confirm employee data is in localStorage
+    const employees = employeeDatabaseService.getAll();
+    if (employees.length > 0) {
       console.log(`Login ready: ${employees.length} employees loaded`);
       setDataReady(true);
-    }).catch((err) => {
-      console.error("Supabase load failed, trying localStorage:", err);
-      setDataReady(true);
-    });
+    } else {
+      // Fallback: load if somehow missing (e.g. localStorage cleared)
+      employeeDatabaseService.loadFromSupabase()
+        .then(() => setDataReady(true))
+        .catch(() => setDataReady(true));
+    }
   }, []);
 
   const handleLogin = async () => {

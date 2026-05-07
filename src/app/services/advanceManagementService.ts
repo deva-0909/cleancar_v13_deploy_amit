@@ -1,3 +1,5 @@
+import { DataService } from "./DataService";
+import { calculateMaxAdvanceAmount } from "../config/advanceSettings";
 /**
  * Advance Management Service
  * Enforces financial controls with zero manual bypass
@@ -19,13 +21,27 @@ import type {
 } from "../types/advanceManagement";
 
 class AdvanceManagementService {
-  private longTermAdvances: Map<string, LongTermAdvance> = new Map();
-  private shortTermAdvances: Map<string, ShortTermAdvance> = new Map();
-  private auditLogs: AuditLogEntry[] = [];
-  private alerts: Alert[] = [];
+  private get longTermMap(): Map<string, LongTermAdvance> {
+    const stored = DataService.get<LongTermAdvance>("LONG_TERM_ADVANCES");
+    return new Map(stored.map(a => [a.advanceId, a]));
+  }
+  private get shortTermMap(): Map<string, ShortTermAdvance> {
+    const stored = DataService.get<ShortTermAdvance>("SHORT_TERM_ADVANCES");
+    return new Map(stored.map(a => [a.advanceId, a]));
+  }
+  private saveLongTerm(map: Map<string, LongTermAdvance>): void {
+    DataService.setAll("LONG_TERM_ADVANCES", Array.from(map.values()));
+  }
+  private saveShortTerm(map: Map<string, ShortTermAdvance>): void {
+    DataService.setAll("SHORT_TERM_ADVANCES", Array.from(map.values()));
+  }
 
   constructor() {
-    this.seedMockData();
+    // Only seed if no data exists
+    const existing = DataService.get<LongTermAdvance>("LONG_TERM_ADVANCES");
+    if (existing.length === 0) {
+      this.seedMockData();
+    }
   }
 
   // ==================== LONG-TERM ADVANCE ====================
@@ -133,7 +149,7 @@ class AdvanceManagementService {
       createdBy: employeeId,
     };
 
-    this.longTermAdvances.set(id, advance);
+    this.longTermMap.set(id, advance);
     this.logAudit(id, "LONG_TERM", "CREATED", employeeId, employeeRole, "Application created");
 
     return advance;
@@ -181,7 +197,7 @@ class AdvanceManagementService {
     approverRole: string,
     notes?: string
   ): void {
-    const advance = this.longTermAdvances.get(advanceId);
+    const advance = this.longTermMap.get(advanceId);
     if (!advance) throw new Error("Advance not found");
 
     if (advance.status !== "PENDING_APPROVAL") {
@@ -196,7 +212,7 @@ class AdvanceManagementService {
     // Still locked until cheque deposited
     advance.isDisbursementLocked = !advance.securityCheque.isDeposited;
 
-    this.longTermAdvances.set(advanceId, advance);
+    this.longTermMap.set(advanceId, advance);
     this.logAudit(advanceId, "LONG_TERM", "APPROVED", approvedBy, approverRole, notes || "Approved");
   }
 
@@ -209,14 +225,14 @@ class AdvanceManagementService {
     rejectorRole: string,
     reason: string
   ): void {
-    const advance = this.longTermAdvances.get(advanceId);
+    const advance = this.longTermMap.get(advanceId);
     if (!advance) throw new Error("Advance not found");
 
     advance.status = "REJECTED";
     advance.rejectionReason = reason;
     advance.updatedAt = new Date().toISOString();
 
-    this.longTermAdvances.set(advanceId, advance);
+    this.longTermMap.set(advanceId, advance);
     this.logAudit(advanceId, "LONG_TERM", "REJECTED", rejectedBy, rejectorRole, reason);
   }
 
@@ -230,7 +246,7 @@ class AdvanceManagementService {
     depositorRole: string,
     depositReference: string
   ): void {
-    const advance = this.longTermAdvances.get(advanceId);
+    const advance = this.longTermMap.get(advanceId);
     if (!advance) throw new Error("Advance not found");
 
     if (advance.status !== "APPROVED") {
@@ -247,7 +263,7 @@ class AdvanceManagementService {
     advance.status = "CHEQUE_PENDING"; // Waiting for disbursement
     advance.updatedAt = new Date().toISOString();
 
-    this.longTermAdvances.set(advanceId, advance);
+    this.longTermMap.set(advanceId, advance);
     this.logAudit(
       advanceId,
       "LONG_TERM",
@@ -262,7 +278,7 @@ class AdvanceManagementService {
    * Check if Disbursement is Locked
    */
   checkDisbursementLock(advanceId: string): DisbursementLockReason {
-    const advance = this.longTermAdvances.get(advanceId);
+    const advance = this.longTermMap.get(advanceId);
     if (!advance) {
       return {
         isLocked: true,
@@ -312,7 +328,7 @@ class AdvanceManagementService {
       throw new Error(`Disbursement locked: ${lockStatus.reason}`);
     }
 
-    const advance = this.longTermAdvances.get(advanceId)!;
+    const advance = this.longTermMap.get(advanceId)!;
 
     advance.status = "DISBURSED";
     advance.disbursedDate = new Date().toISOString();
@@ -326,7 +342,7 @@ class AdvanceManagementService {
       advance.status = "ACTIVE"; // Start EMI cycle
     }
 
-    this.longTermAdvances.set(advanceId, advance);
+    this.longTermMap.set(advanceId, advance);
     this.logAudit(
       advanceId,
       "LONG_TERM",
@@ -342,7 +358,7 @@ class AdvanceManagementService {
    * NO MANUAL BYPASS - System enforced
    */
   deductEMI(advanceId: string, emiNumber: number, salaryMonth: string): void {
-    const advance = this.longTermAdvances.get(advanceId);
+    const advance = this.longTermMap.get(advanceId);
     if (!advance) throw new Error("Advance not found");
 
     const emi = advance.emiSchedule.find((e) => e.emiNumber === emiNumber);
@@ -371,7 +387,7 @@ class AdvanceManagementService {
       advance.status = "COMPLETED";
     }
 
-    this.longTermAdvances.set(advanceId, advance);
+    this.longTermMap.set(advanceId, advance);
     this.logAudit(
       advanceId,
       "LONG_TERM",
@@ -396,9 +412,6 @@ class AdvanceManagementService {
     totalDaysInMonth: number,
     employeeRole: string
   ): { salaryTillDate: number; maxEligible: number; limitPercentage: number } {
-    // Import the role-based limit calculation
-    const { calculateMaxAdvanceAmount } = require("../config/advanceSettings");
-
     const salaryPerDay = monthlySalary / totalDaysInMonth;
     const salaryTillDate = salaryPerDay * daysWorked;
 
@@ -472,7 +485,7 @@ class AdvanceManagementService {
       createdBy: employeeId,
     };
 
-    this.shortTermAdvances.set(id, advance);
+    this.shortTermMap.set(id, advance);
     this.logAudit(
       id,
       "SHORT_TERM",
@@ -493,7 +506,7 @@ class AdvanceManagementService {
     approvedBy: string,
     approverRole: string
   ): void {
-    const advance = this.shortTermAdvances.get(advanceId);
+    const advance = this.shortTermMap.get(advanceId);
     if (!advance) throw new Error("Advance not found");
 
     if (!advance.requiresOverrideApproval) {
@@ -505,7 +518,7 @@ class AdvanceManagementService {
     advance.approvedDate = new Date().toISOString();
     advance.updatedAt = new Date().toISOString();
 
-    this.shortTermAdvances.set(advanceId, advance);
+    this.shortTermMap.set(advanceId, advance);
     this.logAudit(advanceId, "SHORT_TERM", "APPROVED", approvedBy, approverRole, "Override approved");
   }
 
@@ -514,7 +527,7 @@ class AdvanceManagementService {
    * Auto-triggered by Payroll in current cycle
    */
   recoverShortTermAdvance(advanceId: string, salaryMonth: string): void {
-    const advance = this.shortTermAdvances.get(advanceId);
+    const advance = this.shortTermMap.get(advanceId);
     if (!advance) throw new Error("Advance not found");
 
     if (advance.status !== "APPROVED" && advance.status !== "DISBURSED") {
@@ -527,7 +540,7 @@ class AdvanceManagementService {
     advance.status = "COMPLETED";
     advance.updatedAt = new Date().toISOString();
 
-    this.shortTermAdvances.set(advanceId, advance);
+    this.shortTermMap.set(advanceId, advance);
     this.logAudit(
       advanceId,
       "SHORT_TERM",
@@ -541,8 +554,8 @@ class AdvanceManagementService {
   // ==================== ANALYTICS ====================
 
   getAnalytics(): AdvanceAnalytics {
-    const longTermArray = Array.from(this.longTermAdvances.values());
-    const shortTermArray = Array.from(this.shortTermAdvances.values());
+    const longTermArray = Array.from(this.longTermMap.values());
+    const shortTermArray = Array.from(this.shortTermMap.values());
 
     const activeLongTerm = longTermArray.filter((a) => a.status === "ACTIVE");
     const activeShortTerm = shortTermArray.filter((a) => a.status === "APPROVED" || a.status === "DISBURSED");
@@ -595,10 +608,10 @@ class AdvanceManagementService {
   }
 
   getEmployeeSummary(employeeId: string): EmployeeAdvanceSummary {
-    const longTerm = Array.from(this.longTermAdvances.values()).filter(
+    const longTerm = Array.from(this.longTermMap.values()).filter(
       (a) => a.employeeId === employeeId
     );
-    const shortTerm = Array.from(this.shortTermAdvances.values()).filter(
+    const shortTerm = Array.from(this.shortTermMap.values()).filter(
       (a) => a.employeeId === employeeId
     );
 
@@ -661,26 +674,26 @@ class AdvanceManagementService {
   // ==================== GETTERS ====================
 
   getLongTermAdvance(id: string): LongTermAdvance | undefined {
-    return this.longTermAdvances.get(id);
+    return this.longTermMap.get(id);
   }
 
   getShortTermAdvance(id: string): ShortTermAdvance | undefined {
-    return this.shortTermAdvances.get(id);
+    return this.shortTermMap.get(id);
   }
 
   getAllLongTermAdvances(): LongTermAdvance[] {
-    return Array.from(this.longTermAdvances.values());
+    return Array.from(this.longTermMap.values());
   }
 
   getAllShortTermAdvances(): ShortTermAdvance[] {
-    return Array.from(this.shortTermAdvances.values());
+    return Array.from(this.shortTermMap.values());
   }
 
   getPendingApprovals(): (LongTermAdvance | ShortTermAdvance)[] {
-    const longTerm = Array.from(this.longTermAdvances.values()).filter(
+    const longTerm = Array.from(this.longTermMap.values()).filter(
       (a) => a.status === "PENDING_APPROVAL"
     );
-    const shortTerm = Array.from(this.shortTermAdvances.values()).filter(
+    const shortTerm = Array.from(this.shortTermMap.values()).filter(
       (a) => a.status === "PENDING_APPROVAL"
     );
     return [...longTerm, ...shortTerm];

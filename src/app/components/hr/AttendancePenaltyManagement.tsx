@@ -3,6 +3,7 @@
  * System-enforced PL adjustments for attendance violations
  */
 
+import { DataService } from "../../services/DataService";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";

@@ -6,8 +6,9 @@
  * Version: 2.0
  */
 
-import { createContext, useContext, useState, ReactNode } from "react";
-import { demoWashes as initialDemos } from "../lib/mockData";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { DataService } from "../services/DataService";
+// mockData removed — DemoContext now uses DataService
 
 export type DemoType = "One-Time Service Demo" | "Subscription Package Demo";
 export type AssignmentStatus = "Pending" | "Assigned" | "Acknowledged by Washer" | "In Progress" | "Completed" | "Escalated" | "Declined by Washer" | "Cancelled";
@@ -130,7 +131,15 @@ const DemoContext = createContext<DemoContextType | undefined>(undefined);
 
 // Ensure the provider is exported and used correctly
 export function DemoProvider({ children }: { children: ReactNode }) {
-  const [demos, setDemos] = useState<DemoWash[]>(initialDemos);
+  const [demos, setDemos] = useState<DemoWash[]>(() => {
+    const stored = DataService.get<DemoWash>("DEMOS");
+    return stored.length > 0 ? stored : [];
+  });
+
+  // Persist demos to DataService on every change
+  useEffect(() => {
+    if (demos.length > 0) DataService.setAll("DEMOS", demos);
+  }, [demos]);
 
   // Log to verify provider is mounting
   console.log("DemoProvider mounted with", demos.length, "demos");

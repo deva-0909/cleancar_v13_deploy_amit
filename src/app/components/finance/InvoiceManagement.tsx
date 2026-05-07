@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "../../lib/formatters";
 import {
   FileText,
@@ -282,6 +283,7 @@ async function recordPayment(
 // ============================================================================
 
 function getStatusBadge(status: Invoice["status"]) {
+  const navigate = useNavigate();
   const statusConfig = {
     UNPAID: { color: "bg-yellow-100 text-yellow-800", icon: Clock },
     PARTIAL: { color: "bg-blue-100 text-blue-800", icon: AlertCircle },
@@ -448,7 +450,7 @@ export default function InvoiceManagement() {
 
   function handleViewInvoice(invoiceId: string) {
     // Navigate to invoice detail page
-    window.location.href = `/finance/invoices/${invoiceId}`;
+    navigate(`/finance/invoices/${invoiceId}`);
   }
 
   // ============================================================================

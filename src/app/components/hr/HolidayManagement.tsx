@@ -1,4 +1,5 @@
 // Holiday Management - Public Holidays with Past Date Lock
+import { DataService } from "../../services/DataService";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -174,7 +175,10 @@ const mockHolidays: Holiday[] = [
 ];
 
 export function HolidayManagement() {
-  const [holidays, setHolidays] = useState<Holiday[]>(mockHolidays);
+  const [holidays, setHolidays] = useState<Holiday[]>(() => {
+    const stored = DataService.get<Holiday>("PUBLIC_HOLIDAYS");
+    return stored.length > 0 ? stored : (typeof mockHolidays !== "undefined" ? mockHolidays : []);
+  });
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingHoliday, setEditingHoliday] = useState<Holiday | null>(null);
   const [formData, setFormData] = useState<Partial<Holiday>>({
@@ -252,7 +256,9 @@ export function HolidayManagement() {
       `Are you sure you want to delete ${holiday.name}?`
     );
     if (confirmed) {
-      setHolidays(holidays.filter((h) => h.id !== holiday.id));
+      const remaining = holidays.filter((h) => h.id !== holiday.id);
+      setHolidays(remaining);
+      DataService.setAll("PUBLIC_HOLIDAYS", remaining);
       toast.success("Holiday deleted successfully");
     }
   };

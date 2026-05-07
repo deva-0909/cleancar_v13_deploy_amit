@@ -41,19 +41,7 @@ import { ConfirmDialog } from "../shared/ConfirmDialog";
 // No hardcoded navigation modules needed here!
 
 export function RootLayout() {
-  const isPreview = import.meta.env.MODE === "development"
-    || window.location.hostname === "localhost"
-    || window.location.hostname.includes("figma")
-    || new URLSearchParams(window.location.search).get("preview-route") !== null;
-
-  if (!isPreview) {
-    const session = localStorage.getItem("cc360_session");
-    if (!session && !window.location.pathname.startsWith("/login")) {
-      window.location.replace("/login");
-      return null;
-    }
-  }
-
+  // ─── ALL hooks declared first (Rules of Hooks) ───────────────────────────
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState([
@@ -96,6 +84,28 @@ export function RootLayout() {
   }>({ open: false, title: "", description: "", onConfirm: () => {} });
 
   const [sidebarSearch, setSidebarSearch] = useState("");
+
+  // ─── Session guard (runs after hooks, safe) ──────────────────────────────
+  const isPreview = import.meta.env.MODE === "development"
+    || window.location.hostname === "localhost"
+    || window.location.hostname.includes("figma")
+    || new URLSearchParams(window.location.search).get("preview-route") !== null;
+
+  useEffect(() => {
+    if (!isPreview) {
+      const session = localStorage.getItem("cc360_session");
+      if (!session && !window.location.pathname.startsWith("/login")) {
+        window.location.replace("/login");
+      }
+    }
+  }, [isPreview]);
+
+  // Early return for unauthenticated non-preview (after all hooks)
+  if (!isPreview && !localStorage.getItem("cc360_session") &&
+      !window.location.pathname.startsWith("/login")) {
+    return null;
+  }
+
 
   const { currentRole, setCurrentRole, currentUser } = useRole();
   const { city } = useCity();

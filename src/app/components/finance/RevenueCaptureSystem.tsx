@@ -476,7 +476,7 @@ export function RevenueCaptureSystem() {
                   tickFormatter={v => `₹${(v/1000).toFixed(0)}K`} />
                 <RechartsTooltip formatter={(v:any) => `₹${Number(v).toLocaleString("en-IN")}`} />
                 <Bar dataKey="revenue" fill="#3b82f6" name="Revenue"
-                  label={{ position:"top", formatter:(v:any)=>`₹${(v/1000).toFixed(0)}K`, fontSize:11 }} />
+                   />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

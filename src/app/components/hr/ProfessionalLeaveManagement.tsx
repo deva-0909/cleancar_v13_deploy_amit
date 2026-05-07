@@ -34,6 +34,7 @@
  * ============================================================================
  */
 
+import { DataService } from "../../services/DataService";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -1130,6 +1131,19 @@ function ProfessionalLeaveManagement() {
                             );
                             return;
                           }
+
+                          // Persist leave request to DataService
+                          const leaveRecord = {
+                            id: `LEAVE-${Date.now()}`,
+                            employeeId: selectedEmployeeId || "unknown",
+                            leaveType: leaveApplicationForm.leaveType,
+                            fromDate: leaveApplicationForm.fromDate,
+                            toDate: leaveApplicationForm.toDate,
+                            reason: leaveApplicationForm.reason,
+                            status: "Pending" as const,
+                            appliedAt: new Date().toISOString(),
+                          };
+                          DataService.insert("LEAVE_REQUESTS", leaveRecord);
 
                           // Success
                           toast.success(

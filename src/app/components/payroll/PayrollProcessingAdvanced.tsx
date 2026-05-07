@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -88,6 +89,7 @@ interface EmployeePayroll {
 }
 
 export function PayrollProcessingAdvanced() {
+  const navigate = useNavigate();
   // CRITICAL: Use Business Flows for orchestrated payroll processing
   const { processPayrollWithPayable } = useBusinessFlows();
   const { payrollRuns } = usePayroll();
@@ -707,7 +709,7 @@ export function PayrollProcessingAdvanced() {
                 )}
                 {payrollRunStatus === "finance_approved" && (
                   <Button
-                    onClick={() => (window.location.href = "/payroll/salary-payables")}
+                    onClick={() => navigate("/payroll/salary-payables")}
                     className="bg-purple-600 hover:bg-purple-700"
                   >
                     <DollarSign className="w-4 h-4 mr-2" />

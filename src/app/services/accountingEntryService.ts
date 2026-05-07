@@ -1,3 +1,4 @@
+import { DataService } from "./DataService";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 export const GST_STATES: Record<string, string> = {
@@ -291,15 +292,14 @@ class AccountingEntryService {
   private readonly ENTRIES_KEY = "cleancar_accounting_entries";
   private readonly JOURNAL_KEY = "cleancar_journal_entries";
   private readonly LEDGER_KEY = "cleancar_ledger_masters";
-  private readonly ITEM_KEY = "ITEM_MASTER";
-
+  // ITEM_MASTER now uses DataService (was bare localStorage key - fixed)
   getItems(): ItemMaster[] {
-    return JSON.parse(localStorage.getItem(this.ITEM_KEY) || "[]");
+    return DataService.get<ItemMaster>("INVENTORY_ITEMS");
   }
 
   saveItem(item: ItemMaster): void {
     const all = this.getItems().filter(i => i.id !== item.id);
-    localStorage.setItem(this.ITEM_KEY, JSON.stringify([...all, item]));
+    DataService.setAll("INVENTORY_ITEMS", [...all, item]);
   }
 
   deleteItem(id: string): void {

@@ -1,10 +1,11 @@
-import { employeeDatabaseService } from "../services/employeeDatabaseService";
 /**
  * ApprovalContext - Centralized approval workflow management
  * Handles approvals across all modules: HR, Finance, Operations, Inventory
  */
 
+import { DataService } from "../services/DataService";
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { employeeDatabaseService } from "../services/employeeDatabaseService";
 import { useEvents } from "./EventSystem";
 import { useEmployeeData } from "../hooks/useEmployeeData";
 import { useFinance } from "./FinanceContext";
@@ -74,7 +75,9 @@ interface ApprovalContextType {
 const ApprovalContext = createContext<ApprovalContextType | undefined>(undefined);
 
 export function ApprovalProvider({ children }: { children: ReactNode }) {
-  const [approvals, setApprovals] = useState<Approval[]>([]);
+  const [approvals, setApprovals] = useState<Approval[]>(() =>
+    DataService.get<Approval>("APPROVALS")
+  );
   const { emit } = useEvents();
   // PHASE 3: Using useEmployeeData (single source of truth)
   const { payrollRuns } = useEmployeeData();
@@ -129,13 +132,17 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
       date: new Date().toISOString(),
     };
 
-    setApprovals(prev => [newApproval, ...prev]);
+    setApprovals(prev => {
+      const updated = [newApproval, ...prev];
+      DataService.setAll("APPROVALS", updated);
+      return updated;
+    });
     emit("PAYMENT_RECEIVED", { approvalId: newApproval.id, type: approval.type }, "ApprovalSystem");
   }, [emit]);
 
   const approveApproval = useCallback((id: string, approver: string) => {
-    setApprovals(prev =>
-      prev.map(approval =>
+    setApprovals(prev => {
+      const updated = prev.map(approval =>
         approval.id === id
           ? {
               ...approval,
@@ -144,8 +151,10 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
               approvedAt: new Date().toISOString(),
             }
           : approval
-      )
-    );
+      );
+      DataService.setAll("APPROVALS", updated);
+      return updated;
+    });
 
     const approval = approvals.find(a => a.id === id);
     if (approval) {
@@ -159,7 +168,6 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
         const employeeId = approval.relatedId;
 
         if (newMobile && employeeId) {
-          
           employeeDatabaseService.update(employeeId, {
             loginMobile: newMobile,
             mobile: newMobile,

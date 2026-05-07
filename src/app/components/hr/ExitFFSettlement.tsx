@@ -1,4 +1,5 @@
 // Exit & Full & Final Settlement Module
+import { DataService } from "../../services/DataService";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -99,7 +100,10 @@ const mockExitRecords: ExitRecord[] = [
 
 export function ExitFFSettlement() {
   const { currentRole, currentUser } = useRole();
-  const [exitRecords, setExitRecords] = useState<ExitRecord[]>(mockExitRecords);
+  const [exitRecords, setExitRecords] = useState<ExitRecord[]>((() => {
+    const stored = DataService.get<any>("EXIT_SETTLEMENTS");
+    return stored.length > 0 ? stored : mockExitRecords;
+  })());
   const [selectedExit, setSelectedExit] = useState<ExitRecord | null>(null);
   const [ffForm, setFFForm] = useState<Partial<FFCalculation>>({
     pendingSalary: 0,
@@ -207,7 +211,7 @@ export function ExitFFSettlement() {
       if (!confirm) return;
     }
 
-    setExitRecords(exitRecords.map(exit => 
+    const updatedRecords = exitRecords.map(exit => 
       exit.id === exitId 
         ? {
             ...exit,
@@ -215,8 +219,9 @@ export function ExitFFSettlement() {
             ffCalculation: calculation
           }
         : exit
-    ));
-
+    );
+    setExitRecords(updatedRecords);
+    DataService.setAll("EXIT_SETTLEMENTS", updatedRecords);
     setSelectedExit(null);
     alert(`✅ F&F Settlement calculated!\n\nNet Amount: ₹${calculation.netAmount.toLocaleString()}\n\nStatus: Awaiting Super Admin Approval`);
   };

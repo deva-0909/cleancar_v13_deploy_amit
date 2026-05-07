@@ -1,4 +1,3 @@
-import { useIncentive } from "../../contexts/IncentiveContext";
 /**
  * Incentive Configuration Panel
  *
@@ -10,6 +9,7 @@ import { useIncentive } from "../../contexts/IncentiveContext";
 
 import { useState, useEffect } from "react";
 import { useEmployeeData } from "../../hooks/useEmployeeData";
+import { useIncentive } from "../../contexts/IncentiveContext";
 import {
   Card,
   CardHeader,
@@ -399,6 +399,7 @@ const AVAILABLE_METRICS = [
 
 function IncentiveConfiguration() {
   // PHASE 2: Migrated to useEmployeeData (dual-read from EmployeeContext + HRDataContext)
+  const { incentivePlans, addIncentivePlan, updateIncentivePlan } = useIncentive();
   const { roles, departments, employees } = useEmployeeData();
 
   // State
@@ -844,27 +845,71 @@ function IncentiveConfiguration() {
   };
 
   const handleSaveDraft = () => {
+    if (!selectedRoleCode) {
+      toast.error("Please select a role before saving.");
+      return;
+    }
     const saveData = {
       ...config,
       version: config.version || "1.0",
       createdAt: config.createdAt || new Date().toISOString(),
-      createdBy: config.createdBy || "Current User", // In real app: currentUser.name
+      createdBy: config.createdBy || "Admin",
     };
-    console.log("Saving draft config:", { selectedRoleCode, config: saveData });
-    // TODO: Save to HR context or backend
+    const existing = incentivePlans.find(
+      (p) => p.applicableRoles.includes(selectedRoleCode)
+    );
+    if (existing) {
+      updateIncentivePlan(existing.planId, { ...saveData });
+    } else {
+      addIncentivePlan({
+        name: `${selectedRoleCode} Incentive Plan`,
+        type: "custom",
+        applicableRoles: [selectedRoleCode],
+        rules: {
+          perCarAmount: config.unitRates?.fourWheeler || 25,
+        },
+        payoutCycle: "monthly",
+        maxPayout: config.maxMonthlyIncentive || 5200,
+        isActive: true,
+        ...saveData,
+      } as any);
+    }
+    toast.success("Draft saved successfully.");
   };
 
   const handleSubmitForApproval = () => {
-    setConfig(prev => ({
-      ...prev,
-      status: "Pending",
-      version: prev.version || "1.0",
-      isImmutable: true, // Lock config once submitted
-      createdAt: prev.createdAt || new Date().toISOString(),
-      createdBy: prev.createdBy || "Current User",
-    }));
-    console.log("Submitting for approval:", { selectedRoleCode, config });
-    // TODO: Submit to approval workflow
+    if (!selectedRoleCode) {
+      toast.error("Please select a role before submitting.");
+      return;
+    }
+    const updatedConfig = {
+      ...config,
+      status: "Pending" as const,
+      version: config.version || "1.0",
+      isImmutable: true,
+      createdAt: config.createdAt || new Date().toISOString(),
+      createdBy: config.createdBy || "Admin",
+    };
+    setConfig(updatedConfig);
+    // Persist to IncentiveContext
+    const existing = incentivePlans.find(
+      (p) => p.applicableRoles.includes(selectedRoleCode)
+    );
+    if (existing) {
+      updateIncentivePlan(existing.planId, { ...updatedConfig });
+    } else {
+      addIncentivePlan({
+        name: `${selectedRoleCode} Incentive Plan`,
+        type: "custom",
+        applicableRoles: [selectedRoleCode],
+        rules: { perCarAmount: config.unitRates?.fourWheeler || 25 },
+        payoutCycle: "monthly",
+        maxPayout: config.maxMonthlyIncentive || 5200,
+        isActive: true,
+        ...updatedConfig,
+      } as any);
+    }
+    toast.success("Submitted for approval.");
   };
 
   const handleCreateNewVersion = () => {
