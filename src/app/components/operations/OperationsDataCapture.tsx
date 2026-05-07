@@ -1,3 +1,4 @@
+import { BackButton } from "../../ui/back-button";
 /**
  * Operations Data Capture - Focus on unit entry, shift timing, and validation
  *
@@ -203,6 +204,7 @@ export function OperationsDataCapture() {
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="space-y-3">
         <div className="flex items-start justify-between">

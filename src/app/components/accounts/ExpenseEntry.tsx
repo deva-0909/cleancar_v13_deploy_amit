@@ -1,3 +1,4 @@
+import { BackButton } from "../ui/back-button";
 import { Navigate } from "react-router-dom";
 
 export function ExpenseEntry() {

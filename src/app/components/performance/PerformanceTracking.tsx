@@ -1,3 +1,4 @@
+import { BackButton } from "../../ui/back-button";
 // Performance Tracking Module
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
@@ -75,6 +76,7 @@ export function PerformanceTracking() {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div>
         <h2 className="text-2xl font-bold">Performance Tracking</h2>
         <p className="text-sm text-gray-600 mt-1">Monitor your performance metrics and targets</p>

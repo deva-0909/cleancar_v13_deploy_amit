@@ -1,3 +1,4 @@
+import { BackButton } from "../../ui/back-button";
 /**
  * Admin Tool: Attendance Data Manager
  * Allows seeding, viewing, and clearing dummy attendance data
@@ -80,6 +81,7 @@ export function AttendanceDataManager() {
 
   return (
     <div className="space-y-6 p-6">
+      <BackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

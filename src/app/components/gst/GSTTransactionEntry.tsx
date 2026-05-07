@@ -1,5 +1,5 @@
+import { BackButton } from "../../ui/back-button";
 import { useState, useMemo, useEffect } from "react";
-import { accountingEntryService } from "../../services/accountingEntryService";
 import { FileText, Save, CheckCircle, AlertTriangle, Brain, TrendingDown, CheckCircle2 } from "lucide-react";
 import { gstComplianceService, type GSTTransaction, COMPANY_GST_CONFIG } from "../../services/gstComplianceService";
 import { analyzeTransaction, type ScoringResult, type AICorrection, scoreAfterCorrection } from "../../services/gstAIScoringService";
@@ -246,6 +246,8 @@ export function GSTTransactionEntry() {
 
     // RCM Journal Entry auto-generation
     if (formData.isRCM && formData.transactionType === "Purchase") {
+      const { accountingEntryService } = require("../../services/accountingEntryService");
+
       // Determine if intra-state or inter-state RCM
       const isIntraState = formData.supplyType === "INTRA_STATE";
 
@@ -335,6 +337,7 @@ export function GSTTransactionEntry() {
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      <BackButton />
       <div className="flex items-center justify-between border-b pb-4">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="p-2 bg-green-100 rounded-lg">

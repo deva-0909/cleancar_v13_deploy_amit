@@ -1,3 +1,4 @@
+import { BackButton } from "../../ui/back-button";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -64,6 +65,7 @@ export function CustomerSubscription() {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       {/* Page Header - Using Design System */}
       <PageHeader
         title="Customer & Subscription"

@@ -1,3 +1,4 @@
+import { BackButton } from "../ui/back-button";
 /**
  * Ledger Entries View - Double-Entry Bookkeeping Display
  *
@@ -577,6 +578,7 @@ export function LedgerEntriesView({
   // If used as dialog
   return (
     <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+      <BackButton />
       <DialogContent className="w-[95vw] sm:w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Transaction Ledger Entries</DialogTitle>

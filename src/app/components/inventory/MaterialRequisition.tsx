@@ -1,3 +1,4 @@
+import { BackButton } from "../../ui/back-button";
 // Material Requisition System Component
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
@@ -40,6 +41,7 @@ export function MaterialRequisition() {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Material Requisition System</h2>

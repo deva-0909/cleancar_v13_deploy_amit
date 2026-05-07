@@ -1,3 +1,4 @@
+import { BackButton } from "../../ui/back-button";
 /**
  * Accounts Payroll Processing Screen
  *
@@ -216,6 +217,7 @@ export function AccountsPayrollProcessing() {
 
   return (
     <div className="space-y-6 p-6">
+      <BackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -1,3 +1,4 @@
+import { BackButton } from "../../ui/back-button";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, RefreshCw, LayoutDashboard, ShieldCheck, AlertCircle, CheckCircle2, TrendingUp, FileText } from "lucide-react";
@@ -79,6 +80,7 @@ export function GSTOverview() {
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      <BackButton />
       <div className="flex items-center justify-between border-b pb-4">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="p-2 bg-blue-100 rounded-lg">

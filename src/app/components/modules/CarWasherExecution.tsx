@@ -94,7 +94,7 @@ export function CarWasherExecution() {
   // For non-washer roles viewing this module, show the old interface
   return (
     <div className="space-y-6">
-      <BackButton to="/" />
+      <BackButton />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Car Washer Execution</h1>

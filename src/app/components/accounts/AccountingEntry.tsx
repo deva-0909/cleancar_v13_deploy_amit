@@ -1,3 +1,4 @@
+import { BackButton } from "../../ui/back-button";
 import { useState, useEffect } from "react";
 import { useRole } from "../../contexts/RoleContext";
 import { useCity } from "../../contexts/CityContext";
@@ -258,6 +259,7 @@ export function AccountingEntry() {
 
   return (
     <div className="p-6 space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -571,7 +571,7 @@ export function WasherJobExecution() {
   // Job List View
   return (
     <div className="space-y-6">
-      <BackButton to="/" />
+      <BackButton />
       <div>
         <h1 className="text-2xl font-bold text-gray-900">My Jobs Today</h1>
         <p className="text-sm text-gray-500 mt-1">Service Zones: 395005 — Adajan, 395009 — Jahangirpura</p>

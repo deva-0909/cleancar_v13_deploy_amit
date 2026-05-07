@@ -1,3 +1,4 @@
+import { BackButton } from "../../ui/back-button";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -182,6 +183,7 @@ export function MonthEndVerification() {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="flex items-center justify-between">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Link to="/inventory/washer-issuances">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { formatCurrency } from "../../lib/formatters";
 import {
   FileText,
@@ -91,6 +92,14 @@ interface InvoiceDetail {
   taxAmount: number;
   discountAmount: number;
   totalAmount: number;
+  taxableValue: number;
+  cgstRate: number;
+  cgstAmount: number;
+  sgstRate: number;
+  sgstAmount: number;
+  igstRate: number;
+  igstAmount: number;
+  isInterState: boolean;
   paidAmount: number;
   balanceDue: number;
   status: "UNPAID" | "PARTIAL" | "PAID" | "OVERDUE" | "CANCELLED";
@@ -137,6 +146,14 @@ const mockInvoiceDetail: InvoiceDetail = {
   dueDate: "2026-04-30",
   subtotal: 2500.0,
   taxAmount: 450.0,
+  taxableValue: 2500.0,
+  cgstRate: 9,
+  cgstAmount: 225.0,
+  sgstRate: 9,
+  sgstAmount: 225.0,
+  igstRate: 0,
+  igstAmount: 0.0,
+  isInterState: false,
   discountAmount: 0.0,
   totalAmount: 2950.0,
   paidAmount: 0.0,
@@ -318,8 +335,7 @@ export default function InvoiceDetail() {
   });
   const [isSubmittingRefund, setIsSubmittingRefund] = useState(false);
 
-  // Extract invoice ID from URL (mock)
-  const invoiceId = "inv_001";
+  const { id: invoiceId = "inv_001" } = useParams<{ id: string }>();
 
   useEffect(() => {
     loadInvoiceDetail();
@@ -652,10 +668,33 @@ export default function InvoiceDetail() {
               </div>
             )}
             {invoice.taxAmount > 0 && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Tax (GST):</span>
-                <span>{formatCurrency(invoice.taxAmount)}</span>
-              </div>
+              <>
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>Taxable Value:</span>
+                  <span>{formatCurrency(invoice.taxableValue || invoice.subtotal)}</span>
+                </div>
+                {!invoice.isInterState ? (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">CGST @ {invoice.cgstRate || 9}%:</span>
+                      <span>{formatCurrency(invoice.cgstAmount || invoice.taxAmount / 2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">SGST @ {invoice.sgstRate || 9}%:</span>
+                      <span>{formatCurrency(invoice.sgstAmount || invoice.taxAmount / 2)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">IGST @ {invoice.igstRate || 18}%:</span>
+                    <span>{formatCurrency(invoice.igstAmount || invoice.taxAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-medium">
+                  <span className="text-gray-700">Total Tax:</span>
+                  <span>{formatCurrency(invoice.taxAmount)}</span>
+                </div>
+              </>
             )}
             <Separator />
             <div className="flex justify-between text-lg font-bold">

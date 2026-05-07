@@ -1,3 +1,4 @@
+import { BackButton } from "../../ui/back-button";
 /**
  * CRM & Lead Management - WITH COMPLETE FILTER & SORT INTEGRATION
  * This is the completed implementation with all filtering and sorting features
@@ -365,6 +366,7 @@ export function CRMLeadManagementWithFilters() {
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

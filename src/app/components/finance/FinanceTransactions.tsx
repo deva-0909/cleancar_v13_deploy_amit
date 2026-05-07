@@ -1,3 +1,4 @@
+import { BackButton } from "../../ui/back-button";
 /**
  * Finance Transactions - Transaction-based model
  *
@@ -8,7 +9,7 @@
  * @component
  */
 
-import { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -16,7 +17,6 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Separator } from "../ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { useFinance } from "../../contexts/FinanceContext";
 import { useCity } from "../../contexts/CityContext";
 import {
   Table,
@@ -311,53 +311,7 @@ const getMockTransactions = (cityName: string): FinanceTransaction[] => [
 
 export function FinanceTransactions() {
   const { city, cityInfo } = useCity();
-  // Load live transactions from FinanceContext, fall back to mock
-  const { revenues, payables, ledgerEntries } = useFinance();
-
-  const liveTransactions: FinanceTransaction[] = useMemo(() => {
-    const revTxns = revenues
-      .filter(r => r.cityId === city)
-      .map(r => ({
-        id: r.revenueId,
-        date: r.receivedDate?.slice(0, 10) || "",
-        type: "REVENUE" as const,
-        source: r.type === "Subscription" ? "subscriptionEngine" : "operationsEngine",
-        description: `${r.type} — ${r.invoiceNumber || r.revenueId}`,
-        referenceId: r.revenueId,
-        amount: r.amount,
-        accountDebit: "1200 - Accounts Receivable",
-        accountCredit: "4000 - Service Revenue",
-        status: r.status === "Received" ? "POSTED" as const : "PENDING" as const,
-        city: cityInfo.displayName,
-        postedBy: "Supabase",
-        notes: `Payment: ${r.paymentMethod}`,
-      }));
-    const payTxns = payables
-      .filter(p => p.cityId === city && p.status === "Paid")
-      .map(p => ({
-        id: p.payableId,
-        date: p.paidAt?.slice(0, 10) || p.dueDate?.slice(0, 10) || "",
-        type: "EXPENSE" as const,
-        source: p.type === "Salary" ? "payrollEngine" : "manualEntry",
-        description: p.description,
-        referenceId: p.payableId,
-        amount: p.amount,
-        accountDebit: "5100 - Expense",
-        accountCredit: "2000 - Accounts Payable",
-        status: "POSTED" as const,
-        city: cityInfo.displayName,
-        postedBy: "Finance",
-        notes: p.paymentReference || "",
-      }));
-    const all = [...revTxns, ...payTxns].sort((a, b) => b.date.localeCompare(a.date));
-    return all.length > 0 ? all : getMockTransactions(cityInfo.displayName);
-  }, [revenues, payables, city, cityInfo.displayName]);
-
-  const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
-
-  useEffect(() => {
-    setTransactions(liveTransactions);
-  }, [liveTransactions]);
+  const [transactions, setTransactions] = useState<FinanceTransaction[]>(() => getMockTransactions(cityInfo.displayName));
   const [typeFilter, setTypeFilter] = useState<TransactionType | "ALL">("ALL");
   const [sourceFilter, setSourceFilter] = useState<TransactionSource | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<TransactionStatus | "ALL">("ALL");
@@ -398,6 +352,7 @@ export function FinanceTransactions() {
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="space-y-3">
         <div className="flex items-start justify-between">

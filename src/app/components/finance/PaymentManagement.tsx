@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "../../lib/formatters";
 import {
   DollarSign,
@@ -265,6 +266,7 @@ function getPaymentModeBadge(mode: string) {
 // ============================================================================
 
 export default function PaymentManagement() {
+  const navigate = useNavigate();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [summary, setSummary] = useState<PaymentSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);

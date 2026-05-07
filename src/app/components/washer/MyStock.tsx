@@ -1,3 +1,4 @@
+import { BackButton } from "../../ui/back-button";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -107,6 +108,7 @@ export function MyStock() {
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div>
         <h1 className="text-2xl font-bold text-gray-900">My Stock in Hand</h1>
         <p className="text-sm text-gray-500 mt-1">

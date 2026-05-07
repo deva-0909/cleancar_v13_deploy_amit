@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { BackButton } from "../ui/back-button";
 import { formatCurrency } from "../../lib/formatters";
 import {
   FileText,
@@ -45,7 +47,6 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Badge } from "../ui/badge";
-import { useNavigate } from "react-router-dom";
 import { useCity } from "../../contexts/CityContext";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useCustomers } from "../../contexts/AppProvider";
@@ -81,6 +82,8 @@ interface InvoiceFilters {
   city: string;
   status: string;
   dateRange: string;
+  startDate: string;
+  endDate: string;
   searchQuery: string;
 }
 
@@ -220,7 +223,7 @@ async function fetchInvoices(
       balanceDue: r.status === "Received" ? 0 : r.amount,
       status: r.status === "Received" ? "PAID" as const : r.status === "Pending" ? "UNPAID" as const : "CANCELLED" as const,
       paymentStatus: r.status === "Received" ? "COMPLETED" as const : "PENDING" as const,
-      city: r.cityId, // CITY-SURAT format - matches filter values
+      city: r.cityId,
       createdAt: r.createdAt,
     };
   });
@@ -233,6 +236,13 @@ async function fetchInvoices(
 
   if (filters.status !== "all") {
     filtered = filtered.filter((inv) => inv.status === filters.status);
+  }
+
+  if (filters.startDate) {
+    filtered = filtered.filter((inv) => inv.invoiceDate >= filters.startDate);
+  }
+  if (filters.endDate) {
+    filtered = filtered.filter((inv) => inv.invoiceDate <= filters.endDate);
   }
 
   if (filters.searchQuery) {
@@ -275,7 +285,7 @@ async function recordPayment(
     cityId: cityId,
   });
 
-  // Payment recorded via recordRevenueFn above
+  console.log("Payment recorded and revenue created:", { invoiceId, paymentData });
 }
 
 // ============================================================================
@@ -325,6 +335,7 @@ function isOverdue(dueDate: string, status: Invoice["status"]): boolean {
 // ============================================================================
 
 export default function InvoiceManagement() {
+  const navigate = useNavigate();
   const { city, cityInfo } = useCity();
   const { recordRevenue, revenues } = useFinance();
   const { customers } = useCustomers();
@@ -371,6 +382,8 @@ export default function InvoiceManagement() {
     city: "all",
     status: "all",
     dateRange: "all",
+    startDate: "",
+    endDate: "",
     searchQuery: "",
   });
 
@@ -448,7 +461,6 @@ export default function InvoiceManagement() {
   }
 
   function handleViewInvoice(invoiceId: string) {
-    // Navigate to invoice detail page
     navigate(`/finance/invoices/${invoiceId}`);
   }
 
@@ -550,24 +562,22 @@ export default function InvoiceManagement() {
               </Select>
             </div>
 
-            {/* Date Range Filter */}
+            {/* Custom Date Range Filter */}
             <div>
-              <Label>Date Range</Label>
-              <Select
-                value={filters.dateRange}
-                onValueChange={(value) => handleFilterChange("dateRange", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Time</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="thisWeek">This Week</SelectItem>
-                  <SelectItem value="thisMonth">This Month</SelectItem>
-                  <SelectItem value="lastMonth">Last Month</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>From Date</Label>
+              <Input
+                type="date"
+                value={filters.startDate}
+                onChange={(e) => handleFilterChange("startDate", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>To Date</Label>
+              <Input
+                type="date"
+                value={filters.endDate}
+                onChange={(e) => handleFilterChange("endDate", e.target.value)}
+              />
             </div>
 
             {/* Search */}

@@ -4,6 +4,9 @@
  * Last Updated: 2026-03-17
  */
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { useJobs } from "../../contexts/JobContext";
+import { useCity } from "../../contexts/CityContext";
+import { useMemo } from "react";
 import { Badge } from "../ui/badge";
 import { TrendingUp, TrendingDown, DollarSign, Package, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -22,31 +25,50 @@ import {
 export function CostIntelligencePanel() {
   const navigate = useNavigate();
 
-  // Mock data for current month
-  const kpiData = {
-    overallAvgCost: 91.5,
-    overallAvgEBITDA: 61.2,
-    mostProfitable: {
-      package: "Elite Plus",
-      ebitda: 64.5,
-    },
-    leastProfitable: {
-      package: "Basic",
-      ebitda: 58.2,
-      belowTarget: true,
-    },
-    mostEfficient: {
-      pinCode: "560102",
-      areaName: "HSR Layout",
-      cost: 88.5,
-    },
-    leastEfficient: {
-      pinCode: "560066",
-      areaName: "Whitefield",
-      cost: 94.5,
-      significantlyAbove: true,
-    },
-  };
+  const { allJobs } = useJobs();
+  const { city } = useCity();
+
+  // Compute zone efficiency dynamically from live job data
+  const kpiData = useMemo(() => {
+    const cityJobs = allJobs.filter((j: any) => j.cityId === city && j.status === "Completed" && j.pinCode);
+    
+    // Group by pinCode and calculate average cost
+    const zoneCosts: Record<string, { total: number; count: number; areaName: string }> = {};
+    cityJobs.forEach((j: any) => {
+      const pin = j.pinCode || "unknown";
+      const area = j.area || j.zone || pin;
+      if (!zoneCosts[pin]) zoneCosts[pin] = { total: 0, count: 0, areaName: area };
+      zoneCosts[pin].total += Number(j.actualCost || j.costPerWash || 90);
+      zoneCosts[pin].count += 1;
+    });
+
+    const zones = Object.entries(zoneCosts)
+      .filter(([, v]) => v.count >= 3) // min 3 jobs for reliable average
+      .map(([pin, v]) => ({ pinCode: pin, areaName: v.areaName, cost: v.total / v.count }))
+      .sort((a, b) => a.cost - b.cost);
+
+    const overallAvgCost = cityJobs.length > 0
+      ? cityJobs.reduce((s: number, j: any) => s + Number(j.actualCost || j.costPerWash || 90), 0) / cityJobs.length
+      : 91.5;
+
+    return {
+      overallAvgCost: Math.round(overallAvgCost * 10) / 10,
+      overallAvgEBITDA: 61.2,
+      mostProfitable: { package: "Elite Plus", ebitda: 64.5 },
+      leastProfitable: { package: "Basic", ebitda: 58.2, belowTarget: true },
+      mostEfficient: zones.length > 0
+        ? { pinCode: zones[0].pinCode, areaName: zones[0].areaName, cost: Math.round(zones[0].cost * 10) / 10 }
+        : { pinCode: "—", areaName: "Insufficient data", cost: 0 },
+      leastEfficient: zones.length > 1
+        ? {
+            pinCode: zones[zones.length - 1].pinCode,
+            areaName: zones[zones.length - 1].areaName,
+            cost: Math.round(zones[zones.length - 1].cost * 10) / 10,
+            significantlyAbove: zones[zones.length - 1].cost > overallAvgCost * 1.05,
+          }
+        : { pinCode: "—", areaName: "Insufficient data", cost: 0, significantlyAbove: false },
+    };
+  }, [allJobs, city]);
 
   // Mini EBITDA chart data
   const ebitdaMiniData = [

@@ -1,3 +1,4 @@
+import { BackButton } from "../../ui/back-button";
 import { useState, useMemo } from "react";
 import { FileOutput, Download, CheckCircle, XCircle, AlertTriangle, Copy, Check } from "lucide-react";
 import { gstComplianceService, type GSTTransaction } from "../../services/gstComplianceService";
@@ -369,6 +370,7 @@ export function GSTR1Module() {
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      <BackButton />
       <div className="flex items-center justify-between border-b pb-4">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="p-2 bg-indigo-100 rounded-lg">
