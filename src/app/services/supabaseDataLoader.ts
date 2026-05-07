@@ -139,11 +139,7 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
   }
 
   console.log("[Supabase] Loading all data into localStorage...");
-  // NOTE: Do NOT wipe localStorage before fetching — if Supabase fails mid-way,
-  // existing data (from previous session) is preserved and shown instead of blank.
-  // Individual keys are overwritten after each successful table fetch below.
-  console.log(`[Supabase] Cleared ${keysToDelete.length} existing keys`);
-
+ 
   // Fetch and store each table sequentially (not parallel) to avoid race conditions
   for (const { table, localKey, limit } of TABLE_MAP) {
     try {
