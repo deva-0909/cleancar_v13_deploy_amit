@@ -73,8 +73,14 @@ export default function App() {
             seedHistoricData();
             console.log("[Bootstrap] Seeded historic data into localStorage");
           }
-        } catch(e) {
-          console.warn("[Bootstrap] Seed failed:", e);
+              } catch (err) {
+        console.error("Bootstrap error:", err);
+      } finally {
+        try {
+          const rev = localStorage.getItem("cleancar_revenues");
+          if (!rev || JSON.parse(rev).length === 0) seedHistoricData();
+        } catch (e) {
+          console.warn("Seed failed:", e);
         }
         setAppReady(true);
       }
