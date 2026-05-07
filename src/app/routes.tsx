@@ -44,7 +44,6 @@ import MarketingROIDrilldown from "./components/founder/MarketingROIDrilldown";
 import { OnboardingRedirect } from "./components/onboarding/OnboardingRedirect";
 import { DevOnlyRoute } from "./components/guards/DevOnlyRoute";
 import { Dashboard } from "./components/Dashboard";
-import { RoleRouter } from "./components/dashboards/RoleRouter";
 import { UserManagement } from "./components/modules/UserManagement";
 import { CRMLeadManagementWithFilters } from "./components/modules/CRMLeadManagementWithFilters";
 import { CRMConversionAnalyticsDashboard } from "./components/modules/CRMConversionAnalyticsDashboard";
@@ -200,7 +199,6 @@ import { PlanSelectionScreen } from "./components/subscription/PlanSelectionScre
 import { SubscriptionDiagnostics } from "./components/subscription/SubscriptionDiagnostics";
 import { HierarchyDashboard } from "./components/hierarchy/HierarchyDashboard";
 import { WasherAttendanceHistory } from "./components/washer/WasherAttendanceHistory";
-import { OperationsRouter } from "./components/operations/OperationsRouter";
 import { OperationsDataCapture } from "./components/operations/OperationsDataCapture";
 import { OperationsLayout } from "./components/operations/OperationsLayout";
 import { ClientPortal } from "./components/client/ClientPortal";
@@ -260,7 +258,7 @@ export const router = createBrowserRouter([
     element: <RootLayoutWrapper />,
     errorElement: (<div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 gap-4 p-8"><div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center"><span className="text-red-600 text-xl font-bold">!</span></div><h2 className="text-lg font-semibold text-gray-900">Page Error</h2><p className="text-sm text-gray-500">This page has an error. Other pages still work.</p><a href="/" className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm">Go to Dashboard</a></div>),
     children: [
-      { index: true, element: <RoleRouter /> }, // RoleRouter: zero-flash role-based redirect
+      { index: true, element: <Dashboard /> },
 
       // CRM index — nav parent /crm has no route
       {
@@ -303,7 +301,7 @@ export const router = createBrowserRouter([
         path: "operations",
         element: <OperationsLayout />,
         children: [
-          { index: true, element: <OperationsRouter /> },
+          { index: true, element: <Dashboard /> },
           { path: "data-capture", element: <OperationsDataCapture /> },
         ]
       },
