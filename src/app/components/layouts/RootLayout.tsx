@@ -111,6 +111,28 @@ export function RootLayout() {
   // Auto-redirect users to their role-specific landing page
   useRoleBasedRedirect(currentRole);
 
+<<<<<<< HEAD
+=======
+  // ─── Session guard ────────────────────────────────────────────────────────
+  const isPreview = import.meta.env.MODE === "development"
+    || window.location.hostname === "localhost"
+    || window.location.hostname.includes("figma")
+    || new URLSearchParams(window.location.search).get("preview-route") !== null;
+
+  useEffect(() => {
+    if (!isPreview) {
+      const session = localStorage.getItem("cc360_session");
+      if (!session && !window.location.pathname.startsWith("/login")) {
+        window.location.replace("/login");
+      }
+    }
+ 
+  }, [isPreview]);
+
+  // Show nothing while redirecting unauthenticated users (all hooks already called above)
+  const isAuthenticated = isPreview || !!localStorage.getItem("cc360_session") || window.location.pathname.startsWith("/login");
+
+>>>>>>> d3f676fc54da837e58cbb0a92165377ef3d8aed9
   // Safe role setter - prevents invalid roles from entering state
   const setSafeRole = (role: string) => {
     if (roleConfigurations[role as Role]) {

@@ -128,6 +128,7 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
   }
 
   console.log("[Supabase] Loading all data into localStorage...");
+<<<<<<< HEAD
 
   // Clear ALL existing cleancar keys first to free up space
   const keysToDelete = Object.keys(localStorage).filter(k => k.startsWith("cleancar_"));
@@ -136,6 +137,9 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
   });
   console.log(`[Supabase] Cleared ${keysToDelete.length} existing keys`);
 
+=======
+ 
+>>>>>>> d3f676fc54da837e58cbb0a92165377ef3d8aed9
   // Fetch and store each table sequentially (not parallel) to avoid race conditions
   for (const { table, localKey, limit } of TABLE_MAP) {
     try {

@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/index.css";
 import App from "./app/App";
@@ -35,9 +35,9 @@ const getComponent = () => {
 
 try {
   createRoot(container).render(
-    <StrictMode>
+    <React.Fragment>
       {getComponent()}
-    </StrictMode>
+    </React.Fragment>
   );
 } catch (error) {
   console.error("Fatal error rendering app:", error);

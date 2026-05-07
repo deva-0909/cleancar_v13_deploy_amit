@@ -10,6 +10,7 @@ import { AppProvider } from "./contexts/AppProvider";
 import { employeeDatabaseService } from "./services/employeeDatabaseService";
 import { seedHistoricData } from "./utils/seedHistoricData";
 import { loadAllDataFromSupabase } from "./services/supabaseDataLoader";
+import { seedHistoricData } from "./utils/seedHistoricData";
 
 function AppContent() {
   useGlobalEventHandlers();
@@ -65,11 +66,8 @@ export default function App() {
 
       } catch (err) {
         console.error("Bootstrap error:", err);
-        // Still show app even if Supabase fails
       } finally {
-        // Always seed historic data if localStorage is empty
-        // This ensures the app shows demo data even without Supabase
-        try {
+        try { const r = localStorage.getItem("cleancar_revenues"); if (!r || JSON.parse(r).length === 0) seedHistoricData(); } catch(e) {}
           const hasRevenues = localStorage.getItem("cleancar_revenues");
           if (!hasRevenues || JSON.parse(hasRevenues).length === 0) {
             seedHistoricData();
