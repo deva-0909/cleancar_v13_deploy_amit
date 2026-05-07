@@ -65,32 +65,6 @@ const STORAGE_KEYS = {
   ROLE_PERMISSION_OVERRIDES: "role_permission_overrides",
   CUSTOM_TRANSACTION_SUB_TYPES: "custom_transaction_sub_types", // GST transaction categorization
   MOBILE_CHANGE_REQUESTS: "mobile_change_requests",
-  // Inventory
-  INVENTORY_ITEMS: "inventory_items",
-  STOCK_TRANSACTIONS: "stock_transactions",
-  // Finance sub-modules
-  FINANCE_BUDGETS: "finance_budgets",
-  FINANCE_ALERTS: "finance_alerts",
-  FINANCE_RECOMMENDATIONS: "finance_recommendations",
-  // Advances
-  LONG_TERM_ADVANCES: "long_term_advances",
-  SHORT_TERM_ADVANCES: "short_term_advances",
-  // Cloth tracking
-  CLOTH_ITEMS: "cloth_items",
-  CLOTH_EXCHANGES: "cloth_exchanges",
-  // Approvals
-  APPROVALS: "approvals",
-  // Demo washes
-  DEMOS: "demos",
-  // Travel
-  TRAVEL_RATES: "travel_rates",
-  TRAVEL_TRIPS: "travel_trips",
-  TRAVEL_PHOTOS: "travel_photos",
-  TRAVEL_EXCEPTIONS: "travel_exceptions",
-  TRAVEL_PERMISSIONS: "travel_permissions",
-  // Leave / HR
-  LEAVE_REQUESTS: "leave_requests",
-  EXIT_SETTLEMENTS: "exit_settlements",
 } as const;
 
 type EntityType = keyof typeof STORAGE_KEYS;
@@ -283,7 +257,23 @@ class DataServiceClass {
       }
 
       const key = buildKey(baseKey, cityId);
-      localStorage.setItem(key, JSON.stringify(records));
+      // Skip writing large tables that exceed localStorage quota
+      const LARGE_TABLES = ["attendance_records", "jobs", "payroll_runs"];
+      if (LARGE_TABLES.includes(baseKey) && records.length > 500) {
+        console.log(`[DataService] Skipping large table ${entityType} (${records.length} records) to avoid quota`);
+        return;
+      }
+      try {
+        localStorage.setItem(key, JSON.stringify(records));
+      } catch (e) {
+        // Quota exceeded — try writing smaller slice
+        try {
+          localStorage.setItem(key, JSON.stringify((records as any[]).slice(0, 200)));
+          console.warn(`[DataService] Quota exceeded for ${entityType} — stored 200 of ${records.length}`);
+        } catch (_) {
+          console.warn(`[DataService] Could not store ${entityType} — localStorage full`);
+        }
+      }
       console.log(`[DataService] Set ${records.length} record(s) for ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
       console.error(`[DataService] Error setting ${entityType}:`, error);
