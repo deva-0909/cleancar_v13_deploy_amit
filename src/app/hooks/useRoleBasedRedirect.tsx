@@ -50,7 +50,7 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
     allowedPaths: ["/", "/operations", "/washer-jobs", "/service-zones", "/supervisor", "/complaints", "/car-washer", "/hr/professional-leave", "/hr/self-service", "/approvals", "/performance", "/analytics"],
   },
   "Cluster Manager": {
-    defaultPath: "/cm-app", // F-NAV-14: /cluster does not exist
+    defaultPath: "/cluster",
     allowedPaths: ["/", "/cluster", "/operations", "/washer-jobs", "/service-zones", "/complaints", "/users", "/leads", "/customers", "/finance", "/hr/professional-leave", "/hr/self-service", "/performance", "/analytics"],
   },
   "City Manager": {
@@ -84,7 +84,7 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
     allowedPaths: ["/hr", "/advance/hr-management"],
   },
   Accounts: {
-    defaultPath: "/accounts", // F-NAV-15
+    defaultPath: "/finance",
     allowedPaths: ["/finance", "/accounts"],
   },
 };
@@ -100,28 +100,29 @@ export function useRoleBasedRedirect(currentRole: Role, enabled: boolean = true)
     if (!enabled) return;
 
     const roleConfig = ROLE_REDIRECTS[currentRole];
-    if (!roleConfig) return; // No redirect configured for this role
+    if (!roleConfig) return;
 
     const currentPath = location.pathname;
     const { defaultPath, allowedPaths = [] } = roleConfig;
 
-    // Don't redirect if:
-    // 1. Already on default path
-    // 2. On an allowed path for this role
-    // 3. No allowed paths defined (admin roles - unrestricted access)
-    // 4. On an exact match of allowed path (not just startsWith)
+    // Don't redirect if already on the correct path
     if (currentPath === defaultPath) return;
-    if (allowedPaths.length === 0) return; // Admin roles have unrestricted access
 
-    // Check if current path matches any allowed path
-    const isAllowed = allowedPaths.some((path) => {
-      // Exact match or starts with for nested routes
-      return currentPath === path || currentPath.startsWith(path + '/');
-    });
+    // Admin roles (allowedPaths=[]) have unrestricted access — never redirect
+    if (allowedPaths.length === 0) return;
+
+    // "/" is handled synchronously by RoleRouter at mount time.
+    // Skip redirect from here when at "/" to prevent double-navigation flash.
+    if (currentPath === "/") return;
+
+    // Check if current path is allowed for this role
+    const isAllowed = allowedPaths.some((allowed) =>
+      currentPath === allowed || currentPath.startsWith(allowed + '/')
+    );
 
     if (isAllowed) return;
 
-    // Redirect to default path
+    // User has navigated to a path not allowed for their role — redirect
     console.log(`[Role Redirect] ${currentRole} → ${defaultPath} (from ${currentPath})`);
     navigate(defaultPath, { replace: true });
   }, [currentRole, navigate, location.pathname, enabled]);

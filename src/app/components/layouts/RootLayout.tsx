@@ -85,28 +85,7 @@ export function RootLayout() {
 
   const [sidebarSearch, setSidebarSearch] = useState("");
 
-  // ─── Session guard (runs after hooks, safe) ──────────────────────────────
-  const isPreview = import.meta.env.MODE === "development"
-    || window.location.hostname === "localhost"
-    || window.location.hostname.includes("figma")
-    || new URLSearchParams(window.location.search).get("preview-route") !== null;
-
-  useEffect(() => {
-    if (!isPreview) {
-      const session = localStorage.getItem("cc360_session");
-      if (!session && !window.location.pathname.startsWith("/login")) {
-        window.location.replace("/login");
-      }
-    }
-  }, [isPreview]);
-
-  // Early return for unauthenticated non-preview (after all hooks)
-  if (!isPreview && !localStorage.getItem("cc360_session") &&
-      !window.location.pathname.startsWith("/login")) {
-    return null;
-  }
-
-
+  // ─── Context hooks — ALL must be unconditional (Rules of Hooks) ───────────
   const { currentRole, setCurrentRole, currentUser } = useRole();
   const { city } = useCity();
   const location = useLocation();
@@ -122,16 +101,32 @@ export function RootLayout() {
   } = useSidebar();
 
   // Build NavEmployee directly from role + city — no ID lookup needed.
-  // The previous find() always returned null because RoleContext stub IDs
-  // ("CM-001", "EMP-SA-001") never matched real EmployeeContext IDs ("EMP-001").
-  // buildNavigation(null) silently fell back to Dashboard-only for every role.
   const currentEmployee: NavEmployee = {
     role: currentRole,
     cityId: currentUser.cityId || "CITY-SURAT",
   };
 
   // Auto-redirect users to their role-specific landing page
+  // This hook must also be unconditional
   useRoleBasedRedirect(currentRole);
+
+  // ─── Session guard ────────────────────────────────────────────────────────
+  const isPreview = import.meta.env.MODE === "development"
+    || window.location.hostname === "localhost"
+    || window.location.hostname.includes("figma")
+    || new URLSearchParams(window.location.search).get("preview-route") !== null;
+
+  useEffect(() => {
+    if (!isPreview) {
+      const session = localStorage.getItem("cc360_session");
+      if (!session && !window.location.pathname.startsWith("/login")) {
+        window.location.replace("/login");
+      }
+    }
+  }, [isPreview]);
+
+  // Show nothing while redirecting unauthenticated users (all hooks already called above)
+  const isAuthenticated = isPreview || !!localStorage.getItem("cc360_session") || window.location.pathname.startsWith("/login");
 
   // Safe role setter - prevents invalid roles from entering state
   const setSafeRole = (role: string) => {
@@ -209,6 +204,8 @@ export function RootLayout() {
       }
     });
   }, [location.pathname, location.search]);
+
+  if (!isAuthenticated) return null;
 
   return (
     <GlobalFiltersProvider>
