@@ -108,8 +108,14 @@ export function FinanceAnalyticsDashboard() {
   } = useFinance();
 
   const { filters } = useGlobalFilters();
-  const filterStart = filters.startDate || "2026-01-01";
-  const filterEnd   = filters.endDate   || "2026-04-30";
+  // Dynamic defaults: last 90 days if no filter set
+  const today = new Date().toISOString().split("T")[0];
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const rawStart = filters.startDate || ninetyDaysAgo;
+  const rawEnd   = filters.endDate   || today;
+  // Guard against inverted range — swap if needed
+  const filterStart = rawStart <= rawEnd ? rawStart : rawEnd;
+  const filterEnd   = rawStart <= rawEnd ? rawEnd   : rawStart;
 
   // City-filtered (reactive — updates whenever FinanceContext updates)
   const revenues = useMemo(() => getRevenueByCity(city), [allRevenues, city]);
