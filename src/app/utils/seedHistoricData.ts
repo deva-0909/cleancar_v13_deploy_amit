@@ -666,6 +666,68 @@ export const HISTORIC_PAYABLES: any[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────
+// 8b. REVENUE RECORDS — daily subscription + one-time wash revenue
+// ─────────────────────────────────────────────────────────────────────────
+export const HISTORIC_REVENUES: any[] = [];
+const PAYMENT_METHODS = ["UPI","UPI","UPI","Card","Cash","Bank Transfer"] as const;
+const CUSTOMER_IDS_SUR = ["CST-SUR-001","CST-SUR-002","CST-SUR-003","CST-SUR-004","CST-SUR-005",
+  "CST-SUR-006","CST-SUR-007","CST-SUR-008","CST-SUR-009","CST-SUR-010"];
+const CUSTOMER_IDS_MUM = ["CST-MUM-001","CST-MUM-002","CST-MUM-003","CST-MUM-004","CST-MUM-005"];
+
+// Monthly subscription collections — 87 active subs in Surat, 72 in Mumbai
+for (const m of MONTHS) {
+  // Surat subscription revenue — collected on 1st of each month
+  for (let i = 0; i < 12; i++) {
+    const custId = CUSTOMER_IDS_SUR[i % CUSTOMER_IDS_SUR.length];
+    HISTORIC_REVENUES.push({
+      revenueId: `REV-SUR-SUB-${m}-${String(i+1).padStart(3,"0")}`,
+      customerId: custId,
+      subscriptionId: `SUB-${custId}-${m}`,
+      type: "Subscription",
+      amount: 1150 + (i % 3 === 0 ? 280 : 0), // mix of Basic and Premium
+      receivedDate: `2026-0${m}-01`,
+      paymentMethod: PAYMENT_METHODS[i % PAYMENT_METHODS.length],
+      invoiceNumber: `INV-SUR-${m}-${String(i+1).padStart(4,"0")}`,
+      status: "Received",
+      cityId: "CITY-SURAT",
+      createdAt: new Date(2026, m-1, 1, 9, 0, 0).toISOString(),
+    });
+  }
+  // Surat one-time wash revenue — spread across the month
+  for (let day = 5; day <= 25; day += 4) {
+    HISTORIC_REVENUES.push({
+      revenueId: `REV-SUR-OT-${m}-${day}`,
+      customerId: CUSTOMER_IDS_SUR[day % CUSTOMER_IDS_SUR.length],
+      type: "One-Time",
+      amount: 499 + (day % 2 === 0 ? 200 : 0),
+      receivedDate: `2026-0${m}-${String(day).padStart(2,"0")}`,
+      paymentMethod: PAYMENT_METHODS[day % PAYMENT_METHODS.length],
+      invoiceNumber: `INV-SUR-OT-${m}-${day}`,
+      status: "Received",
+      cityId: "CITY-SURAT",
+      createdAt: new Date(2026, m-1, day, 10, 0, 0).toISOString(),
+    });
+  }
+  // Mumbai subscription revenue
+  for (let i = 0; i < 8; i++) {
+    const custId = CUSTOMER_IDS_MUM[i % CUSTOMER_IDS_MUM.length];
+    HISTORIC_REVENUES.push({
+      revenueId: `REV-MUM-SUB-${m}-${String(i+1).padStart(3,"0")}`,
+      customerId: custId,
+      subscriptionId: `SUB-${custId}-${m}`,
+      type: "Subscription",
+      amount: 1280,
+      receivedDate: `2026-0${m}-01`,
+      paymentMethod: PAYMENT_METHODS[i % PAYMENT_METHODS.length],
+      invoiceNumber: `INV-MUM-${m}-${String(i+1).padStart(4,"0")}`,
+      status: "Received",
+      cityId: "CITY-MUMBAI",
+      createdAt: new Date(2026, m-1, 1, 9, 0, 0).toISOString(),
+    });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // 9. ADVANCE REQUESTS
 // ─────────────────────────────────────────────────────────────────────────
 export const HISTORIC_ADVANCES: any[] = [
@@ -771,10 +833,10 @@ export function seedHistoricData(): void {
     localStorage.setItem("cleancar_payroll_runs", JSON.stringify(HISTORIC_PAYROLL));
 
     // Customers
-    localStorage.setItem("customer:list", JSON.stringify(HISTORIC_CUSTOMERS));
+    localStorage.setItem("cleancar_customers", JSON.stringify(HISTORIC_CUSTOMERS));
 
     // Leads
-    localStorage.setItem("lead:list", JSON.stringify(HISTORIC_LEADS));
+    localStorage.setItem("cleancar_leads", JSON.stringify(HISTORIC_LEADS));
 
     // Complaints
     localStorage.setItem("cleancar_complaints", JSON.stringify(HISTORIC_COMPLAINTS));
@@ -783,11 +845,12 @@ export function seedHistoricData(): void {
     localStorage.setItem("cleancar_attendance", JSON.stringify(HISTORIC_ATTENDANCE));
 
     // Inventory
-    localStorage.setItem("inventory:items", JSON.stringify(HISTORIC_INVENTORY));
+    localStorage.setItem("cleancar_inventory", JSON.stringify(HISTORIC_INVENTORY));
 
     // Finance
-    localStorage.setItem("finance:mrr",      JSON.stringify(HISTORIC_MRR));
-    localStorage.setItem("finance:payables", JSON.stringify(HISTORIC_PAYABLES));
+    localStorage.setItem("cleancar_mrr",      JSON.stringify(HISTORIC_MRR));
+    localStorage.setItem("cleancar_payables", JSON.stringify(HISTORIC_PAYABLES));
+    localStorage.setItem("cleancar_revenues",  JSON.stringify(HISTORIC_REVENUES));
 
     // Advances
     localStorage.setItem("cleancar_advances", JSON.stringify(HISTORIC_ADVANCES));

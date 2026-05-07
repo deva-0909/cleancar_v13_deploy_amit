@@ -8,6 +8,7 @@ import { EventMonitor } from "./components/crm/EventMonitor";
 import { useGlobalEventHandlers } from "./hooks/useGlobalEventHandlers";
 import { AppProvider } from "./contexts/AppProvider";
 import { employeeDatabaseService } from "./services/employeeDatabaseService";
+import { seedHistoricData } from "./utils/seedHistoricData";
 import { loadAllDataFromSupabase } from "./services/supabaseDataLoader";
 
 function AppContent() {
@@ -59,14 +60,24 @@ export default function App() {
         await loadAllDataFromSupabase();
 
         setLoadingMsg("Almost ready...");
-        // Wait for localStorage writes to settle before mounting contexts
-        // Data takes ~25s to load from Supabase - wait for it
+        // Wait for localStorage writes to settle
         await new Promise(r => setTimeout(r, 1500));
 
       } catch (err) {
         console.error("Bootstrap error:", err);
         // Still show app even if Supabase fails
       } finally {
+        // Always seed historic data if localStorage is empty
+        // This ensures the app shows demo data even without Supabase
+        try {
+          const hasRevenues = localStorage.getItem("cleancar_revenues");
+          if (!hasRevenues || JSON.parse(hasRevenues).length === 0) {
+            seedHistoricData();
+            console.log("[Bootstrap] Seeded historic data into localStorage");
+          }
+        } catch(e) {
+          console.warn("[Bootstrap] Seed failed:", e);
+        }
         setAppReady(true);
       }
     }
