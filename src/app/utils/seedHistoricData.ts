@@ -11,7 +11,7 @@
  * Run once on first load via seedHistoricData()
  */
 
-const SEED_FLAG = "HISTORIC_DATA_SEEDED_V2";
+const SEED_FLAG = "HISTORIC_DATA_SEEDED_V3";
 
 // ── Password hash (Demo@1234) ──────────────────────────────────────────────
 const PWD = "RGVtb0AxMjM0Q0MzNjBTQUxU";
@@ -635,7 +635,22 @@ for (const m of MONTHS) {
       revenue: 92000+(m*5500), avgRevPerSub:1280, growthRate: 10+(m*2) }
   );
 }
-
+export const HISTORIC_REVENUES: any[] = [];
+for (const m of MONTHS) {
+  for (let i = 1; i <= 15; i++) {
+    HISTORIC_REVENUES.push({
+      revenueId: `REV-SUR-${m}-${i}`,
+      customerId: `CST-SUR-00${(i % 5) + 1}`,
+      type: i % 4 === 0 ? "One-Time" : "Subscription",
+      amount: i % 4 === 0 ? 499 : 1150,
+      receivedDate: `2026-0${m}-${String(i).padStart(2,"0")}`,
+      paymentMethod: "UPI",
+      status: "Received",
+      cityId: "CITY-SURAT",
+      createdAt: new Date(2026, m-1, i).toISOString(),
+    });
+  }
+}
 export const HISTORIC_PAYABLES: any[] = [
   { id:"PAY-SUR-001", cityId:"CITY-SURAT", type:"Vendor", vendor:"Shreeji Chemicals",
     amount:18500, dueDate:d(2,28), status:"Paid", paidDate:d(2,25),
