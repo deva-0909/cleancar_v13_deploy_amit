@@ -8,9 +8,7 @@ import { EventMonitor } from "./components/crm/EventMonitor";
 import { useGlobalEventHandlers } from "./hooks/useGlobalEventHandlers";
 import { AppProvider } from "./contexts/AppProvider";
 import { employeeDatabaseService } from "./services/employeeDatabaseService";
-import { seedHistoricData } from "./utils/seedHistoricData";
 import { loadAllDataFromSupabase } from "./services/supabaseDataLoader";
-import { seedHistoricData } from "./utils/seedHistoricData";
 
 function AppContent() {
   useGlobalEventHandlers();
@@ -61,27 +59,14 @@ export default function App() {
         await loadAllDataFromSupabase();
 
         setLoadingMsg("Almost ready...");
-        // Wait for localStorage writes to settle
+        // Wait for localStorage writes to settle before mounting contexts
+        // Data takes ~25s to load from Supabase - wait for it
         await new Promise(r => setTimeout(r, 1500));
 
       } catch (err) {
         console.error("Bootstrap error:", err);
+        // Still show app even if Supabase fails
       } finally {
-        try { const r = localStorage.getItem("cleancar_revenues"); if (!r || JSON.parse(r).length === 0) seedHistoricData(); } catch(e) {}
-          const hasRevenues = localStorage.getItem("cleancar_revenues");
-          if (!hasRevenues || JSON.parse(hasRevenues).length === 0) {
-            seedHistoricData();
-            console.log("[Bootstrap] Seeded historic data into localStorage");
-          }
-              } catch (err) {
-        console.error("Bootstrap error:", err);
-      } finally {
-        try {
-          const rev = localStorage.getItem("cleancar_revenues");
-          if (!rev || JSON.parse(rev).length === 0) seedHistoricData();
-        } catch (e) {
-          console.warn("Seed failed:", e);
-        }
         setAppReady(true);
       }
     }
