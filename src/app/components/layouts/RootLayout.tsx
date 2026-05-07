@@ -123,6 +123,7 @@ export function RootLayout() {
         window.location.replace("/login");
       }
     }
+ 
   }, [isPreview]);
 
   // Show nothing while redirecting unauthenticated users (all hooks already called above)
