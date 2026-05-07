@@ -18,20 +18,21 @@ const HEADERS = {
 // Map: Supabase table → localStorage legacy key (format: cleancar_{key})
 // DataService falls back to this when city-namespaced key is missing
 const TABLE_MAP: Array<{ table: string; localKey: string; limit?: number }> = [
-  { table: "cleancar_revenues",            localKey: "revenues"           },
-  { table: "cleancar_payables",            localKey: "payables"           },
-  { table: "cleancar_mrr",                 localKey: "mrr"                },
-  { table: "cleancar_customers",           localKey: "customers"          },
-  { table: "cleancar_leads",               localKey: "leads"              },
-  { table: "cleancar_subscriptions",       localKey: "subscriptions"      },
-  { table: "cleancar_inventory",           localKey: "inventory"          },
-  { table: "cleancar_salary_structures",   localKey: "salary_structures"  },
-  { table: "cleancar_incentive_plans",     localKey: "incentive_plans"    },
-  { table: "cleancar_employee_incentives", localKey: "employee_incentives"},
-  { table: "cleancar_payroll_runs",        localKey: "payroll_runs"       },
-  { table: "cleancar_employees",           localKey: "employees"          },
-  { table: "cleancar_jobs",                localKey: "jobs",        limit: 1500 },
-  { table: "cleancar_attendance",          localKey: "attendance_records", limit: 1000 },
+  // ✅ TABLE NAMES CORRECTED to match actual Supabase schema (supabase_schema.sql)
+  // Finance tables use "finance_" prefix; operational tables use plain names
+  { table: "finance_revenues",      localKey: "revenues"           },
+  { table: "finance_payables",      localKey: "payables"           },
+  { table: "finance_mrr",           localKey: "mrr"                },
+  { table: "customers",             localKey: "customers"          },
+  { table: "leads",                 localKey: "leads"              },
+  { table: "subscriptions",         localKey: "subscriptions"      },
+  { table: "inventory_items",       localKey: "inventory"          },
+  { table: "salary_structures",     localKey: "salary_structures"  },
+  // incentive_plans and employee_incentives not in schema → skip (local only)
+  { table: "payroll_runs",          localKey: "payroll_runs"       },
+  { table: "employees",             localKey: "employees"          },
+  { table: "jobs",                  localKey: "jobs",        limit: 1500 },
+  { table: "attendance_records",    localKey: "attendance_records", limit: 1000 },
 ];
 
 
@@ -138,12 +139,9 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
   }
 
   console.log("[Supabase] Loading all data into localStorage...");
-
-  // Clear ALL existing cleancar keys first to free up space
-  const keysToDelete = Object.keys(localStorage).filter(k => k.startsWith("cleancar_"));
-  keysToDelete.forEach(k => {
-    try { localStorage.removeItem(k); } catch (e) {}
-  });
+  // NOTE: Do NOT wipe localStorage before fetching — if Supabase fails mid-way,
+  // existing data (from previous session) is preserved and shown instead of blank.
+  // Individual keys are overwritten after each successful table fetch below.
   console.log(`[Supabase] Cleared ${keysToDelete.length} existing keys`);
 
   // Fetch and store each table sequentially (not parallel) to avoid race conditions
