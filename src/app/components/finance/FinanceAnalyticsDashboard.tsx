@@ -1,4 +1,4 @@
-import { BackButton } from "../../ui/back-button";
+import { BackButton } from "../ui/back-button";
 /**
  * FinanceAnalyticsDashboard — FIXED 2026-05-06
  *

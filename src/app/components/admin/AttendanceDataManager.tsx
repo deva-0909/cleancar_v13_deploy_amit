@@ -1,4 +1,4 @@
-import { BackButton } from "../../ui/back-button";
+import { BackButton } from "../ui/back-button";
 /**
  * Admin Tool: Attendance Data Manager
  * Allows seeding, viewing, and clearing dummy attendance data

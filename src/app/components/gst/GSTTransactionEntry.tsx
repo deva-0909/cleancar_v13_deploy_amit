@@ -1,4 +1,4 @@
-import { BackButton } from "../../ui/back-button";
+import { BackButton } from "../ui/back-button";
 import { useState, useMemo, useEffect } from "react";
 import { FileText, Save, CheckCircle, AlertTriangle, Brain, TrendingDown, CheckCircle2 } from "lucide-react";
 import { gstComplianceService, type GSTTransaction, COMPANY_GST_CONFIG } from "../../services/gstComplianceService";

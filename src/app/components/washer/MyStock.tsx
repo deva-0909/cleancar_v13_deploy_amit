@@ -1,4 +1,4 @@
-import { BackButton } from "../../ui/back-button";
+import { BackButton } from "../ui/back-button";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";

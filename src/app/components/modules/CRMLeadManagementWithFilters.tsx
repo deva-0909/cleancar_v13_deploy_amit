@@ -1,4 +1,4 @@
-import { BackButton } from "../../ui/back-button";
+import { BackButton } from "../ui/back-button";
 /**
  * CRM & Lead Management - WITH COMPLETE FILTER & SORT INTEGRATION
  * This is the completed implementation with all filtering and sorting features

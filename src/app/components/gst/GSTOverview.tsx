@@ -1,4 +1,4 @@
-import { BackButton } from "../../ui/back-button";
+import { BackButton } from "../ui/back-button";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, RefreshCw, LayoutDashboard, ShieldCheck, AlertCircle, CheckCircle2, TrendingUp, FileText } from "lucide-react";

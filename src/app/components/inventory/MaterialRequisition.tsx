@@ -1,4 +1,4 @@
-import { BackButton } from "../../ui/back-button";
+import { BackButton } from "../ui/back-button";
 // Material Requisition System Component
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";

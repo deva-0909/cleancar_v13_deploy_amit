@@ -1,4 +1,4 @@
-import { BackButton } from "../../ui/back-button";
+import { BackButton } from "../ui/back-button";
 // Performance Tracking Module
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
