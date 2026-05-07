@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "../../lib/formatters";
 import {
   FileText,
@@ -46,6 +45,7 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Badge } from "../ui/badge";
+import { useNavigate } from "react-router-dom";
 import { useCity } from "../../contexts/CityContext";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useCustomers } from "../../contexts/AppProvider";
@@ -220,7 +220,7 @@ async function fetchInvoices(
       balanceDue: r.status === "Received" ? 0 : r.amount,
       status: r.status === "Received" ? "PAID" as const : r.status === "Pending" ? "UNPAID" as const : "CANCELLED" as const,
       paymentStatus: r.status === "Received" ? "COMPLETED" as const : "PENDING" as const,
-      city: r.cityId,
+      city: r.cityId, // CITY-SURAT format - matches filter values
       createdAt: r.createdAt,
     };
   });
@@ -275,7 +275,7 @@ async function recordPayment(
     cityId: cityId,
   });
 
-  console.log("Payment recorded and revenue created:", { invoiceId, paymentData });
+  // Payment recorded via recordRevenueFn above
 }
 
 // ============================================================================
@@ -283,7 +283,6 @@ async function recordPayment(
 // ============================================================================
 
 function getStatusBadge(status: Invoice["status"]) {
-  const navigate = useNavigate();
   const statusConfig = {
     UNPAID: { color: "bg-yellow-100 text-yellow-800", icon: Clock },
     PARTIAL: { color: "bg-blue-100 text-blue-800", icon: AlertCircle },

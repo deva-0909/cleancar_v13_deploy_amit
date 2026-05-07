@@ -82,7 +82,22 @@ export function FinancialReportsModule() {
 
   const handleExport = () => {
     // In production: Export current report to PDF/Excel
-    console.log("Exporting report:", activeTab, filters);
+    try {
+      const city = cityInfo?.id || "CITY-SURAT";
+      const revs = getRevenueByCity ? getRevenueByCity(city) : [];
+      const pays = getPayablesByCity ? getPayablesByCity(city) : [];
+      const rows = [
+        ["Date","Type","Description","Amount","Status"],
+        ...revs.map((r: any) => [r.receivedDate, "Revenue", r.type, r.amount, r.status]),
+        ...pays.map((p: any) => [p.dueDate, "Expense", p.description, p.amount, p.status]),
+      ];
+      const csv = rows.map(r => r.join(",")).join("\n");
+      const a = document.createElement("a");
+      a.href = "data:text/csv," + encodeURIComponent(csv);
+      a.download = `finance_report_${city}_${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      toast?.success?.("Report exported");
+    } catch(e) { console.error("Export failed:", e); }
   };
 
   return (

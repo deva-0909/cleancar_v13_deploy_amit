@@ -419,14 +419,7 @@ export function CostTrendsDashboard() {
                   <XAxis key="xaxis" type="number" tick={{ fontSize: 11 }} />
                   <YAxis key="yaxis" dataKey="washer" type="category" tick={{ fontSize: 11 }} width={80} />
                   <Tooltip key="tooltip" />
-                  <Bar key="variance-bar" dataKey="variance" isAnimationActive={false}>
-                    {washerEfficiencyData.map((entry: any, index: number) => (
-                      <Cell
-                        key={`variance-cell-${index}`}
-                        fill={entry.variance > 0 ? "#EF4444" : "#10B981"}
-                      />
-                    ))}
-                  </Bar>
+                  <Bar key="variance-bar" dataKey="variance" fill="#3b82f6" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (

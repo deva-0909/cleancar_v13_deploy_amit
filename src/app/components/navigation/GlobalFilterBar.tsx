@@ -46,8 +46,8 @@ const GlobalFiltersContext = createContext<GlobalFiltersContextType | undefined>
 export function useGlobalFilters() {
   const context = useContext(GlobalFiltersContext);
   if (!context) {
-    // Always return safe defaults — never throw
-    // This handles both preview/HMR and production edge cases
+    // Always return safe defaults — NEVER throw (B04 fix)
+    // Throwing here causes a full React tree crash in production
     return {
       filters: {
         city: "ALL",
@@ -72,40 +72,38 @@ interface GlobalFiltersProviderProps {
 }
 
 export function GlobalFiltersProvider({ children }: GlobalFiltersProviderProps) {
-  // Dynamic defaults: last 90 days ending today
-  function getDefaultFilters(): GlobalFilters {
-    const today = new Date();
-    const end = today.toISOString().split("T")[0];
-    const start90 = new Date(today);
-    start90.setDate(today.getDate() - 90);
-    const start = start90.toISOString().split("T")[0];
-    return { city: "ALL", startDate: start, endDate: end, businessUnit: "ALL" };
-  }
-
-  const [filters, setFilters] = useState<GlobalFilters>(getDefaultFilters);
-
-  const resetFilters = () => {
-    setFilters(getDefaultFilters());
+  const defaultFilters: GlobalFilters = {
+    city: "ALL",
+    startDate: "2026-01-01",  // Start of seeded data
+    endDate: "2026-04-30",    // End of seeded data
+    businessUnit: "ALL",
   };
 
-  // Validate and set filters — prevent inverted date ranges
-  const setFiltersValidated = (newFilters: GlobalFilters) => {
-    if (newFilters.startDate && newFilters.endDate &&
-        newFilters.startDate > newFilters.endDate) {
-      // Inverted range: swap the dates automatically
-      setFilters({ ...newFilters, startDate: newFilters.endDate, endDate: newFilters.startDate });
-    } else {
-      setFilters(newFilters);
-    }
+  const [filters, setFilters] = useState<GlobalFilters>(() => {
+    try {
+      const saved = localStorage.getItem("cc360_global_filters");
+      if (saved) {
+        const p = JSON.parse(saved);
+        // Only restore if dates are within seeded data range (Jan-Apr 2026)
+        if (p.startDate >= "2026-01-01" && p.endDate <= "2026-04-30") return p;
+      }
+    } catch(e) {}
+    return defaultFilters;
+  });
+
+  const resetFilters = () => {
+    setFilters(defaultFilters);
   };
 
   const hasActiveFilters =
     filters.city !== "ALL" ||
+    (filters.startDate !== "" && filters.startDate !== "2026-01-01") ||
+    (filters.endDate !== "" && filters.endDate !== "2026-04-30") ||
     filters.businessUnit !== "ALL";
 
   return (
     <GlobalFiltersContext.Provider
-      value={{ filters, setFilters: setFiltersValidated, resetFilters, hasActiveFilters }}
+      value={{ filters, setFilters, resetFilters, hasActiveFilters }}
     >
       {children}
     </GlobalFiltersContext.Provider>
@@ -128,16 +126,16 @@ export function GlobalFilterBar({ showBusinessUnit = true }: GlobalFilterBarProp
     "Sr Operations Manager","Operations Manager","HR","Accounts","Marketing Agency"].includes(currentRole) : false;
 
   const handleFilterChange = (key: keyof GlobalFilters, value: string) => {
-    setFilters({ ...filters, [key]: value });
+    const updated = { ...filters, [key]: value };
+    setFilters(updated);
+    try { localStorage.setItem("cc360_global_filters", JSON.stringify(updated)); } catch(e) {}
   };
 
   const activeFilterCount = [
+    filters.startDate !== "",
+    filters.endDate !== "",
     filters.businessUnit !== "ALL",
   ].filter(Boolean).length;
-
-  // Detect inverted date range for visual warning
-  const isDateInverted = filters.startDate && filters.endDate &&
-    filters.startDate > filters.endDate;
 
   return (
     <div className="bg-white border-b border-gray-200 px-6 py-3">
@@ -176,9 +174,8 @@ export function GlobalFilterBar({ showBusinessUnit = true }: GlobalFilterBarProp
           <Input
             type="date"
             value={filters.startDate}
-            max={filters.endDate || undefined}
             onChange={(e) => handleFilterChange("startDate", e.target.value)}
-            className={`w-40 ${isDateInverted ? "border-red-400 bg-red-50" : ""}`}
+            className="w-40"
           />
         </div>
 
@@ -187,18 +184,10 @@ export function GlobalFilterBar({ showBusinessUnit = true }: GlobalFilterBarProp
           <Input
             type="date"
             value={filters.endDate}
-            min={filters.startDate || undefined}
             onChange={(e) => handleFilterChange("endDate", e.target.value)}
-            className={`w-40 ${isDateInverted ? "border-red-400 bg-red-50" : ""}`}
+            className="w-40"
           />
         </div>
-
-        {/* Inverted date warning */}
-        {isDateInverted && (
-          <div className="flex items-center gap-1 text-xs text-red-600 font-medium bg-red-50 border border-red-200 rounded px-2 py-1">
-            ⚠️ "From" date is after "To" — no results will show. Dates will be swapped on next change.
-          </div>
-        )}
 
         {/* Business Unit Filter */}
         {showUnitFilter && showBusinessUnit && (

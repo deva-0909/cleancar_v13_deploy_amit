@@ -18,43 +18,35 @@ const HEADERS = {
 // Map: Supabase table → localStorage legacy key (format: cleancar_{key})
 // DataService falls back to this when city-namespaced key is missing
 const TABLE_MAP: Array<{ table: string; localKey: string; limit?: number }> = [
-  // ✅ TABLE NAMES CORRECTED to match actual Supabase schema (supabase_schema.sql)
-  // Finance tables use "finance_" prefix; operational tables use plain names
-  { table: "finance_revenues",      localKey: "revenues"           },
-  { table: "finance_payables",      localKey: "payables"           },
-  { table: "finance_mrr",           localKey: "mrr"                },
-  { table: "customers",             localKey: "customers"          },
-  { table: "leads",                 localKey: "leads"              },
-  { table: "subscriptions",         localKey: "subscriptions"      },
-  { table: "inventory_items",       localKey: "inventory"          },
-  { table: "salary_structures",     localKey: "salary_structures"  },
-  // incentive_plans and employee_incentives not in schema → skip (local only)
-  { table: "payroll_runs",          localKey: "payroll_runs"       },
-  { table: "employees",             localKey: "employees"          },
-  { table: "jobs",                  localKey: "jobs",        limit: 1500 },
-  { table: "attendance_records",    localKey: "attendance_records", limit: 1000 },
+  { table: "cleancar_revenues",            localKey: "revenues"           },
+  { table: "cleancar_payables",            localKey: "payables"           },
+  { table: "cleancar_mrr",                 localKey: "mrr"                },
+  { table: "cleancar_customers",           localKey: "customers"          },
+  { table: "cleancar_leads",               localKey: "leads"              },
+  { table: "cleancar_subscriptions",       localKey: "subscriptions"      },
+  { table: "cleancar_inventory",           localKey: "inventory"          },
+  { table: "cleancar_salary_structures",   localKey: "salary_structures"  },
+  { table: "cleancar_incentive_plans",     localKey: "incentive_plans"    },
+  { table: "cleancar_employee_incentives", localKey: "employee_incentives"},
+  { table: "cleancar_payroll_runs",        localKey: "payroll_runs"       },
+  { table: "cleancar_employees",           localKey: "employees"          },
+  { table: "cleancar_jobs",                localKey: "jobs",        limit: 1500 },
+  { table: "cleancar_attendance",          localKey: "attendance_records", limit: 1000 },
 ];
 
-
-// ── Field Normalizers ────────────────────────────────────────────────────────
-// Seed data uses different field names than what contexts expect.
-// These normalizers map seed fields → context fields at load time.
-
+// Normalize field names to match context interfaces
 function normalizeEmployee(e: any): any {
   if (!e) return e;
   return {
     ...e,
-    // Map seed fields to context fields
-    phone:            e.phone       || e.mobile        || "",
-    role:             e.role        || e.designation   || "",
-    city:             e.city        || e.workLocation  || e.cityId || "",
-    joiningDate:      e.joiningDate || e.dateOfJoining || "",
+    phone: e.phone || e.mobile || "",
+    role: e.role || e.designation || "",
+    city: e.city || e.workLocation || e.cityId || "",
+    joiningDate: e.joiningDate || e.dateOfJoining || "",
     assignedPincodes: e.assignedPincodes || e.pinCodes || [],
-    incentiveEligible: e.incentiveEligible !== undefined ? e.incentiveEligible : true,
-    // Keep originals too for backward compat
     designation: e.designation || e.role || "",
-    mobile:      e.mobile      || e.phone || "",
-    workLocation: e.workLocation || e.cityId || "",
+    mobile: e.mobile || e.phone || "",
+    workLocation: e.workLocation || e.city || e.cityId || "",
     dateOfJoining: e.dateOfJoining || e.joiningDate || "",
     pinCodes: e.pinCodes || e.assignedPincodes || [],
   };
@@ -62,12 +54,11 @@ function normalizeEmployee(e: any): any {
 
 function normalizeJob(j: any): any {
   if (!j) return j;
-  // Normalise scheduledDate to YYYY-MM-DD (10 chars) for consistent === comparisons
+  // Keep scheduledDate as YYYY-MM-DD (10 chars) — all comparisons use this format
   const d = j.scheduledDate || "";
-  const normalized = d.length > 10 ? d.split("T")[0] : d;
   return {
     ...j,
-    scheduledDate: normalized,
+    scheduledDate: d.length > 10 ? d.split("T")[0] : d,
   };
 }
 
@@ -122,26 +113,27 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
     return;
   }
 
-  // Always reload on first visit - use sessionStorage to skip on navigation within same session
-  const SESSION_KEY = "cc360_data_loaded";
-  if (!forceReload && sessionStorage.getItem(SESSION_KEY) === "1") {
-    // Verify data actually exists before skipping
+  // Skip only if sessionStorage flag set AND data actually exists in localStorage
+  if (!forceReload) {
     try {
       const existing = localStorage.getItem("cleancar_revenues");
-      const parsed = existing ? JSON.parse(existing) : null;
-      if (Array.isArray(parsed) && parsed.length > 10) {
-        console.log(`[Supabase] Data verified in localStorage (${parsed.length} revenues) — skipping fetch`);
-        return;
+      if (existing) {
+        const parsed = JSON.parse(existing);
+        if (Array.isArray(parsed) && parsed.length > 10) {
+          console.log(`[Supabase] Data verified (${parsed.length} revenues) — skipping fetch`);
+          return;
+        }
       }
-    } catch(e) {}
-    // Data missing or corrupt — force reload
-    console.log("[Supabase] Session flag set but data missing — reloading from Supabase");
+    } catch (e) { /* corrupt — proceed with full fetch */ }
   }
 
   console.log("[Supabase] Loading all data into localStorage...");
-  // NOTE: Do NOT wipe localStorage before fetching — if Supabase fails mid-way,
-  // existing data (from previous session) is preserved and shown instead of blank.
-  // Individual keys are overwritten after each successful table fetch below.
+
+  // Clear ALL existing cleancar keys first to free up space
+  const keysToDelete = Object.keys(localStorage).filter(k => k.startsWith("cleancar_"));
+  keysToDelete.forEach(k => {
+    try { localStorage.removeItem(k); } catch (e) {}
+  });
   console.log(`[Supabase] Cleared ${keysToDelete.length} existing keys`);
 
   // Fetch and store each table sequentially (not parallel) to avoid race conditions
@@ -156,7 +148,6 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
       // Write ONLY the legacy key: cleancar_{localKey}
       // DataService automatically falls back to this when city-namespaced key is missing
       const legacyKey = `cleancar_${localKey}`;
-      // Normalize field names to match context interfaces
       const normalized = rows.map((r: any) => normalizeRecord(table, r));
       safeWrite(legacyKey, normalized);
       console.log(`[Supabase] ✅ ${table}: ${normalized.length} records → ${legacyKey}`);
@@ -167,5 +158,4 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
   }
 
   console.log("[Supabase] ✅ All data loaded");
-  sessionStorage.setItem("cc360_data_loaded", "1");
 }

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "../../lib/formatters";
 import {
   DollarSign,
@@ -224,7 +223,6 @@ async function fetchPaymentSummary(
 // HELPER FUNCTIONS
 // ============================================================================
 function formatDate(dateString: string): string {
-  const navigate = useNavigate();
   return new Date(dateString).toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",

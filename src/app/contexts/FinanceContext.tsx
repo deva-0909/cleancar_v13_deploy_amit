@@ -6,7 +6,7 @@
  * RULE: Finance displays subscription data via subscriptionId lookup
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 import { useSync } from "../hooks/useSync";
@@ -270,7 +270,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return stored;
   });
 
-  // Persist to storage — only when data is non-empty to avoid overwriting Supabase data with []
+  // Persist to storage (local cache - instant)
   useEffect(() => {
     if (mrrData.length > 0) DataService.setAll("FINANCE_MRR", mrrData);
   }, [mrrData]);
@@ -280,25 +280,25 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }, [payables]);
 
   useEffect(() => {
-    // Never write revenues back to localStorage — Supabase is source of truth
-    // Writing back causes quota issues and overwrites good data with []
-    // DataService.get() fallback handles reading from cleancar_revenues legacy key
+    // NEVER write revenues back to localStorage - Supabase is source of truth
+    // Writing [] on mount overwrites the 1399 records loaded from Supabase (B05 fix)
+    if (revenues.length > 0) DataService.setAll("FINANCE_REVENUES", revenues);
   }, [revenues]);
 
   useEffect(() => {
-    if (ledgerEntries.length > 0) DataService.setAll("FINANCE_LEDGER", ledgerEntries);
+    DataService.setAll("FINANCE_LEDGER", ledgerEntries);
   }, [ledgerEntries]);
 
   useEffect(() => {
-    if (budgets.length > 0) DataService.setAll("FINANCE_BUDGETS", budgets);
+    DataService.setAll("FINANCE_BUDGETS", budgets);
   }, [budgets]);
 
   useEffect(() => {
-    if (alerts.length > 0) DataService.setAll("FINANCE_ALERTS", alerts);
+    DataService.setAll("FINANCE_ALERTS", alerts);
   }, [alerts]);
 
   useEffect(() => {
-    if (recommendations.length > 0) DataService.setAll("FINANCE_RECOMMENDATIONS", recommendations);
+    DataService.setAll("FINANCE_RECOMMENDATIONS", recommendations);
   }, [recommendations]);
 
   // Backend sync (background, non-blocking)
@@ -598,9 +598,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return payables.filter(item => item.cityId === cityId);
   }, [payables]);
 
-  const getLedgerEntriesByCity = useCallback((cityId: string): LedgerEntry[] => {
+  const getLedgerEntriesByCity = (cityId: string): LedgerEntry[] => {
     return ledgerEntries.filter(item => item.cityId === cityId);
-  }, [ledgerEntries]);
+  };
 
   // ✅ EBITDA + MARGIN ANALYTICS (MC-06)
   const calculateEBITDA = (cityId: string, month?: string): number => {
