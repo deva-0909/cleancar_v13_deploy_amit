@@ -44,7 +44,6 @@ import MarketingROIDrilldown from "./components/founder/MarketingROIDrilldown";
 import { OnboardingRedirect } from "./components/onboarding/OnboardingRedirect";
 import { DevOnlyRoute } from "./components/guards/DevOnlyRoute";
 import { Dashboard } from "./components/Dashboard";
-import { RoleRouter } from "./components/dashboards/RoleRouter";
 import { UserManagement } from "./components/modules/UserManagement";
 import { CRMLeadManagementWithFilters } from "./components/modules/CRMLeadManagementWithFilters";
 import { CRMConversionAnalyticsDashboard } from "./components/modules/CRMConversionAnalyticsDashboard";
@@ -303,7 +302,7 @@ export const router = createBrowserRouter([
         path: "operations",
         element: <OperationsLayout />,
         children: [
-          { index: true, element: <OperationsRouter /> },
+          { index: true, element: <Dashboard /> },
           { path: "data-capture", element: <OperationsDataCapture /> },
         ]
       },
