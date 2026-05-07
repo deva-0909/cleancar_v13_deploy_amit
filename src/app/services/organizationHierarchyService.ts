@@ -72,7 +72,11 @@ class OrganizationHierarchyService {
       version: 1,
       lastUpdated: new Date().toISOString(),
     };
-    DataService.setAll("CITY_CONFIG", [config]);
+    try {
+      DataService.setAll("CITY_CONFIG", [config]);
+    } catch (e) {
+      console.warn("[OrgHierarchy] localStorage full — skipping city config persist");
+    }
     console.log('[OrgHierarchy] Configuration persisted to DataService');
   }
 

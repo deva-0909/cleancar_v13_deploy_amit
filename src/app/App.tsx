@@ -52,6 +52,16 @@ export default function App() {
   useEffect(() => {
     async function bootstrap() {
       try {
+        // Clear ALL city-namespaced keys on every startup to prevent quota errors
+        // These are recreated fresh from Supabase each session
+        const cityKeys = Object.keys(localStorage).filter(k =>
+          k.includes('CITY-SURAT') || k.includes('CITY-MUMBAI') || k.includes('CITY-AHMEDABAD')
+        );
+        cityKeys.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+        if (cityKeys.length > 0) {
+          console.log(`[App] Cleared ${cityKeys.length} stale city keys from localStorage`);
+        }
+
         setLoadingMsg("Loading employees...");
         await employeeDatabaseService.loadFromSupabase();
 
