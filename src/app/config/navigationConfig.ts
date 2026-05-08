@@ -107,13 +107,13 @@ export const NAV_CONFIG: NavItem[] = [
     description: "Change mobile number and account settings",
   },
 
-  // Travel Reimbursement — visible to all roles (admin can disable per employee)
+  // Travel Reimbursement — uses "travel" module so permissionMatrix controls visibility
   {
     id: "travel",
     label: "Travel & Reimbursement",
     icon: Car,
     path: "/travel",
-    module: "dashboard",
+    module: "travel",
     match: "prefix",
     description: "Submit and track travel expense claims",
   },
