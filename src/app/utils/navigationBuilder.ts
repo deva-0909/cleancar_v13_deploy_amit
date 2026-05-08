@@ -96,9 +96,8 @@ export function buildNavigation(employee: NavEmployee | null, city?: CityId): Na
     .map(filterNavItem)
     .filter((item): item is NavItem => item !== null);
 
-  // Pass 1 (hasPermission) is the single source of truth for nav filtering.
-  // The previous Pass 2 Object.keys() filter was redundant and caused silent
-  // removal of legitimate nav items for 14 of 17 roles. Removed per F-NAV-01.
+  // Single source of truth: hasPermission() above already filtered correctly
+  // Double-filter removed (F-NAV-01) — it blocked travel/my-account for all roles
   return filteredNav;
 }
 
