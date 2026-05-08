@@ -3,7 +3,6 @@
  * Handles approvals across all modules: HR, Finance, Operations, Inventory
  */
 
-import { DataService } from "../services/DataService";
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { employeeDatabaseService } from "../services/employeeDatabaseService";
 import { useEvents } from "./EventSystem";
@@ -75,9 +74,7 @@ interface ApprovalContextType {
 const ApprovalContext = createContext<ApprovalContextType | undefined>(undefined);
 
 export function ApprovalProvider({ children }: { children: ReactNode }) {
-  const [approvals, setApprovals] = useState<Approval[]>(() =>
-    DataService.get<Approval>("APPROVALS")
-  );
+  const [approvals, setApprovals] = useState<Approval[]>([]);
   const { emit } = useEvents();
   // PHASE 3: Using useEmployeeData (single source of truth)
   const { payrollRuns } = useEmployeeData();
@@ -132,17 +129,13 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
       date: new Date().toISOString(),
     };
 
-    setApprovals(prev => {
-      const updated = [newApproval, ...prev];
-      DataService.setAll("APPROVALS", updated);
-      return updated;
-    });
+    setApprovals(prev => [newApproval, ...prev]);
     emit("PAYMENT_RECEIVED", { approvalId: newApproval.id, type: approval.type }, "ApprovalSystem");
   }, [emit]);
 
   const approveApproval = useCallback((id: string, approver: string) => {
-    setApprovals(prev => {
-      const updated = prev.map(approval =>
+    setApprovals(prev =>
+      prev.map(approval =>
         approval.id === id
           ? {
               ...approval,
@@ -151,10 +144,8 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
               approvedAt: new Date().toISOString(),
             }
           : approval
-      );
-      DataService.setAll("APPROVALS", updated);
-      return updated;
-    });
+      )
+    );
 
     const approval = approvals.find(a => a.id === id);
     if (approval) {
