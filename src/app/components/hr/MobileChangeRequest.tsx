@@ -17,18 +17,22 @@ export function MobileChangeRequest() {
   const [submitted, setSubmitted] = useState(false);
   const [mobileError, setMobileError] = useState("");
 
-  // Find current employee
+  // Find current employee — with safety guards for all roles
   const employees = employeeDatabaseService.getAll();
+  const empId = currentUser?.employeeId || "";
+  const empName = currentUser?.name || currentRole;
+
   const currentEmployee = employees.find(
-    e => e.id === currentUser.employeeId || e.mobile === currentUser.employeeId
+    e => e.id === empId || e.employeeId === empId ||
+         e.mobile === empId || e.loginMobile === empId
   );
 
   // Check if there is already a pending request
-  const existingRequest = approvals.find(
+  const existingRequest = Array.isArray(approvals) ? approvals.find(
     a => a.type === "Mobile Number Change"
-      && a.relatedId === currentUser.employeeId
+      && a.relatedId === empId
       && a.status === "Pending"
-  );
+  ) : undefined;
 
   const validateMobile = (m: string) => {
     if (m.length !== 10) return "Must be exactly 10 digits";
@@ -44,11 +48,11 @@ export function MobileChangeRequest() {
 
     addApproval({
       type: "Mobile Number Change",
-      requester: currentEmployee?.fullName || currentRole,
+      requester: currentEmployee?.fullName || empName,
       description: `Mobile number change request\nEmployee: ${currentEmployee?.fullName}\n`
                  + `Current: ${currentEmployee?.mobile}\nNew: ${newMobile}\nReason: ${reason}`,
       priority: "Medium",
-      relatedId: currentUser.employeeId,
+      relatedId: empId,
       approver: undefined,
       // Store new mobile in description for retrieval on approval
     });

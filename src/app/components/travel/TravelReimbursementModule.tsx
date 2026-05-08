@@ -1,4 +1,3 @@
-import { BackButton } from "../ui/back-button";
 import { useRole } from "../../contexts/RoleContext";
 import { TravelEmployeeView }   from "./TravelEmployeeView";
 import { TravelManagerView }    from "./TravelManagerView";
@@ -22,10 +21,11 @@ export default function TravelReimbursementModule() {
   }
   // Manager view includes their own trips + pending approvals tab
   if (["Operations Manager", "Sr Operations Manager", "Cluster Manager",
-       "Supervisor", "TSM", "Store Manager"].includes(currentRole)) {
+       "Supervisor", "TSM", "TSE", "Store Manager"].includes(currentRole)) {
     return <TravelManagerView />;
   }
-  // All others: employee view (if enabled)
+  // Employee view for all remaining roles (Car Washer, CCE, Accounts etc.)
+  // isEnabled defaults to TRUE for all — Admin can disable per employee
   if (!isEnabled) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-8">

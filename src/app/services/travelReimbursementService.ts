@@ -208,8 +208,13 @@ class TravelReimbursementService {
   }
 
   isEmployeeEnabled(employeeId: string): boolean {
+    if (!employeeId) return true; // No ID = allow (graceful fallback)
     const all = this.getPermissions();
-    return all.some(p => p.employeeId === employeeId && p.isEnabled);
+    // Default: ENABLED for all. Admin can explicitly DISABLE.
+    // Check if explicitly disabled
+    const explicit = all.find(p => p.employeeId === employeeId);
+    if (explicit) return explicit.isEnabled; // Respect explicit setting
+    return true; // Default: enabled for everyone
   }
 
   setPermission(

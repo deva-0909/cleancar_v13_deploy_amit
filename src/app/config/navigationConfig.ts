@@ -96,6 +96,28 @@ export const NAV_CONFIG: NavItem[] = [
     ]
   },
 
+  // My Account — always visible to all roles
+  {
+    id: "my-account",
+    label: "My Account",
+    icon: User,
+    path: "/my-account/mobile-change",
+    module: "dashboard",
+    match: "prefix",
+    description: "Change mobile number and account settings",
+  },
+
+  // Travel Reimbursement — visible to all roles (admin can disable per employee)
+  {
+    id: "travel",
+    label: "Travel & Reimbursement",
+    icon: Car,
+    path: "/travel",
+    module: "dashboard",
+    match: "prefix",
+    description: "Submit and track travel expense claims",
+  },
+
   // TSE - Tele Sales Executive App
   {
     label: "TSE App",
