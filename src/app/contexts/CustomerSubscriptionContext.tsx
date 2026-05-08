@@ -90,7 +90,7 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
 
   // Persist to storage (local cache - instant)
   useEffect(() => {
-    DataService.setAll("SUBSCRIPTIONS", subscriptions);
+    if (subscriptions.length > 0) DataService.setAll("SUBSCRIPTIONS", subscriptions);
   }, [subscriptions]);
 
   // Backend sync (background, non-blocking)

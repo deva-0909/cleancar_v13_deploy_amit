@@ -1,3 +1,4 @@
+import { Button } from "../ui/button";
 /**
  * Protected Content Component
  *
@@ -10,7 +11,6 @@ import { usePermissions } from "../../hooks/usePermissions";
 import { type EngineType, type Permission, type DataScope } from "../../lib/accessControl";
 import { Badge } from "../ui/badge";
 import { Lock, Eye, EyeOff } from "lucide-react";
-import { Button } from "../ui/button";
 
 // ==================== PROTECTED CONTENT ====================
 

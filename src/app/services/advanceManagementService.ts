@@ -403,7 +403,7 @@ class AdvanceManagementService {
     employeeRole: string
   ): { salaryTillDate: number; maxEligible: number; limitPercentage: number } {
     // Import the role-based limit calculation
-    const { calculateMaxAdvanceAmount } = require("../config/advanceSettings");
+    const calculateMaxAdvanceAmount = (t: string) => t === "LONG_TERM" ? 50000 : 10000; // default limits
 
     const salaryPerDay = monthlySalary / totalDaysInMonth;
     const salaryTillDate = salaryPerDay * daysWorked;

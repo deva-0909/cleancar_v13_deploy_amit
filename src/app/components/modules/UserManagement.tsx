@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -37,10 +36,10 @@ type User = {
 };
 
 export function UserManagement() {
-  const navigate = useNavigate();
   const { employees } = useEmployee();
   const { addEmployee, updateEmployee, deleteEmployee } = useHRData();
   const { currentRole } = useRole();
+  const { city, cityInfo } = useCity();
   const { customRoles } = useCustomRoles();
 
   const roles = [
@@ -84,7 +83,7 @@ export function UserManagement() {
     name: "",
     email: "",
     role: "Car Washer",
-    city: cityInfo?.displayName || "Surat",
+    city: cityInfo.displayName,
     phone: "",
     status: "Active"
   });
@@ -150,7 +149,7 @@ export function UserManagement() {
         name: "",
         email: "",
         role: "Car Washer",
-        city: cityInfo?.displayName || "Surat",
+        city: cityInfo.displayName,
         phone: "",
         status: "Active"
       });
@@ -234,7 +233,7 @@ export function UserManagement() {
           icon: <Download className="w-4 h-4 mr-2" />,
         }}
         breadcrumbs={[
-          { label: "Dashboard", onClick: () => navigate("/") },
+          { label: "Dashboard", onClick: () => window.location.href = "/" },
           { label: "User Management" },
         ]}
       />
@@ -257,7 +256,7 @@ export function UserManagement() {
                     name: "",
                     email: "",
                     role: "Car Washer",
-                    city: cityInfo?.displayName || "Surat",
+                    city: cityInfo.displayName,
                     phone: "",
                     status: "Active"
                   });
@@ -307,7 +306,7 @@ export function UserManagement() {
                   value={formData.city}
                   onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                   options={[
-                    { value: cityInfo?.displayName || "Surat", label: cityInfo?.displayName || "Surat" },
+                    { value: cityInfo.displayName, label: cityInfo.displayName },
                     { value: "Ahmedabad", label: "Ahmedabad" },
                     { value: "Vadodara", label: "Vadodara" },
                     { value: "Rajkot", label: "Rajkot" },

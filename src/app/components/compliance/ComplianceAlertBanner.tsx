@@ -89,7 +89,7 @@ export function ComplianceAlertBanner() {
           {/* Actions */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => window.open("/gst/monitoring", "_self")}
+              onClick={() => (console.log("Compliance AI bot - feature coming soon"))}
               className={`flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                 currentAlert.severity === "critical"
                   ? "bg-red-600 text-white hover:bg-red-700"

@@ -117,11 +117,11 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const { emit } = useEvents();
 
   useEffect(() => {
-    DataService.setAll("INVENTORY_ITEMS", inventory);
+    if (inventory.length > 0) DataService.setAll("INVENTORY_ITEMS", inventory);
   }, [inventory]);
 
   useEffect(() => {
-    DataService.setAll("STOCK_TRANSACTIONS", stockTransactions);
+    if (stockTransactions.length > 0) DataService.setAll("STOCK_TRANSACTIONS", stockTransactions);
   }, [stockTransactions]);
 
   // Inventory Item CRUD

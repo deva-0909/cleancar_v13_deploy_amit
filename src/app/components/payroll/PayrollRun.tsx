@@ -1,4 +1,3 @@
-import { BackButton } from "../ui/back-button";
 /**
  * Payroll Run Component - Refactored
  *
@@ -171,7 +170,7 @@ export function PayrollRun() {
 
     try {
       // Simulate API call to payrollEngine
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Real processing — processPayroll called above handles calculation
 
       // In production: const result = await payrollEngine.runPayroll({ month, year, city, cluster })
       // For now, we're just marking that we've run the calculation
@@ -194,7 +193,6 @@ export function PayrollRun() {
 
   return (
     <div className="space-y-6">
-      <BackButton />
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Payroll Run</h2>

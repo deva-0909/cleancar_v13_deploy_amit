@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 /**
  * Salary Payable View - Shows approved salaries awaiting payment
  *
@@ -7,7 +8,6 @@
  * @component
  */
 
-import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { formatCurrency } from "../../lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -93,7 +93,6 @@ function formatDate(dateString: string): string {
 // ============================================================================
 
 export function SalaryPayableView() {
-  const navigate = useNavigate();
   const { payrollRuns } = usePayroll();
   const { employees } = useEmployee();
 
@@ -376,7 +375,7 @@ export function SalaryPayableView() {
                         variant="ghost"
                         size="sm"
                         onClick={() =>
-                          navigate(`/payroll/salary-payment?employeeId=${payable.employeeId}`)
+                          (navigate(`/payroll/salary-payment?employeeId=${payable.employeeId}`))
                         }
                       >
                         <ArrowRight className="w-4 h-4" />

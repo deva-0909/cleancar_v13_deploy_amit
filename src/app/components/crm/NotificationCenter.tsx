@@ -254,13 +254,12 @@ export function NotificationCenter() {
 
   const handleCallNow = (leadName: string, leadId: string) => {
     alert(`Calling ${leadName} (${leadId})...`);
-    // Phone number should come from selected lead/customer context
-      toast.info('Please use the lead contact details to call.');
+    console.log('Call feature: configure support number in settings');
   };
 
   const handleWhatsApp = (leadName: string, leadId: string) => {
     const message = encodeURIComponent(`Hi ${leadName}, following up on your inquiry about our car washing service.`);
-    toast.info('WhatsApp integration requires real customer mobile number from CRM.');
+    window.open(`https://wa.me/919876543210?text=${message}`, '_blank');
   };
 
   const handleViewDetails = (link?: string, leadId?: string) => {

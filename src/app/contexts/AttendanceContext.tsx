@@ -93,7 +93,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
   // Persist to storage
   useEffect(() => {
-    DataService.setAll("ATTENDANCE_RECORDS", attendanceRecords);
+    if (attendanceRecords.length > 0) DataService.setAll("ATTENDANCE_RECORDS", attendanceRecords);
   }, [attendanceRecords]);
 
   // ========== ACTIONS ==========

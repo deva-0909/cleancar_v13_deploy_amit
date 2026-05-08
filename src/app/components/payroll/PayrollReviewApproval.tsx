@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 /**
  * Payroll Review & Approval - Enhanced with Finance Integration
  *
@@ -7,7 +8,6 @@
  * @component
  */
 
-import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { formatCurrency } from "../../lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -156,7 +156,6 @@ function StatusTracker({ currentStatus }: StatusTrackerProps) {
 // ============================================================================
 
 export function PayrollReviewApproval() {
-  const navigate = useNavigate();
   const dbEmps = employeeDatabaseService.getAll();
   const [employees, setEmployees] = useState(dbEmps.slice(0,25).map(emp => ({
     employeeId: emp.employeeId,
@@ -528,7 +527,7 @@ export function PayrollReviewApproval() {
               )}
               {status === "finance_approved" && (
                 <Button
-                  onClick={() => navigate("/payroll/salary-payables")}
+                  onClick={() => (navigate("/payroll/salary-payables"))}
                   className="bg-purple-600 hover:bg-purple-700"
                 >
                   Go to Salary Payables
