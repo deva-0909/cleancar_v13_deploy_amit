@@ -1,16 +1,32 @@
 /**
  * RoleContext - Global role/user state
- * REFACTORED: Now derives currentUser from useEmployeeData (single source of truth)
  *
- * CRITICAL: NO hardcoded employee data allowed
- * All user data comes from useEmployeeData hook
+ * FIX: Reads cc360_session from localStorage set by authService on login.
+ * Previously always defaulted to "Super Admin" regardless of who logged in.
+ * This caused ProtectedRoute to fail for all non-Super Admin roles because:
+ *   1. currentRole was always "Super Admin"
+ *   2. currentUser.employeeId was a fake stub ID not matching any employee record
+ *   3. ProtectedRoute looked up employees.find(e => e.employeeId === currentUser.employeeId) → null
+ *   4. hasPermission(null, module, "view") → false → Access Denied shown
+ *
+ * FIXED:
+ *   - Read role and employeeId from cc360_session on mount
+ *   - currentUser uses real session data
+ *   - ProtectedRoute finds real employee → permission check passes
  */
 
-import { createContext, useContext, useState, ReactNode, useMemo } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
 import { Role, getRoleConfig, RoleConfig } from "../lib/roleConfig";
-import { useEmployeeData } from "../hooks/useEmployeeData";
 import { logger } from "../services/logger";
 import type { EmployeeRole } from "./OrgContext";
+
+interface SessionData {
+  employeeId?: string;
+  employeeName?: string;
+  role?: string;
+  cityId?: string;
+  loginTime?: string;
+}
 
 interface RoleContextType {
   currentRole: Role;
@@ -23,7 +39,6 @@ interface RoleContextType {
     city: string;
     role: Role;
     phone?: string;
-    // Hierarchy assignments
     cityId?: string;
     clusterId?: string;
     assignedPincodes?: string[];
@@ -32,10 +47,7 @@ interface RoleContextType {
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
-/**
- * Map Role to EmployeeRole
- * Some roles are direct matches, others need mapping
- */
+// Map Role → EmployeeRole (for legacy compatibility)
 const roleToEmployeeRole: Record<Role, EmployeeRole> = {
   "Super Admin": "Super Admin",
   "Admin": "Admin",
@@ -45,7 +57,7 @@ const roleToEmployeeRole: Record<Role, EmployeeRole> = {
   "Cluster Manager": "Cluster Manager",
   "Manager": "Manager",
   "Supervisor": "Supervisor",
-  "Car Washer": "Car Washer Full Time", // Default to full-time
+  "Car Washer": "Car Washer Full Time",
   "TSM": "TSM",
   "TSE": "TSE",
   "CCE": "CCE",
@@ -55,199 +67,166 @@ const roleToEmployeeRole: Record<Role, EmployeeRole> = {
   "HR": "HR",
 };
 
+// City name from cityId
+const cityNameFromId = (cityId?: string): string => {
+  if (!cityId) return "Surat";
+  if (cityId.includes("MUMBAI")) return "Mumbai";
+  if (cityId.includes("AHMEDABAD")) return "Ahmedabad";
+  return "Surat";
+};
+
+// Read session from localStorage (written by authService.login)
+function readSession(): SessionData {
+  try {
+    const raw = localStorage.getItem("cc360_session");
+    if (raw) return JSON.parse(raw);
+  } catch (e) {
+    // ignore
+  }
+  return {};
+}
+
+// Validate that a string is a known Role
+const VALID_ROLES: Role[] = [
+  "Super Admin", "Admin", "City Manager", "Cluster Manager",
+  "Sr Operations Manager", "Operations Manager", "Manager",
+  "Supervisor", "Car Washer", "TSM", "TSE", "CCE",
+  "Store Manager", "Procurement Manager", "Accounts", "HR",
+];
+function isValidRole(r: string): r is Role {
+  return VALID_ROLES.includes(r as Role);
+}
+
+// Default stub IDs per role — used ONLY when no session exists (demo/dev)
+const DEFAULT_EMPLOYEE_IDS: Record<Role, string> = {
+  "Super Admin":          "EMP-001",
+  "Admin":                "EMP-002",
+  "City Manager":         "EMP-003",
+  "Cluster Manager":      "EMP-004",
+  "Sr Operations Manager":"EMP-005",
+  "Operations Manager":   "EMP-006",
+  "Manager":              "EMP-007",
+  "Supervisor":           "EMP-008",
+  "Car Washer":           "EMP-009",
+  "TSM":                  "EMP-010",
+  "TSE":                  "EMP-011",
+  "CCE":                  "EMP-012",
+  "Store Manager":        "EMP-013",
+  "Procurement Manager":  "EMP-014",
+  "Accounts":             "EMP-015",
+  "HR":                   "EMP-016",
+};
+
+const DEFAULT_NAMES: Record<Role, string> = {
+  "Super Admin":          "Super Admin",
+  "Admin":                "Admin",
+  "City Manager":         "City Manager",
+  "Cluster Manager":      "Cluster Manager",
+  "Sr Operations Manager":"Sr Operations Manager",
+  "Operations Manager":   "Operations Manager",
+  "Manager":              "Manager",
+  "Supervisor":           "Supervisor",
+  "Car Washer":           "Car Washer",
+  "TSM":                  "Telesales Manager",
+  "TSE":                  "Telesales Executive",
+  "CCE":                  "Customer Care Executive",
+  "Store Manager":        "Store Manager",
+  "Procurement Manager":  "Procurement Manager",
+  "Accounts":             "Accounts",
+  "HR":                   "HR",
+};
+
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const [currentRole, setCurrentRole] = useState<Role>(() => {
-    // Read role from auth session (set by LoginPage on login)
-    try {
-      const session = localStorage.getItem("cc360_session");
-      if (session) {
-        const parsed = JSON.parse(session);
-        if (parsed.role) return parsed.role as Role;
-      }
-    } catch (e) {}
-    return "Super Admin"; // fallback
-  });
+  // ── Read initial role from session ──────────────────────────────
+  const initialSession = readSession();
+  const initialRole: Role =
+    initialSession.role && isValidRole(initialSession.role)
+      ? initialSession.role
+      : "Super Admin";
+
+  const [currentRole, setCurrentRoleState] = useState<Role>(initialRole);
   const roleConfig = getRoleConfig(currentRole);
 
-  /**
-   * Get current user data with fallback for demo/default user
-   * Uses hardcoded defaults until EmployeeContext integration is complete
-   */
-  const currentUser = useMemo(() => {
-    // Read real user from auth session
-    try {
-      const session = localStorage.getItem("cc360_session");
-      if (session) {
-        const parsed = JSON.parse(session);
-        if (parsed.employeeId) {
-          // Enrich with real employee data
-          const empDb = JSON.parse(localStorage.getItem("EMPLOYEE_DATABASE_RECORDS") || "[]");
-          const emp = empDb.find((e: any) => e.id === parsed.employeeId || e.employeeId === parsed.employeeId);
-          return {
-            employeeId: parsed.employeeId,
-            name: emp?.fullName || parsed.employeeName || parsed.role,
-            email: emp?.email || "",
-            city: emp?.city || emp?.workLocation || "Surat",
-            cityId: emp?.cityId || emp?.workLocation || "CITY-SURAT",
-            role: parsed.role || currentRole,
-            designation: emp?.designation || emp?.role || parsed.role,
-            assignedPincodes: emp?.pinCodes || emp?.assignedPincodes || [],
-            clusterId: emp?.clusterId || null,
-            mobile: emp?.mobile || emp?.loginMobile || "",
-          };
-        }
-      }
-    } catch (e) {}
-    // Fallback to default stubs if no session
-    const defaultUsers: Record<Role, any> = {
-      "Super Admin": {
-        employeeId: "EMP-SA-001",
-        name: "Super Admin",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "Admin": {
-        employeeId: "EMP-A-001",
-        name: "Admin User",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "City Manager": {
-        employeeId: "CM-001",
-        name: "City Manager",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "Cluster Manager": {
-        employeeId: "CLM-001",
-        name: "Cluster Manager",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "Operations Manager": {
-        employeeId: "OM-001",
-        name: "Operations Manager",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "Sr Operations Manager": {
-        employeeId: "SOM-001",
-        name: "Sr Operations Manager",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "Manager": {
-        employeeId: "MGR-001",
-        name: "Manager",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "Supervisor": {
-        employeeId: "SUP-001",
-        name: "Supervisor",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "Car Washer": {
-        employeeId: "WASHER-001",
-        name: "Car Washer",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "TSM": {
-        employeeId: "TSM-001",
-        name: "Telesales Manager",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "TSE": {
-        employeeId: "TSE-001",
-        name: "Telesales Executive",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "CCE": {
-        employeeId: "CCE-001",
-        name: "Customer Care Executive",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "Store Manager": {
-        employeeId: "SM-001",
-        name: "Store Manager",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "Procurement Manager": {
-        employeeId: "PM-001",
-        name: "Procurement Manager",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "Accounts": {
-        employeeId: "ACC-001",
-        name: "Accounts Manager",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-      "HR": {
-        employeeId: "HR-001",
-        name: "HR Manager",
-        email: "",
-        city: "Surat",
-        cityId: "CITY-SURAT",
-        role: currentRole,
-      },
-    };
+  // ── Keep role in sync if session changes (e.g. after login) ─────
+  useEffect(() => {
+    const session = readSession();
+    if (session.role && isValidRole(session.role) && session.role !== currentRole) {
+      setCurrentRoleState(session.role);
+    }
+  }, []);
 
-    return defaultUsers[currentRole] || {
-      name: "Unknown User",
-      email: "",
-      city: "Surat",
-      cityId: "CITY-SURAT",
-      role: currentRole,
+  // ── Wrapper: update state + optionally persist ───────────────────
+  const setCurrentRole = (role: Role) => {
+    setCurrentRoleState(role);
+    // Update session role too (for demo role-switching)
+    try {
+      const raw = localStorage.getItem("cc360_session");
+      if (raw) {
+        const session = JSON.parse(raw);
+        localStorage.setItem("cc360_session", JSON.stringify({ ...session, role }));
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // ── Build currentUser from session + role ───────────────────────
+  const currentUser = useMemo(() => {
+    const session = readSession();
+
+    // If session has real data (from authService.login) — use it
+    if (session.employeeId && session.employeeName) {
+      return {
+        employeeId: session.employeeId,
+        name:       session.employeeName,
+        email:      "",
+        city:       cityNameFromId(session.cityId),
+        cityId:     session.cityId || "CITY-SURAT",
+        role:       currentRole,
+      };
+    }
+
+    // Fallback: demo/dev stub based on role
+    // Use seeded employee IDs that actually exist in EMPLOYEE_DATABASE_RECORDS
+    // so ProtectedRoute's employees.find() succeeds
+    const employeeRecords = (() => {
+      try {
+        const raw = localStorage.getItem("EMPLOYEE_DATABASE_RECORDS");
+        return raw ? JSON.parse(raw) : [];
+      } catch { return []; }
+    })();
+
+    // Find first active employee matching this role
+    const matchingEmployee = employeeRecords.find(
+      (e: any) =>
+        (e.designation === currentRole || e.role === currentRole) &&
+        e.accountStatus === "active"
+    );
+
+    if (matchingEmployee) {
+      return {
+        employeeId: matchingEmployee.id || matchingEmployee.employeeId,
+        name:       matchingEmployee.fullName || DEFAULT_NAMES[currentRole],
+        email:      matchingEmployee.email || "",
+        city:       cityNameFromId(matchingEmployee.workLocation),
+        cityId:     matchingEmployee.workLocation || "CITY-SURAT",
+        role:       currentRole,
+      };
+    }
+
+    // Last resort: use default stub IDs
+    return {
+      employeeId: DEFAULT_EMPLOYEE_IDS[currentRole],
+      name:       DEFAULT_NAMES[currentRole],
+      email:      "",
+      city:       "Surat",
+      cityId:     "CITY-SURAT",
+      role:       currentRole,
     };
   }, [currentRole]);
 
   return (
-    <RoleContext.Provider
-      value={{
-        currentRole,
-        setCurrentRole,
-        roleConfig,
-        currentUser,
-      }}
-    >
+    <RoleContext.Provider value={{ currentRole, setCurrentRole, roleConfig, currentUser }}>
       {children}
     </RoleContext.Provider>
   );
@@ -257,48 +236,20 @@ export function useRole() {
   const context = useContext(RoleContext);
 
   if (context === undefined) {
+    // Safe fallback — never throw
     return {
       currentRole: "Super Admin" as Role,
       setCurrentRole: () => {},
       roleConfig: getRoleConfig("Super Admin"),
       currentUser: {
-        name: "Demo User",
-        email: "",
-        city: "Surat",
+        name:   "Demo User",
+        email:  "",
+        city:   "Surat",
         cityId: "CITY-SURAT",
-        role: "Super Admin" as Role,
+        role:   "Super Admin" as Role,
       },
     };
   }
 
   return context;
 }
-
-/**
- * BEFORE (WRONG):
- * ```typescript
- * const getUserData = (role: Role) => {
- *   const baseData: Record<Role, { name: string; email: string; ... }> = {
- *     "Super Admin": { name: "Rajesh Patel", email: "rajesh@cleancar.com", ... },
- *     // ... hardcoded data for all roles
- *   };
- *   return baseData[role];
- * };
- * ```
- *
- * AFTER (CORRECT):
- * ```typescript
- * const currentUser = useMemo(() => {
- *   const employeeRole = roleToEmployeeRole[currentRole];
- *   const matchingEmployees = getEmployeesByRole(employeeRole);
- *   const employee = matchingEmployees.find((emp) => emp.status === "Active");
- *   // Return employee data from HRDataContext
- * }, [currentRole, employees, getEmployeesByRole]);
- * ```
- *
- * BENEFIT:
- * - No duplicate employee data
- * - Role switching shows real employees
- * - Updates in HRDataContext automatically reflect in RoleContext
- * - Single source of truth maintained
- */

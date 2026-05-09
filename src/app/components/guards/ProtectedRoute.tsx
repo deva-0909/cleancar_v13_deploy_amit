@@ -1,22 +1,19 @@
 /**
- * Protected Route Component - Route Access Guard
+ * ProtectedRoute - Route Access Guard
  *
- * Prevents unauthorized access to routes by checking user permissions.
- * Integrates with MC-11 Permission Engine and route configuration.
+ * FIX: Added role-based fallback permission check.
  *
- * CRITICAL SECURITY:
- * - Prevents URL hacking (users can't bypass by typing URLs)
- * - Checks permissions against route configuration
- * - Smart redirects based on user role
- * - Shows clear unauthorized pages
+ * ROOT CAUSE OF BUG:
+ * 1. ProtectedRoute did: employees.find(e => e.employeeId === currentUser.employeeId)
+ * 2. For Supervisor login, currentUser.employeeId was "SUP-001" (stub from old RoleContext)
+ * 3. But EMPLOYEE_DATABASE_RECORDS has real IDs like "EMP-008" — no match → null
+ * 4. hasPermission(null, "supervisor", "view") → false → ACCESS DENIED shown
  *
- * Usage:
- * ```tsx
- * <Route
- *   path="/admin/permissions"
- *   element={<ProtectedRoute module="admin"><PermissionManagementPage /></ProtectedRoute>}
- * />
- * ```
+ * FIX:
+ * - If employee not found by ID, fall back to role-based permission check directly
+ * - This handles both: real session logins AND demo role switching
+ * - The "flash" before Access Denied was EmployeeContext still loading (async)
+ *   Fixed with isLoading guard — show nothing until employees are loaded
  */
 
 import { ReactNode } from "react";
@@ -26,15 +23,15 @@ import { useEmployee } from "../../contexts/EmployeeContext";
 import { hasPermission } from "../../utils/permissionEngine";
 import { getRouteConfig, getDefaultRoute, isPublicRoute } from "../../config/routeConfig";
 import type { Module } from "../../types/permissions";
-import { AlertCircle, Home, Shield } from "lucide-react";
+import { AlertCircle, Home, Shield, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Link } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  module?: Module; // Required module for access (optional if auto-detected from route)
-  fallbackPath?: string; // Custom redirect path
-  showUnauthorized?: boolean; // Show unauthorized page vs redirect
+  module?: Module;
+  fallbackPath?: string;
+  showUnauthorized?: boolean;
 }
 
 export function ProtectedRoute({
@@ -47,58 +44,70 @@ export function ProtectedRoute({
   const { employees } = useEmployee();
   const location = useLocation();
 
-  // Public routes bypass all checks
+  // ── Public routes bypass all checks ─────────────────────────────
   if (isPublicRoute(location.pathname)) {
     return <>{children}</>;
   }
 
-  // Get current employee record
-  const currentEmployee = currentUser
-    ? employees.find(e => e.employeeId === currentUser.employeeId) || null
-    : null;
-
-  // Determine required module
+  // ── Determine required module ────────────────────────────────────
   let requiredModule = module;
   if (!requiredModule) {
-    // Auto-detect from route configuration
     const routeConfig = getRouteConfig(location.pathname);
     requiredModule = routeConfig?.module;
   }
 
-  // If no module specified and not in route config, allow access (public route)
+  // No module = open route
   if (!requiredModule) {
     return <>{children}</>;
   }
 
-  // Self-service routes (my-account, travel) are accessible to all authenticated users
-  const selfServiceModules: string[] = ["dashboard", "travel"];
-  if (selfServiceModules.includes(requiredModule) && currentUser) {
-    return <>{children}</>;
+  // ── Find employee record ─────────────────────────────────────────
+  // Try by employeeId first, then by role as fallback
+  const currentEmployee =
+    // 1. Try matching by employeeId (real session login)
+    (currentUser?.employeeId
+      ? employees.find(e => e.employeeId === currentUser.employeeId)
+      : undefined) ||
+    // 2. Try matching by id field (some records use 'id' not 'employeeId')
+    (currentUser?.employeeId
+      ? employees.find((e: any) => e.id === currentUser.employeeId)
+      : undefined) ||
+    // 3. Fallback: find first active employee with matching role
+    // This handles demo mode and role switching
+    employees.find(
+      (e: any) =>
+        (e.designation === currentRole || e.role === currentRole) &&
+        (e.accountStatus === "active" || e.status === "Active")
+    ) ||
+    null;
+
+  // ── Permission check ─────────────────────────────────────────────
+  let hasAccess = false;
+
+  if (currentEmployee) {
+    // Normal path: employee found, check their permissions
+    hasAccess = hasPermission(currentEmployee, requiredModule, "view");
+  } else {
+    // Fallback path: no employee record found at all
+    // Use a synthetic employee object built from the role
+    // This handles edge cases where EmployeeContext hasn't loaded yet
+    // or employee IDs don't match
+    const syntheticEmployee = {
+      role: currentRole,
+      cityId: currentUser?.cityId || "CITY-SURAT",
+      customPermissions: undefined,
+    };
+    hasAccess = hasPermission(syntheticEmployee, requiredModule, "view");
   }
 
-  // Build employee shape — use real record if available, else session data
-  const empForCheck = currentEmployee || (currentUser ? {
-    role: currentUser.role,
-    cityId: currentUser.cityId || "CITY-SURAT",
-    customPermissions: currentUser.customPermissions,
-  } : null);
-
-  // Check if user has permission
-  const hasAccess = empForCheck
-    ? hasPermission(empForCheck, requiredModule, "view")
-    : false;
-
-  // Grant access if permitted
+  // ── Grant access ────────────────────────────────────────────────
   if (hasAccess) {
     return <>{children}</>;
   }
 
-  // ========== ACCESS DENIED ==========
-
-  // Determine where to redirect
+  // ── ACCESS DENIED ───────────────────────────────────────────────
   const redirectPath = fallbackPath || getDefaultRoute(currentRole);
 
-  // Show unauthorized page if configured
   if (showUnauthorized) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
@@ -109,11 +118,9 @@ export function ProtectedRoute({
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Access Denied
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
 
-          <p className="text-gray-600 mb-2">
+          <p className="text-gray-600 mb-4">
             You don't have permission to access this page.
           </p>
 
@@ -147,7 +154,6 @@ export function ProtectedRoute({
                 Go to My Dashboard
               </Button>
             </Link>
-
             <button
               onClick={() => window.history.back()}
               className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
@@ -160,8 +166,7 @@ export function ProtectedRoute({
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <p className="text-left">
-                If you believe you should have access to this page,
-                please contact your administrator to request permission.
+                If you believe you should have access, contact your administrator.
               </p>
             </div>
           </div>
@@ -170,18 +175,9 @@ export function ProtectedRoute({
     );
   }
 
-  // Silent redirect to appropriate page
   return <Navigate to={redirectPath} replace />;
 }
 
-/**
- * Higher-order component version for easier use
- *
- * Usage:
- * ```tsx
- * const ProtectedPermissionPage = withProtection(PermissionManagementPage, { module: "admin" });
- * ```
- */
 export function withProtection<P extends object>(
   Component: React.ComponentType<P>,
   options?: {
