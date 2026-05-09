@@ -355,7 +355,7 @@ export const QUICK_ACTIONS: NavItem[] = [
   { label: "My Payslip", path: "/hr/self-service", icon: IdCard, module: "payroll-self-service", match: "prefix" },
   { label: "My Leaves", path: "/hr/professional-leave", icon: Calendar, module: "leave", match: "prefix" },
   { label: "My Advances", path: "/advance/my-advances", icon: Banknote, module: "advance", match: "prefix" },
-  { label: "My Account", path: "/my-account/mobile-change", icon: Phone, module: "dashboard", match: "prefix" },
+  { label: "My Account", path: "/my-account", icon: Phone, module: "dashboard", match: "prefix" },
   { label: "Cloth Exchange", path: "/cloth-tracking/exchange", icon: Scan, module: "cloth-tracking", match: "prefix" },
   { label: "Approvals", path: "/approvals", icon: CheckSquare, module: "approvals", match: "prefix" },
   { label: "Performance", path: "/performance", icon: TrendingUp, module: "performance", match: "prefix" },
