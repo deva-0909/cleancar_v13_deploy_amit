@@ -28,7 +28,7 @@ import { isActiveRoute, hasActiveChild } from "../../utils/isActiveRoute";
 import { RouteGuard } from "../guards/RouteGuard";
 import { useCity, CITIES } from "../../contexts/CityContext";
 import { useSidebar } from "../../contexts/SidebarContext";
-import { isDenseRoute, shouldForceExpand } from "../../config/layoutRules";
+import { isDenseRoute, shouldForceExpand, detectConflicts } from "../../config/layoutRules";
 import {
   Tooltip,
   TooltipContent,
@@ -172,14 +172,17 @@ export function RootLayout() {
     // Skip auto-collapse if user manually toggled
     if (userToggled) return;
 
-    // Force expand for certain routes
-    if (shouldForceExpand(location.pathname)) {
+    // Dev: detect conflicting rules
+    detectConflicts(location.pathname);
+
+    // Priority engine: EXPAND (1) beats COLLAPSE (2)
+    // Pass currentRole for role-aware rules
+    if (shouldForceExpand(location.pathname, currentRole)) {
       setCollapsed(false);
       return;
     }
 
-    // Auto-collapse for dense routes
-    if (isDenseRoute(location.pathname)) {
+    if (isDenseRoute(location.pathname, currentRole)) {
       setCollapsed(true);
     } else {
       setCollapsed(false);
