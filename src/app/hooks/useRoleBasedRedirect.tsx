@@ -21,51 +21,51 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
   // Sales roles - Direct to their specific apps
   TSE: {
     defaultPath: "/tse-app",
-    allowedPaths: ["/tse-app", "/tse-diagnostics", "/leads"], // Don't redirect if already on TSE pages or leads
+    allowedPaths: ["/tse-app", "/tse-diagnostics", "/leads", "/my-account"],
   },
   TSM: {
     defaultPath: "/tsm-app",
-    allowedPaths: ["/", "/tsm-app", "/tele-sales-manager", "/leads", "/customers", "/complaints", "/washer-jobs", "/service-zones", "/hr/professional-leave", "/hr/self-service", "/performance"],
+    allowedPaths: ["/", "/tsm-app", "/tele-sales-manager", "/leads", "/customers", "/complaints", "/washer-jobs", "/service-zones", "/hr/professional-leave", "/hr/self-service", "/performance", "/my-account"],
   },
   CCE: {
     defaultPath: "/cce-app",
-    allowedPaths: ["/", "/cce-app", "/customer-care", "/customer-care-executive", "/leads", "/customers", "/complaints"],
+    allowedPaths: ["/", "/cce-app", "/customer-care", "/customer-care-executive", "/leads", "/customers", "/complaints", "/my-account"],
   },
 
   // Operations roles - Stay on their apps
   "Car Washer": {
     defaultPath: "/washer-core-screens",
-    allowedPaths: ["/", "/car-washer", "/washer-core-screens", "/cloth-tracking/exchange", "/advance", "/hr/professional-leave", "/hr/self-service", "/performance"],
+    allowedPaths: ["/", "/car-washer", "/washer-core-screens", "/cloth-tracking/exchange", "/advance", "/hr/professional-leave", "/hr/self-service", "/performance", "/my-account"],
   },
   Supervisor: {
     defaultPath: "/supervisor-app/dashboard",
-    allowedPaths: ["/", "/supervisor-app", "/supervisor", "/washer-jobs", "/service-zones", "/complaints", "/car-washer", "/inventory", "/cloth-tracking", "/advance", "/hr/professional-leave", "/hr/self-service", "/performance"],
+    allowedPaths: ["/", "/supervisor-app", "/supervisor", "/washer-jobs", "/service-zones", "/complaints", "/car-washer", "/inventory", "/cloth-tracking", "/advance", "/hr/professional-leave", "/hr/self-service", "/performance", "/my-account"],
   },
   "Operations Manager": {
     defaultPath: "/operations",
-    allowedPaths: ["/", "/operations", "/washer-jobs", "/service-zones", "/supervisor", "/complaints", "/car-washer", "/hr/professional-leave", "/hr/self-service", "/approvals", "/performance"],
+    allowedPaths: ["/", "/operations", "/washer-jobs", "/service-zones", "/supervisor", "/complaints", "/car-washer", "/hr/professional-leave", "/hr/self-service", "/approvals", "/performance", "/my-account"],
   },
   "Sr Operations Manager": {
     defaultPath: "/operations",
-    allowedPaths: ["/", "/operations", "/washer-jobs", "/service-zones", "/supervisor", "/complaints", "/car-washer", "/hr/professional-leave", "/hr/self-service", "/approvals", "/performance", "/analytics"],
+    allowedPaths: ["/", "/operations", "/washer-jobs", "/service-zones", "/supervisor", "/complaints", "/car-washer", "/hr/professional-leave", "/hr/self-service", "/approvals", "/performance", "/analytics", "/my-account"],
   },
   "Cluster Manager": {
     defaultPath: "/cluster",
-    allowedPaths: ["/", "/cluster", "/operations", "/washer-jobs", "/service-zones", "/complaints", "/users", "/leads", "/customers", "/finance", "/hr/professional-leave", "/hr/self-service", "/performance", "/analytics"],
+    allowedPaths: ["/", "/cluster", "/operations", "/washer-jobs", "/service-zones", "/complaints", "/users", "/leads", "/customers", "/finance", "/hr/professional-leave", "/hr/self-service", "/performance", "/analytics", "/my-account"],
   },
   "City Manager": {
     defaultPath: "/city-app",
-    allowedPaths: ["/", "/city-app", "/city", "/complaints", "/users", "/leads", "/customers", "/operations", "/washer-jobs", "/service-zones", "/finance", "/hr/professional-leave", "/hr/self-service", "/performance", "/analytics"],
+    allowedPaths: ["/", "/city-app", "/city", "/complaints", "/users", "/leads", "/customers", "/operations", "/washer-jobs", "/service-zones", "/finance", "/hr/professional-leave", "/hr/self-service", "/performance", "/analytics", "/my-account"],
   },
 
   // Store/Procurement roles
   "Store Manager": {
     defaultPath: "/store",
-    allowedPaths: ["/store", "/inventory"],
+    allowedPaths: ["/store", "/inventory", "/my-account"],
   },
   "Procurement Manager": {
     defaultPath: "/procurement",
-    allowedPaths: ["/procurement", "/store"],
+    allowedPaths: ["/procurement", "/store", "/my-account"],
   },
 
   // Admin roles - No redirect, they need access to everything
@@ -81,11 +81,11 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
   // Support roles
   HR: {
     defaultPath: "/hr",
-    allowedPaths: ["/hr", "/advance/hr-management"],
+    allowedPaths: ["/hr", "/advance/hr-management", "/my-account"],
   },
   Accounts: {
     defaultPath: "/finance",
-    allowedPaths: ["/finance", "/accounts"],
+    allowedPaths: ["/finance", "/accounts", "/my-account"],
   },
 };
 
@@ -100,29 +100,28 @@ export function useRoleBasedRedirect(currentRole: Role, enabled: boolean = true)
     if (!enabled) return;
 
     const roleConfig = ROLE_REDIRECTS[currentRole];
-    if (!roleConfig) return;
+    if (!roleConfig) return; // No redirect configured for this role
 
     const currentPath = location.pathname;
     const { defaultPath, allowedPaths = [] } = roleConfig;
 
-    // Don't redirect if already on the correct path
+    // Don't redirect if:
+    // 1. Already on default path
+    // 2. On an allowed path for this role
+    // 3. No allowed paths defined (admin roles - unrestricted access)
+    // 4. On an exact match of allowed path (not just startsWith)
     if (currentPath === defaultPath) return;
+    if (allowedPaths.length === 0) return; // Admin roles have unrestricted access
 
-    // Admin roles (allowedPaths=[]) have unrestricted access — never redirect
-    if (allowedPaths.length === 0) return;
-
-    // "/" is handled synchronously by RoleRouter at mount time.
-    // Skip redirect from here when at "/" to prevent double-navigation flash.
-    if (currentPath === "/") return;
-
-    // Check if current path is allowed for this role
-    const isAllowed = allowedPaths.some((allowed) =>
-      currentPath === allowed || currentPath.startsWith(allowed + '/')
-    );
+    // Check if current path matches any allowed path
+    const isAllowed = allowedPaths.some((path) => {
+      // Exact match or starts with for nested routes
+      return currentPath === path || currentPath.startsWith(path + '/');
+    });
 
     if (isAllowed) return;
 
-    // User has navigated to a path not allowed for their role — redirect
+    // Redirect to default path
     console.log(`[Role Redirect] ${currentRole} → ${defaultPath} (from ${currentPath})`);
     navigate(defaultPath, { replace: true });
   }, [currentRole, navigate, location.pathname, enabled]);
