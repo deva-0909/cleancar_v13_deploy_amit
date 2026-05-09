@@ -70,9 +70,22 @@ export function ProtectedRoute({
     return <>{children}</>;
   }
 
+  // Self-service routes (my-account, travel) are accessible to all authenticated users
+  const selfServiceModules: string[] = ["dashboard", "travel"];
+  if (selfServiceModules.includes(requiredModule) && currentUser) {
+    return <>{children}</>;
+  }
+
+  // Build employee shape — use real record if available, else session data
+  const empForCheck = currentEmployee || (currentUser ? {
+    role: currentUser.role,
+    cityId: currentUser.cityId || "CITY-SURAT",
+    customPermissions: currentUser.customPermissions,
+  } : null);
+
   // Check if user has permission
-  const hasAccess = currentEmployee
-    ? hasPermission(currentEmployee, requiredModule, "view")
+  const hasAccess = empForCheck
+    ? hasPermission(empForCheck, requiredModule, "view")
     : false;
 
   // Grant access if permitted

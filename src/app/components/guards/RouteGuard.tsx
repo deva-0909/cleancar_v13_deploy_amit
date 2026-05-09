@@ -50,12 +50,23 @@ export function RouteGuard() {
       : null;
 
     // Check permission
-    // If employee record exists, use it for permission check
-    // Otherwise, fall back to role-based check using currentUser
-    const hasAccess = currentEmployee
-      ? hasPermission(currentEmployee, routeConfig.module, "view")
-      : currentUser
-      ? hasPermission({ role: currentUser.role, cityId: currentUser.cityId }, routeConfig.module, "view")
+    // Always allow "dashboard" module routes for authenticated users (my-account, travel)
+    // These are self-service routes accessible to ALL roles
+    const selfServiceModules = ["dashboard", "travel"];
+    if (selfServiceModules.includes(routeConfig.module) && currentUser) {
+      return; // Allow — no redirect needed
+    }
+
+    // Build employee shape for permission check
+    // Use real employee record if available, else construct from session
+    const empForCheck = currentEmployee || (currentUser ? {
+      role: currentUser.role,
+      cityId: currentUser.cityId || "CITY-SURAT", // Default city if missing
+      customPermissions: currentUser.customPermissions,
+    } : null);
+
+    const hasAccess = empForCheck
+      ? hasPermission(empForCheck, routeConfig.module, "view")
       : false;
 
     // If unauthorized, redirect to default route for role
