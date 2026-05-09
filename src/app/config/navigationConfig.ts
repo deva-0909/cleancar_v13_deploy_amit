@@ -21,7 +21,7 @@ import {
   FileSearch, BarChart2, Layers, Coins,
   PlusCircle, MinusCircle, FileBarChart, Brain, ShieldCheck, LayoutDashboard,
   Building2, CheckCircle2, ClipboardCheck, GitCompare, FileOutput, ReceiptText,
-  Upload, BookOpen, List, Scale, Zap, Car, Percent
+  Upload, BookOpen, List, Scale, Zap, Car, Percent, User
 } from "lucide-react";
 
 export interface NavItem {
@@ -94,28 +94,6 @@ export const NAV_CONFIG: NavItem[] = [
       { label: "Lead Conversion", path: "/crm/conversion-analytics", icon: BarChart3, module: "crm", match: "prefix" },
       { label: "Notifications", path: "/crm/notifications", icon: Bell, module: "crm", match: "prefix" },
     ]
-  },
-
-  // My Account — always visible to all roles
-  {
-    id: "my-account",
-    label: "My Account",
-    icon: User,
-    path: "/my-account/mobile-change",
-    module: "dashboard",
-    match: "prefix",
-    description: "Change mobile number and account settings",
-  },
-
-  // Travel Reimbursement — uses "travel" module so permissionMatrix controls visibility
-  {
-    id: "travel",
-    label: "Travel & Reimbursement",
-    icon: Car,
-    path: "/travel",
-    module: "travel",
-    match: "prefix",
-    description: "Submit and track travel expense claims",
   },
 
   // TSE - Tele Sales Executive App
@@ -355,7 +333,7 @@ export const QUICK_ACTIONS: NavItem[] = [
   { label: "My Payslip", path: "/hr/self-service", icon: IdCard, module: "payroll-self-service", match: "prefix" },
   { label: "My Leaves", path: "/hr/professional-leave", icon: Calendar, module: "leave", match: "prefix" },
   { label: "My Advances", path: "/advance/my-advances", icon: Banknote, module: "advance", match: "prefix" },
-  { label: "My Account", path: "/my-account/mobile-change", icon: Phone, module: "dashboard", match: "prefix" },
+  { label: "My Account", path: "/my-account", icon: Phone, module: "dashboard", match: "prefix" },
   { label: "Cloth Exchange", path: "/cloth-tracking/exchange", icon: Scan, module: "cloth-tracking", match: "prefix" },
   { label: "Approvals", path: "/approvals", icon: CheckSquare, module: "approvals", match: "prefix" },
   { label: "Performance", path: "/performance", icon: TrendingUp, module: "performance", match: "prefix" },
