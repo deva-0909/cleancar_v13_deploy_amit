@@ -192,13 +192,14 @@ import { TeleSalesManagerApp } from "./components/tsm/TeleSalesManagerApp";
 import { TeleSalesExecutiveApp } from "./components/tse/TeleSalesExecutiveApp";
 import { TSEDiagnostics } from "./components/tse/TSEDiagnostics";
 import { CustomerCareExecutiveApp } from "./components/cce/CustomerCareExecutiveApp";
-// TestBTLService removed from production build
+import TestBTLService from "./test-btl-service";
 import { SubscriptionApp } from "./components/subscription/SubscriptionApp";
 import { PlanSelectionScreen } from "./components/subscription/PlanSelectionScreen";
 // import { AdminPlanManagement } from "./components/subscription/AdminPlanManagement"; // NOW LAZY
 import { SubscriptionDiagnostics } from "./components/subscription/SubscriptionDiagnostics";
 import { HierarchyDashboard } from "./components/hierarchy/HierarchyDashboard";
 import { WasherAttendanceHistory } from "./components/washer/WasherAttendanceHistory";
+import { OperationsRouter } from "./components/operations/OperationsRouter";
 import { OperationsDataCapture } from "./components/operations/OperationsDataCapture";
 import { OperationsLayout } from "./components/operations/OperationsLayout";
 import { ClientPortal } from "./components/client/ClientPortal";
@@ -237,6 +238,7 @@ import { BusinessFlowDemo } from "./components/BusinessFlowDemo";
 import { UnauthorizedPage } from "./components/pages/UnauthorizedPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MobileChangeRequest } from "./components/hr/MobileChangeRequest";
+import { MyAccountPage } from "./components/hr/MyAccountPage";
 
 export const router = createBrowserRouter([
   {
@@ -301,7 +303,7 @@ export const router = createBrowserRouter([
         path: "operations",
         element: <OperationsLayout />,
         children: [
-          { index: true, element: <Dashboard /> },
+          { index: true, element: <OperationsRouter /> },
           { path: "data-capture", element: <OperationsDataCapture /> },
         ]
       },
@@ -580,6 +582,7 @@ export const router = createBrowserRouter([
       { path: "incentives", element: <Navigate to="/incentives/configuration" replace /> },
 
       // My Account - Employee self-service
+      { path: "my-account", element: <MyAccountPage /> },
       { path: "my-account/mobile-change", element: <MobileChangeRequest /> },
 
       // Unauthorized page - shown when access denied

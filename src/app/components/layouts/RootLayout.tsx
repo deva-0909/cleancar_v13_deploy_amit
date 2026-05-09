@@ -41,7 +41,19 @@ import { ConfirmDialog } from "../shared/ConfirmDialog";
 // No hardcoded navigation modules needed here!
 
 export function RootLayout() {
-  // ALL hooks must be declared before any conditional returns (Rules of Hooks)
+  const isPreview = import.meta.env.MODE === "development"
+    || window.location.hostname === "localhost"
+    || window.location.hostname.includes("figma")
+    || new URLSearchParams(window.location.search).get("preview-route") !== null;
+
+  if (!isPreview) {
+    const session = localStorage.getItem("cc360_session");
+    if (!session && !window.location.pathname.startsWith("/login")) {
+      window.location.replace("/login");
+      return null;
+    }
+  }
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState([
@@ -187,28 +199,6 @@ export function RootLayout() {
       }
     });
   }, [location.pathname, location.search]);
-
-  // Session check AFTER all hooks (B01 fix - Rules of Hooks)
-  const isPreview = import.meta.env.MODE === "development"
-    || window.location.hostname === "localhost"
-    || window.location.hostname.includes("figma")
-    || new URLSearchParams(window.location.search).get("preview-route") !== null;
-
-  useEffect(() => {
-    if (!isPreview) {
-      const session = localStorage.getItem("cc360_session");
-      if (!session && !window.location.pathname.startsWith("/login")) {
-        window.location.replace("/login");
-      }
-    }
-  }, [isPreview]);
-
-  // Safe to return null here — after all hooks
-  if (!isPreview && !localStorage.getItem("cc360_session") &&
-      !window.location.pathname.startsWith("/login")) {
-    return null;
-  }
-
 
   return (
     <GlobalFiltersProvider>
@@ -636,7 +626,7 @@ export function RootLayout() {
           {/* User profile footer — pinned to bottom */}
           <div className={`border-t border-gray-200 p-3 bg-gray-50/80 ${collapsed ? "flex justify-center" : ""}`}>
             <Link
-              to="/my-account/mobile-change"
+              to="/my-account"
               className={`flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-gray-100 transition-colors ${
                 collapsed ? "justify-center" : ""
               }`}
