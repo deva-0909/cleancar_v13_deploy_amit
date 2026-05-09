@@ -163,7 +163,7 @@ class DataServiceClass {
       const newRecords = Array.isArray(record) ? record : [record];
       const updated = [...existing, ...newRecords];
       localStorage.setItem(key, JSON.stringify(updated));
-      console.log(`[DataService] Inserted ${newRecords.length} record(s) to ${entityType} (${cityId || DEFAULT_CITY})`);
+      import.meta.env.DEV && console.log(`[DataService] Inserted ${newRecords.length} record(s) to ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
       console.error(`[DataService] Error inserting to ${entityType}:`, error);
       throw error;
@@ -193,7 +193,7 @@ class DataServiceClass {
         record[idField] === id ? { ...record, ...updates } : record
       );
       localStorage.setItem(key, JSON.stringify(updated));
-      console.log(`[DataService] Updated record ${id} in ${entityType} (${cityId || DEFAULT_CITY})`);
+      import.meta.env.DEV && console.log(`[DataService] Updated record ${id} in ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
       console.error(`[DataService] Error updating ${entityType}:`, error);
       throw error;
@@ -219,7 +219,7 @@ class DataServiceClass {
       const records = this.get<T>(entityType, cityId);
       const filtered = records.filter((record) => record[idField] !== id);
       localStorage.setItem(key, JSON.stringify(filtered));
-      console.log(`[DataService] Deleted record ${id} from ${entityType} (${cityId || DEFAULT_CITY})`);
+      import.meta.env.DEV && console.log(`[DataService] Deleted record ${id} from ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
       console.error(`[DataService] Error deleting from ${entityType}:`, error);
       throw error;
@@ -252,7 +252,7 @@ class DataServiceClass {
       if (entityType === "CITY_CONFIG") {
         const globalKey = buildLegacyKey(baseKey);
         localStorage.setItem(globalKey, JSON.stringify(records));
-        console.log(`[DataService] Set ${records.length} record(s) for ${entityType} (GLOBAL)`);
+        import.meta.env.DEV && console.log(`[DataService] Set ${records.length} record(s) for ${entityType} (GLOBAL)`);
         return;
       }
 
@@ -260,7 +260,7 @@ class DataServiceClass {
       // Skip writing large tables that exceed localStorage quota
       const LARGE_TABLES = ["attendance_records", "jobs", "payroll_runs"];
       if (LARGE_TABLES.includes(baseKey) && records.length > 500) {
-        console.log(`[DataService] Skipping large table ${entityType} (${records.length} records) to avoid quota`);
+        import.meta.env.DEV && console.log(`[DataService] Skipping large table ${entityType} (${records.length} records) to avoid quota`);
         return;
       }
       try {
@@ -274,7 +274,7 @@ class DataServiceClass {
           console.warn(`[DataService] Could not store ${entityType} — localStorage full`);
         }
       }
-      console.log(`[DataService] Set ${records.length} record(s) for ${entityType} (${cityId || DEFAULT_CITY})`);
+      import.meta.env.DEV && console.log(`[DataService] Set ${records.length} record(s) for ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
       console.error(`[DataService] Error setting ${entityType}:`, error);
       throw error;
@@ -291,7 +291,7 @@ class DataServiceClass {
       const baseKey = STORAGE_KEYS[entityType];
       const key = buildKey(baseKey, cityId);
       localStorage.removeItem(key);
-      console.log(`[DataService] Cleared ${entityType} (${cityId || DEFAULT_CITY})`);
+      import.meta.env.DEV && console.log(`[DataService] Cleared ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
       console.error(`[DataService] Error clearing ${entityType}:`, error);
       throw error;
@@ -310,7 +310,7 @@ class DataServiceClass {
         const key = buildKey(baseKey, city);
         localStorage.removeItem(key);
       });
-      console.log(`[DataService] Cleared all data for ${city}`);
+      import.meta.env.DEV && console.log(`[DataService] Cleared all data for ${city}`);
     } catch (error) {
       console.error("[DataService] Error clearing all data:", error);
       throw error;
@@ -376,10 +376,10 @@ function migrateAttendanceData() {
 
     // Only migrate if old data exists and new doesn't
     if (oldData && !newData) {
-      console.log("[DataService] 🔄 Migrating attendance data from old key to unified system");
+      import.meta.env.DEV && console.log("[DataService] 🔄 Migrating attendance data from old key to unified system");
       localStorage.setItem(newKey, oldData);
       localStorage.removeItem(oldKey);
-      console.log("[DataService] ✅ Attendance migration complete");
+      import.meta.env.DEV && console.log("[DataService] ✅ Attendance migration complete");
     }
   } catch (error) {
     console.error("[DataService] ❌ Attendance migration failed:", error);

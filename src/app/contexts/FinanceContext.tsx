@@ -6,7 +6,7 @@
  * RULE: Finance displays subscription data via subscriptionId lookup
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 import { useSync } from "../hooks/useSync";
@@ -280,25 +280,23 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }, [payables]);
 
   useEffect(() => {
-    // NEVER write revenues back to localStorage - Supabase is source of truth
-    // Writing [] on mount overwrites the 1399 records loaded from Supabase (B05 fix)
-    if (revenues.length > 0) DataService.setAll("FINANCE_REVENUES", revenues);
+    // Revenues NOT written back — Supabase is source of truth (prevents overwrite with [])
   }, [revenues]);
 
   useEffect(() => {
-    DataService.setAll("FINANCE_LEDGER", ledgerEntries);
+    if (ledgerEntries.length > 0) DataService.setAll("FINANCE_LEDGER", ledgerEntries);
   }, [ledgerEntries]);
 
   useEffect(() => {
-    DataService.setAll("FINANCE_BUDGETS", budgets);
+    if (budgets.length > 0) DataService.setAll("FINANCE_BUDGETS", budgets);
   }, [budgets]);
 
   useEffect(() => {
-    DataService.setAll("FINANCE_ALERTS", alerts);
+    if (alerts.length > 0) DataService.setAll("FINANCE_ALERTS", alerts);
   }, [alerts]);
 
   useEffect(() => {
-    DataService.setAll("FINANCE_RECOMMENDATIONS", recommendations);
+    if (recommendations.length > 0) DataService.setAll("FINANCE_RECOMMENDATIONS", recommendations);
   }, [recommendations]);
 
   // Backend sync (background, non-blocking)
@@ -590,13 +588,13 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return mrrData.filter(item => item.cityId === cityId);
   };
 
-  const getRevenueByCity = useCallback((cityId: string): Revenue[] => {
+  const getRevenueByCity = (cityId: string): Revenue[] => {
     return revenues.filter(item => item.cityId === cityId);
-  }, [revenues]);
+  };
 
-  const getPayablesByCity = useCallback((cityId: string): Payable[] => {
+  const getPayablesByCity = (cityId: string): Payable[] => {
     return payables.filter(item => item.cityId === cityId);
-  }, [payables]);
+  };
 
   const getLedgerEntriesByCity = (cityId: string): LedgerEntry[] => {
     return ledgerEntries.filter(item => item.cityId === cityId);

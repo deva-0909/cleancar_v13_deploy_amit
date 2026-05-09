@@ -302,7 +302,7 @@ export function BusinessRulesProvider({ children }: BusinessRulesProviderProps) 
 
   // Persist to storage whenever rules change
   useEffect(() => {
-    DataService.setAll("BUSINESS_RULES", [rules]);
+    if (rules) DataService.setAll("BUSINESS_RULES", [rules]);
     logger.debug("BusinessRulesContext: Rules persisted", { version: rules.version });
   }, [rules]);
 

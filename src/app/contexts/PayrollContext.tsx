@@ -194,7 +194,7 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
   }, [payrollRuns]);
 
   useEffect(() => {
-    DataService.setAll("SALARY_STRUCTURES", salaryStructures);
+    if (salaryStructures.length > 0) DataService.setAll("SALARY_STRUCTURES", salaryStructures);
   }, [salaryStructures]);
 
   // ========== PAYROLL ACTIONS ==========

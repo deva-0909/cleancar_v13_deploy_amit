@@ -176,30 +176,11 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const addLead = (leadData: Omit<Lead, "leadId" | "createdAt">): Lead => {
     const newLead: Lead = {
       ...leadData,
-      cityId: leadData.cityId || city, // Ensure cityId is always set
       leadId: `LEAD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date().toISOString(),
     };
 
     setLeads((prev) => [...prev, newLead]);
-
-    // Write to Supabase so other users (TSM, CCE) see the lead immediately
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
-    const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-    if (SUPABASE_URL && SUPABASE_KEY) {
-      fetch(`${SUPABASE_URL}/rest/v1/cleancar_leads`, {
-        method: "POST",
-        headers: {
-          "apikey": SUPABASE_KEY,
-          "Authorization": `Bearer ${SUPABASE_KEY}`,
-          "Content-Type": "application/json",
-          "Prefer": "resolution=merge-duplicates",
-        },
-        body: JSON.stringify({ data: newLead, city_id: newLead.cityId }),
-      }).then(() => {
-        console.log("[CRM] Lead synced to Supabase:", newLead.leadId);
-      }).catch(e => console.warn("[CRM] Failed to sync lead to Supabase:", e));
-    }
 
     // Track lead creation in analytics
     AnalyticsService.track("LEAD_CREATED", {

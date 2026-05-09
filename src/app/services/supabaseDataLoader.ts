@@ -109,7 +109,7 @@ function safeWrite(key: string, data: any[]): void {
 
 export async function loadAllDataFromSupabase(forceReload = false): Promise<void> {
   if (!isSupabaseEnabled) {
-    console.log("[Supabase] Not configured — using localStorage only");
+    import.meta.env.DEV && console.log("[Supabase] Not configured — using localStorage only");
     return;
   }
 
@@ -120,28 +120,28 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
       if (existing) {
         const parsed = JSON.parse(existing);
         if (Array.isArray(parsed) && parsed.length > 10) {
-          console.log(`[Supabase] Data verified (${parsed.length} revenues) — skipping fetch`);
+          import.meta.env.DEV && console.log(`[Supabase] Data verified (${parsed.length} revenues) — skipping fetch`);
           return;
         }
       }
     } catch (e) { /* corrupt — proceed with full fetch */ }
   }
 
-  console.log("[Supabase] Loading all data into localStorage...");
+  import.meta.env.DEV && console.log("[Supabase] Loading all data into localStorage...");
 
   // Clear ALL existing cleancar keys first to free up space
   const keysToDelete = Object.keys(localStorage).filter(k => k.startsWith("cleancar_"));
   keysToDelete.forEach(k => {
     try { localStorage.removeItem(k); } catch (e) {}
   });
-  console.log(`[Supabase] Cleared ${keysToDelete.length} existing keys`);
+  import.meta.env.DEV && console.log(`[Supabase] Cleared ${keysToDelete.length} existing keys`);
 
   // Fetch and store each table sequentially (not parallel) to avoid race conditions
   for (const { table, localKey, limit } of TABLE_MAP) {
     try {
       const rows = await fetchTable(table, limit);
       if (rows.length === 0) {
-        console.log(`[Supabase] ⚠️ ${table}: 0 records`);
+        import.meta.env.DEV && console.log(`[Supabase] ⚠️ ${table}: 0 records`);
         continue;
       }
 
@@ -150,12 +150,12 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
       const legacyKey = `cleancar_${localKey}`;
       const normalized = rows.map((r: any) => normalizeRecord(table, r));
       safeWrite(legacyKey, normalized);
-      console.log(`[Supabase] ✅ ${table}: ${normalized.length} records → ${legacyKey}`);
+      import.meta.env.DEV && console.log(`[Supabase] ✅ ${table}: ${normalized.length} records → ${legacyKey}`);
 
     } catch (err) {
       console.error(`[Supabase] Failed ${table}:`, err);
     }
   }
 
-  console.log("[Supabase] ✅ All data loaded");
+  import.meta.env.DEV && console.log("[Supabase] ✅ All data loaded");
 }

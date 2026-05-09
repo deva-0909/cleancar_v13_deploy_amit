@@ -96,8 +96,7 @@ export function buildNavigation(employee: NavEmployee | null, city?: CityId): Na
     .map(filterNavItem)
     .filter((item): item is NavItem => item !== null);
 
-  // Single source of truth: hasPermission() above already filtered correctly
-  // Double-filter removed (F-NAV-01) — it blocked travel/my-account for all roles
+  // Single filter via hasPermission() above — double filter removed (F-NAV-01)
   return filteredNav;
 }
 

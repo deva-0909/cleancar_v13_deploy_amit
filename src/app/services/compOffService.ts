@@ -353,7 +353,7 @@ class CompOffService {
   private saveCompOffEntry(entry: CompOffEntry): void {
     const allEntries = this.getAllCompOffEntries();
     allEntries.push(entry);
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(allEntries));
+    try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(allEntries)); } catch(e) { console.warn("[Storage] Quota exceeded"); }
   }
 
   private updateCompOffEntry(updatedEntry: CompOffEntry): void {
@@ -361,14 +361,14 @@ class CompOffService {
     const index = allEntries.findIndex((e) => e.id === updatedEntry.id);
     if (index !== -1) {
       allEntries[index] = updatedEntry;
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(allEntries));
+      try { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(allEntries)); } catch(e) { console.warn("[Storage] Quota exceeded"); }
     }
   }
 
   private saveCompOffRequest(request: CompOffRequest): void {
     const requests = this.getCompOffRequests();
     requests.push(request);
-    localStorage.setItem(this.REQUESTS_KEY, JSON.stringify(requests));
+    try { localStorage.setItem(this.REQUESTS_KEY, JSON.stringify(requests)); } catch(e) { console.warn("[Storage] Quota exceeded"); }
   }
 
   private updateCompOffRequest(updatedRequest: CompOffRequest): void {
@@ -376,7 +376,7 @@ class CompOffService {
     const index = requests.findIndex((r) => r.id === updatedRequest.id);
     if (index !== -1) {
       requests[index] = updatedRequest;
-      localStorage.setItem(this.REQUESTS_KEY, JSON.stringify(requests));
+      try { localStorage.setItem(this.REQUESTS_KEY, JSON.stringify(requests)); } catch(e) { console.warn("[Storage] Quota exceeded"); }
     }
   }
 

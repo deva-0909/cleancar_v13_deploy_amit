@@ -36,8 +36,17 @@ export default defineConfig({
     ],
   },
   build: {
+    chunkSizeWarningLimit: 1200,
+    sourcemap: false, // No source maps in production
     rollupOptions: {
       external: [],
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-charts": ["recharts"],
+          "vendor-ui": ["lucide-react", "sonner"],
+        },
+      },
     },
     commonjsOptions: {
       include: [/recharts/, /react-is/, /node_modules/],

@@ -192,7 +192,7 @@ import { TeleSalesManagerApp } from "./components/tsm/TeleSalesManagerApp";
 import { TeleSalesExecutiveApp } from "./components/tse/TeleSalesExecutiveApp";
 import { TSEDiagnostics } from "./components/tse/TSEDiagnostics";
 import { CustomerCareExecutiveApp } from "./components/cce/CustomerCareExecutiveApp";
-import TestBTLService from "./test-btl-service";
+// TestBTLService removed from production build
 import { SubscriptionApp } from "./components/subscription/SubscriptionApp";
 import { PlanSelectionScreen } from "./components/subscription/PlanSelectionScreen";
 // import { AdminPlanManagement } from "./components/subscription/AdminPlanManagement"; // NOW LAZY

@@ -1,10 +1,10 @@
+import { employeeDatabaseService } from "../services/employeeDatabaseService";
 /**
  * ApprovalContext - Centralized approval workflow management
  * Handles approvals across all modules: HR, Finance, Operations, Inventory
  */
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
-import { employeeDatabaseService } from "../services/employeeDatabaseService";
 import { useEvents } from "./EventSystem";
 import { useEmployeeData } from "../hooks/useEmployeeData";
 import { useFinance } from "./FinanceContext";

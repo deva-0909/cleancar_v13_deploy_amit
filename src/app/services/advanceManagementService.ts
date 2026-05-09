@@ -25,13 +25,7 @@ class AdvanceManagementService {
   private alerts: Alert[] = [];
 
   constructor() {
-    // Ensure all arrays initialized before seeding
-    this.auditLogs = [];
-    try {
-      this.seedMockData();
-    } catch (e) {
-      console.warn("[AdvanceService] seedMockData failed:", e);
-    }
+    this.seedMockData();
   }
 
   // ==================== LONG-TERM ADVANCE ====================
@@ -403,7 +397,7 @@ class AdvanceManagementService {
     employeeRole: string
   ): { salaryTillDate: number; maxEligible: number; limitPercentage: number } {
     // Import the role-based limit calculation
-    const calculateMaxAdvanceAmount = (t: string) => t === "LONG_TERM" ? 50000 : 10000; // default limits
+    const calculateMaxAdvanceAmount = (t: string) => t === "LONG_TERM" ? 50000 : 10000;
 
     const salaryPerDay = monthlySalary / totalDaysInMonth;
     const salaryTillDate = salaryPerDay * daysWorked;
@@ -695,9 +689,8 @@ class AdvanceManagementService {
   // ==================== MOCK DATA ====================
 
   private seedMockData(): void {
-    // Seed disabled — real data comes from Supabase
-    return;
-    // Original seed below (disabled):
+    // Seed some test data
+    // Long-term advance
     const lt1 = this.createLongTermAdvance(
       "EMP001",
       "Rahul Verma",

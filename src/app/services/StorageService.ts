@@ -108,7 +108,7 @@ export class StorageService {
       // Remove them
       keysToRemove.forEach(key => localStorage.removeItem(key));
 
-      console.log(`[StorageService] Cleared ${keysToRemove.length} items from ${namespace} namespace`);
+      if (import.meta.env.DEV) console.log(`[StorageService] Cleared ${keysToRemove.length} items from ${namespace} namespace`);
       return keysToRemove.length;
     } catch (error) {
       console.error(`[StorageService] Error clearing ${namespace} namespace:`, error);
@@ -179,7 +179,7 @@ export class StorageService {
   static debug(): void {
     console.group("[StorageService] Debug Info");
     console.log("Total size:", this.getStorageSizeFormatted());
-    console.log("Total keys:", localStorage.length);
+    if (import.meta.env.DEV) console.log("Total keys:", localStorage.length);
 
     const namespaces = new Set<string>();
     for (let i = 0; i < localStorage.length; i++) {
@@ -194,7 +194,7 @@ export class StorageService {
 
     namespaces.forEach(namespace => {
       const keys = this.getNamespaceKeys(namespace as StorageNamespace);
-      console.log(`  ${namespace}:`, keys);
+      if (import.meta.env.DEV) console.log(`  ${namespace}:`, keys);
     });
 
     console.groupEnd();
