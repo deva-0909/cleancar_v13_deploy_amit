@@ -83,7 +83,18 @@ export function ProtectedRoute({
     customPermissions: currentUser.customPermissions,
   } : null);
 
-  // Check if user has permission
+// My Account and Travel: always allow for authenticated users
+  const SELF_SERVICE: string[] = ["dashboard", "travel"];
+  if (SELF_SERVICE.includes(requiredModule) && currentUser) {
+    return <>{children}</>;
+  }
+
+  const empForCheck = currentEmployee || (currentUser ? {
+    role: currentUser.role,
+    cityId: currentUser.cityId || "CITY-SURAT",
+    customPermissions: (currentUser as any).customPermissions,
+  } : null);
+
   const hasAccess = empForCheck
     ? hasPermission(empForCheck, requiredModule, "view")
     : false;
