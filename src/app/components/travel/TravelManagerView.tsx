@@ -11,7 +11,7 @@ import { TravelEmployeeView } from "./TravelEmployeeView";
 
 export function TravelManagerView() {
   const { currentUser } = useRole();
-  const [tab, setTab] = useState<"approvals" | "my_trips">("approvals");
+  const [tab, setTab] = useState<"approvals" | "my_trips">("my_trips"); // Default: own claims first
   const [selected, setSelected] = useState<TravelTrip | null>(null);
   const [comments, setComments] = useState("");
   const [rejectReason, setRejectReason] = useState("");
@@ -48,7 +48,7 @@ export function TravelManagerView() {
       <div className="flex gap-2 border-b">
         <button onClick={() => setTab("approvals")}
           className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${tab === "approvals" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>
-          Pending Approvals {pending.length > 0 && <span className="ml-1 bg-red-500 text-white rounded-full text-xs px-1.5">{pending.length}</span>}
+          📋 Pending Approvals {pending.length > 0 && <span className="ml-1 bg-red-500 text-white rounded-full text-xs px-1.5">{pending.length}</span>}
         </button>
         <button onClick={() => setTab("my_trips")}
           className={`pb-2 px-1 text-sm font-medium border-b-2 transition-colors ${tab === "my_trips" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"}`}>

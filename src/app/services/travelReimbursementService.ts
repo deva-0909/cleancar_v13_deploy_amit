@@ -208,13 +208,8 @@ class TravelReimbursementService {
   }
 
   isEmployeeEnabled(employeeId: string): boolean {
-    if (!employeeId) return true; // No ID = allow (graceful fallback)
     const all = this.getPermissions();
-    // Default: ENABLED for all. Admin can explicitly DISABLE.
-    // Check if explicitly disabled
-    const explicit = all.find(p => p.employeeId === employeeId);
-    if (explicit) return explicit.isEnabled; // Respect explicit setting
-    return true; // Default: enabled for everyone
+    return all.some(p => p.employeeId === employeeId && p.isEnabled);
   }
 
   setPermission(
@@ -344,6 +339,23 @@ class TravelReimbursementService {
     if (!trip) throw new Error("Trip not found");
     const updated = { ...trip, status: "Pending Manager" as TripStatus, submittedAt: new Date().toISOString() };
     this.saveTrip(updated);
+
+    // Sync to Supabase for audit trail and multi-user access
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
+    const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+    if (SUPABASE_URL && SUPABASE_KEY) {
+      fetch(`${SUPABASE_URL}/rest/v1/cleancar_travel_trips`, {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates",
+        },
+        body: JSON.stringify({ data: updated, city_id: updated.cityId || "CITY-SURAT" }),
+      }).catch(e => console.warn("[Travel] Supabase sync failed:", e));
+    }
+
     return updated;
   }
 

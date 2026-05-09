@@ -133,6 +133,21 @@ export function TravelEmployeeView() {
     setStage("review");
   };
 
+  // Validation: max 150km/day, no duplicate dates
+  const validateTrip = (tripDate: string, startKm: number, endKm: number): string | null => {
+    const totalKm = endKm - startKm;
+    if (totalKm <= 0) return "End reading must be greater than start reading";
+    if (totalKm > 150) return "Maximum 150 km allowed per trip (fraud detection)";
+    if (startKm < 0 || endKm < 0) return "Odometer readings cannot be negative";
+    // Check for same-day duplicate
+    const existingTrips = travelReimbursementService.getTrips();
+    const hasDuplicate = existingTrips.some(t =>
+      t.tripDate === tripDate && t.status !== "Rejected"
+    );
+    if (hasDuplicate) return "A trip already exists for this date";
+    return null;
+  };
+
   const handleSubmit = () => {
     if (!activeTrip) return;
     travelReimbursementService.submitTrip(activeTrip.id);
