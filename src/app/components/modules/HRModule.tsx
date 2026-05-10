@@ -296,7 +296,7 @@ function HRModule() {
 
   return (
     <div className="space-y-6">
-      <BackButton to="/" />
+      <BackButton />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">HR Management System</h1>
@@ -964,28 +964,28 @@ function HRModule() {
                           <TableCell>
                             {(payroll as any).leaveDays ? (
                               <div className="flex gap-1 flex-wrap">
-                                {payroll.leaveDays.CL > 0 && (
+                                {(payroll as any).leaveDays?.CL > 0 && (
                                   <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs px-1">
-                                    CL:{payroll.leaveDays.CL}
+                                    CL:{(payroll as any).leaveDays?.CL}
                                   </Badge>
                                 )}
-                                {payroll.leaveDays.PL > 0 && (
+                                {(payroll as any).leaveDays?.PL > 0 && (
                                   <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs px-1">
-                                    PL:{payroll.leaveDays.PL}
+                                    PL:{(payroll as any).leaveDays?.PL}
                                   </Badge>
                                 )}
-                                {payroll.leaveDays.SL > 0 && (
+                                {(payroll as any).leaveDays?.SL > 0 && (
                                   <Badge className="bg-green-100 text-green-700 border-green-200 text-xs px-1">
-                                    SL:{payroll.leaveDays.SL}
+                                    SL:{(payroll as any).leaveDays?.SL}
                                   </Badge>
                                 )}
-                                {payroll.leaveDays.UL > 0 && (
+                                {(payroll as any).leaveDays?.UL > 0 && (
                                   <Badge className="bg-red-100 text-red-700 border-red-200 text-xs px-1">
-                                    UL:{payroll.leaveDays.UL}⚠️
+                                    UL:{(payroll as any).leaveDays?.UL}⚠️
                                   </Badge>
                                 )}
-                                {payroll.leaveDays.CL === 0 && payroll.leaveDays.PL === 0 && 
-                                 payroll.leaveDays.SL === 0 && payroll.leaveDays.UL === 0 && (
+                                {(payroll as any).leaveDays?.CL === 0 && (payroll as any).leaveDays?.PL === 0 && 
+                                 (payroll as any).leaveDays?.SL === 0 && (payroll as any).leaveDays?.UL === 0 && (
                                   <span className="text-xs text-gray-400">None</span>
                                 )}
                               </div>
@@ -999,11 +999,11 @@ function HRModule() {
                           <TableCell>
                             <div>
                               <p className="font-medium text-red-600">
-                                ₹{(payroll.totalDeductions + payroll.leaveDeductions).toLocaleString()}
+                                ₹{((payroll.totalDeductions || 0) + ((payroll as any).leaveDeductions || 0)).toLocaleString()}
                               </p>
-                              {payroll.leaveDeductions > 0 && (
+                              {((payroll as any).leaveDeductions || 0) > 0 && (
                                 <p className="text-xs text-red-500">
-                                  (UL: -₹{payroll.leaveDeductions})
+                                  (UL: -₹{(payroll as any).leaveDeductions || 0})
                                 </p>
                               )}
                             </div>
@@ -1618,7 +1618,7 @@ function HRModule() {
               <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
                 <div>
                   <p className="text-sm text-gray-600">Employee Name</p>
-                  <p className="font-semibold">{selectedPayslip.employeeName}</p>
+                  <p className="font-semibold">{(selectedPayslip as any).employeeName || (selectedPayslip as any).employeeId || "Employee"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Employee ID</p>
@@ -1626,7 +1626,7 @@ function HRModule() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Designation</p>
-                  <p className="font-semibold">{selectedPayslip.role || 'N/A'}</p>
+                  <p className="font-semibold">{(selectedPayslip as any).role || (selectedPayslip as any).employeeId || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Pay Period</p>
@@ -1634,7 +1634,7 @@ function HRModule() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Days Worked</p>
-                  <p className="font-semibold">{selectedPayslip.daysWorked} / {selectedPayslip.totalDays}</p>
+                  <p className="font-semibold">{(selectedPayslip as any).daysWorked || "—"} / {(selectedPayslip as any).totalDays || 26}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Payment Status</p>
@@ -1649,8 +1649,8 @@ function HRModule() {
                 // Find saved salary structure for this role
                 const allStructures = salaryStructureService.getAll();
                 const matchingStructure = allStructures.find(s => 
-                  s.roleName.toLowerCase().includes(selectedPayslip.role?.toLowerCase() || '') ||
-                  selectedPayslip.role?.toLowerCase().includes(s.roleName.toLowerCase())
+                  s.roleName.toLowerCase().includes(((selectedPayslip as any).role?.toLowerCase() || "") || '') ||
+                  ((selectedPayslip as any).role?.toLowerCase() || "").includes(s.roleName.toLowerCase())
                 );
 
                 if (matchingStructure) {
@@ -1736,22 +1736,22 @@ function HRModule() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Basic Salary</span>
-                      <span className="font-medium">₹{selectedPayslip.earnings.basic.toLocaleString()}</span>
+                      <span className="font-medium">₹{((selectedPayslip as any).earnings?.basic || (selectedPayslip as any).baseSalary || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>HRA</span>
-                      <span className="font-medium">₹{selectedPayslip.earnings.hra.toLocaleString()}</span>
+                      <span className="font-medium">₹{((selectedPayslip as any).earnings?.hra || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Conveyance</span>
-                      <span className="font-medium">₹{selectedPayslip.earnings.conveyance.toLocaleString()}</span>
+                      <span className="font-medium">₹{((selectedPayslip as any).earnings?.conveyance || 0).toLocaleString()}</span>
                     </div>
                     {(() => {
                       // Show Medical and Special Allowance from salary structure
                       const allStructures = salaryStructureService.getAll();
                       const matchingStructure = allStructures.find(s => 
-                        s.roleName.toLowerCase().includes(selectedPayslip.role?.toLowerCase() || '') ||
-                        selectedPayslip.role?.toLowerCase().includes(s.roleName.toLowerCase())
+                        s.roleName.toLowerCase().includes(((selectedPayslip as any).role?.toLowerCase() || "") || '') ||
+                        ((selectedPayslip as any).role?.toLowerCase() || "").includes(s.roleName.toLowerCase())
                       );
                       if (matchingStructure) {
                         return (
@@ -1769,27 +1769,27 @@ function HRModule() {
                       }
                       return null;
                     })()}
-                    {selectedPayslip.earnings.incentive > 0 && (
+                    {(((selectedPayslip as any).earnings?.incentive || (selectedPayslip as any).incentiveAmount || 0) > 0) && (
                       <div className="flex justify-between">
                         <span>Incentive</span>
-                        <span className="font-medium text-green-600">₹{selectedPayslip.earnings.incentive.toLocaleString()}</span>
+                        <span className="font-medium text-green-600">₹{((selectedPayslip as any).earnings?.incentive || (selectedPayslip as any).incentiveAmount || 0).toLocaleString()}</span>
                       </div>
                     )}
-                    {selectedPayslip.earnings.overtimePay > 0 && (
+                    {(((selectedPayslip as any).earnings?.overtimePay || 0) > 0) && (
                       <div className="flex justify-between">
                         <span>Overtime Pay</span>
-                        <span className="font-medium text-green-600">₹{selectedPayslip.earnings.overtimePay.toLocaleString()}</span>
+                        <span className="font-medium text-green-600">₹{((selectedPayslip as any).earnings?.overtimePay || 0).toLocaleString()}</span>
                       </div>
                     )}
-                    {selectedPayslip.earnings.nationalHolidayPay > 0 && (
+                    {(((selectedPayslip as any).earnings?.nationalHolidayPay || 0) > 0) && (
                       <div className="flex justify-between">
                         <span>National Holiday Pay</span>
-                        <span className="font-medium text-green-600">₹{selectedPayslip.earnings.nationalHolidayPay.toLocaleString()}</span>
+                        <span className="font-medium text-green-600">₹{((selectedPayslip as any).earnings?.nationalHolidayPay || 0).toLocaleString()}</span>
                       </div>
                     )}
                     <div className="pt-2 border-t-2 border-green-300 flex justify-between font-bold text-green-700">
                       <span>Gross Earnings</span>
-                      <span>₹{selectedPayslip.earnings.grossEarnings.toLocaleString()}</span>
+                      <span>₹{((selectedPayslip as any).earnings?.grossEarnings || (selectedPayslip as any).grossSalary || 0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -1803,39 +1803,39 @@ function HRModule() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>PF Contribution</span>
-                      <span className="font-medium">₹{selectedPayslip.deductions.pf.toLocaleString()}</span>
+                      <span className="font-medium">₹{((selectedPayslip as any).deductions?.pf || (selectedPayslip as any).pf || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>ESI</span>
-                      <span className="font-medium">₹{selectedPayslip.deductions.esi.toLocaleString()}</span>
+                      <span className="font-medium">₹{((selectedPayslip as any).deductions?.esi || (selectedPayslip as any).esic || 0).toLocaleString()}</span>
                     </div>
-                    {selectedPayslip.deductions.professionalTax > 0 && (
+                    {(((selectedPayslip as any).deductions?.professionalTax || (selectedPayslip as any).pt || 0) > 0) && (
                       <div className="flex justify-between">
                         <span>Professional Tax</span>
-                        <span className="font-medium">₹{selectedPayslip.deductions.professionalTax.toLocaleString()}</span>
+                        <span className="font-medium">₹{((selectedPayslip as any).deductions?.professionalTax || (selectedPayslip as any).pt || 0).toLocaleString()}</span>
                       </div>
                     )}
-                    {selectedPayslip.deductions.tds > 0 && (
+                    {(((selectedPayslip as any).deductions?.tds || (selectedPayslip as any).tds || 0) > 0) && (
                       <div className="flex justify-between">
                         <span>TDS</span>
-                        <span className="font-medium">₹{selectedPayslip.deductions.tds.toLocaleString()}</span>
+                        <span className="font-medium">₹{((selectedPayslip as any).deductions?.tds || (selectedPayslip as any).tds || 0).toLocaleString()}</span>
                       </div>
                     )}
-                    {selectedPayslip.deductions.advance > 0 && (
+                    {(((selectedPayslip as any).deductions?.advance || (selectedPayslip as any).advances || 0) > 0) && (
                       <div className="flex justify-between">
                         <span>Advance Recovery</span>
-                        <span className="font-medium text-red-600">₹{selectedPayslip.deductions.advance.toLocaleString()}</span>
+                        <span className="font-medium text-red-600">₹{((selectedPayslip as any).deductions?.advance || (selectedPayslip as any).advances || 0).toLocaleString()}</span>
                       </div>
                     )}
-                    {selectedPayslip.leaveDeductions > 0 && (
+                    {(((selectedPayslip as any).leaveDeductions || 0) > 0) && (
                       <div className="flex justify-between">
                         <span>Leave Deductions (UL)</span>
-                        <span className="font-medium text-red-600">₹{selectedPayslip.leaveDeductions.toLocaleString()}</span>
+                        <span className="font-medium text-red-600">₹{((selectedPayslip as any).leaveDeductions || 0).toLocaleString()}</span>
                       </div>
                     )}
                     <div className="pt-2 border-t-2 border-red-300 flex justify-between font-bold text-red-700">
                       <span>Total Deductions</span>
-                      <span>₹{(selectedPayslip.deductions.totalDeductions + selectedPayslip.leaveDeductions).toLocaleString()}</span>
+                      <span>₹{(((selectedPayslip as any).deductions?.totalDeductions || (selectedPayslip as any).totalDeductions || 0) + ((selectedPayslip as any).leaveDeductions || 0)).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -1846,7 +1846,7 @@ function HRModule() {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-sm text-blue-700">Net Salary (Take Home)</p>
-                    <p className="text-3xl font-bold text-blue-900">₹{selectedPayslip.netSalary.toLocaleString()}</p>
+                    <p className="text-3xl font-bold text-blue-900">₹{((selectedPayslip as any).netSalary || 0).toLocaleString()}</p>
                   </div>
                   <CheckCircle className="w-12 h-12 text-blue-600" />
                 </div>
@@ -1863,19 +1863,19 @@ function HRModule() {
                 <div className="grid grid-cols-4 gap-4 text-sm">
                   <div className="text-center">
                     <p className="text-gray-600">Casual Leave</p>
-                    <p className="text-lg font-bold text-blue-600">{selectedPayslip.leaveDays?.CL || 0}/7</p>
+                    <p className="text-lg font-bold text-blue-600">{(selectedPayslip as any).leaveDays?.CL || 0}/7</p>
                   </div>
                   <div className="text-center">
                     <p className="text-gray-600">Privilege Leave</p>
-                    <p className="text-lg font-bold text-green-600">{selectedPayslip.leaveDays?.PL || 0}/10</p>
+                    <p className="text-lg font-bold text-green-600">{(selectedPayslip as any).leaveDays?.PL || 0}/10</p>
                   </div>
                   <div className="text-center">
                     <p className="text-gray-600">Sick Leave</p>
-                    <p className="text-lg font-bold text-orange-600">{selectedPayslip.leaveDays?.SL || 0}/7</p>
+                    <p className="text-lg font-bold text-orange-600">{(selectedPayslip as any).leaveDays?.SL || 0}/7</p>
                   </div>
                   <div className="text-center">
                     <p className="text-gray-600">Unpaid Leave</p>
-                    <p className="text-lg font-bold text-red-600">{selectedPayslip.leaveDays?.UL || 0}/1</p>
+                    <p className="text-lg font-bold text-red-600">{(selectedPayslip as any).leaveDays?.UL || 0}/1</p>
                   </div>
                 </div>
               </div>
