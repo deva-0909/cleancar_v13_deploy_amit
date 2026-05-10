@@ -240,7 +240,7 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
   // Calculate final deduction based on override status
   const calculateFinalDeduction = () => {
     if (overrideRequest.status === "approved" && overrideRequest.overrides.overrideAttendanceDeduction !== undefined) {
-      return Math.round(overrideRequest.overrides.overrideAttendanceDeduction * perDayRate);
+      return Math.round(overrideRequest.overrides.overrideAttendanceDeduction * perDayRateForDeduction);
     }
     return attendanceDeductionAmount;
   };
@@ -684,7 +684,7 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
                     <p className="text-2xl font-bold text-red-800">₹{attendanceDeductionAmount.toLocaleString()}</p>
                   </div>
                   <p className="text-xs text-gray-600 mt-2">
-                    Calculation: {data.adjustment.daysDeducted.toFixed(1)} days × ₹{perDayRate.toFixed(2)}/day = ₹{attendanceDeductionAmount}
+                    Calculation: {data.adjustment.daysDeducted.toFixed(1)} days × ₹{perDayRateForDeduction.toFixed(2)}/day = ₹{attendanceDeductionAmount}
                   </p>
                 </div>
               </CardContent>
@@ -1257,7 +1257,7 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
                       <div>
                         <span className="text-gray-600">Salary Saved:</span>
                         <span className="ml-2 font-bold text-green-700">
-                          ₹{Math.round(parseFloat(adjustmentDays) * perDayRate).toLocaleString()}
+                          ₹{Math.round(parseFloat(adjustmentDays) * perDayRateForDeduction).toLocaleString()}
                         </span>
                       </div>
                     </div>
