@@ -40,7 +40,7 @@ import { useEmployeeData } from "../../hooks/useEmployeeData";
 interface AttendanceRecord {
   date: string; // DD-MM-YYYY format
   day: string; // Mon, Tue, etc.
-  attendanceType: "P" | "A" | "WOFF" | "PH" | "PL" | "CSL" | "HPL" | "COFF" | "LWP";
+  attendanceType: "P" | "A" | "H" | "WOFF" | "PH" | "PL" | "CSL" | "HPL" | "HCSL" | "COFF" | "HCOFF" | "LWP" | "HLWP";
   inTime: string | null; // HH:MM format or null
   outTime: string | null; // HH:MM format or null
   workingHours: number; // Calculated
@@ -53,6 +53,7 @@ interface AttendanceRecord {
 
 interface AttendanceSummary {
   totalDays: number;
+  workingDays: number;
   payDays: number;
   weeklyOff: number;
   publicHoliday: number;
@@ -205,24 +206,49 @@ const generateMockAttendanceData = (
     });
   }
 
-  // Calculate summaries
-  const weeklyOff = records.filter((r) => r.attendanceType === "WOFF").length;
+  // ── CALCULATION ENGINE (matches 24/9 reference sheet) ──────────────────────
+  const weeklyOff   = records.filter((r) => r.attendanceType === "WOFF").length;
   const publicHoliday = records.filter((r) => r.attendanceType === "PH").length;
-  const presentDays = records.filter((r) => r.attendanceType === "P").length;
-  const absentDays = records.filter((r) => r.attendanceType === "A").length;
-  const leaveWithSalary = records.filter((r) => ["CSL", "PL", "HPL", "COFF"].includes(r.attendanceType)).length;
-  const leaveWithoutPay = records.filter((r) => r.attendanceType === "LWP").length;
 
-  const totalLateComingCount = records.reduce((sum, r) => sum + r.lateComingCount, 0);
-  const totalAutoLogoutCount = records.reduce((sum, r) => sum + r.autoLogoutCount, 0);
+  // Working Days = Total − WOFF only (PH is a PAID working day, not subtracted)
+  const workingDays = daysInMonth - weeklyOff;
 
-  // Deduction rules: 3 lates = 0.5 day, each auto logout = 0.5 day
-  const lateDeduction = Math.floor(totalLateComingCount / 3) * 0.5;
+  // Present Days: P=1.0, H/HCSL/HCOFF/HPL=0.5 each
+  const presentDays =
+    records.filter((r) => r.attendanceType === "P").length +
+    records.filter((r) => ["H", "HCSL", "HCOFF", "HPL"].includes(r.attendanceType)).length * 0.5;
+
+  // Absent Days: A=1.0, H=0.5 (H without leave = half absent + half present)
+  const absentDays =
+    records.filter((r) => r.attendanceType === "A").length +
+    records.filter((r) => r.attendanceType === "H").length * 0.5;
+
+  // Leave With Salary: full types=1.0, half types=0.5
+  const leaveWithSalary =
+    records.filter((r) => ["CSL", "PL", "COFF"].includes(r.attendanceType)).length +
+    records.filter((r) => ["HCSL", "HPL", "HCOFF"].includes(r.attendanceType)).length * 0.5;
+
+  // Leave Without Pay: LWP=1.0, HLWP=0.5
+  const leaveWithoutPay =
+    records.filter((r) => r.attendanceType === "LWP").length +
+    records.filter((r) => r.attendanceType === "HLWP").length * 0.5;
+
+  // Late count = DISTINCT DAYS with lateComingCount > 0 (not sum of ticks)
+  const totalLateComingCount = records.filter((r) => r.lateComingCount > 0).length;
+  // Auto logout count = DISTINCT DAYS with autoLogoutCount > 0
+  const totalAutoLogoutCount = records.filter((r) => r.autoLogoutCount > 0).length;
+
+  // Deduction: each qualifying late day = 0.5, each auto logout day = 0.5
+  const lateDeduction       = totalLateComingCount * 0.5;
   const autoLogoutDeduction = totalAutoLogoutCount * 0.5;
   const attendanceDeduction = lateDeduction + autoLogoutDeduction;
-  const daysDeducted = attendanceDeduction + absentDays + leaveWithoutPay;
+  // Note: deductions are absorbed into Absent (H days = 0.5 absent each)
+  // daysDeducted is shown separately for transparency
+  const daysDeducted = attendanceDeduction;
 
-  const payDays = daysInMonth - daysDeducted;
+  // PAID DAYS = Working Days − Absent Days − LWP
+  // (Deductions already captured in Absent via H-day weighting)
+  const payDays = workingDays - absentDays - leaveWithoutPay;
 
   return {
     employeeCode: employeeId,
@@ -234,6 +260,7 @@ const generateMockAttendanceData = (
     records,
     summary: {
       totalDays: daysInMonth,
+      workingDays,
       payDays,
       weeklyOff,
       publicHoliday,
@@ -249,15 +276,15 @@ const generateMockAttendanceData = (
       daysDeducted,
     },
     leaveAdjustment: {
-      fullCSL: records.filter((r) => r.attendanceType === "CSL").length,
-      halfCSL: 0,
-      fullPL: records.filter((r) => r.attendanceType === "PL").length,
-      halfHPL: 0,
-      fullCOFF: 0,
-      halfCOFF: 0,
+      fullCSL:  records.filter((r) => r.attendanceType === "CSL").length,
+      halfCSL:  records.filter((r) => r.attendanceType === "HCSL").length,
+      fullPL:   records.filter((r) => r.attendanceType === "PL").length,
+      halfHPL:  records.filter((r) => r.attendanceType === "HPL").length,
+      fullCOFF: records.filter((r) => r.attendanceType === "COFF").length,
+      halfCOFF: records.filter((r) => r.attendanceType === "HCOFF").length,
       publicHoliday,
-      fullLWP: leaveWithoutPay,
-      halfLWP: 0,
+      fullLWP:  records.filter((r) => r.attendanceType === "LWP").length,
+      halfLWP:  records.filter((r) => r.attendanceType === "HLWP").length,
     },
   };
 };
@@ -300,7 +327,7 @@ export function EmployeeAttendanceDrillDown({
           records: attendanceRecords,
           summary: {
             totalDays: summary.totalDays,
-            payDays: summary.paidDays,
+            payDays: summary.payDays,
             weeklyOff: summary.weeklyOff,
             publicHoliday: summary.publicHolidays,
             presentDays: summary.presentDays,
@@ -707,7 +734,7 @@ export function EmployeeAttendanceDrillDown({
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-300">
                         <p className="text-xs text-gray-700 mb-1 font-semibold">Working Days</p>
-                        <p className="text-lg font-bold text-gray-900">{data.summary.totalDays - data.summary.weeklyOff}</p>
+                        <p className="text-lg font-bold text-gray-900">{data.summary.workingDays}</p>
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-300">
                         <p className="text-xs text-gray-700 mb-1 font-semibold">PAID DAYS</p>
@@ -731,11 +758,11 @@ export function EmployeeAttendanceDrillDown({
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-300">
                         <p className="text-xs text-gray-700 mb-1 font-semibold">ABSENT DAYS</p>
-                        <p className="text-lg font-bold text-red-700">{data.summary.absentDays}</p>
+                        <p className="text-lg font-bold text-red-700">{data.summary.absentDays.toFixed(1)}</p>
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-300">
                         <p className="text-xs text-gray-700 mb-1 font-semibold">LEAVE WITH SALARY</p>
-                        <p className="text-lg font-bold text-blue-700">{data.summary.leaveWithSalary}</p>
+                        <p className="text-lg font-bold text-blue-700">{data.summary.leaveWithSalary.toFixed(1)}</p>
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-300">
                         <p className="text-xs text-gray-700 mb-1 font-semibold">LEAVE WITHOU PAY</p>
