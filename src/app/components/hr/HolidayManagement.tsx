@@ -42,13 +42,14 @@ interface Holiday {
   applicableLocation: string[];
 }
 
-// ✅ FIXED: Holidays loaded from DataService (persisted)
-const mockHolidays: Holiday[] = (() => {
+// ✅ FIXED: Holidays loaded from localStorage (persisted)
+function loadHolidays(): Holiday[] {
   try {
     const stored = localStorage.getItem("cleancar_holidays");
     return stored ? JSON.parse(stored) : [];
   } catch { return []; }
-})() = [
+}
+const mockHolidays: Holiday[] = loadHolidays() = [
   {
     id: "HOL-001",
     name: "Republic Day",
