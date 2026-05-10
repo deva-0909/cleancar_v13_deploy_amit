@@ -27,6 +27,7 @@ import {
   CreditCard, ShieldCheck, BookOpen, Activity, Plus, Shield, Settings
 } from "lucide-react";
 import { useRole } from "../../contexts/RoleContext";
+import { useEmployeeData } from "../../hooks/useEmployeeData";
 import { BackButton } from "../ui/back-button";
 import { calculateProrateSalary, getLeaveBalance, ANNUAL_LEAVE_QUOTA } from "../../lib/leaveManagement";
 import { MASTER_EMPLOYEES, requiredDocuments, type Employee } from "../../data/employeeData";
@@ -77,7 +78,7 @@ interface PayrollRecord {
     UL: number;
   };
   netSalary: number;
-  status: "Draft" | "Pending Approval" | "Approved" | "Paid";
+  status: "Draft" | "Draft" | "Approved" | "Paid";
   paidOn?: string;
 }
 
@@ -173,6 +174,7 @@ const mockTraining: Training[] = [
 ];
 
 function HRModule() {
+  const { payrollRuns } = useEmployeeData();
   const { currentRole, roleConfig } = useRole();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -206,7 +208,7 @@ function HRModule() {
 
       // 1. Letters & Documents: Offer letters (Pending Approval) + Appointment letters (Pending Approval) + Confirmation letters (due within 30 days)
       const offerLetters = offerLetterService.getAll();
-      const pendingOfferApprovals = offerLetters.filter(offer => offer.status === "Pending Approval").length;
+      const pendingOfferApprovals = offerLetters.filter(offer => offer.status === "Draft").length;
 
       // Hardcoded appointment letters data - count Pending Approval
       const pendingAppointmentApprovals = 2; // Based on hardcoded initialAppointments in AppointmentLetterGenerator
@@ -386,7 +388,7 @@ function HRModule() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Monthly Payroll</p>
-                  <p className="text-2xl font-bold mt-1">₹{(mockPayroll.reduce((sum, p) => sum + p.netSalary, 0) / 100000).toFixed(2)}L</p>
+                  <p className="text-2xl font-bold mt-1">₹{(payrollRuns.reduce((s, p) => s + (p.netSalary||0), 0) / 100000).toFixed(2)}L</p>
                   <p className="text-xs text-gray-500 mt-1">March 2026</p>
                 </div>
                 <div className="bg-indigo-50 text-indigo-600 p-3 rounded-lg">
@@ -889,25 +891,25 @@ function HRModule() {
                     <div className="p-4 bg-blue-50 rounded-lg">
                       <p className="text-sm text-gray-600">Gross Payroll</p>
                       <p className="text-2xl font-bold text-blue-600">
-                        ₹{mockPayroll.reduce((sum, p) => sum + p.earnings.grossEarnings, 0).toLocaleString()}
+                        ₹{payrollRuns.reduce((s, p) => s + (p.grossSalary||0), 0).toLocaleString()}
                       </p>
                     </div>
                     <div className="p-4 bg-red-50 rounded-lg">
                       <p className="text-sm text-gray-600">Total Deductions</p>
                       <p className="text-2xl font-bold text-red-600">
-                        ₹{mockPayroll.reduce((sum, p) => sum + p.deductions.totalDeductions, 0).toLocaleString()}
+                        ₹{payrollRuns.reduce((s, p) => s + (p.totalDeductions||0), 0).toLocaleString()}
                       </p>
                     </div>
                     <div className="p-4 bg-green-50 rounded-lg">
                       <p className="text-sm text-gray-600">Net Payroll</p>
                       <p className="text-2xl font-bold text-green-600">
-                        ₹{mockPayroll.reduce((sum, p) => sum + p.netSalary, 0).toLocaleString()}
+                        ₹{payrollRuns.reduce((s, p) => s + (p.netSalary||0), 0).toLocaleString()}
                       </p>
                     </div>
                     <div className="p-4 bg-purple-50 rounded-lg">
                       <p className="text-sm text-gray-600">Pending Approval</p>
                       <p className="text-2xl font-bold text-purple-600">
-                        {mockPayroll.filter(p => p.status === "Pending Approval").length}
+                        {payrollRuns.filter(p => p.status === "Draft" || p.status === "HR Approved").length}
                       </p>
                     </div>
                   </div>
@@ -932,7 +934,7 @@ function HRModule() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {mockPayroll.map((payroll) => (
+                      {payrollRuns.map((payroll) => (
                         <TableRow key={payroll.id}>
                           <TableCell className="font-medium">{payroll.employeeId}</TableCell>
                           <TableCell>
@@ -942,13 +944,13 @@ function HRModule() {
                                 onClick={() => {
                                   setSelectedEmployeeForDrillDown({
                                     id: payroll.employeeId,
-                                    name: payroll.employeeName,
+                                    name: payroll.employeeId,
                                   });
                                   setShowAttendanceDrillDown(true);
                                 }}
                                 title="Click to view detailed attendance report"
                               >
-                                {payroll.employeeName}
+                                {payroll.employeeId}
                               </p>
                               {payroll.role && <p className="text-xs text-gray-500">{payroll.role}</p>}
                             </div>
@@ -992,12 +994,12 @@ function HRModule() {
                             )}
                           </TableCell>
                           <TableCell className="font-medium text-green-600">
-                            ₹{payroll.earnings.grossEarnings.toLocaleString()}
+                            ₹{payroll.grossSalary.toLocaleString()}
                           </TableCell>
                           <TableCell>
                             <div>
                               <p className="font-medium text-red-600">
-                                ₹{(payroll.deductions.totalDeductions + payroll.leaveDeductions).toLocaleString()}
+                                ₹{(payroll.totalDeductions + payroll.leaveDeductions).toLocaleString()}
                               </p>
                               {payroll.leaveDeductions > 0 && (
                                 <p className="text-xs text-red-500">
@@ -1038,38 +1040,38 @@ function HRModule() {
 
                   {/* Detailed Payslip View */}
                   <div className="mt-6 p-6 border-2 border-blue-200 rounded-lg bg-blue-50">
-                    <h4 className="font-bold mb-4">Sample Payslip Breakdown - {mockPayroll[1].employeeName}</h4>
+                    <h4 className="font-bold mb-4">Sample Payslip Breakdown - {payrollRuns[0]?.employeeId || 'Employee'}</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="bg-white p-4 rounded-lg">
                         <h5 className="font-semibold text-green-600 mb-3">Earnings</h5>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span>Basic Salary</span>
-                            <span className="font-medium">₹{mockPayroll[1].earnings.basic.toLocaleString()}</span>
+                            <span className="font-medium">₹{(payrollRuns[0]?.baseSalary || 0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>HRA (40%)</span>
-                            <span className="font-medium">₹{mockPayroll[1].earnings.hra.toLocaleString()}</span>
+                            <span className="font-medium">₹{(0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>Conveyance</span>
-                            <span className="font-medium">₹{mockPayroll[1].earnings.conveyance.toLocaleString()}</span>
+                            <span className="font-medium">₹{(0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>Incentive</span>
-                            <span className="font-medium">₹{mockPayroll[1].earnings.incentive.toLocaleString()}</span>
+                            <span className="font-medium">₹{(payrollRuns[0]?.incentiveAmount || 0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>Overtime Pay</span>
-                            <span className="font-medium">₹{mockPayroll[1].earnings.overtimePay.toLocaleString()}</span>
+                            <span className="font-medium">₹{(0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>National Holiday Pay (2x)</span>
-                            <span className="font-medium">₹{mockPayroll[1].earnings.nationalHolidayPay.toLocaleString()}</span>
+                            <span className="font-medium">₹{(0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between border-t pt-2 font-bold text-green-600">
                             <span>Gross Earnings</span>
-                            <span>₹{mockPayroll[1].earnings.grossEarnings.toLocaleString()}</span>
+                            <span>₹{(payrollRuns[0]?.grossSalary || 0).toLocaleString()}</span>
                           </div>
                         </div>
                       </div>
@@ -1079,37 +1081,37 @@ function HRModule() {
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span>PF (12%)</span>
-                            <span className="font-medium">₹{mockPayroll[1].deductions.pf.toLocaleString()}</span>
+                            <span className="font-medium">₹{(payrollRuns[0]?.pf || 0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>ESI</span>
-                            <span className="font-medium">₹{mockPayroll[1].deductions.esi.toLocaleString()}</span>
+                            <span className="font-medium">₹{(payrollRuns[0]?.esic || 0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>Professional Tax</span>
-                            <span className="font-medium">₹{mockPayroll[1].deductions.professionalTax.toLocaleString()}</span>
+                            <span className="font-medium">₹{(0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>TDS</span>
-                            <span className="font-medium">₹{mockPayroll[1].deductions.tds.toLocaleString()}</span>
+                            <span className="font-medium">₹{(payrollRuns[0]?.tds || 0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>Advance</span>
-                            <span className="font-medium">₹{mockPayroll[1].deductions.advance.toLocaleString()}</span>
+                            <span className="font-medium">₹{(payrollRuns[0]?.advances || 0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between">
                             <span>Leave Deduction</span>
-                            <span className="font-medium">₹{mockPayroll[1].leaveDeductions.toLocaleString()}</span>
+                            <span className="font-medium">₹{(0).toLocaleString()}</span>
                           </div>
                           <div className="flex justify-between border-t pt-2 font-bold text-red-600">
                             <span>Total Deductions</span>
-                            <span>₹{mockPayroll[1].deductions.totalDeductions.toLocaleString()}</span>
+                            <span>₹{(payrollRuns[0]?.totalDeductions || 0).toLocaleString()}</span>
                           </div>
                         </div>
                         <div className="mt-4 p-3 bg-blue-50 rounded border-2 border-blue-300">
                           <div className="flex justify-between font-bold text-blue-600">
                             <span>Net Salary</span>
-                            <span>₹{mockPayroll[1].netSalary.toLocaleString()}</span>
+                            <span>₹{(payrollRuns[0]?.netSalary || 0).toLocaleString()}</span>
                           </div>
                         </div>
                       </div>
