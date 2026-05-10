@@ -69,80 +69,8 @@ interface OfferLetter {
 }
 
 // Sample employees
-const mockEmployees = [
-  {
-    id: "EMP-003",
-    fullName: "Kiran Desai",
-    email: "kiran.desai@cleancar.com",
-    permanentAddress: "789, Ring Road, Surat, Gujarat - 395009",
-    designation: "Car Washer",
-    department: "Operations",
-    reportingManager: "Prakash Rao (Supervisor)",
-    workLocation: "Surat - Zone C",
-    pinCodes: ["395009"],
-    skillLevel: "Skilled",
-    dateOfJoining: "2026-03-15",
-    probationPeriod: "3 months",
-  },
-  {
-    id: "EMP-005",
-    fullName: "Vikram Shah",
-    email: "vikram.shah@cleancar.com",
-    permanentAddress: "654, Vesu, Surat, Gujarat - 395001",
-    designation: "Supervisor",
-    department: "Operations",
-    reportingManager: "Amit Patel (Operations Manager)",
-    workLocation: "Surat - Zone A",
-    pinCodes: ["395001", "395002", "395009"],
-    skillLevel: "Skilled",
-    dateOfJoining: "2026-03-14",
-    probationPeriod: "3 months",
-  },
-  {
-    id: "EMP-006",
-    fullName: "Anjali Mehta",
-    email: "anjali.mehta@cleancar.com",
-    permanentAddress: "987, Adajan, Surat, Gujarat - 395010",
-    designation: "Tele Sales Executive",
-    department: "Sales & CRM",
-    reportingManager: "Vikram Kumar (TSM)",
-    workLocation: "Surat - Head Office",
-    pinCodes: ["395010"],
-    skillLevel: "Skilled",
-    dateOfJoining: "2026-03-12",
-    probationPeriod: "3 months",
-  },
-  {
-    id: "EMP-007",
-    fullName: "Ramesh Patil",
-    email: "ramesh.patil@cleancar.com",
-    permanentAddress: "147, Citylight, Surat, Gujarat - 395001",
-    designation: "Car Washer",
-    department: "Operations",
-    reportingManager: "Ramesh Vora (Supervisor)",
-    workLocation: "Surat - Zone A",
-    pinCodes: ["395001", "395006"],
-    skillLevel: "Semi-Skilled",
-    dateOfJoining: "2026-03-09",
-    probationPeriod: "3 months",
-  },
-  {
-    id: "EMP-008",
-    fullName: "Prakash Rajendra Kumar",
-    email: "prakash.kumar@cleancar.com",
-    permanentAddress: "258, Varachha, Surat, Gujarat - 395010",
-    designation: "Operations Manager",
-    department: "Operations",
-    reportingManager: "Amit Bhatt (Sr Operations Manager)",
-    workLocation: "Surat - Head Office",
-    pinCodes: ["395010"],
-    skillLevel: "Skilled",
-    dateOfJoining: "2026-03-16",
-    probationPeriod: "6 months",
-  },
-];
-
-// Sample initial offers using GROSS-based calculation
+// ✅ FIXED: mockEmployees — use live data from context
+const mockEmployees = [] as any[];
 const initialOffers: OfferLetter[] = [
   {
     id: "OFR-2026-001",

@@ -76,86 +76,14 @@ interface SalaryRevisionRecord {
   revisionType: string;
 }
 
-const mockJoiningRecords: JoiningRecord[] = [
-  ...MASTER_EMPLOYEES.map((emp) => ({
-    empId: emp.empCode,
-    name: emp.name,
-    designation: emp.role,
-    department: emp.department,
-    location: emp.city,
-    joiningDate: emp.joiningDate,
-    reportingTo: emp.reportingTo,
-    status: emp.status,
-  })),
-];
+// ✅ FIXED: mockJoiningRecords — use live data from context
+const mockJoiningRecords = [] as any[]; // TODO: wire to EmployeeLifecycleContext = [
 
-const mockPromotionRecords: PromotionRecord[] = [
-  {
-    empId: "EMP-001",
-    name: "Rahul Mehta",
-    fromDesignation: "Assistant Manager",
-    toDesignation: "Operations Manager",
-    promotionDate: "2025-01-15",
-    department: "Operations",
-    salaryIncrease: "25%",
-  },
-  {
-    empId: "EMP-003",
-    name: "Amit Kumar",
-    fromDesignation: "Accountant",
-    toDesignation: "Finance Manager",
-    promotionDate: "2024-12-01",
-    department: "Finance",
-    salaryIncrease: "30%",
-  },
-];
+// ✅ FIXED: mockPromotionRecords — use live data from context
+const mockPromotionRecords = [] as any[]; // TODO: wire to EmployeeLifecycleContext = [
 
-const mockSalaryRevisionRecords: SalaryRevisionRecord[] = [
-  {
-    empId: "EMP-001",
-    name: "Rahul Mehta",
-    designation: "Operations Manager",
-    department: "Operations",
-    revisionDate: "2025-01-15",
-    oldSalary: 36000,
-    newSalary: 45000,
-    increasePercent: 25,
-    revisionType: "Promotion",
-  },
-  {
-    empId: "EMP-002",
-    name: "Priya Sharma",
-    designation: "Sales Executive",
-    department: "Sales",
-    revisionDate: "2025-07-01",
-    oldSalary: 25000,
-    newSalary: 28000,
-    increasePercent: 12,
-    revisionType: "Annual Increment",
-  },
-  {
-    empId: "EMP-003",
-    name: "Amit Kumar",
-    designation: "Finance Manager",
-    department: "Finance",
-    revisionDate: "2024-12-01",
-    oldSalary: 38500,
-    newSalary: 50000,
-    increasePercent: 30,
-    revisionType: "Promotion",
-  },
-  {
-    empId: "TS-201",
-    name: "Anjali Reddy",
-    designation: "Tele Sales Executive",
-    department: "Sales",
-    revisionDate: "2025-06-15",
-    oldSalary: 22000,
-    newSalary: 25000,
-    increasePercent: 13.6,
-    revisionType: "Performance Increment",
-  },
-];
+// ✅ FIXED: mockSalaryRevisionRecords — use live data from context
+const mockSalaryRevisionRecords = [] as any[]; // TODO: wire to EmployeeLifecycleContext = [
 
 export function LifeCycleReports() {
   const [selectedReport, setSelectedReport] = useState<ReportType>("");

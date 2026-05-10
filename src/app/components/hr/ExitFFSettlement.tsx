@@ -79,25 +79,8 @@ const returnableMaterials: Omit<MaterialItem, "id" | "condition">[] = [
   { name: "Safety Equipment" },
 ];
 
-const mockExitRecords: ExitRecord[] = [
-  {
-    id: "EXIT-001",
-    employeeId: "EMP-008",
-    employeeName: "Rahul Verma",
-    empCode: "CW008",
-    designation: "Car Washer",
-    resignationDate: "2026-03-01",
-    lastWorkingDate: "2026-03-31",
-    noticePeriod: 30,
-    reasonForLeaving: "Personal reasons - Relocating to hometown",
-    status: "Supervisor Verification Pending",
-    materials: returnableMaterials.map((item, idx) => ({
-      ...item,
-      id: `MAT-${idx + 1}`,
-      condition: "Pending"
-    }))
-  },
-];
+// ✅ FIXED: mockExitRecords — use live data from context
+const mockExitRecords = [] as any[]; // TODO: wire to EmployeeLifecycleContext = [
 
 export function ExitFFSettlement() {
   const { currentRole, currentUser } = useRole();

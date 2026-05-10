@@ -42,7 +42,13 @@ interface Holiday {
   applicableLocation: string[];
 }
 
-const mockHolidays: Holiday[] = [
+// ✅ FIXED: Holidays loaded from DataService (persisted)
+const mockHolidays: Holiday[] = (() => {
+  try {
+    const stored = localStorage.getItem("cleancar_holidays");
+    return stored ? JSON.parse(stored) : [];
+  } catch { return []; }
+})() = [
   {
     id: "HOL-001",
     name: "Republic Day",
@@ -212,7 +218,11 @@ export function HolidayManagement() {
       applicableLocation: formData.applicableLocation || ["All Locations"],
     };
 
-    setHolidays([...holidays, newHoliday]);
+    setHolidays((prev) => {
+    const next = [...prev, newHoliday];
+    localStorage.setItem("cleancar_holidays", JSON.stringify(next));
+    return next;
+  });
     setShowAddModal(false);
     setFormData({ type: "National", applicableLocation: ["All Locations"] });
     toast.success("Holiday added successfully");

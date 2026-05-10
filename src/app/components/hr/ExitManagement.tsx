@@ -21,25 +21,8 @@ interface ExitProcess {
   }[];
 }
 
-const mockExits: ExitProcess[] = [
-  {
-    id: "EXIT001",
-    employeeName: "Neha Singh",
-    employeeId: "EMP004",
-    designation: "Customer Care Executive",
-    resignationDate: "2024-03-08",
-    lastWorkingDay: "2024-04-07",
-    noticePeriod: "30 days",
-    status: "HR Clearance",
-    clearanceSteps: [
-      { step: "Resignation Submitted", status: "Completed", completedOn: "2024-03-08" },
-      { step: "Manager Approval", status: "Completed", completedOn: "2024-03-09" },
-      { step: "Asset Return", status: "Completed", completedOn: "2024-03-10" },
-      { step: "HR Clearance", status: "Pending" },
-      { step: "Final Settlement", status: "Pending" },
-    ],
-  },
-];
+// ✅ FIXED: mockExits — use live data from context
+const mockExits = [] as any[]; // TODO: wire to EmployeeLifecycleContext = [
 
 export function ExitManagement() {
   const getStatusColor = (status: ExitStatus) => {

@@ -24,8 +24,37 @@ class AdvanceManagementService {
   private auditLogs: AuditLogEntry[] = [];
   private alerts: Alert[] = [];
 
+  private readonly STORAGE_KEY = "cleancar_advance_management";
+
   constructor() {
-    this.seedMockData();
+    this.loadFromStorage();
+    // Only seed if storage is empty (first-time setup)
+    if (this.longTermAdvances.size === 0 && this.shortTermAdvances.size === 0) {
+      this.seedMockData();
+      this.saveToStorage();
+    }
+  }
+
+  private saveToStorage(): void {
+    try {
+      const data = {
+        longTermAdvances: Array.from(this.longTermAdvances.entries()),
+        shortTermAdvances: Array.from(this.shortTermAdvances.entries()),
+        auditLogs: this.auditLogs,
+      };
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+    } catch (e) { /* ignore storage errors */ }
+  }
+
+  private loadFromStorage(): void {
+    try {
+      const raw = localStorage.getItem(this.STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (data.longTermAdvances)  this.longTermAdvances  = new Map(data.longTermAdvances);
+      if (data.shortTermAdvances) this.shortTermAdvances = new Map(data.shortTermAdvances);
+      if (data.auditLogs)         this.auditLogs         = data.auditLogs;
+    } catch (e) { /* ignore parse errors */ }
   }
 
   // ==================== LONG-TERM ADVANCE ====================
@@ -134,6 +163,7 @@ class AdvanceManagementService {
     };
 
     this.longTermAdvances.set(id, advance);
+    this.saveToStorage();
     this.logAudit(id, "LONG_TERM", "CREATED", employeeId, employeeRole, "Application created");
 
     return advance;
@@ -197,6 +227,7 @@ class AdvanceManagementService {
     advance.isDisbursementLocked = !advance.securityCheque.isDeposited;
 
     this.longTermAdvances.set(advanceId, advance);
+    this.saveToStorage();
     this.logAudit(advanceId, "LONG_TERM", "APPROVED", approvedBy, approverRole, notes || "Approved");
   }
 
@@ -217,6 +248,7 @@ class AdvanceManagementService {
     advance.updatedAt = new Date().toISOString();
 
     this.longTermAdvances.set(advanceId, advance);
+    this.saveToStorage();
     this.logAudit(advanceId, "LONG_TERM", "REJECTED", rejectedBy, rejectorRole, reason);
   }
 
@@ -248,6 +280,7 @@ class AdvanceManagementService {
     advance.updatedAt = new Date().toISOString();
 
     this.longTermAdvances.set(advanceId, advance);
+    this.saveToStorage();
     this.logAudit(
       advanceId,
       "LONG_TERM",
@@ -327,6 +360,7 @@ class AdvanceManagementService {
     }
 
     this.longTermAdvances.set(advanceId, advance);
+    this.saveToStorage();
     this.logAudit(
       advanceId,
       "LONG_TERM",
@@ -372,6 +406,7 @@ class AdvanceManagementService {
     }
 
     this.longTermAdvances.set(advanceId, advance);
+    this.saveToStorage();
     this.logAudit(
       advanceId,
       "LONG_TERM",
@@ -473,6 +508,7 @@ class AdvanceManagementService {
     };
 
     this.shortTermAdvances.set(id, advance);
+    this.saveToStorage();
     this.logAudit(
       id,
       "SHORT_TERM",
@@ -506,6 +542,7 @@ class AdvanceManagementService {
     advance.updatedAt = new Date().toISOString();
 
     this.shortTermAdvances.set(advanceId, advance);
+    this.saveToStorage();
     this.logAudit(advanceId, "SHORT_TERM", "APPROVED", approvedBy, approverRole, "Override approved");
   }
 
@@ -528,6 +565,7 @@ class AdvanceManagementService {
     advance.updatedAt = new Date().toISOString();
 
     this.shortTermAdvances.set(advanceId, advance);
+    this.saveToStorage();
     this.logAudit(
       advanceId,
       "SHORT_TERM",
