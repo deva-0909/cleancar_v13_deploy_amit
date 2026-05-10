@@ -174,7 +174,7 @@ const mockTraining: Training[] = [
 ];
 
 function HRModule() {
-  const { payrollRuns } = useEmployeeData();
+  const { payrollRuns = [] } = useEmployeeData(); // default [] prevents undefined crash
   const { currentRole, roleConfig } = useRole();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -388,7 +388,7 @@ function HRModule() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Monthly Payroll</p>
-                  <p className="text-2xl font-bold mt-1">₹{(payrollRuns.reduce((s, p) => s + (p.netSalary||0), 0) / 100000).toFixed(2)}L</p>
+                  <p className="text-2xl font-bold mt-1">₹{((payrollRuns || []).reduce((s, p) => s + (p.netSalary||0), 0) / 100000).toFixed(2)}L</p>
                   <p className="text-xs text-gray-500 mt-1">March 2026</p>
                 </div>
                 <div className="bg-indigo-50 text-indigo-600 p-3 rounded-lg">
@@ -891,25 +891,25 @@ function HRModule() {
                     <div className="p-4 bg-blue-50 rounded-lg">
                       <p className="text-sm text-gray-600">Gross Payroll</p>
                       <p className="text-2xl font-bold text-blue-600">
-                        ₹{payrollRuns.reduce((s, p) => s + (p.grossSalary||0), 0).toLocaleString()}
+                        ₹{(payrollRuns || []).reduce((s, p) => s + (p.grossSalary||0), 0).toLocaleString()}
                       </p>
                     </div>
                     <div className="p-4 bg-red-50 rounded-lg">
                       <p className="text-sm text-gray-600">Total Deductions</p>
                       <p className="text-2xl font-bold text-red-600">
-                        ₹{payrollRuns.reduce((s, p) => s + (p.totalDeductions||0), 0).toLocaleString()}
+                        ₹{(payrollRuns || []).reduce((s, p) => s + (p.totalDeductions||0), 0).toLocaleString()}
                       </p>
                     </div>
                     <div className="p-4 bg-green-50 rounded-lg">
                       <p className="text-sm text-gray-600">Net Payroll</p>
                       <p className="text-2xl font-bold text-green-600">
-                        ₹{payrollRuns.reduce((s, p) => s + (p.netSalary||0), 0).toLocaleString()}
+                        ₹{(payrollRuns || []).reduce((s, p) => s + (p.netSalary||0), 0).toLocaleString()}
                       </p>
                     </div>
                     <div className="p-4 bg-purple-50 rounded-lg">
                       <p className="text-sm text-gray-600">Pending Approval</p>
                       <p className="text-2xl font-bold text-purple-600">
-                        {payrollRuns.filter(p => p.status === "Draft" || p.status === "HR Approved").length}
+                        {(payrollRuns || []).filter(p => p.status === "Draft" || p.status === "HR Approved").length}
                       </p>
                     </div>
                   </div>
@@ -934,7 +934,7 @@ function HRModule() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {payrollRuns.map((payroll) => (
+                      {(payrollRuns || []).map((payroll) => (
                         <TableRow key={payroll.payrollId || payroll.employeeId}>
                           <TableCell className="font-medium">{payroll.employeeId}</TableCell>
                           <TableCell>
