@@ -42,14 +42,7 @@ interface Holiday {
   applicableLocation: string[];
 }
 
-// ✅ FIXED: Holidays loaded from localStorage (persisted)
-function loadHolidays(): Holiday[] {
-  try {
-    const stored = localStorage.getItem("cleancar_holidays");
-    return stored ? JSON.parse(stored) : [];
-  } catch { return []; }
-}
-const mockHolidays: Holiday[] = loadHolidays() = [
+const mockHolidays: Holiday[] = [
   {
     id: "HOL-001",
     name: "Republic Day",
