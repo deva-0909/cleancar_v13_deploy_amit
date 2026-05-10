@@ -17,6 +17,7 @@ import { SessionLockScreen, type LockReason } from "./SessionLockScreen";
 import { StandardErrorComponent, type ErrorType } from "./StandardErrorComponent";
 import { CustomerNotificationFeedback } from "./CustomerNotificationFeedback";
 import { EdgeCaseHandler, type EdgeCaseType } from "./EdgeCaseHandler";
+import { logger } from "../../services/logger";
 
 export function SystemIntegrationDemo() {
   // Offline state
@@ -200,7 +201,7 @@ export function SystemIntegrationDemo() {
               <StandardErrorComponent
                 type="OCR_FAILED"
                 canRetry={true}
-                onRetry={() => console.log("Retry")}
+                onRetry={() => logger.log("Retry")}
               />
             </div>
           </TabsContent>
@@ -226,7 +227,7 @@ export function SystemIntegrationDemo() {
               <TimeBandTimer
                 checkInTime={timerStartTime}
                 durationHours={4}
-                onExpire={() => console.log("Timer expired")}
+                onExpire={() => logger.log("Timer expired")}
               />
             )}
 
@@ -333,14 +334,14 @@ export function SystemIntegrationDemo() {
             <StandardErrorComponent
               type="NETWORK_ERROR"
               canRetry={true}
-              onRetry={() => console.log("Retry")}
+              onRetry={() => logger.log("Retry")}
             />
             <StandardErrorComponent
               type="SERVER_ERROR"
               canRetry={true}
               canDismiss={true}
-              onRetry={() => console.log("Retry")}
-              onDismiss={() => console.log("Dismiss")}
+              onRetry={() => logger.log("Retry")}
+              onDismiss={() => logger.log("Dismiss")}
             />
           </CardContent>
         </Card>

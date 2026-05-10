@@ -35,6 +35,7 @@ import type {
   DurationPrice,
 } from "../../types/subscriptionPlans.types";
 import { PLAN_TIER_COLORS } from "../../constants/subscriptionPlans.constants";
+import { logger } from "../../services/logger";
 
 export function PlanSelectionScreen() {
   const [vehicleType, setVehicleType] = useState<"4W" | "2W">("4W");
@@ -258,7 +259,7 @@ export function PlanSelectionScreen() {
                       className="w-full"
                       onClick={() => {
                         // In production: Navigate to checkout with plan + duration
-                        console.log("Selected plan:", plan.tier.id, selectedDuration);
+                        logger.log("Selected plan:", plan.tier.id, selectedDuration);
                       }}
                     >
                       Select {plan.tier.displayName}

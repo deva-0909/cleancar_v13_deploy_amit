@@ -740,7 +740,7 @@ export function LeadAssignmentEngine() {
                   className="flex-1"
                   onClick={() => {
                     setShowConfigureRulesModal(false);
-                    alert(`✅ Assignment Rules Updated!\n\nDaily Capacity: ${dailyCapacity} leads\nWorking Hours: ${workingStartTime} - ${workingEndTime}\nAuto Assignment: ${autoAssignment ? 'Enabled' : 'Disabled'}\n\nChanges applied successfully.`);
+                    toast.success(`✅ Assignment Rules Updated!\n\nDaily Capacity: ${dailyCapacity} leads\nWorking Hours: ${workingStartTime} - ${workingEndTime}\nAuto Assignment: ${autoAssignment ? 'Enabled' : 'Disabled'}\n\nChanges applied successfully.`);
                   }}
                 >
                   <Save className="w-4 h-4 mr-2" />
@@ -799,7 +799,7 @@ export function LeadAssignmentEngine() {
                   className="flex-1"
                   onClick={() => {
                     setShowConfigureHierarchyModal(false);
-                    alert(`✅ Fallback Hierarchy Updated!\n\nPrimary Handler: ${primaryHandler}\nFallback 1: ${fallback1}\nFallback 2: ${fallback2}\n\nEscalation chain configured successfully.`);
+                    toast.success(`✅ Fallback Hierarchy Updated!\n\nPrimary Handler: ${primaryHandler}\nFallback 1: ${fallback1}\nFallback 2: ${fallback2}\n\nEscalation chain configured successfully.`);
                   }}
                 >
                   <Save className="w-4 h-4 mr-2" />

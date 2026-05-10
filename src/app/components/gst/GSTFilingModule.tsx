@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Upload, Check, ChevronRight, Download, CheckCircle } from "lucide-react";
 import { showExportMenu } from "../../utils/gstExportUtils";
 import { gstComplianceService } from "../../services/gstComplianceService";
@@ -78,7 +79,7 @@ export function GSTFilingModule() {
 
   const handleConfirmFiling = () => {
     if (!filingReference || !filingDate) {
-      alert("Please enter filing reference and date");
+      toast.info("Please enter filing reference and date");
       return;
     }
     // Persist Filed status + reference to every approved transaction for this period
@@ -104,7 +105,7 @@ export function GSTFilingModule() {
     });
 
     setFiled(true);
-    alert(`Filing confirmed. ${toFile.length} transactions marked as Filed. Reference: ${filingReference}`);
+    toast.success(`Filing confirmed. ${toFile.length} transactions marked as Filed. Reference: ${filingReference}`);
   };
 
   return (

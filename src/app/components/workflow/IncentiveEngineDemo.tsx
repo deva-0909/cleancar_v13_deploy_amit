@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -26,7 +27,7 @@ export function IncentiveEngineDemo() {
 
   const handleCompleteUnit = () => {
     const result = incentiveEngineService.completeUnit(`JOB-${Date.now()}`);
-    alert(result.message);
+    toast.info(result.message);
     refresh();
   };
 
@@ -46,7 +47,7 @@ export function IncentiveEngineDemo() {
       "Customer requested during booking"
     );
     const result = incentiveEngineService.completeAddOn(addOn);
-    alert(result.message);
+    toast.info(result.message);
     refresh();
   };
 
@@ -55,25 +56,25 @@ export function IncentiveEngineDemo() {
       true,
       "Checked in 15 minutes late - incentives disabled for today"
     );
-    alert("⚠️ Late check-in penalty applied. Incentives disabled.");
+    toast.info("⚠️ Late check-in penalty applied. Incentives disabled.");
     refresh();
   };
 
   const handleSetWeekOff = () => {
     incentiveEngineService.setWeekOff(true);
-    alert("📅 Week-off day set. No incentives allowed.");
+    toast.info("📅 Week-off day set. No incentives allowed.");
     refresh();
   };
 
   const handleSetCoverDay = () => {
     incentiveEngineService.setCoverDay(true);
-    alert("🔄 Cover day set. Incentives active after base completion.");
+    toast.info("🔄 Cover day set. Incentives active after base completion.");
     refresh();
   };
 
   const handleReset = () => {
     incentiveEngineService.reset();
-    alert("🔄 System reset. Starting fresh.");
+    toast.info("🔄 System reset. Starting fresh.");
     refresh();
   };
 
@@ -107,7 +108,7 @@ export function IncentiveEngineDemo() {
         UNDERBODY_WASH: 40,
       },
     });
-    alert("✅ Configuration loaded from backend (simulated)");
+    toast.success("✅ Configuration loaded from backend (simulated)");
     refresh();
   };
 

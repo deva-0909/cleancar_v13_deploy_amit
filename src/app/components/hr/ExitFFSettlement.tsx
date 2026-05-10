@@ -1,5 +1,6 @@
 // Exit & Full & Final Settlement Module
 import { DataService } from "../../services/DataService";
+import { toast } from "sonner";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -143,7 +144,7 @@ export function ExitFFSettlement() {
         : exit
     ));
 
-    alert(`✅ Material "${exitRecords.find(e => e.id === exitId)?.materials.find(m => m.id === materialId)?.name}" marked as: ${condition}`);
+    toast.success(`✅ Material "${exitRecords.find(e => e.id === exitId)?.materials.find(m => m.id === materialId)?.name}" marked as: ${condition}`);
   };
 
   // Supervisor completes verification
@@ -153,7 +154,7 @@ export function ExitFFSettlement() {
 
     const pendingItems = exit.materials.filter(m => m.condition === "Pending");
     if (pendingItems.length > 0) {
-      alert(`❌ Please verify all ${pendingItems.length} pending items before completing!`);
+      toast.info(`❌ Please verify all ${pendingItems.length} pending items before completing!`);
       return;
     }
 
@@ -168,7 +169,7 @@ export function ExitFFSettlement() {
         : exit
     ));
 
-    alert(`✅ Material return verification completed!\n\nAll items verified successfully.\nStatus updated to: Supervisor Verified\n\nNext: Awaiting HR verification`);
+    toast.success(`✅ Material return verification completed!\n\nAll items verified successfully.\nStatus updated to: Supervisor Verified\n\nNext: Awaiting HR verification`);
   };
 
   // HR verification
@@ -184,7 +185,7 @@ export function ExitFFSettlement() {
         : exit
     ));
 
-    alert(`✅ HR verification completed!\n\nStatus: HR Verified\n\nNext: Calculate F&F settlement`);
+    toast.success(`✅ HR verification completed!\n\nStatus: HR Verified\n\nNext: Calculate F&F settlement`);
   };
 
   // Calculate F&F
@@ -223,7 +224,7 @@ export function ExitFFSettlement() {
     setExitRecords(updatedRecords);
     DataService.setAll("EXIT_SETTLEMENTS", updatedRecords);
     setSelectedExit(null);
-    alert(`✅ F&F Settlement calculated!\n\nNet Amount: ₹${calculation.netAmount.toLocaleString()}\n\nStatus: Awaiting Super Admin Approval`);
+    toast.success(`✅ F&F Settlement calculated!\n\nNet Amount: ₹${calculation.netAmount.toLocaleString()}\n\nStatus: Awaiting Super Admin Approval`);
   };
 
   // Super Admin Approval
@@ -239,7 +240,7 @@ export function ExitFFSettlement() {
         : exit
     ));
 
-    alert(`✅ F&F Settlement approved by Super Admin!\n\nStatus: Super Admin Approved\n\nNext: Sent to Accounts for disbursement`);
+    toast.success(`✅ F&F Settlement approved by Super Admin!\n\nStatus: Super Admin Approved\n\nNext: Sent to Accounts for disbursement`);
   };
 
   // Accounts Processing
@@ -261,7 +262,7 @@ export function ExitFFSettlement() {
         : exit
     ));
 
-    alert(`✅ Disbursement scheduled!\n\nDate: ${disbursementDate.toISOString().split('T')[0]}\n\n📧 Employee will receive notification 1 day before disbursement.`);
+    toast.success(`✅ Disbursement scheduled!\n\nDate: ${disbursementDate.toISOString().split('T')[0]}\n\n📧 Employee will receive notification 1 day before disbursement.`);
   };
 
   const handleDisburse = (exitId: string) => {
@@ -282,7 +283,7 @@ export function ExitFFSettlement() {
         : exit
     ));
 
-    alert(`✅ F&F Settlement disbursed!\n\nMode: ${paymentMode}\nReference: ${paymentRef}\n\nStatus: Disbursed`);
+    toast.success(`✅ F&F Settlement disbursed!\n\nMode: ${paymentMode}\nReference: ${paymentRef}\n\nStatus: Disbursed`);
   };
 
   const getStatusColor = (status: ExitRecord['status']) => {

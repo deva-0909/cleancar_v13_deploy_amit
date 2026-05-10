@@ -12,6 +12,7 @@ import { WasherJobReport } from "../operations/WasherJobReport";
 import { JobCostDetails } from "../operations/JobCostDetails";
 import { CostIntelligencePanel } from "../dashboard/CostIntelligencePanel";
 import { JobCostRecord } from "../finance/JobCostTracking";
+import { logger } from "../../services/logger";
 
 export function CostTrackingIntegrationDemo() {
   const [submittedJobCost, setSubmittedJobCost] = useState<JobCostRecord | null>(
@@ -20,7 +21,7 @@ export function CostTrackingIntegrationDemo() {
 
   const handleJobSubmit = (jobCost: JobCostRecord) => {
     setSubmittedJobCost(jobCost);
-    console.log("Job Cost Record:", jobCost);
+    logger.log("Job Cost Record:", jobCost);
   };
 
   return (

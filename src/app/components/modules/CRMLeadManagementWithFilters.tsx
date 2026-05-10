@@ -1,4 +1,5 @@
 import { BackButton } from "../ui/back-button";
+import { toast } from "sonner";
 /**
  * CRM & Lead Management - WITH COMPLETE FILTER & SORT INTEGRATION
  * This is the completed implementation with all filtering and sorting features
@@ -262,7 +263,7 @@ export function CRMLeadManagementWithFilters() {
           lastContact: timestamp,
         });
       }
-      alert(`Lead "${formData.name}" updated successfully!`);
+      toast.success(`Lead "${formData.name}" updated successfully!`);
     } else {
       // ✅ AUTOMATIC TSE ASSIGNMENT based on pincode
       const tseAssignment = organizationHierarchyService.assignLeadByPincode(formData.pincode);
@@ -285,7 +286,7 @@ export function CRMLeadManagementWithFilters() {
 
       // ✅ EMIT LEAD_ASSIGNED EVENT
 
-      alert(`Lead "${formData.name}" created successfully!\n${tseAssignment.message}`);
+      toast.success(`Lead "${formData.name}" created successfully!\n${tseAssignment.message}`);
     }
 
     closeModal();
@@ -331,7 +332,7 @@ export function CRMLeadManagementWithFilters() {
       "New" as const;
 
     contextUpdateLead(leadId, { status: contextStatus });
-    alert(`Lead status updated to "${newStatus}"!`);
+    toast.success(`Lead status updated to "${newStatus}"!`);
   };
 
   const handleConversionSuccess = () => {
@@ -345,12 +346,12 @@ export function CRMLeadManagementWithFilters() {
   const handleDelete = (leadId: string) => {
     if (confirm("Are you sure you want to delete this lead?")) {
       contextDeleteLead(leadId);
-      alert("Lead deleted successfully!");
+      toast.success("Lead deleted successfully!");
     }
   };
 
   const handleCall = (mobile: string, name: string) => {
-    alert(`📞 Calling ${name} at ${mobile}...\n\nCall integration would connect here.`);
+    toast.info(`📞 Calling ${name} at ${mobile}...\n\nCall integration would connect here.`);
   };
 
   // Stats calculations

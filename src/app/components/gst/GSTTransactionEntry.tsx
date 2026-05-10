@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { toast } from "sonner";
 import { accountingEntryService } from "../../services/accountingEntryService";
 import { FileText, Save, CheckCircle, AlertTriangle, Brain, TrendingDown, CheckCircle2 } from "lucide-react";
 import { gstComplianceService, type GSTTransaction, COMPANY_GST_CONFIG } from "../../services/gstComplianceService";
@@ -305,7 +306,7 @@ export function GSTTransactionEntry() {
       }, cityInfo.displayName);
     }
 
-    alert(`Transaction ${asDraft ? 'saved as draft' : 'submitted'} successfully!`);
+    toast.success(`Transaction ${asDraft ? 'saved as draft' : 'submitted'} successfully!`);
     window.location.reload();
   };
 

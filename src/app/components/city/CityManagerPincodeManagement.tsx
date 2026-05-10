@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -20,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { MapPin, Plus, CheckCircle, AlertCircle, Users, Target } from "lucide-react";
 import { organizationHierarchyService } from "../../services/organizationHierarchyService";
 import { useRole } from "../../contexts/RoleContext";
+import { logger } from "../../services/logger";
 
 export function CityManagerPincodeManagement() {
   const { currentUser } = useRole();
@@ -52,11 +54,11 @@ export function CityManagerPincodeManagement() {
 
   const handleAddPincode = () => {
     // In production: POST /api/city-manager/pincodes
-    console.log("Adding new pincode:", newPincode);
+    logger.log("Adding new pincode:", newPincode);
 
     // This would update the database
     // For now, show instructions to update the code
-    alert(`To add this pincode to the system:
+    toast.info(`To add this pincode to the system:
 
 1. Open: src/app/services/organizationHierarchyService.ts
 2. Add to pincodes array:

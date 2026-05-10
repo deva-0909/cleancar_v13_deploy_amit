@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { toast } from "sonner";
 import { employeeDatabaseService } from "../../services/employeeDatabaseService";
 import type { EmployeeDatabaseRecord } from "../../services/employeeDatabaseService";
 import { onboardingChecklistService } from "../../services/onboardingChecklistService";
@@ -801,13 +802,13 @@ export function EmployeeDatabase({ openAddModal }: { openAddModal?: boolean } = 
 
     // Validate file type
     if (!file.type.match(/^image\/(jpeg|jpg|png)$/)) {
-      alert("⚠️ Invalid file type. Please upload a JPG or PNG image.");
+      toast.error("⚠️ Invalid file type. Please upload a JPG or PNG image.");
       return;
     }
 
     // Validate file size (2MB max)
     if (file.size > 2 * 1024 * 1024) {
-      alert("⚠️ File size exceeds 2 MB. Please upload a smaller image.");
+      toast.info("⚠️ File size exceeds 2 MB. Please upload a smaller image.");
       return;
     }
 
@@ -829,12 +830,12 @@ export function EmployeeDatabase({ openAddModal }: { openAddModal?: boolean } = 
   const handleAddEmployee = () => {
     if (!formData.firstName || !formData.lastName || !formData.email ||
         !formData.designation || !formData.workLocation || !formData.reportingManager) {
-      alert("⚠️ Please fill all required fields!");
+      toast.error("⚠️ Please fill all required fields!");
       return;
     }
 
     if (!photographFile) {
-      alert("⚠️ Employee photograph is required!\n\nPlease upload a passport-size photograph before submitting.");
+      toast.error("⚠️ Employee photograph is required!\n\nPlease upload a passport-size photograph before submitting.");
       return;
     }
 
@@ -848,7 +849,7 @@ export function EmployeeDatabase({ openAddModal }: { openAddModal?: boolean } = 
     setShowAddModal(false);
     handleCloseModal();
     
-    alert(`✅ Employee Onboarded Successfully!\n\nTemp ID: ${newEmployee.tempId}\nName: ${newEmployee.fullName}\nSkill Level: ${newEmployee.skillLevel}\nDue for Conversion: ${newEmployee.conversionDueDate}\n\nEmployee is now in TEMPORARY status. Please convert to permanent within 7 days.`);
+    toast.success(`✅ Employee Onboarded Successfully!\n\nTemp ID: ${newEmployee.tempId}\nName: ${newEmployee.fullName}\nSkill Level: ${newEmployee.skillLevel}\nDue for Conversion: ${newEmployee.conversionDueDate}\n\nEmployee is now in TEMPORARY status. Please convert to permanent within 7 days.`);
   };
 
   const handleConvertToPermanent = () => {
@@ -873,7 +874,7 @@ export function EmployeeDatabase({ openAddModal }: { openAddModal?: boolean } = 
         return task.task;
       }).join("\n• ");
 
-      alert(`⚠️ Cannot convert to Permanent ID.\n\nThe following onboarding documents are pending:\n\n• ${pendingList}\n\nAll documents must be completed AND verified by HR before conversion.`);
+      toast.success(`⚠️ Cannot convert to Permanent ID.\n\nThe following onboarding documents are pending:\n\n• ${pendingList}\n\nAll documents must be completed AND verified by HR before conversion.`);
       return;
     }
 
@@ -900,12 +901,12 @@ export function EmployeeDatabase({ openAddModal }: { openAddModal?: boolean } = 
     setShowConvertModal(false);
     setSelectedEmployee(null);
 
-    alert(`✅ Employee Converted to Permanent!\n\nTemp ID: ${selectedEmployee.tempId}\nPermanent ID: ${permanentId}\nName: ${selectedEmployee.fullName}\n\nEmployee is now on payroll with permanent ID.`);
+    toast.success(`✅ Employee Converted to Permanent!\n\nTemp ID: ${selectedEmployee.tempId}\nPermanent ID: ${permanentId}\nName: ${selectedEmployee.fullName}\n\nEmployee is now on payroll with permanent ID.`);
   };
 
   const handleMarkNotConverted = () => {
     if (!selectedEmployee || !nonConversionReason.trim()) {
-      alert("⚠️ Please provide a reason for not converting this employee.");
+      toast.error("⚠️ Please provide a reason for not converting this employee.");
       return;
     }
     
@@ -925,7 +926,7 @@ export function EmployeeDatabase({ openAddModal }: { openAddModal?: boolean } = 
     setSelectedEmployee(null);
     setNonConversionReason("");
     
-    alert(`✅ Employee Marked as Not Converted\n\nTemp ID: ${selectedEmployee.tempId}\nName: ${selectedEmployee.fullName}\nReason: ${nonConversionReason}\n\nRecord archived in Employee Ledger.`);
+    toast.success(`✅ Employee Marked as Not Converted\n\nTemp ID: ${selectedEmployee.tempId}\nName: ${selectedEmployee.fullName}\nReason: ${nonConversionReason}\n\nRecord archived in Employee Ledger.`);
   };
 
   const handleCloseModal = () => {

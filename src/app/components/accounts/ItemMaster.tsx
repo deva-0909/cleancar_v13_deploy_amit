@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Package, Plus, Edit, Trash2, X } from "lucide-react";
 import { accountingEntryService, type ItemMaster, CHART_OF_ACCOUNTS_HEADS } from "../../services/accountingEntryService";
 import { useCity } from "../../contexts/CityContext";
@@ -111,7 +112,7 @@ export function ItemMaster() {
     e.preventDefault();
     const ledger = expenseLedgers.find(l => l.id === formData.defaultExpenseLedgerId);
     if (!ledger) {
-      alert("Please select a default expense ledger");
+      toast.info("Please select a default expense ledger");
       return;
     }
 

@@ -19,6 +19,7 @@ import {
 import { Badge } from "../ui/badge";
 import { Calendar, Camera } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "../../services/logger";
 
 interface GRNCreationDialogProps {
   open: boolean;
@@ -30,7 +31,7 @@ export function GRNCreationDialog({ open, onClose, linkedPO }: GRNCreationDialog
   const [grnDate, setGrnDate] = useState(new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
-    console.log("GRNCreationDialog - open:", open, "linkedPO:", linkedPO);
+    logger.log("GRNCreationDialog - open:", open, "linkedPO:", linkedPO);
   }, [open, linkedPO]);
   const [challanNumber, setChallanNumber] = useState("");
   const [vehicleNumber, setVehicleNumber] = useState("");
@@ -106,7 +107,7 @@ export function GRNCreationDialog({ open, onClose, linkedPO }: GRNCreationDialog
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
-      console.log("Dialog onOpenChange:", isOpen);
+      logger.log("Dialog onOpenChange:", isOpen);
       if (!isOpen) {
         onClose();
       }

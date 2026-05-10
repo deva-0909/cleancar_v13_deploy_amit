@@ -24,6 +24,7 @@ import { StandardUsageRateHistory } from "./StandardUsageRateHistory";
 import { ManualPriceEntryDialog } from "./ManualPriceEntryDialog";
 import { UpdateStandardUsageDialog } from "./UpdateStandardUsageDialog";
 import { toast } from "sonner";
+import { logger } from "../../services/logger";
 
 interface MaterialDetailViewProps {
   material: Material;
@@ -40,12 +41,12 @@ export function MaterialDetailView({
   const [showUsageUpdate, setShowUsageUpdate] = useState(false);
 
   const handlePriceSave = (entry: any) => {
-    console.log("New price entry:", entry);
+    logger.log("New price entry:", entry);
     // In production, this would save to the backend
   };
 
   const handleUsageSave = (update: any) => {
-    console.log("Usage update:", update);
+    logger.log("Usage update:", update);
     // In production, this would save to the backend
   };
 

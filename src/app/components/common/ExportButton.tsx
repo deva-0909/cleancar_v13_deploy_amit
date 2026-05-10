@@ -10,6 +10,7 @@
  */
 
 import React, { useState } from "react";
+import { toast } from "sonner";
 import { dataExportService, type ExportFormat, type ExportFilters } from "../../services/DataExportService";
 
 interface ExportButtonProps {
@@ -53,11 +54,11 @@ export function ExportButton({
         dataExportService.downloadFile(result.blob, result.filename);
       } else {
         console.error("Export failed:", result.errors);
-        alert("Export failed: " + (result.errors?.join(", ") || "Unknown error"));
+        toast.error("Export failed: " + (result.errors?.join(", ") || "Unknown error"));
       }
     } catch (error) {
       console.error("Export error:", error);
-      alert("Export failed: " + (error instanceof Error ? error.message : "Unknown error"));
+      toast.error("Export failed: " + (error instanceof Error ? error.message : "Unknown error"));
     } finally {
       setIsExporting(false);
     }

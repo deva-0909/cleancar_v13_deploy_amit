@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast } from "sonner";
 import { expansionOpportunities } from "../../lib/mockData";
 import { BackButton } from "../ui/back-button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -32,7 +33,7 @@ export function ExpansionOpportunities() {
           ? { ...o, status: "Expansion Approved" }
           : o
       ));
-      alert(`Zone ${pinCode} marked for expansion! Status changed to "Expansion Approved"`);
+      toast.success(`Zone ${pinCode} marked for expansion! Status changed to "Expansion Approved"`);
     }
   };
 
@@ -183,7 +184,7 @@ export function ExpansionOpportunities() {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => alert(`Activate zone ${opportunity.pinCode}?`)}
+                        onClick={() => toast.info(`Activate zone ${opportunity.pinCode}?`)}
                       >
                         Activate Zone
                       </Button>

@@ -28,6 +28,7 @@ import {
   getSalaryHistory,
 } from "../../data/equipmentSalaryHistoryData";
 import { AddSalaryRevisionDialog } from "./AddSalaryRevisionDialog";
+import { logger } from "../../services/logger";
 import {
   Collapsible,
   CollapsibleContent,
@@ -48,7 +49,7 @@ export function SalaryHistoryManagement() {
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
 
   const handleAddRevision = (data: any) => {
-    console.log("Salary revision:", data);
+    logger.log("Salary revision:", data);
     toast.success("Salary revision added successfully");
   };
 

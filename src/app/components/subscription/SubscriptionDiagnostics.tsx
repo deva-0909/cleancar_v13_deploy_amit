@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { subscriptionPlansService } from "../../services/subscriptionPlansService";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
+import { logger } from "../../services/logger";
 
 export function SubscriptionDiagnostics() {
   const [diagnostics, setDiagnostics] = useState({
@@ -25,10 +26,10 @@ export function SubscriptionDiagnostics() {
       const addons = subscriptionPlansService.getAddons(true);
       const combos = subscriptionPlansService.getComboOffers();
 
-      console.log("Diagnostics - Categories:", categories);
-      console.log("Diagnostics - Tiers:", tiers);
-      console.log("Diagnostics - Addons:", addons);
-      console.log("Diagnostics - Combos:", combos);
+      logger.log("Diagnostics - Categories:", categories);
+      logger.log("Diagnostics - Tiers:", tiers);
+      logger.log("Diagnostics - Addons:", addons);
+      logger.log("Diagnostics - Combos:", combos);
 
       setDiagnostics({
         categories: categories.length,

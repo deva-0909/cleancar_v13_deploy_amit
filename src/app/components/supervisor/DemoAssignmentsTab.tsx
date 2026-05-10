@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { employeeDatabaseService } from "../../services/employeeDatabaseService";
 import { useCity } from "../../contexts/CityContext";
+import { logger } from "../../services/logger";
 
 interface DemoAssignment {
   id: string;
@@ -162,8 +163,8 @@ export function DemoAssignmentsTab() {
     });
 
     // Simulate notifications to TSE and OM
-    console.log(`Notification sent to TSE ${demo?.tseName}: Washer ${washerName} assigned for ${demo?.customerName}'s demo`);
-    console.log(`Notification sent to Operations Manager: Washer ${washerName} assigned to demo for ${demo?.customerName}`);
+    logger.log(`Notification sent to TSE ${demo?.tseName}: Washer ${washerName} assigned for ${demo?.customerName}'s demo`);
+    logger.log(`Notification sent to Operations Manager: Washer ${washerName} assigned to demo for ${demo?.customerName}`);
 
     setShowAssignModal(null);
   };
@@ -196,7 +197,7 @@ export function DemoAssignmentsTab() {
         if (unassignedTodayDemos.length > 0) {
           unassignedTodayDemos.forEach(demo => {
             // Trigger escalation notifications
-            console.log(`URGENT ESCALATION: Demo ${demo.id} for ${demo.customerName} has no washer assigned!`);
+            logger.log(`URGENT ESCALATION: Demo ${demo.id} for ${demo.customerName} has no washer assigned!`);
             toast.error("Demo Escalation Alert", {
               description: `${unassignedTodayDemos.length} demo(s) today without washer assigned`,
               duration: 10000

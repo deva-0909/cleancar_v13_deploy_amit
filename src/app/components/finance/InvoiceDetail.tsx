@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 import { formatCurrency } from "../../lib/formatters";
 import {
@@ -50,6 +51,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Textarea } from "../ui/textarea";
+import { logger } from "../../services/logger";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -214,7 +216,7 @@ async function recordPayment(
   paymentData: any
 ): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 800));
-  console.log("Payment recorded:", { invoiceId, paymentData });
+  logger.log("Payment recorded:", { invoiceId, paymentData });
 }
 
 async function processRefund(
@@ -235,7 +237,7 @@ async function processRefund(
   // if (!response.ok) throw new Error('Failed to process refund');
 
   await new Promise((resolve) => setTimeout(resolve, 800));
-  console.log("Refund processed:", { invoiceId, refundData });
+  logger.log("Refund processed:", { invoiceId, refundData });
 }
 
 // ============================================================================
@@ -373,12 +375,12 @@ export default function InvoiceDetail() {
 
     const paymentAmount = parseFloat(paymentForm.amount);
     if (isNaN(paymentAmount) || paymentAmount <= 0) {
-      alert("Please enter a valid payment amount");
+      toast.info("Please enter a valid payment amount");
       return;
     }
 
     if (paymentAmount > invoice.balanceDue) {
-      alert("Payment amount cannot exceed outstanding balance");
+      toast.info("Payment amount cannot exceed outstanding balance");
       return;
     }
 
@@ -388,9 +390,9 @@ export default function InvoiceDetail() {
       await recordPayment(invoice.id, paymentForm);
       setIsPaymentDrawerOpen(false);
       loadInvoiceDetail();
-      alert("Payment recorded successfully");
+      toast.success("Payment recorded successfully");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to record payment");
+      toast.error(err instanceof Error ? err.message : "Failed to record payment");
     } finally {
       setIsSubmittingPayment(false);
     }
@@ -411,17 +413,17 @@ export default function InvoiceDetail() {
 
     const refundAmount = parseFloat(refundForm.amount);
     if (isNaN(refundAmount) || refundAmount <= 0) {
-      alert("Please enter a valid refund amount");
+      toast.info("Please enter a valid refund amount");
       return;
     }
 
     if (refundAmount > invoice.paidAmount) {
-      alert("Refund amount cannot exceed paid amount");
+      toast.info("Refund amount cannot exceed paid amount");
       return;
     }
 
     if (!refundForm.reason.trim()) {
-      alert("Please provide a reason for refund");
+      toast.error("Please provide a reason for refund");
       return;
     }
 
@@ -431,9 +433,9 @@ export default function InvoiceDetail() {
       await processRefund(invoice.id, refundForm);
       setIsRefundDrawerOpen(false);
       loadInvoiceDetail();
-      alert("Refund processed successfully");
+      toast.success("Refund processed successfully");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to process refund");
+      toast.error(err instanceof Error ? err.message : "Failed to process refund");
     } finally {
       setIsSubmittingRefund(false);
     }

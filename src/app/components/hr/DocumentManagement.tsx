@@ -112,7 +112,7 @@ export function DocumentManagement() {
   const handleDelete = (doc: Document) => {
     if (confirm(`Are you sure you want to delete ${doc.filename}?`)) {
       setDocuments(documents.filter(d => d.id !== doc.id));
-      alert(`✅ Document Deleted!\n\n${doc.filename} has been removed.`);
+      toast.success(`✅ Document Deleted!\n\n${doc.filename} has been removed.`);
     }
   };
 
@@ -121,7 +121,7 @@ export function DocumentManagement() {
       d.id === doc.id ? { ...d, verified: true } : d
     );
     setDocuments(updated);
-    alert(`✅ Document Verified!\n\n${doc.filename} has been marked as verified.`);
+    toast.success(`✅ Document Verified!\n\n${doc.filename} has been marked as verified.`);
   };
 
   return (
@@ -311,7 +311,7 @@ export function DocumentManagement() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => alert(`Downloading ${doc.filename}...`)}
+                            onClick={() => toast.info(`Downloading ${doc.filename}...`)}
                           >
                             <Download className="w-3 h-3" />
                           </Button>
@@ -473,7 +473,7 @@ export function DocumentManagement() {
                 <div className="flex gap-3 pt-4">
                   <Button 
                     className="flex-1"
-                    onClick={() => alert(`Downloading ${selectedDoc.filename}...`)}
+                    onClick={() => toast.info(`Downloading ${selectedDoc.filename}...`)}
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Download

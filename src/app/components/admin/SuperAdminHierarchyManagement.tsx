@@ -4,6 +4,7 @@
  */
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -12,6 +13,7 @@ import { Badge } from "../ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { Building2, Plus, MapPin, Users, CheckCircle, AlertCircle } from "lucide-react";
 import { organizationHierarchyService } from "../../services/organizationHierarchyService";
+import { logger } from "../../services/logger";
 
 export function SuperAdminHierarchyManagement() {
   const [isAddCityOpen, setIsAddCityOpen] = useState(false);
@@ -31,11 +33,11 @@ export function SuperAdminHierarchyManagement() {
 
   const handleAddCity = () => {
     // In production: POST /api/admin/cities
-    console.log("Adding new city:", newCity);
+    logger.log("Adding new city:", newCity);
 
     // This would update the database
     // For now, show instructions to update the code
-    alert(`To add this city to the system:
+    toast.info(`To add this city to the system:
 
 1. Open: src/app/services/organizationHierarchyService.ts
 2. Add to cities array:

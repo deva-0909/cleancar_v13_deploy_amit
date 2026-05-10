@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { useCity } from "../../contexts/CityContext";
 import { accountingEntryService } from "../../services/accountingEntryService";
 import { Calculator, AlertCircle } from "lucide-react";
@@ -100,7 +101,7 @@ export default function AdvanceTaxCalculator() {
       .find((l) => l.name === paymentForm.bank);
 
     if (!advanceTaxLedger || !bankLedger) {
-      alert("Ledger not found");
+      toast.info("Ledger not found");
       return;
     }
 
@@ -137,7 +138,7 @@ export default function AdvanceTaxCalculator() {
       cityInfo.displayName
     );
 
-    alert("Advance tax payment recorded successfully!");
+    toast.success("Advance tax payment recorded successfully!");
     setPaymentModal(null);
     setPaymentForm({
       bank: "",

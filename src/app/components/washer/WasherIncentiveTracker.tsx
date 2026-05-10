@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
+import { logger } from "../../services/logger";
 import {
   TrendingUp,
   DollarSign,
@@ -104,7 +105,7 @@ export function WasherIncentiveTracker({
 
   const handleApplyOverride = () => {
     // In real app: API call to apply override
-    console.log("Override applied:", { overrideAmount, overrideReason });
+    logger.log("Override applied:", { overrideAmount, overrideReason });
     setShowOverrideForm(false);
   };
 

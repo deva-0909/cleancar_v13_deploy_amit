@@ -24,6 +24,7 @@ import {
   OfflineEntryTag,
 } from "./SystemIndicators";
 import { systemStateService } from "../../services/systemStateService";
+import { logger } from "../../services/logger";
 import type {
   BTLLead,
   LeadStatus,
@@ -51,8 +52,8 @@ export function BTLLeadScreen({ leads, metrics, onSubmitLead, onViewPipeline }: 
   const [showCaptureForm, setShowCaptureForm] = useState(false);
 
   // Debug logging
-  console.log("🎯 BTLLeadScreen rendered with", leads.length, "leads");
-  console.log("📊 Metrics:", metrics);
+  logger.log("🎯 BTLLeadScreen rendered with", leads.length, "leads");
+  logger.log("📊 Metrics:", metrics);
 
   const statusConfig: Record<LeadStatus, { label: string; color: string; icon: any }> = {
     PENDING: {

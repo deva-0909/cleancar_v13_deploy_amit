@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { MaterialRequisitionDrawer } from "./MaterialRequisitionDrawer";
 import { GRNCreationDialog } from "./GRNCreationDialog";
+import { logger } from "../../services/logger";
 
 // Mock data for alert panels
 const reorderAlerts = [
@@ -200,7 +201,7 @@ export function StoreDashboard() {
   };
 
   const handleCreateGRN = (po: any) => {
-    console.log("Creating GRN for PO:", po);
+    logger.log("Creating GRN for PO:", po);
     setSelectedPOForGRN(po);
     setGrnDialogOpen(true);
     toast.info("Opening GRN creation form...");

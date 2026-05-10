@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { useCity } from "../../contexts/CityContext";
 import { accountingEntryService, TDS_RATE_CHART } from "../../services/accountingEntryService";
 import { Download, AlertTriangle } from "lucide-react";
@@ -157,7 +158,7 @@ export default function TDSPayableModule() {
       .find((l) => l.name === paymentForm.bank);
 
     if (!tdsLedger || !bankLedger) {
-      alert("Ledger not found");
+      toast.info("Ledger not found");
       return;
     }
 
@@ -186,7 +187,7 @@ export default function TDSPayableModule() {
       cityInfo.displayName
     );
 
-    alert("TDS payment recorded successfully!");
+    toast.success("TDS payment recorded successfully!");
     setPaymentModal(null);
     setPaymentForm({
       bank: "",

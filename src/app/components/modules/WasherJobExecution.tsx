@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast } from "sonner";
 import { useRole } from "../../contexts/RoleContext";
 import { BackButton } from "../ui/back-button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -545,14 +546,14 @@ export function WasherJobExecution() {
                     size="lg"
                     onClick={() => {
                       if (!jobReport.vehicleConditionBefore || !jobReport.vehicleConditionAfter || !jobReport.customerPresent) {
-                        alert('Please fill all required fields');
+                        toast.error('Please fill all required fields');
                         return;
                       }
                       if (jobReport.customerPresent === "Yes" && (!jobReport.customerFeedback || jobReport.customerFeedback.length < 15)) {
-                        alert('Please provide customer feedback (minimum 15 characters)');
+                        toast.error('Please provide customer feedback (minimum 15 characters)');
                         return;
                       }
-                      alert(`Job completed successfully! Great work, ${currentUser.name}!`);
+                      toast.success(`Job completed successfully! Great work, ${currentUser.name}!`);
                       setSelectedJob(null);
                     }}
                   >

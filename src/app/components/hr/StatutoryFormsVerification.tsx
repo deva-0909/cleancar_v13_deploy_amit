@@ -261,7 +261,7 @@ export function StatutoryFormsVerification() {
 
   const handleVerifyPF = () => {
     if (!allPFChecklistCompleted) {
-      alert("Please complete all checklist items before verifying");
+      toast.info("Please complete all checklist items before verifying");
       return;
     }
     setPfForm({
@@ -270,12 +270,12 @@ export function StatutoryFormsVerification() {
       verifiedBy: "Sneha Gupta (HR Manager)",
       verifiedOn: new Date().toLocaleString("en-IN"),
     });
-    alert("✅ PF Declaration verified successfully for Rahul Sharma!");
+    toast.success("✅ PF Declaration verified successfully for Rahul Sharma!");
   };
 
   const handleVerifyESIC = () => {
     if (!allESICChecklistCompleted) {
-      alert("Please complete all checklist items before verifying");
+      toast.info("Please complete all checklist items before verifying");
       return;
     }
     setEsicForm({
@@ -284,7 +284,7 @@ export function StatutoryFormsVerification() {
       verifiedBy: "Sneha Gupta (HR Manager)",
       verifiedOn: new Date().toLocaleString("en-IN"),
     });
-    alert("✅ ESIC Declaration verified successfully for Rahul Sharma!");
+    toast.success("✅ ESIC Declaration verified successfully for Rahul Sharma!");
   };
 
   const handleReject = (type: "PF" | "ESIC") => {
@@ -294,22 +294,22 @@ export function StatutoryFormsVerification() {
 
   const handleConfirmReject = () => {
     if (rejectReasons.length === 0) {
-      alert("Please select at least one rejection reason");
+      toast.error("Please select at least one rejection reason");
       return;
     }
     if (!rejectInstructions.trim()) {
-      alert("Please provide correction instructions");
+      toast.error("Please provide correction instructions");
       return;
     }
 
     if (rejectType === "PF") {
       setPfForm({ ...pfForm, status: "Rejected" });
-      alert(
+      toast.error(
         `❌ PF Declaration rejected for Rahul Sharma.\n\nReasons: ${rejectReasons.join(", ")}\n\nCorrection request sent to employee.`
       );
     } else {
       setEsicForm({ ...esicForm, status: "Rejected" });
-      alert(
+      toast.error(
         `❌ ESIC Declaration rejected for Rahul Sharma.\n\nReasons: ${rejectReasons.join(", ")}\n\nCorrection request sent to employee.`
       );
     }
@@ -321,7 +321,7 @@ export function StatutoryFormsVerification() {
 
   const handleFilePF = () => {
     if (!pfReferenceNumber.trim()) {
-      alert("Please enter the ECR/Acknowledgement Reference Number");
+      toast.info("Please enter the ECR/Acknowledgement Reference Number");
       return;
     }
     setPfForm({
@@ -332,14 +332,14 @@ export function StatutoryFormsVerification() {
       referenceNumber: pfReferenceNumber,
     });
     setShowPFFilingModal(false);
-    alert(
+    toast.success(
       `✅ PF Form 11 filing recorded successfully!\n\nEmployee: Rahul Sharma\nFiling Mode: ${pfFilingMode}\nReference: ${pfReferenceNumber}\n\nThis record has been added to the employee ledger.`
     );
   };
 
   const handleFileESIC = () => {
     if (!esicIPNumber.trim()) {
-      alert("Please enter the IP Number assigned by ESIC");
+      toast.success("Please enter the IP Number assigned by ESIC");
       return;
     }
     setEsicForm({
@@ -350,7 +350,7 @@ export function StatutoryFormsVerification() {
       ipNumber: esicIPNumber,
     });
     setShowESICFilingModal(false);
-    alert(
+    toast.success(
       `✅ ESIC Form 1 filing recorded successfully!\n\nEmployee: Rahul Sharma\nFiling Mode: ${esicFilingMode}\nIP Number: ${esicIPNumber}\n\nThis record has been added to the employee ledger.`
     );
   };

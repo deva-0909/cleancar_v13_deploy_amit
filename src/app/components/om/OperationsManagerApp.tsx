@@ -43,6 +43,7 @@ import { operationsManagerService } from "../../services/operationsManagerServic
 import { notificationService } from "../../services/notificationService";
 import { TIME_MODE_CONFIGS, CURRENT_OM_ID, DEFAULT_LOCATION, DISCOUNT_LIMITS } from "../../constants/operationsManager.constants";
 import type { OMTimeMode } from "../../types/operationsManager.types";
+import { logger } from "../../services/logger";
 
 function getCurrentTimeMode(hour: number): OMTimeMode {
   // For development: Allow normal mode during most hours
@@ -63,7 +64,7 @@ function getCurrentTimeMode(hour: number): OMTimeMode {
 }
 
 export function OperationsManagerApp() {
-  console.log("🚀 OperationsManagerApp component rendering");
+  logger.log("🚀 OperationsManagerApp component rendering");
 
   const [currentScreen, setCurrentScreen] = useState("dashboard");
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -163,8 +164,8 @@ export function OperationsManagerApp() {
     );
   }
 
-  console.log("✅ All OM data loaded successfully");
-  console.log("📊 Sales Metrics:", salesMetrics ? "Loaded" : "Missing");
+  logger.log("✅ All OM data loaded successfully");
+  logger.log("📊 Sales Metrics:", salesMetrics ? "Loaded" : "Missing");
 
   const getTimeModeInfo = () => {
     switch (timeMode) {
@@ -190,7 +191,7 @@ export function OperationsManagerApp() {
 
   // Handlers
   const handleDrillDown = (metric: string) => {
-    console.log("Drill down:", metric);
+    logger.log("Drill down:", metric);
     if (metric === "units" || metric === "washers") {
       setCurrentScreen("teams");
     }
@@ -200,7 +201,7 @@ export function OperationsManagerApp() {
   const handleOpenEscalations = () => setCurrentScreen("escalations");
 
   const handleAlertClick = (alert: any) => {
-    console.log("Alert clicked:", alert);
+    logger.log("Alert clicked:", alert);
     // Navigate to relevant screen based on alert
     if (alert.category === "ESCALATION") {
       setCurrentScreen("escalations");
@@ -212,12 +213,12 @@ export function OperationsManagerApp() {
   };
 
   const handleReassignCover = (washerId: string) => {
-    console.log("Reassign cover for:", washerId);
+    logger.log("Reassign cover for:", washerId);
     // Show cover reassignment modal
   };
 
   const handleViewWasherDetail = (washerId: string) => {
-    console.log("View washer detail:", washerId);
+    logger.log("View washer detail:", washerId);
     // Show washer detail modal
     const washer = teamOperations.washers.find((w: any) => w.id === washerId);
     if (washer) {
@@ -226,55 +227,55 @@ export function OperationsManagerApp() {
   };
 
   const handleEscalate = (washerId: string) => {
-    console.log("Escalate washer:", washerId);
+    logger.log("Escalate washer:", washerId);
     setCurrentScreen("escalations");
   };
 
   const handleApproveEscalation = (escalationId: string, notes?: string) => {
     operationsManagerService.approveEscalation(escalationId, CURRENT_OM_ID, notes);
-    console.log("Approved:", escalationId);
+    logger.log("Approved:", escalationId);
   };
 
   const handleRejectEscalation = (escalationId: string, reason: string) => {
     operationsManagerService.rejectEscalation(escalationId, CURRENT_OM_ID, reason);
-    console.log("Rejected:", escalationId, reason);
+    logger.log("Rejected:", escalationId, reason);
   };
 
   const handleRequestEscalationInfo = (escalationId: string, question: string) => {
     operationsManagerService.requestEscalationInfo(escalationId, CURRENT_OM_ID, question);
-    console.log("Info requested:", escalationId, question);
+    logger.log("Info requested:", escalationId, question);
   };
 
   const handleEscalateToDirector = (escalationId: string) => {
-    console.log("Escalate to director:", escalationId);
+    logger.log("Escalate to director:", escalationId);
   };
 
   const handleAddLead = () => {
-    console.log("Add new lead");
+    logger.log("Add new lead");
   };
 
   const handleUpdateLeadStage = (leadId: string, newStage: string, lostData?: any) => {
-    console.log("Update lead stage:", leadId, newStage, lostData);
+    logger.log("Update lead stage:", leadId, newStage, lostData);
   };
 
   const handleScheduleVisit = (leadId: string) => {
-    console.log("Schedule visit for lead:", leadId);
+    logger.log("Schedule visit for lead:", leadId);
   };
 
   const handleAssignRetentionTask = (customerId: string) => {
-    console.log("Assign retention task:", customerId);
+    logger.log("Assign retention task:", customerId);
   };
 
   const handleLogResolution = (customerId: string) => {
-    console.log("Log resolution:", customerId);
+    logger.log("Log resolution:", customerId);
   };
 
   const handleMarkUpsellAttempt = (customerId: string) => {
-    console.log("Mark upsell attempt:", customerId);
+    logger.log("Mark upsell attempt:", customerId);
   };
 
   const handleViewIncentiveBreakdown = (washerId: string) => {
-    console.log("View incentive breakdown:", washerId);
+    logger.log("View incentive breakdown:", washerId);
     // Show incentive breakdown modal
     const washer = teamOperations.washers.find((w: any) => w.id === washerId);
     if (washer) {
@@ -298,37 +299,37 @@ export function OperationsManagerApp() {
   };
 
   const handleSubmitOverrideRequest = (washerId: string) => {
-    console.log("Submit override request:", washerId);
+    logger.log("Submit override request:", washerId);
   };
 
   const handleExportPayroll = () => {
-    console.log("Export payroll");
+    logger.log("Export payroll");
   };
 
   const handleDownloadReport = (reportType: string) => {
-    console.log("Download report:", reportType);
+    logger.log("Download report:", reportType);
   };
 
   const handleShareReport = (reportType: string) => {
-    console.log("Share report:", reportType);
+    logger.log("Share report:", reportType);
   };
 
   const handleExportCSV = (reportType: string) => {
-    console.log("Export CSV:", reportType);
+    logger.log("Export CSV:", reportType);
   };
 
   // Field Mode handlers
   const handleLogVisit = (visitType: string, location: string) => {
-    console.log("Log visit:", visitType, location);
+    logger.log("Log visit:", visitType, location);
   };
 
   const handleAddProspect = (name: string, location: string, phone: string) => {
-    console.log("Add prospect:", name, location, phone);
+    logger.log("Add prospect:", name, location, phone);
   };
 
   // Day Close handlers
   const handleSubmitDayClose = (notes: string) => {
-    console.log("Day close submitted:", notes);
+    logger.log("Day close submitted:", notes);
   };
 
   // Pre-Day handlers
@@ -338,7 +339,7 @@ export function OperationsManagerApp() {
   };
 
   const handleScheduleNewVisit = () => {
-    console.log("Schedule new visit");
+    logger.log("Schedule new visit");
   };
 
   // Show Pre-Day Preview if in PRE_DAY mode and not bypassed

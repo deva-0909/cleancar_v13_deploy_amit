@@ -73,6 +73,7 @@ import {
 } from "../../data/costData";
 import { useCity } from "../../contexts/CityContext";
 import { useInventory } from "../../contexts/InventoryContext";
+import { logger } from "../../services/logger";
 import {
   calculateCostPerWash as calculateCostPerWashCentral,
   type CostCalculationInputs,
@@ -230,7 +231,7 @@ function CostPerWashCalculatorEnhanced() {
         percentages,
       });
 
-      console.log("[CostPerWashCalculatorEnhanced] Calculated using central engine:", {
+      logger.log("[CostPerWashCalculatorEnhanced] Calculated using central engine:", {
         costPerWash: centralResult.costPerWash,
         totalCost: centralResult.totalCost,
       });

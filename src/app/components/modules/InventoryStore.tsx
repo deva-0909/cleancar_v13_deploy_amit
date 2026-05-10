@@ -9,6 +9,7 @@ import { Badge } from "../ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { useEffect, useState } from "react";
+import { logger } from "../../services/logger";
 
 export function InventoryStore() {
   const { inventory, getLowStockItems } = useInventory();
@@ -16,11 +17,11 @@ export function InventoryStore() {
 
   // Listen for inventory updates
   useEventListener("INVENTORY_ISSUED", () => {
-    console.log("[InventoryStore] Inventory issued - UI auto-updating from context");
+    logger.log("[InventoryStore] Inventory issued - UI auto-updating from context");
   });
 
   useEventListener("INVENTORY_LOW_STOCK", () => {
-    console.log("[InventoryStore] Low stock alert - UI auto-updating from context");
+    logger.log("[InventoryStore] Low stock alert - UI auto-updating from context");
   });
 
   // Simulate initial loading

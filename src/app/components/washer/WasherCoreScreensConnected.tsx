@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import { logger } from "../../services/logger";
 
 // ========== MAIN COMPONENT (uses context from root-level AppProvider) ==========
 
@@ -71,10 +72,10 @@ export function WasherCoreScreensConnected() {
   const handleCheckIn = () => setCurrentScreen("checkin");
   const handleViewSchedule = () => setCurrentScreen("schedule");
   const handleViewIncentive = () => setCurrentScreen("incentive");
-  const handleRaiseIssue = () => console.log("Raise issue"); // Navigate to issue form
+  const handleRaiseIssue = () => logger.log("Raise issue"); // Navigate to issue form
 
   // Check-in handlers
-  const handleStartCheckInCamera = () => console.log("Start camera");
+  const handleStartCheckInCamera = () => logger.log("Start camera");
   const handleTakeCheckInPhoto = () => {
     setCheckInPhoto("https://via.placeholder.com/400x300?text=Check-In+Selfie");
     // Trigger validations
@@ -106,7 +107,7 @@ export function WasherCoreScreensConnected() {
 
   // Schedule handlers
   const handleJobClick = (jobId: string) => {
-    console.log("Job clicked:", jobId);
+    logger.log("Job clicked:", jobId);
   };
   
   const handleStartJob = (jobId: string) => {
@@ -136,7 +137,7 @@ export function WasherCoreScreensConnected() {
   };
 
   // Check-out handlers
-  const handleStartCheckOutCamera = () => console.log("Start camera");
+  const handleStartCheckOutCamera = () => logger.log("Start camera");
   const handleTakeCheckOutPhoto = () => {
     setCheckOutPhoto("https://via.placeholder.com/400x300?text=Check-Out+Selfie");
     setTimeout(() => {

@@ -194,17 +194,8 @@ function UnitEconomicsDashboard() {
   const ltvCacRatio = customerCAC > 0 ? Number((customerLTV / customerCAC).toFixed(1)) : 0;
   const contributionMargin = revenuePerWash > 0 ? Number(((grossMarginPerWash / revenuePerWash) * 100).toFixed(1)) : 0;
 
-  const mockMetrics: UnitEconomicsMetrics = {
-    revenuePerCustomer,
-    revenuePerWash,
-    costPerWash,
-    costPerCustomer,
-    grossMarginPerWash,
-    customerLTV,
-    customerCAC,
-    contributionMargin,
-    ltvCacRatio,
-  };
+  // ✅ TODO: metrics come from FinanceContext + JobContext aggregation
+    const mockMetrics: UnitEconomicsMetrics = {} as UnitEconomicsMetrics; // empty until live
 
   // Memoize static chart data to prevent re-renders
   const memoizedCostTrend = useMemo(() => costPerWashTrend, []);

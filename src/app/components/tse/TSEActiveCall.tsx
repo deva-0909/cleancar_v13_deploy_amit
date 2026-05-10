@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -141,7 +142,7 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
 
   const generatePaymentLink = () => {
     // In real implementation, this would call payment gateway API
-    alert("Payment link sent via WhatsApp (mock implementation)");
+    toast.info("Payment link sent via WhatsApp (mock implementation)");
   };
 
   const handleEndCall = () => {

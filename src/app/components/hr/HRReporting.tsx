@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
@@ -45,7 +46,7 @@ export function HRReporting() {
 
     const filterText = filters.length > 0 ? `\nFilters: ${filters.join(", ")}` : "";
     
-    alert(
+    toast.info(
       `📊 Exporting Report...\n\n` +
       `Report: ${reportName}\n` +
       `Format: ${format.toUpperCase()}${filterText}\n\n` +

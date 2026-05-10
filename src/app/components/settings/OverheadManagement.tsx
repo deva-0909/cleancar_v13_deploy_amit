@@ -34,6 +34,7 @@ import {
 import { AddOverheadItemDialog } from "./AddOverheadItemDialog";
 import { ReviseOverheadDialog } from "./ReviseOverheadDialog";
 import { OverheadHistoryDialog } from "./OverheadHistoryDialog";
+import { logger } from "../../services/logger";
 
 export function OverheadManagement() {
   const [showAddOverhead, setShowAddOverhead] = useState(false);
@@ -42,12 +43,12 @@ export function OverheadManagement() {
   const [selectedOverheadId, setSelectedOverheadId] = useState<string | null>(null);
 
   const handleAddOverhead = (data: any) => {
-    console.log("New overhead item:", data);
+    logger.log("New overhead item:", data);
     toast.success("Overhead item added successfully");
   };
 
   const handleReviseOverhead = (data: any) => {
-    console.log("Overhead revision:", data);
+    logger.log("Overhead revision:", data);
     toast.success("Overhead amount revised successfully");
   };
 

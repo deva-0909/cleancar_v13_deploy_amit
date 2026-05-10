@@ -7,6 +7,7 @@
  */
 
 import { Navigate } from "react-router-dom";
+import { logger } from "../../services/logger";
 
 interface DevOnlyRouteProps {
   element: React.ReactElement;
@@ -17,7 +18,7 @@ export function DevOnlyRoute({ element }: DevOnlyRouteProps) {
   const isDevelopment = import.meta.env.MODE === "development" || import.meta.env.DEV;
 
   if (!isDevelopment) {
-    console.warn("[DevOnlyRoute] Access denied: Route is only available in development mode");
+    logger.warn("[DevOnlyRoute] Access denied: Route is only available in development mode");
     return <Navigate to="/" replace />;
   }
 

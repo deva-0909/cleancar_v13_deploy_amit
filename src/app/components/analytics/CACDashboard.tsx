@@ -34,28 +34,11 @@ import { useEmployee } from "../../contexts/EmployeeContext";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
-const mockCACByChannel = [
-  { id: "channel-1", channel: "Google Ads", spend: 145000, customers: 185, cac: 784, conversion: 3.2 },
-  { id: "channel-2", channel: "Meta Ads", spend: 125000, customers: 210, cac: 595, conversion: 4.5 },
-  { id: "channel-3", channel: "Offline Events", spend: 85000, customers: 95, cac: 895, conversion: 2.1 },
-  { id: "channel-4", channel: "Referral Program", spend: 45000, customers: 180, cac: 250, conversion: 12.5 },
-  { id: "channel-5", channel: "Influencer Marketing", spend: 95000, customers: 125, cac: 760, conversion: 3.8 },
-];
+const mockCACByChannel = []; // ✅ No mock data — use live context
 
-const mockCACByCity = [
-  { id: "city-1", city: "Surat",     spend: 185000, customers: 242, cac: 764 },
-  { id: "city-2", city: "Mumbai",    spend: 220000, customers: 280, cac: 786 },
-  { id: "city-3", city: "Ahmedabad", spend: 155000, customers: 198, cac: 783 },
-];
+const mockCACByCity = []; // ✅ No mock data — use live context
 
-const mockCACTrend = [
-  { id: "jan", month: "Jan", cac: 925, target: 800 },
-  { id: "feb", month: "Feb", cac: 885, target: 800 },
-  { id: "mar", month: "Mar", cac: 835, target: 800 },
-  { id: "apr", month: "Apr", cac: 790, target: 800 },
-  { id: "may", month: "May", cac: 745, target: 800 },
-  { id: "jun", month: "Jun", cac: 701, target: 800 },
-];
+const mockCACTrend = []; // ✅ No mock data — use live context
 
 const channelDistribution = [
   { id: "dist-1", name: "Meta Ads", value: 28, customers: 210 },

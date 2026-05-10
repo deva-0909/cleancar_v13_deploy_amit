@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -236,7 +237,7 @@ export function LeadPipelineKanban() {
   const handleCallNow = (phone: string, leadName: string) => {
     // Open phone dialer
     window.location.href = `tel:${phone}`;
-    alert(`Calling ${leadName} at ${phone}...`);
+    toast.info(`Calling ${leadName} at ${phone}...`);
   };
 
   const handleWhatsApp = (phone: string, leadName: string) => {
@@ -253,7 +254,7 @@ export function LeadPipelineKanban() {
 
   const handleConfirmSchedule = () => {
     if (!scheduleDate || !scheduleTime) {
-      alert("Please select both date and time for the follow-up");
+      toast.info("Please select both date and time for the follow-up");
       return;
     }
 
@@ -267,7 +268,7 @@ export function LeadPipelineKanban() {
       });
     }
 
-    alert(
+    toast.info(
       `${scheduleType === "call" ? "Call" : scheduleType === "whatsapp" ? "WhatsApp" : "Demo"} scheduled with ${scheduleLeadName} for ${formattedDateTime}.\n\nNotes: ${scheduleNotes || "None"}\n\nReminder will be sent 1 hour before.`
     );
 

@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSupervisor } from "../../contexts/SupervisorContext";
 import { useRole } from "../../contexts/RoleContext";
@@ -44,6 +45,7 @@ import { dailyFlowService } from "../../services/dailyFlowService";
 import { kpiDashboardService } from "../../services/kpiDashboardService";
 import { mockWasherDataService } from "../../services/mockWasherDataService";
 import { useScenario } from "../../contexts/ScenarioContext";
+import { logger } from "../../services/logger";
 
 export function SupervisorAppConnected() {
   const location = useLocation();
@@ -128,7 +130,7 @@ export function SupervisorAppConnected() {
     const washer = team.find(w => w.id === washerId);
 
     if (typeof window !== 'undefined' && washer) {
-      alert(`Viewing details for ${washer.name}\n\nIn production: This would navigate to the washer detail view showing:\n- Performance metrics\n- Attendance history\n- Unit completion\n- Quality scores`);
+      toast.info(`Viewing details for ${washer.name}\n\nIn production: This would navigate to the washer detail view showing:\n- Performance metrics\n- Attendance history\n- Unit completion\n- Quality scores`);
     }
   };
 
@@ -136,7 +138,7 @@ export function SupervisorAppConnected() {
     const washer = team.find(w => w.id === washerId);
 
     if (typeof window !== 'undefined' && washer) {
-      alert(`Manual attendance override for ${washer.name}\n\nIn production: This would show a manual override modal.`);
+      toast.info(`Manual attendance override for ${washer.name}\n\nIn production: This would show a manual override modal.`);
     }
   };
 
@@ -144,7 +146,7 @@ export function SupervisorAppConnected() {
     const washer = team.find(w => w.id === washerId);
 
     if (typeof window !== 'undefined' && washer) {
-      alert(`Triggering cover redistribution for ${washer.name}\n\nIn production: This would show the cover assignment modal with:\n- Available washers\n- Job redistribution plan\n- Capacity analysis`);
+      toast.info(`Triggering cover redistribution for ${washer.name}\n\nIn production: This would show the cover assignment modal with:\n- Available washers\n- Job redistribution plan\n- Capacity analysis`);
     }
   };
 
@@ -154,7 +156,7 @@ export function SupervisorAppConnected() {
 
     // Show toast notification for user feedback
     if (typeof window !== 'undefined' && washer) {
-      alert(`Calling ${washer.name} at ${washer.phone || 'N/A'}\n\nIn production: This would initiate a phone call.`);
+      toast.info(`Calling ${washer.name} at ${washer.phone || 'N/A'}\n\nIn production: This would initiate a phone call.`);
     }
 
     // In production: initiate phone call or show call dialog
@@ -167,7 +169,7 @@ export function SupervisorAppConnected() {
     const washer = team.find(w => w.id === washerId);
 
     if (typeof window !== 'undefined' && washer) {
-      alert(`Marking attendance for ${washer.name}\n\nIn production: This would open an attendance marking modal with reason field.`);
+      toast.error(`Marking attendance for ${washer.name}\n\nIn production: This would open an attendance marking modal with reason field.`);
     }
   };
 
@@ -175,7 +177,7 @@ export function SupervisorAppConnected() {
     const washer = team.find(w => w.id === washerId);
 
     if (typeof window !== 'undefined' && washer) {
-      alert(`Verifying GPS for ${washer.name}\n\nIn production: This would show a map view with GPS verification interface.`);
+      toast.info(`Verifying GPS for ${washer.name}\n\nIn production: This would show a map view with GPS verification interface.`);
     }
   };
 
@@ -183,7 +185,7 @@ export function SupervisorAppConnected() {
     const washer = team.find(w => w.id === washerId);
 
     if (typeof window !== 'undefined' && washer) {
-      alert(`Viewing selfie for ${washer.name}\n\nIn production: This would show a full-screen selfie modal.`);
+      toast.info(`Viewing selfie for ${washer.name}\n\nIn production: This would show a full-screen selfie modal.`);
     }
   };
 
@@ -191,7 +193,7 @@ export function SupervisorAppConnected() {
     const washer = team.find(w => w.id === washerId);
 
     if (typeof window !== 'undefined' && washer) {
-      alert(`Requesting attendance override for ${washer.name}\n\nIn production: This would show an override request form requiring manager approval.`);
+      toast.info(`Requesting attendance override for ${washer.name}\n\nIn production: This would show an override request form requiring manager approval.`);
     }
   };
 
@@ -199,7 +201,7 @@ export function SupervisorAppConnected() {
     const washer = team.find(w => w.id === washerId);
 
     if (typeof window !== 'undefined' && washer) {
-      alert(`Submitting incident report for ${washer.name}\n\nIn production: This would show an incident report form.`);
+      toast.info(`Submitting incident report for ${washer.name}\n\nIn production: This would show an incident report form.`);
     }
   };
 
@@ -207,7 +209,7 @@ export function SupervisorAppConnected() {
     const washer = team.find(w => w.id === washerId);
 
     if (typeof window !== 'undefined' && washer) {
-      alert(`Adding note for ${washer.name}\n\nIn production: This would show a note-adding modal.`);
+      toast.info(`Adding note for ${washer.name}\n\nIn production: This would show a note-adding modal.`);
     }
   };
 
@@ -240,7 +242,7 @@ export function SupervisorAppConnected() {
         .map(([name, cars]) => `${name}: ${cars.join(", ")}`)
         .join("\n");
 
-      alert(`✅ Car Auto-Assignment Completed\n\nAbsent Washer: ${selectedAbsentWasher?.name}\nTotal Cars Reassigned: ${assignments.length}\n\nNew Assignments:\n${summaryText}\n\nIn production: This would update the database and notify assigned washers.`);
+      toast.success(`✅ Car Auto-Assignment Completed\n\nAbsent Washer: ${selectedAbsentWasher?.name}\nTotal Cars Reassigned: ${assignments.length}\n\nNew Assignments:\n${summaryText}\n\nIn production: This would update the database and notify assigned washers.`);
     }
   };
 
@@ -357,13 +359,13 @@ export function SupervisorAppConnected() {
 
     // Visual feedback
     if (typeof window !== 'undefined' && fromWasher && toWasher) {
-      alert(`✅ Cover Reassignment Successful\n\nReassigned ${units.toFixed(1)} units\nFrom: ${fromWasher.name}\nTo: ${toWasher.name}\n\nIn production: Notifications would be sent to both washers.`);
+      toast.success(`✅ Cover Reassignment Successful\n\nReassigned ${units.toFixed(1)} units\nFrom: ${fromWasher.name}\nTo: ${toWasher.name}\n\nIn production: Notifications would be sent to both washers.`);
     }
   };
 
   const handleCoverEscalate = (reason?: string) => {
     if (!coverPlan) {
-      console.warn("No cover plan available");
+      logger.warn("No cover plan available");
       return;
     }
 
@@ -376,13 +378,13 @@ export function SupervisorAppConnected() {
         ? `Operations Manager Notified\n\nType: Cover Override\nAbsent Washer: ${coverPlan.absentWasher.name}\nOverride Applied: Units exceeded recommended maximum\n\nOps Manager will acknowledge this override.`
         : `Escalation to Operations Manager initiated\n\nReason: ${escalationReason}\nAbsent Washer: ${coverPlan.absentWasher.name}\nUnassigned Units: ${coverPlan.unassignedUnits.toFixed(1)}\n\nIn production: This would notify the Operations Manager and create an escalation ticket.`;
 
-      alert(message);
+      toast.info(message);
     }
   };
 
   const handleContactCustomers = () => {
     if (!coverPlan) {
-      console.warn("No cover plan available");
+      logger.warn("No cover plan available");
       return;
     }
 
@@ -390,7 +392,7 @@ export function SupervisorAppConnected() {
 
     // Visual feedback for user
     if (typeof window !== 'undefined') {
-      alert(`Adjusting allocation for cover capacity shortage\n\nAbsent Washer: ${coverPlan.absentWasher.name}\nAffected Jobs: ${coverPlan.absentWasher.jobs.length}\nUnassigned Units: ${coverPlan.unassignedUnits.toFixed(1)}\n\nIn production: This would open a modal to manually adjust job allocations across available washers.`);
+      toast.success(`Adjusting allocation for cover capacity shortage\n\nAbsent Washer: ${coverPlan.absentWasher.name}\nAffected Jobs: ${coverPlan.absentWasher.jobs.length}\nUnassigned Units: ${coverPlan.unassignedUnits.toFixed(1)}\n\nIn production: This would open a modal to manually adjust job allocations across available washers.`);
     }
   };
 
@@ -687,7 +689,7 @@ export function SupervisorAppConnected() {
 
       if (confirmed) {
         alertService.markAlertActioned(`ALERT-${washerId}`, "SUP-001");
-        alert(`✅ ${washer.name} marked as ABSENT\n\nCover redistribution initiated.\nOps Manager notified.\n\nIn production: This would update the database and trigger notifications.`);
+        toast.success(`✅ ${washer.name} marked as ABSENT\n\nCover redistribution initiated.\nOps Manager notified.\n\nIn production: This would update the database and trigger notifications.`);
       }
     }
   };

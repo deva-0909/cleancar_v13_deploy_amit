@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { QAAuditDrawer, type QAAuditData } from "./QAAuditDrawer";
+import { logger } from "../../services/logger";
 
 interface Job {
   id: string;
@@ -112,7 +113,7 @@ export function WasherJobInfo({ job }: WasherJobInfoProps) {
   };
 
   const handleQAAuditSubmit = (auditData: QAAuditData) => {
-    console.log("QA Audit submitted:", auditData);
+    logger.log("QA Audit submitted:", auditData);
     toast.success("QA Audit submitted successfully");
     setShowQAAudit(false);
   };

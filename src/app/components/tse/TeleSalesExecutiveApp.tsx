@@ -15,6 +15,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
@@ -43,6 +44,7 @@ import type {
   TSEAlert,
 } from "../../types/teleSalesExecutive.types";
 import { DAILY_CALL_TARGET, CONVERSION_TARGETS } from "../../constants/teleSalesExecutive.constants";
+import { logger } from "../../services/logger";
 
 type ScreenType = "LEAD_QUEUE" | "ACTIVE_CALL" | "CRM_UPDATE" | "INCENTIVE_TRACKER";
 type TabType = "leads" | "incentives";
@@ -149,14 +151,14 @@ export function TeleSalesExecutiveApp() {
   // Handle CRM update submission
   const handleCRMSubmit = (crmUpdate: CRMUpdate) => {
     // In real implementation, this would save to backend
-    console.log("CRM Update:", crmUpdate);
+    logger.log("CRM Update:", crmUpdate);
 
     // Reset call session and return to lead queue
     setActiveCallSession(null);
     setCurrentScreen("LEAD_QUEUE");
 
     // Show success message
-    alert("CRM updated successfully!");
+    toast.success("CRM updated successfully!");
   };
 
   // Handle CRM update cancel

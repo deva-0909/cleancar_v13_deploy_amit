@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { formatCurrency } from "../../lib/formatters";
 import {
   FileText,
@@ -49,6 +50,7 @@ import { useCity } from "../../contexts/CityContext";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useCustomers } from "../../contexts/AppProvider";
 import { useCustomerSubscriptions } from "../../contexts/AppProvider";
+import { logger } from "../../services/logger";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -191,7 +193,7 @@ async function recordPayment(
     cityId: cityId,
   });
 
-  console.log("Payment recorded and revenue created:", { invoiceId, paymentData });
+  logger.log("Payment recorded and revenue created:", { invoiceId, paymentData });
 }
 
 // ============================================================================
@@ -340,12 +342,12 @@ export default function InvoiceManagement() {
 
     const paymentAmount = parseFloat(paymentForm.amount);
     if (isNaN(paymentAmount) || paymentAmount <= 0) {
-      alert("Please enter a valid payment amount");
+      toast.info("Please enter a valid payment amount");
       return;
     }
 
     if (paymentAmount > selectedInvoice.balanceDue) {
-      alert("Payment amount cannot exceed outstanding balance");
+      toast.info("Payment amount cannot exceed outstanding balance");
       return;
     }
 
@@ -355,9 +357,9 @@ export default function InvoiceManagement() {
       await recordPayment(selectedInvoice.id, paymentForm, selectedInvoice, recordRevenue, city);
       setIsPaymentDrawerOpen(false);
       loadInvoices(); // Reload to get updated invoice status
-      alert("Payment recorded successfully");
+      toast.success("Payment recorded successfully");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to record payment");
+      toast.error(err instanceof Error ? err.message : "Failed to record payment");
     } finally {
       setIsSubmittingPayment(false);
     }

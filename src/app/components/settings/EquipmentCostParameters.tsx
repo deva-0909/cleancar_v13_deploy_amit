@@ -28,6 +28,7 @@ import {
 import { UpdateUsefulLifeDialog } from "./UpdateUsefulLifeDialog";
 import { AddEquipmentCategoryDialog } from "./AddEquipmentCategoryDialog";
 import { format } from "date-fns";
+import { logger } from "../../services/logger";
 
 export function EquipmentCostParameters() {
   const [showUpdateUsefulLife, setShowUpdateUsefulLife] = useState(false);
@@ -40,12 +41,12 @@ export function EquipmentCostParameters() {
   };
 
   const handleUsefulLifeSave = (data: any) => {
-    console.log("Useful life update:", data);
+    logger.log("Useful life update:", data);
     toast.success("Equipment useful life updated successfully");
   };
 
   const handleAddCategory = (data: any) => {
-    console.log("New equipment category:", data);
+    logger.log("New equipment category:", data);
     toast.success("Equipment category added successfully");
   };
 

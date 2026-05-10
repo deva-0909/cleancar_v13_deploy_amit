@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { GitCompare, Upload, Download } from "lucide-react";
 import { gstComplianceService, type GSTReconciliationRecord } from "../../services/gstComplianceService";
 import { showExportMenu } from "../../utils/gstExportUtils";
@@ -101,7 +102,7 @@ export function GSTReconciliation() {
 
       const matched   = matchedRecords.filter(r => r.matchStatus === "Matched").length;
       const unmatched = matchedRecords.filter(r => r.matchStatus !== "Matched").length;
-      alert(`Upload complete. ${matched} matched, ${unmatched} unmatched. Review the Results tab.`);
+      toast.info(`Upload complete. ${matched} matched, ${unmatched} unmatched. Review the Results tab.`);
       setActiveTab("results");
     };
     reader.readAsText(file);

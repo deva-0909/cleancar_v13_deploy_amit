@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { Users, Plus, Search, Download, X, Check, AlertCircle } from "lucide-react";
 import { gstComplianceService, type GSTCustomer } from "../../services/gstComplianceService";
 import { showExportMenu } from "../../utils/gstExportUtils";
@@ -255,7 +256,7 @@ function CustomerForm({ customer, onSave, onClose }: {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.gstin && !gstinValid) {
-      alert("Please fix GSTIN validation errors");
+      toast.error("Please fix GSTIN validation errors");
       return;
     }
     onSave(formData as GSTCustomer);

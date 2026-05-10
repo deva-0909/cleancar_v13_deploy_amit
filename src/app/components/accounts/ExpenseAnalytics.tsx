@@ -1,4 +1,5 @@
 import { BackButton } from "../ui/back-button";
+import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -121,12 +122,12 @@ export function ExpenseAnalytics() {
 
   const exportToExcel = () => {
     // Export logic here
-    alert("Exporting to Excel...");
+    toast.info("Exporting to Excel...");
   };
 
   const downloadDocuments = () => {
     // Download documents logic
-    alert("Downloading documents...");
+    toast.info("Downloading documents...");
   };
 
   return (

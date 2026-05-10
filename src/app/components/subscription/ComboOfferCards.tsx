@@ -20,6 +20,7 @@ import { Button } from "../ui/button";
 import { Tag, TrendingDown, Info, Users } from "lucide-react";
 import { subscriptionPlansService } from "../../services/subscriptionPlansService";
 import type { ComboOffer } from "../../types/subscriptionPlans.types";
+import { logger } from "../../services/logger";
 
 interface ComboOfferCardsProps {
   onSelectCombo?: (comboId: string) => void;
@@ -126,7 +127,7 @@ export function ComboOfferCards({ onSelectCombo }: ComboOfferCardsProps) {
                   if (onSelectCombo) {
                     onSelectCombo(combo.id);
                   }
-                  console.log("Selected combo:", combo.id);
+                  logger.log("Selected combo:", combo.id);
                 }}
               >
                 Select This Combo

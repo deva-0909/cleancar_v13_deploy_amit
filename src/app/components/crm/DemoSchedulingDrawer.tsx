@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { toast } from "sonner";
 import { useDemos } from "../../contexts/DemoContext";
 import { Calendar, Clock, User, MapPin, AlertCircle, Check } from "lucide-react";
+import { logger } from "../../services/logger";
 
 interface DemoSchedulingDrawerProps {
   isOpen: boolean;
@@ -225,8 +226,8 @@ export function DemoSchedulingDrawer({ isOpen, onClose, leadData }: DemoScheduli
     });
 
     // Simulate notifications
-    console.log(`✅ Notification to ${supervisor}: New demo assigned. Type: ${demoType}. Customer: ${leadData?.name}, Date: ${demoDate}, Time: ${timeSlot}. Please assign washer ${deadlineText}.`);
-    console.log(`✅ Notification to Operations Manager: Demo scheduled for ${leadData?.name} on ${demoDate} at ${timeSlot}. Supervisor: ${supervisor}. Washer assignment pending.`);
+    logger.log(`✅ Notification to ${supervisor}: New demo assigned. Type: ${demoType}. Customer: ${leadData?.name}, Date: ${demoDate}, Time: ${timeSlot}. Please assign washer ${deadlineText}.`);
+    logger.log(`✅ Notification to Operations Manager: Demo scheduled for ${leadData?.name} on ${demoDate} at ${timeSlot}. Supervisor: ${supervisor}. Washer assignment pending.`);
 
     // Send notification
     toast.success("Demo scheduled successfully", {

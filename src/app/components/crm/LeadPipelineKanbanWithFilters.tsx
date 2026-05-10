@@ -4,6 +4,7 @@
  */
 
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { useCustomers } from "../../contexts/CustomerContext";
 import { organizationHierarchyService } from "../../services/organizationHierarchyService";
@@ -429,7 +430,7 @@ export function LeadPipelineKanbanWithFilters() {
   };
 
   const handleCallNow = (phone: string, leadName: string) => {
-    alert(`📞 Calling ${leadName} at ${phone}...`);
+    toast.info(`📞 Calling ${leadName} at ${phone}...`);
   };
 
   const handleWhatsApp = (phone: string, leadName: string) => {
@@ -447,7 +448,7 @@ export function LeadPipelineKanbanWithFilters() {
 
   const handleConfirmSchedule = () => {
     if (!scheduleDate || !scheduleTime) {
-      alert("Please select both date and time for the follow-up");
+      toast.info("Please select both date and time for the follow-up");
       return;
     }
 
@@ -458,7 +459,7 @@ export function LeadPipelineKanbanWithFilters() {
     );
     setLeads(updatedLeads);
 
-    alert(
+    toast.info(
       `${scheduleType === "call" ? "Call" : scheduleType === "whatsapp" ? "WhatsApp" : "Demo"} scheduled with ${scheduleLeadName} for ${formattedDateTime}.\n\nNotes: ${scheduleNotes || "None"}\n\nReminder will be sent 1 hour before.`
     );
 

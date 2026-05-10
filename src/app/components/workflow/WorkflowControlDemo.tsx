@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -63,9 +64,9 @@ export function WorkflowControlDemo() {
     );
 
     if (result.success) {
-      alert("✅ Check-in successful!");
+      toast.success("✅ Check-in successful!");
     } else {
-      alert(`❌ Check-in failed: ${result.errors.join(", ")}`);
+      toast.error(`❌ Check-in failed: ${result.errors.join(", ")}`);
     }
   };
 
@@ -74,9 +75,9 @@ export function WorkflowControlDemo() {
 
     if (result.success) {
       setSelectedJob(jobId);
-      alert(`✅ Job ${vehicleRegNo} started!`);
+      toast.success(`✅ Job ${vehicleRegNo} started!`);
     } else {
-      alert(`❌ ${result.error}`);
+      toast.error(`❌ ${result.error}`);
     }
   };
 
@@ -84,9 +85,9 @@ export function WorkflowControlDemo() {
     const result = workflowControlService.startTask(taskId);
 
     if (result.success) {
-      alert("✅ Task started!");
+      toast.success("✅ Task started!");
     } else {
-      alert(`❌ ${result.error}`);
+      toast.error(`❌ ${result.error}`);
     }
   };
 
@@ -97,9 +98,9 @@ export function WorkflowControlDemo() {
     } else {
       const result = await workflowControlService.completeTask(task.id, []);
       if (result.success) {
-        alert("✅ Task completed!");
+        toast.success("✅ Task completed!");
       } else {
-        alert(`❌ ${result.error}`);
+        toast.error(`❌ ${result.error}`);
       }
     }
   };
@@ -115,9 +116,9 @@ export function WorkflowControlDemo() {
     if (result.success) {
       setShowPhotoCapture(false);
       setCurrentPhotoTask(null);
-      alert("✅ Task completed with photo!");
+      toast.success("✅ Task completed with photo!");
     } else {
-      alert(`❌ ${result.error}`);
+      toast.error(`❌ ${result.error}`);
     }
   };
 
@@ -128,9 +129,9 @@ export function WorkflowControlDemo() {
       // Update incentive
       incentiveEngineService.completeUnit(selectedJob || "");
       setSelectedJob(null);
-      alert("✅ Job completed! Incentive updated.");
+      toast.success("✅ Job completed! Incentive updated.");
     } else {
-      alert(`❌ ${result.error}`);
+      toast.error(`❌ ${result.error}`);
     }
   };
 
@@ -385,7 +386,7 @@ export function WorkflowControlDemo() {
                 totalPhotos={currentPhotoTask.photoCount}
                 taskName={currentPhotoTask.name}
                 onPhotoValidated={handlePhotoValidated}
-                onValidationFailed={(error) => alert(`Validation failed: ${error}`)}
+                onValidationFailed={(error) => toast.error(`Validation failed: ${error}`)}
                 validatePhoto={async (photoUrl) => {
                   return await workflowControlService.validatePhoto(photoUrl, "PHOTO_QUALITY", {});
                 }}

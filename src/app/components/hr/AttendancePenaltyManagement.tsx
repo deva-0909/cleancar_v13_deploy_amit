@@ -4,6 +4,7 @@
  */
 
 import { DataService } from "../../services/DataService";
+import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -70,7 +71,7 @@ export function AttendancePenaltyManagement() {
 
   const handleWaiver = () => {
     if (!selectedViolation || !waiverReason.trim()) {
-      alert("Please enter a waiver reason");
+      toast.error("Please enter a waiver reason");
       return;
     }
 
@@ -81,13 +82,13 @@ export function AttendancePenaltyManagement() {
     );
 
     if (result.success) {
-      alert(`✅ ${result.message}`);
+      toast.success(`✅ ${result.message}`);
       loadViolations();
       setShowWaiverForm(false);
       setSelectedViolation(null);
       setWaiverReason("");
     } else {
-      alert(`❌ ${result.message}`);
+      toast.info(`❌ ${result.message}`);
     }
   };
 

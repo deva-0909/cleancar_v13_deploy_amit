@@ -31,6 +31,7 @@ import {
 import { useDemos } from "../../contexts/DemoContext";
 import { useRole } from "../../contexts/RoleContext";
 import { toast } from "sonner";
+import { logger } from "../../services/logger";
 
 export function WasherDemoRequests() {
   const { demos, acknowledgeDemo, startDemo, completeDemo } = useDemos();
@@ -67,8 +68,8 @@ export function WasherDemoRequests() {
     });
 
     // Simulate notifications
-    console.log(`✅ Notification to Supervisor: Washer ${washerName} has accepted the demo for ${demo?.customerFirstName} on ${demo?.demoDate}.`);
-    console.log(`✅ Notification to TSE: Washer acknowledged — demo confirmed for ${demo?.customerName}.`);
+    logger.log(`✅ Notification to Supervisor: Washer ${washerName} has accepted the demo for ${demo?.customerFirstName} on ${demo?.demoDate}.`);
+    logger.log(`✅ Notification to TSE: Washer acknowledged — demo confirmed for ${demo?.customerName}.`);
   };
 
   const handleDeclineSubmit = () => {
@@ -85,8 +86,8 @@ export function WasherDemoRequests() {
     });
 
     // Simulate urgent notification to supervisor
-    console.log(`🚨 URGENT Notification to Supervisor: Washer ${washerName} declined the demo for ${demo?.customerFirstName}. Reason: ${declineReason}. Please assign another washer immediately.`);
-    console.log(`✅ Notification to Operations Manager: Washer ${washerName} declined demo for ${demo?.customerName}. Reason: ${declineReason}.`);
+    logger.log(`🚨 URGENT Notification to Supervisor: Washer ${washerName} declined the demo for ${demo?.customerFirstName}. Reason: ${declineReason}. Please assign another washer immediately.`);
+    logger.log(`✅ Notification to Operations Manager: Washer ${washerName} declined demo for ${demo?.customerName}. Reason: ${declineReason}.`);
 
     setShowDeclineModal(null);
     setDeclineReason("");
@@ -102,7 +103,7 @@ export function WasherDemoRequests() {
     });
 
     // Simulate notifications
-    console.log(`✅ Notification to Supervisor & TSE: ${demo?.customerFirstName}'s demo has started at ${new Date().toLocaleTimeString()}.`);
+    logger.log(`✅ Notification to Supervisor & TSE: ${demo?.customerFirstName}'s demo has started at ${new Date().toLocaleTimeString()}.`);
   };
 
   const handleCompleteDemo = () => {
@@ -130,8 +131,8 @@ export function WasherDemoRequests() {
     });
 
     // Simulate notifications
-    console.log(`✅ Notification to TSE: Demo completed for ${demo?.customerName}. Customer feedback: "${completionData.customerFeedback}". Please follow up within 2 hours.`);
-    console.log(`✅ Notification to Supervisor & OM: Demo job completed by ${washerName} for ${demo?.customerFirstName}.`);
+    logger.log(`✅ Notification to TSE: Demo completed for ${demo?.customerName}. Customer feedback: "${completionData.customerFeedback}". Please follow up within 2 hours.`);
+    logger.log(`✅ Notification to Supervisor & OM: Demo job completed by ${washerName} for ${demo?.customerFirstName}.`);
 
     // Reset form
     setCompletionData({

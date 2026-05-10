@@ -77,6 +77,7 @@ import {
   Star,
 } from "lucide-react";
 import { StatCard } from "../../design-system/components/StatCard";
+import { logger } from "../../services/logger";
 
 // Types
 interface TimeBand {
@@ -850,7 +851,7 @@ function IncentiveConfiguration() {
       createdAt: config.createdAt || new Date().toISOString(),
       createdBy: config.createdBy || "Current User", // In real app: currentUser.name
     };
-    console.log("Saving draft config:", { selectedRoleCode, config: saveData });
+    logger.log("Saving draft config:", { selectedRoleCode, config: saveData });
     // TODO: Save to HR context or backend
   };
 
@@ -863,7 +864,7 @@ function IncentiveConfiguration() {
       createdAt: prev.createdAt || new Date().toISOString(),
       createdBy: prev.createdBy || "Current User",
     }));
-    console.log("Submitting for approval:", { selectedRoleCode, config });
+    logger.log("Submitting for approval:", { selectedRoleCode, config });
     // TODO: Submit to approval workflow
   };
 
@@ -883,7 +884,7 @@ function IncentiveConfiguration() {
     };
 
     setConfig(newConfig);
-    console.log("Created new version:", newVersion);
+    logger.log("Created new version:", newVersion);
   };
 
   const isLocked = config.status !== "Draft";

@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useRole } from "../../contexts/RoleContext";
 import { advanceManagementService } from "../../services/advanceManagementService";
@@ -101,9 +102,9 @@ export function ShortTermAdvanceForm() {
   const handleSubmit = () => {
     if (!canSubmit()) {
       if (isOverLimit) {
-        alert("❌ Cannot submit: Amount exceeds your role-based limit.\n\nPlease enter an amount within your limit or contact Super Admin.");
+        toast.info("❌ Cannot submit: Amount exceeds your role-based limit.\n\nPlease enter an amount within your limit or contact Super Admin.");
       } else {
-        alert("❌ Please enter a valid amount");
+        toast.info("❌ Please enter a valid amount");
       }
       return;
     }
@@ -121,7 +122,7 @@ export function ShortTermAdvanceForm() {
         }
       );
 
-      alert(
+      toast.success(
         "✅ Advance Auto-Approved!\n\n" +
         `Amount: ₹${requestedAmount.toLocaleString()}\n` +
         "Recovery: Automatically deducted from next month's payroll\n\n" +
@@ -130,7 +131,7 @@ export function ShortTermAdvanceForm() {
 
       navigate(`/advance/status/${advance.id}`);
     } catch (error: any) {
-      alert(`❌ Submission failed: ${error.message}`);
+      toast.error(`❌ Submission failed: ${error.message}`);
     }
   };
 

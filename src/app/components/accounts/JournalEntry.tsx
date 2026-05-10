@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useRole } from "../../contexts/RoleContext";
 import { useCity } from "../../contexts/CityContext";
 import {
@@ -42,7 +43,7 @@ export function JournalEntry() {
 
   const removeLine = (index: number) => {
     if (lines.length <= 2) {
-      alert("At least 2 lines are required for a journal entry.");
+      toast.error("At least 2 lines are required for a journal entry.");
       return;
     }
     setLines(lines.filter((_, i) => i !== index));
@@ -64,15 +65,15 @@ export function JournalEntry() {
 
   const handleSubmit = () => {
     if (!narration.trim()) {
-      alert("Narration is required.");
+      toast.error("Narration is required.");
       return;
     }
     if (!isBalanced) {
-      alert("Journal entry must be balanced before posting.");
+      toast.info("Journal entry must be balanced before posting.");
       return;
     }
     if (lines.some((l) => !l.accountHead)) {
-      alert("All lines must have an account head selected.");
+      toast.info("All lines must have an account head selected.");
       return;
     }
 
@@ -88,7 +89,7 @@ export function JournalEntry() {
       cityInfo.displayName
     );
 
-    alert(`Journal entry saved: ${entry.voucherNumber}`);
+    toast.info(`Journal entry saved: ${entry.voucherNumber}`);
     resetForm();
   };
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -88,7 +89,7 @@ export function VendorRequest() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle form submission
-    alert("Vendor request submitted successfully!");
+    toast.success("Vendor request submitted successfully!");
     setFormData({
       productCategory: "",
       description: "",

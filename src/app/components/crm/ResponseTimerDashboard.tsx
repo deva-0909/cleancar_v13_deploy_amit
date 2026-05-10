@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -26,44 +27,7 @@ type ResponseLead = {
   status: "within-sla" | "approaching-sla" | "delayed";
 };
 
-const mockResponseLeads: ResponseLead[] = [
-  {
-    id: "LD001",
-    name: "Rajesh Kumar",
-    mobile: "9876543210",
-    society: "Prestige Lakeside",
-    source: "Google Ads",
-    assignedTo: "Priya Sharma",
-    assignedAt: "09:15 AM",
-    timeElapsed: 2,
-    slaRemaining: 3,
-    status: "within-sla",
-  },
-  {
-    id: "LD007",
-    name: "Amit Verma",
-    mobile: "9123456780",
-    society: "Brigade Gateway",
-    source: "Website",
-    assignedTo: "Amit Patel",
-    assignedAt: "09:18 AM",
-    timeElapsed: 4,
-    slaRemaining: 1,
-    status: "approaching-sla",
-  },
-  {
-    id: "LD008",
-    name: "Sunita Rao",
-    mobile: "9988776644",
-    society: "Sobha Dream Acres",
-    source: "Facebook Ads",
-    assignedTo: "Neha Singh",
-    assignedAt: "09:10 AM",
-    timeElapsed: 7,
-    slaRemaining: -2,
-    status: "delayed",
-  },
-];
+const mockResponseLeads: ResponseLead = []; // ✅ No mock data
 
 export function ResponseTimerDashboard() {
   const [leads, setLeads] = useState<ResponseLead[]>(mockResponseLeads);
@@ -138,7 +102,7 @@ export function ResponseTimerDashboard() {
     );
     setLeads(updatedLeads);
     
-    alert(`Calling ${lead.name} at ${lead.mobile}...`);
+    toast.info(`Calling ${lead.name} at ${lead.mobile}...`);
   };
 
   const handleWhatsApp = (lead: ResponseLead) => {
@@ -162,7 +126,7 @@ export function ResponseTimerDashboard() {
         : l
     );
     setLeads(updatedLeads);
-    alert(`Lead ${leadId} marked as contacted!`);
+    toast.success(`Lead ${leadId} marked as contacted!`);
   };
 
   return (

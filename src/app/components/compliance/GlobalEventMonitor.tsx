@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { Bell, X, ChevronDown, ChevronUp, AlertCircle, Info, TrendingUp } from "lucide-react";
 import { getDetectedChanges, getComplianceHealthScore } from "../../services/compliance/aiComplianceBot";
 import type { ComplianceChange } from "../../services/compliance/aiComplianceBot";
+import { logger } from "../../services/logger";
 
 export function GlobalEventMonitor() {
   const [isOpen, setIsOpen] = useState(false);
@@ -215,7 +216,7 @@ export function GlobalEventMonitor() {
       {!isCollapsed && (
         <div className="border-t border-gray-200 p-3 bg-gray-50">
           <button
-            onClick={() => (console.log("Compliance AI bot - feature coming soon"))}
+            onClick={() => (logger.log("Compliance AI bot - feature coming soon"))}
             className="w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
           >
             View All Alerts

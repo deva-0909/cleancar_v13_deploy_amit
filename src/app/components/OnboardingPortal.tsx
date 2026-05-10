@@ -46,6 +46,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "../services/logger";
 
 interface WorkExperience {
   id: string;
@@ -82,7 +83,7 @@ function OnboardingPortal() {
   const [currentStep, setCurrentStep] = useState(1);
 
   // Debug: Log when component mounts
-  console.log("🚀 OnboardingPortal loaded for empId:", empId);
+  logger.log("🚀 OnboardingPortal loaded for empId:", empId);
 
   // Step 1: Personal Details
   const [personalDetails, setPersonalDetails] = useState({
@@ -330,7 +331,7 @@ function OnboardingPortal() {
     }
 
     // Here you would send data to backend
-    console.log("Onboarding Data:", {
+    logger.log("Onboarding Data:", {
       personalDetails,
       identityDocuments,
       workExperiences,

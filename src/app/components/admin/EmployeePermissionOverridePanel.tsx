@@ -19,6 +19,7 @@ import { useCity } from "../../contexts/CityContext";
 import type { Role } from "../../lib/roleConfig";
 import type { PermissionMatrix, Module, Action } from "../../types/permissions";
 import type { Employee } from "../../contexts/EmployeeContext";
+import { logger } from "../../services/logger";
 
 interface EmployeePermissionOverridePanelProps {
   employeeId: string;
@@ -120,7 +121,7 @@ export function EmployeePermissionOverridePanel({
     updateEmployee(employeeId, updates);
 
     // TODO: Log to audit trail via auditLogService
-    console.log("[Audit] Permission override saved", {
+    logger.log("[Audit] Permission override saved", {
       employeeId,
       employeeName,
       reason: overrideReason,

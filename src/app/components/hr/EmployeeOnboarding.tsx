@@ -30,6 +30,7 @@ import { onboardingChecklistService } from "../../services/onboardingChecklistSe
 import type { OnboardingTask } from "../../services/onboardingChecklistService";
 import { authService } from "../../services/authService";
 import { toast } from "sonner";
+import { logger } from "../../services/logger";
 
 export function EmployeeOnboarding() {
   const navigate = useNavigate();
@@ -89,7 +90,7 @@ export function EmployeeOnboarding() {
       const contradictedTasks = tasks.filter(t => t.contradictionFlagged);
       if (contradictedTasks.length > 0) {
         // In production, this would send a notification to Super Admin
-        console.log(
+        logger.log(
           `[ALERT] Contradiction flagged for employee ${selectedEmployeeId}:`,
           contradictedTasks.map(t => t.task).join(", ")
         );
@@ -129,13 +130,13 @@ export function EmployeeOnboarding() {
       setShowUploadModal(false);
       setSelectedTask(null);
       setUploadFile(null);
-      alert(`✅ Document Uploaded Successfully!\n\n${selectedTask.task} has been uploaded and marked as completed.`);
+      toast.success(`✅ Document Uploaded Successfully!\n\n${selectedTask.task} has been uploaded and marked as completed.`);
     }
   };
 
   const handleSendFormLink = () => {
     if (!selectedEmployeeId) {
-      alert("⚠️ No employee selected");
+      toast.info("⚠️ No employee selected");
       return;
     }
 

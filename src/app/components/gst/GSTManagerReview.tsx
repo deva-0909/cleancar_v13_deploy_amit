@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { ClipboardCheck, Check, AlertTriangle, X, Brain } from "lucide-react";
 import { gstComplianceService, type GSTTransaction } from "../../services/gstComplianceService";
 import { analyzeTransaction, scoreAfterCorrection, type AICorrection } from "../../services/gstAIScoringService";
@@ -65,7 +66,7 @@ export function GSTManagerReview() {
 
   const handleOverride = () => {
     if (!selectedTxn || overrideReason.length < 20) {
-      alert("Override reason must be at least 20 characters");
+      toast.error("Override reason must be at least 20 characters");
       return;
     }
     const updated: GSTTransaction = {
@@ -148,7 +149,7 @@ export function GSTManagerReview() {
 
   const handleRejectCorrection = () => {
     if (!selectedCorrection || rejectionReason.length < 10) {
-      alert("Rejection reason must be at least 10 characters");
+      toast.error("Rejection reason must be at least 10 characters");
       return;
     }
     setSelectedCorrection(null);

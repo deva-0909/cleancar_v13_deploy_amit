@@ -25,6 +25,7 @@ import type { JobCard } from "./WasherMySchedule";
 import type { WashStep, ConsumableItem } from "./WasherActiveWash";
 import type { TimeBandStatus, EligibilityStatus } from "./WasherIncentiveTracker";
 import type { CheckOutTiming } from "./WasherCheckOut";
+import { logger } from "../../services/logger";
 
 export function WasherCoreScreensDemo() {
   // Screen 1: Dashboard State
@@ -129,7 +130,7 @@ export function WasherCoreScreensDemo() {
 
   // Handlers
   const handleCheckIn = () => {
-    console.log("Opening check-in screen...");
+    logger.log("Opening check-in screen...");
     // In real app, navigate to check-in screen
   };
 
@@ -137,7 +138,7 @@ export function WasherCoreScreensDemo() {
     setIsCheckedIn(true);
     setCheckInTime(new Date());
     setDayStatus("WORKING");
-    console.log("Check-in submitted");
+    logger.log("Check-in submitted");
   };
 
   const handleStartValidation = (type: "checkin" | "checkout") => {
@@ -314,9 +315,9 @@ export function WasherCoreScreensDemo() {
               todayEarnings={600}
               monthlyEarnings={12500}
               onCheckIn={handleCheckIn}
-              onViewSchedule={() => console.log("View schedule")}
-              onViewEarnings={() => console.log("View earnings")}
-              onRaiseIssue={() => console.log("Raise issue")}
+              onViewSchedule={() => logger.log("View schedule")}
+              onViewEarnings={() => logger.log("View earnings")}
+              onRaiseIssue={() => logger.log("Raise issue")}
               isOnline={true}
             />
           </TabsContent>
@@ -344,7 +345,7 @@ export function WasherCoreScreensDemo() {
               isCameraActive={false}
               photoTaken={checkInPhotoTaken}
               photoUrl={checkInPhotoTaken ? "https://via.placeholder.com/400x300?text=Selfie" : undefined}
-              onStartCamera={() => console.log("Start camera")}
+              onStartCamera={() => logger.log("Start camera")}
               onTakePhoto={() => setCheckInPhotoTaken(true)}
               onRetakePhoto={() => setCheckInPhotoTaken(false)}
               onSubmitCheckIn={handleSubmitCheckIn}
@@ -366,10 +367,10 @@ export function WasherCoreScreensDemo() {
               jobs={mockJobs}
               isCheckedIn={isCheckedIn}
               activeJobId={activeJobId}
-              onJobClick={(id) => console.log("Job clicked:", id)}
+              onJobClick={(id) => logger.log("Job clicked:", id)}
               onStartJob={(id) => {
                 setActiveJobId(id);
-                console.log("Start job:", id);
+                logger.log("Start job:", id);
               }}
             />
           </TabsContent>
@@ -400,7 +401,7 @@ export function WasherCoreScreensDemo() {
               onCompleteStep={handleCompleteStep}
               onTakePhoto={handleTakePhoto}
               onMarkConsumableUsed={handleMarkConsumableUsed}
-              onMarkJobDone={() => console.log("Job done")}
+              onMarkJobDone={() => logger.log("Job done")}
               canMarkDone={washSteps.every(s => s.isCompleted)}
             />
           </TabsContent>
@@ -456,7 +457,7 @@ export function WasherCoreScreensDemo() {
               isCameraActive={false}
               photoTaken={checkOutPhotoTaken}
               photoUrl={checkOutPhotoTaken ? "https://via.placeholder.com/400x300?text=Checkout+Selfie" : undefined}
-              onStartCamera={() => console.log("Start camera")}
+              onStartCamera={() => logger.log("Start camera")}
               onTakePhoto={() => setCheckOutPhotoTaken(true)}
               onRetakePhoto={() => setCheckOutPhotoTaken(false)}
               onSubmitCheckOut={handleSubmitCheckOut}

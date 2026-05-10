@@ -29,6 +29,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { subscriptionPlansService } from "../../services/subscriptionPlansService";
+import { logger } from "../../services/logger";
 import type {
   CompletePlan,
   DurationPrice,
@@ -322,7 +323,7 @@ export function CheckoutSummary({
               onProceedToPayment();
             }
             // In production: Navigate to payment gateway
-            console.log("Proceeding to payment:", {
+            logger.log("Proceeding to payment:", {
               planId: plan.tier.id,
               duration: selectedDuration,
               addons: selectedAddons.map((a) => a.id),

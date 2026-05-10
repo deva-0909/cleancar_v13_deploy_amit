@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useRole } from "../../contexts/RoleContext";
 import { advanceManagementService } from "../../services/advanceManagementService";
@@ -473,7 +474,7 @@ export function HRAdvanceManagement() {
                         otherRolesLimit < 1 ||
                         otherRolesLimit > 100
                       ) {
-                        alert("⚠️ Invalid Input\n\nPercentage values must be between 1 and 100.");
+                        toast.error("⚠️ Invalid Input\n\nPercentage values must be between 1 and 100.");
                         return;
                       }
 
@@ -487,14 +488,14 @@ export function HRAdvanceManagement() {
                         const updatedSettings = getAdvanceSettings();
                         setAdvanceSettings(updatedSettings);
 
-                        alert(
+                        toast.success(
                           `✅ Advance Limits Updated!\n\n` +
                             `Car Washer/Supervisor: ${washerSupervisorLimit}%\n` +
                             `Other Roles: ${otherRolesLimit}%\n\n` +
                             `Changes will apply to all new advance applications immediately.`
                         );
                       } catch (error: any) {
-                        alert(`❌ Failed to save settings: ${error.message}`);
+                        toast.error(`❌ Failed to save settings: ${error.message}`);
                       }
                     }}
                     className="bg-blue-600 hover:bg-blue-700"
@@ -660,7 +661,7 @@ function ApprovalsTab({ pendingApprovals, onRefresh }: { pendingApprovals: any[]
                       "HR"
                     );
                   }
-                  alert("✅ Advance approved successfully!");
+                  toast.success("✅ Advance approved successfully!");
                   onRefresh();
                 }}
                 className="bg-green-600 hover:bg-green-700 flex-1"
@@ -681,7 +682,7 @@ function ApprovalsTab({ pendingApprovals, onRefresh }: { pendingApprovals: any[]
                         reason
                       );
                     }
-                    alert("❌ Advance rejected");
+                    toast.info("❌ Advance rejected");
                     onRefresh();
                   }
                 }}

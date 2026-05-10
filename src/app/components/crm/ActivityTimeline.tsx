@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useCustomers } from "../../contexts/CustomerContext";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -52,50 +53,7 @@ type Activity = {
   reminderSent?: boolean;
 };
 
-const mockActivities: Activity[] = [
-  {
-    id: "ACT001",
-    type: "call",
-    title: "Initial Contact Call",
-    description: "Called customer to introduce our services",
-    timestamp: "2026-03-10 09:30 AM",
-    status: "completed",
-    performedBy: "Priya Sharma",
-    outcome: "Interested - Requested more details",
-    nextAction: "Send pricing via WhatsApp",
-  },
-  {
-    id: "ACT002",
-    type: "whatsapp",
-    title: "Pricing Shared",
-    description: "Sent detailed pricing for 2-car subscription",
-    timestamp: "2026-03-10 10:15 AM",
-    status: "completed",
-    performedBy: "Priya Sharma",
-    outcome: "Message delivered and read",
-    nextAction: "Follow up call tomorrow",
-  },
-  {
-    id: "ACT003",
-    type: "followup",
-    title: "Follow-up Call Scheduled",
-    description: "Discuss pricing and schedule demo",
-    timestamp: "2026-03-11 02:00 PM",
-    status: "scheduled",
-    performedBy: "Priya Sharma",
-    reminderSent: true,
-  },
-  {
-    id: "ACT004",
-    type: "demo",
-    title: "Demo Wash Scheduled",
-    description: "Trial wash at Prestige Lakeside - Car 1: Sedan",
-    timestamp: "2026-03-12 10:00 AM",
-    status: "scheduled",
-    performedBy: "Priya Sharma",
-    reminderSent: false,
-  },
-];
+const mockActivities: Activity = []; // ✅ No mock data
 
 const activityConfig = {
   call: { label: "Phone Call", icon: Phone, color: "bg-blue-100 text-blue-800" },
@@ -176,7 +134,7 @@ export function ActivityTimeline({ leadId, leadName }: ActivityTimelineProps) {
     setShowAddActivity(false);
 
     // Show success message
-    alert(
+    toast.success(
       scheduledDate && scheduledTime
         ? `Follow-up scheduled for ${scheduledDate} ${scheduledTime}${sendReminder ? '. Reminder will be sent 1 hour before.' : ''}`
         : `Activity logged successfully!`

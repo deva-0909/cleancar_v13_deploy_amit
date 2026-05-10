@@ -5,6 +5,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
+import { logger } from "../../services/logger";
 
 export interface EscalationScreenSimpleProps {
   issues: any[];
@@ -12,7 +13,7 @@ export interface EscalationScreenSimpleProps {
 }
 
 export function EscalationScreenSimple({ issues, summary }: EscalationScreenSimpleProps) {
-  console.log("🚨 EscalationScreenSimple RENDERED with", issues.length, "issues");
+  logger.log("🚨 EscalationScreenSimple RENDERED with", issues.length, "issues");
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">

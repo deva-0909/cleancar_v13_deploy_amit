@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useEventListener } from "../../contexts/EventSystem";
 import { useCustomers } from "../../contexts/CustomerContext";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
+import { logger } from "../../services/logger";
 import {
   Bell,
   Clock,
@@ -41,93 +43,7 @@ type Notification = {
   link?: string;
 };
 
-const mockNotifications: Notification[] = [
-  {
-    id: "NOT001",
-    type: "sla-warning",
-    title: "SLA Warning - Response Time",
-    message: "Lead LD001 (Rajesh Kumar) approaching 5-minute SLA. 2 minutes remaining.",
-    timestamp: "2 minutes ago",
-    read: false,
-    priority: "high",
-    actionRequired: true,
-    leadId: "LD001",
-    leadName: "Rajesh Kumar",
-    link: "/leads/enhanced",
-  },
-  {
-    id: "NOT002",
-    type: "reminder",
-    title: "Follow-up Call Reminder",
-    message: "Follow-up call with Anita Desai scheduled in 1 hour (02:00 PM)",
-    timestamp: "5 minutes ago",
-    read: false,
-    priority: "high",
-    actionRequired: true,
-    leadId: "LD002",
-    leadName: "Anita Desai",
-  },
-  {
-    id: "NOT003",
-    type: "assignment",
-    title: "New Lead Assigned",
-    message: "You have been assigned a new lead: Sunil Mehta from Google Ads campaign",
-    timestamp: "15 minutes ago",
-    read: false,
-    priority: "medium",
-    actionRequired: true,
-    leadId: "LD009",
-    leadName: "Sunil Mehta",
-  },
-  {
-    id: "NOT004",
-    type: "demo-scheduled",
-    title: "Demo Wash Confirmation",
-    message: "Demo wash for Vikram Singh confirmed for tomorrow 10:00 AM",
-    timestamp: "30 minutes ago",
-    read: true,
-    priority: "medium",
-    actionRequired: false,
-    leadId: "LD003",
-    leadName: "Vikram Singh",
-  },
-  {
-    id: "NOT005",
-    type: "followup-due",
-    title: "Follow-up Overdue",
-    message: "Follow-up with Kavita Sharma is overdue by 2 hours",
-    timestamp: "1 hour ago",
-    read: false,
-    priority: "high",
-    actionRequired: true,
-    leadId: "LD006",
-    leadName: "Kavita Sharma",
-  },
-  {
-    id: "NOT006",
-    type: "lead-update",
-    title: "Lead Status Changed",
-    message: "Meera Reddy moved to 'Demo Completed' stage",
-    timestamp: "2 hours ago",
-    read: true,
-    priority: "low",
-    actionRequired: false,
-    leadId: "LD004",
-    leadName: "Meera Reddy",
-  },
-  {
-    id: "NOT007",
-    type: "sla-breach",
-    title: "SLA Breach Alert",
-    message: "Lead LD008 (Amit Verma) not contacted within 5 minutes. Manager notified.",
-    timestamp: "3 hours ago",
-    read: true,
-    priority: "high",
-    actionRequired: false,
-    leadId: "LD008",
-    leadName: "Amit Verma",
-  },
-];
+const mockNotifications: Notification = []; // ✅ No mock data
 
 const notificationConfig = {
   reminder: {
@@ -240,12 +156,12 @@ export function NotificationCenter() {
     setNotifications(
       notifications.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
-    alert(`Notification marked as read`);
+    toast.success(`Notification marked as read`);
   };
 
   const markAllAsRead = () => {
     setNotifications(notifications.map((n) => ({ ...n, read: true })));
-    alert(`All notifications marked as read!`);
+    toast.success(`All notifications marked as read!`);
   };
 
   const deleteNotification = (id: string) => {
@@ -253,8 +169,8 @@ export function NotificationCenter() {
   };
 
   const handleCallNow = (leadName: string, leadId: string) => {
-    alert(`Calling ${leadName} (${leadId})...`);
-    console.log('Call feature: configure support number in settings');
+    toast.info(`Calling ${leadName} (${leadId})...`);
+    logger.log('Call feature: configure support number in settings');
   };
 
   const handleWhatsApp = (leadName: string, leadId: string) => {
@@ -264,13 +180,13 @@ export function NotificationCenter() {
 
   const handleViewDetails = (link?: string, leadId?: string) => {
     if (link) {
-      alert(`Navigating to ${link} for lead ${leadId || 'details'}`);
+      toast.info(`Navigating to ${link} for lead ${leadId || 'details'}`);
       // In production: window.location.href = link;
     }
   };
 
   const savePreferences = () => {
-    alert(`Notification preferences saved successfully!`);
+    toast.success(`Notification preferences saved successfully!`);
     setShowSettings(false);
   };
 

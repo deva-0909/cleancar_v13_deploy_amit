@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { Building2, Plus, Search, Download, X, Check, AlertCircle, Edit2, Ban, CheckCircle } from "lucide-react";
 import { gstComplianceService, type GSTVendor, type VendorRiskLevel } from "../../services/gstComplianceService";
 import { showExportMenu } from "../../utils/gstExportUtils";
@@ -281,7 +282,7 @@ function VendorForm({ vendor, onSave, onClose }: {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!gstinValid) {
-      alert("Please fix GSTIN validation errors");
+      toast.error("Please fix GSTIN validation errors");
       return;
     }
     onSave(formData as GSTVendor);

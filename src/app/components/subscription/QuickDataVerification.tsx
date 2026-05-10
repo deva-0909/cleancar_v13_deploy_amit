@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { subscriptionPlansService } from "../../services/subscriptionPlansService";
 import { Card } from "../ui/card";
+import { logger } from "../../services/logger";
 
 export function QuickDataVerification() {
   const [data, setData] = useState({
@@ -24,10 +25,10 @@ export function QuickDataVerification() {
 
     setData({ categories, tiers, addons, combos });
 
-    console.log("🔍 VERIFICATION - Categories:", categories);
-    console.log("🔍 VERIFICATION - Tiers:", tiers);
-    console.log("🔍 VERIFICATION - Addons:", addons);
-    console.log("🔍 VERIFICATION - Combos:", combos);
+    logger.log("🔍 VERIFICATION - Categories:", categories);
+    logger.log("🔍 VERIFICATION - Tiers:", tiers);
+    logger.log("🔍 VERIFICATION - Addons:", addons);
+    logger.log("🔍 VERIFICATION - Combos:", combos);
   }, []);
 
   return (

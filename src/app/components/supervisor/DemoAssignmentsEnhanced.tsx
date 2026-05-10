@@ -42,6 +42,7 @@ import { useRole } from "../../contexts/RoleContext";
 import { toast } from "sonner";
 import { employeeDatabaseService } from "../../services/employeeDatabaseService";
 import { useCity } from "../../contexts/CityContext";
+import { logger } from "../../services/logger";
 
 interface AvailableWasher {
   id: string;
@@ -80,12 +81,12 @@ export function DemoAssignmentsEnhanced() {
   });
 
   // Debug logging
-  console.log('=== SUPERVISOR DEMO FILTERING DEBUG ===');
-  console.log('Current User:', currentUser.name);
-  console.log('Total Demos:', demos.length);
-  console.log('My Supervisor Demos:', mySupervisorDemos.length);
-  console.log('Demo IDs:', mySupervisorDemos.map(d => d.id));
-  console.log('======================================');
+  logger.log('=== SUPERVISOR DEMO FILTERING DEBUG ===');
+  logger.log('Current User:', currentUser.name);
+  logger.log('Total Demos:', demos.length);
+  logger.log('My Supervisor Demos:', mySupervisorDemos.length);
+  logger.log('Demo IDs:', mySupervisorDemos.map(d => d.id));
+  logger.log('======================================');
 
   // Calculate time remaining until deadline
   const getTimeRemaining = (deadline: string) => {
@@ -114,9 +115,9 @@ export function DemoAssignmentsEnhanced() {
     });
 
     // Simulate notifications
-    console.log(`✅ Notification to ${washerName}: New demo assigned. Customer: ${demo?.customerFirstName}, Date: ${demo?.demoDate}, Time: ${demo?.demoTimeSlot}. Please accept or decline.`);
-    console.log(`✅ Notification to TSE ${demo?.tseScheduledBy}: Washer ${washerName} assigned for ${demo?.customerName}'s demo.`);
-    console.log(`✅ Notification to Operations Manager: Washer ${washerName} assigned to demo for ${demo?.customerName} by Supervisor Ramesh Vora.`);
+    logger.log(`✅ Notification to ${washerName}: New demo assigned. Customer: ${demo?.customerFirstName}, Date: ${demo?.demoDate}, Time: ${demo?.demoTimeSlot}. Please accept or decline.`);
+    logger.log(`✅ Notification to TSE ${demo?.tseScheduledBy}: Washer ${washerName} assigned for ${demo?.customerName}'s demo.`);
+    logger.log(`✅ Notification to Operations Manager: Washer ${washerName} assigned to demo for ${demo?.customerName} by Supervisor Ramesh Vora.`);
 
     setShowAssignModal(null);
   };
@@ -155,7 +156,7 @@ export function DemoAssignmentsEnhanced() {
           
           // Escalate if deadline passed
           if (timeRemaining.isOverdue && isToday(demo.demoDate)) {
-            console.log(`🚨 URGENT ESCALATION: Demo ${demo.id} for ${demo.customerName} has no washer assigned! Deadline: ${demo.assignmentDeadline}`);
+            logger.log(`🚨 URGENT ESCALATION: Demo ${demo.id} for ${demo.customerName} has no washer assigned! Deadline: ${demo.assignmentDeadline}`);
             
             // In real system, fire notifications to OM and Super Admin
             toast.error("Demo Assignment Deadline Missed", {

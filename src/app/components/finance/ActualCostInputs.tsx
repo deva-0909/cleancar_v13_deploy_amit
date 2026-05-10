@@ -45,6 +45,7 @@ import { AddEquipmentInputDialog } from "./AddEquipmentInputDialog";
 import { AddSalaryInputDialog } from "./AddSalaryInputDialog";
 import { AddOverheadInputDialog } from "./AddOverheadInputDialog";
 import { AddCustomCostDialog } from "./AddCustomCostDialog";
+import { logger } from "../../services/logger";
 
 // Lookup maps for dynamic data
 const WASHER_NAMES: Record<string, string> = {
@@ -102,27 +103,27 @@ export function ActualCostInputs() {
   const [showAddCustom, setShowAddCustom] = useState(false);
 
   const handleAddConsumable = (data: any) => {
-    console.log("Add consumable input:", data);
+    logger.log("Add consumable input:", data);
     toast.success("Consumable actual input recorded");
   };
 
   const handleAddEquipment = (data: any) => {
-    console.log("Add equipment input:", data);
+    logger.log("Add equipment input:", data);
     toast.success("Equipment actual cost recorded");
   };
 
   const handleAddSalary = (data: any) => {
-    console.log("Add salary input:", data);
+    logger.log("Add salary input:", data);
     toast.success("Salary adjustment recorded");
   };
 
   const handleAddOverhead = (data: any) => {
-    console.log("Add overhead input:", data);
+    logger.log("Add overhead input:", data);
     toast.success("Overhead actual cost recorded");
   };
 
   const handleAddCustom = (data: any) => {
-    console.log("Add custom cost:", data);
+    logger.log("Add custom cost:", data);
     toast.success("Custom cost element added");
   };
 

@@ -4,6 +4,7 @@
  */
 
 import { Badge } from "../ui/badge";
+import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import {
@@ -218,7 +219,7 @@ export function GPSExceptionModal({
                 if (textarea && textarea.value.trim()) {
                   onSubmit(textarea.value.trim());
                 } else {
-                  alert("Reason is required");
+                  toast.error("Reason is required");
                 }
               }}
             >

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast } from "sonner";
 import { serviceZones } from "../../lib/mockData";
 import { BackButton } from "../ui/back-button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -188,7 +189,7 @@ export function ServiceZonesManagement() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => alert(`Edit zone ${zone.pinCode}`)}>
+                          <Button variant="ghost" size="sm" onClick={() => toast.info(`Edit zone ${zone.pinCode}`)}>
                             <Edit className="w-4 h-4" />
                           </Button>
                           <Button 
@@ -196,7 +197,7 @@ export function ServiceZonesManagement() {
                             size="sm"
                             onClick={() => {
                               if (confirm(`Deactivating PIN ${zone.pinCode} will prevent new bookings. ${zone.activeSubscriptions} active subscriptions and ${zone.openJobsToday} scheduled jobs exist. Confirm?`)) {
-                                alert(`Zone ${zone.pinCode} deactivated`);
+                                toast.success(`Zone ${zone.pinCode} deactivated`);
                               }
                             }}
                           >
@@ -245,7 +246,7 @@ export function ServiceZonesManagement() {
                         <Button 
                           size="sm" 
                           className="bg-green-600 hover:bg-green-700"
-                          onClick={() => alert(`Activate zone ${zone.pinCode}?`)}
+                          onClick={() => toast.info(`Activate zone ${zone.pinCode}?`)}
                         >
                           Activate Zone
                         </Button>
@@ -289,7 +290,7 @@ export function ServiceZonesManagement() {
                         <Button 
                           size="sm" 
                           variant="outline"
-                          onClick={() => alert(`Reactivate zone ${zone.pinCode}?`)}
+                          onClick={() => toast.info(`Reactivate zone ${zone.pinCode}?`)}
                         >
                           Reactivate
                         </Button>

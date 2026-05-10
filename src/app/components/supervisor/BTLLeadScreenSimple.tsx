@@ -10,6 +10,7 @@ import { Button } from "../ui/button";
 import { Plus, TrendingUp, Navigation, Phone, MapPin } from "lucide-react";
 import { systemStateService } from "../../services/systemStateService";
 import type { VehicleType, InterestLevel } from "../../services/btlLeadService";
+import { logger } from "../../services/logger";
 
 export interface BTLLeadScreenSimpleProps {
   leads: any[];
@@ -27,7 +28,7 @@ export interface BTLLeadScreenSimpleProps {
 
 export function BTLLeadScreenSimple({ leads, metrics, onSubmitLead, onViewPipeline }: BTLLeadScreenSimpleProps) {
   const [showCaptureForm, setShowCaptureForm] = useState(false);
-  console.log("🎯 BTLLeadScreenSimple RENDERED with", leads.length, "leads");
+  logger.log("🎯 BTLLeadScreenSimple RENDERED with", leads.length, "leads");
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">

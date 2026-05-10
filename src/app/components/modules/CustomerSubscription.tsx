@@ -11,6 +11,7 @@ import { useEventListener } from "../../contexts/EventSystem";
 import { useMemo } from "react";
 
 // Import Design System Components
+import { logger } from "../../services/logger";
 import {
   PageHeader,
   StatusBadge,
@@ -28,11 +29,11 @@ export function CustomerSubscription() {
 
   // Listen for real-time updates
   useEventListener("LEAD_CONVERTED", () => {
-    console.log("[CustomerSubscription] Lead converted - UI auto-updating");
+    logger.log("[CustomerSubscription] Lead converted - UI auto-updating");
   });
 
   useEventListener("SUBSCRIPTION_CREATED", () => {
-    console.log("[CustomerSubscription] Subscription created - UI auto-updating");
+    logger.log("[CustomerSubscription] Subscription created - UI auto-updating");
   });
 
   // Map subscriptions with customer data

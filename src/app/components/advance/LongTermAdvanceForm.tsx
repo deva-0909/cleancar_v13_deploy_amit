@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useRole } from "../../contexts/RoleContext";
 import { advanceManagementService } from "../../services/advanceManagementService";
@@ -172,7 +173,7 @@ export function LongTermAdvanceForm() {
 
   const handleSubmit = () => {
     if (!canSubmit()) {
-      alert("❌ Please fix all errors before submitting");
+      toast.error("❌ Please fix all errors before submitting");
       return;
     }
 
@@ -201,10 +202,10 @@ export function LongTermAdvanceForm() {
         }
       );
 
-      alert("✅ Advance application submitted successfully!");
+      toast.success("✅ Advance application submitted successfully!");
       navigate(`/advance/status/${advance.id}`);
     } catch (error: any) {
-      alert(`❌ Submission failed: ${error.message}`);
+      toast.error(`❌ Submission failed: ${error.message}`);
     }
   };
 

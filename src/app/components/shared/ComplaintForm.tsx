@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Upload, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
@@ -75,7 +76,7 @@ export function ComplaintForm({
 
   const handleSubmit = async () => {
     if (!issueType || !description.trim()) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 

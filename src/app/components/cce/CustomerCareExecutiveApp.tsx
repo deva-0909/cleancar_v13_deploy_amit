@@ -15,6 +15,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { toast } from "sonner";
 import { useSearchParams } from 'react-router-dom';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -148,7 +149,7 @@ export function CustomerCareExecutiveApp() {
     if (result.success) {
       loadData();
       setShowSupervisorPanel(false);
-      alert(result.message);
+      toast.info(result.message);
 
       // Log communication
       customerCareExecutiveService.logCommunication(selectedComplaint.ticketId, {
@@ -183,14 +184,14 @@ export function CustomerCareExecutiveApp() {
     }
 
     loadData();
-    alert('CRM updated successfully');
+    toast.success('CRM updated successfully');
     setCurrentScreen('QUEUE');
     setSelectedComplaint(null);
   };
 
   const handleSubmitCSAT = () => {
     if (!selectedComplaint || csatScore === null) {
-      alert('Please provide a CSAT score');
+      toast.error('Please provide a CSAT score');
       return;
     }
 
@@ -200,10 +201,10 @@ export function CustomerCareExecutiveApp() {
       csatFeedback
     );
 
-    alert(result.message);
+    toast.info(result.message);
 
     if (result.requiresEscalation) {
-      alert('⚠️ CSAT < 3.0 - Complaint auto-escalated to TSM');
+      toast.info('⚠️ CSAT < 3.0 - Complaint auto-escalated to TSM');
     }
 
     loadData();
@@ -222,7 +223,7 @@ export function CustomerCareExecutiveApp() {
       'cce_001'
     );
 
-    alert(result.message);
+    toast.info(result.message);
     loadData();
     setCurrentScreen('QUEUE');
     setSelectedComplaint(null);

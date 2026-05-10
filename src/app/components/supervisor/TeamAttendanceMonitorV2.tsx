@@ -5,6 +5,7 @@
  */
 
 import { Card, CardContent } from "../ui/card";
+import { toast } from "sonner";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import {
@@ -23,6 +24,7 @@ import {
   Repeat,
 } from "lucide-react";
 import type { WasherTeamMember, WasherStatus } from "../../services/supervisorDataService";
+import { logger } from "../../services/logger";
 
 export interface TeamAttendanceMonitorV2Props {
   team: WasherTeamMember[];
@@ -475,9 +477,9 @@ export function TeamAttendanceMonitorV2({
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            console.log("Start audit:", washer.id);
+                            logger.log("Start audit:", washer.id);
                             if (typeof window !== 'undefined') {
-                              alert(`Starting audit for washer ${washer.id}\n\nIn production: This would navigate to the audit screen.`);
+                              toast.info(`Starting audit for washer ${washer.id}\n\nIn production: This would navigate to the audit screen.`);
                             }
                           }}
                           type="button"

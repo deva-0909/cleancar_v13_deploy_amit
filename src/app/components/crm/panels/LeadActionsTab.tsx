@@ -6,6 +6,7 @@ import { ScheduleDemoPanel } from "../actions/ScheduleDemoPanel";
 import { SetFollowUpPanel } from "../actions/SetFollowUpPanel";
 import { DemoOutcomeSelector } from "../DemoOutcomeSelector";
 import { toast } from "sonner";
+import { logger } from "../../../services/logger";
 
 interface LeadActionsTabProps {
   lead: any;
@@ -25,7 +26,7 @@ export function LeadActionsTab({ lead }: LeadActionsTabProps) {
       description: `Event ${outcome.systemEvent} triggered. ${outcome.actions.length} automated actions initiated.`
     });
     // In real implementation, this would update the lead status and trigger workflow
-    console.log("Demo Outcome Selected:", outcome, "Notes:", notes);
+    logger.log("Demo Outcome Selected:", outcome, "Notes:", notes);
   };
 
   return (
