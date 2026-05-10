@@ -717,7 +717,7 @@ function HRModule() {
                 <div className="mt-4">
                   <h4 className="font-semibold mb-3">Document Verification Status</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {selectedEmployee.documents.map((doc, idx) => (
+                    {(selectedEmployee.documents || []).map((doc, idx) => (
                       <div key={idx} className={`p-2 rounded border ${
                         doc.status === "Verified" ? "bg-green-50 border-green-200" :
                         doc.status === "Pending" ? "bg-orange-50 border-orange-200" :
@@ -795,9 +795,10 @@ function HRModule() {
                   </TableHeader>
                   <TableBody>
                     {mockEmployees.map((emp) => {
-                      const verified = emp.documents.filter(d => d.status === "Verified").length;
-                      const pending = emp.documents.filter(d => d.status === "Pending").length;
-                      const missing = requiredDocuments.length - emp.documents.length;
+                      const docs = emp.documents || [];
+                      const verified = docs.filter(d => d.status === "Verified").length;
+                      const pending = docs.filter(d => d.status === "Pending").length;
+                      const missing = requiredDocuments.length - docs.length;
                       const compliance = Math.round((verified / requiredDocuments.length) * 100);
 
                       return (
