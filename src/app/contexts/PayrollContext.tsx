@@ -49,6 +49,10 @@ export interface PayrollRun {
   penalties: number;
   totalDeductions: number;
 
+  // Attendance
+  daysWorked?: number;  // Days present in the pay period
+  totalDays?: number;   // Total working days in the pay period
+
   // Net
   netSalary: number;
 

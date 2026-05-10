@@ -180,7 +180,7 @@ export function PayrollRun() {
         const days = computeDaysPresent(run.employeeId, `${selectedYear}-${String(selectedMonth).padStart(2,"0")}`);
         if (days > 0) {
           // Days present computed from real attendance — update the payroll run
-          processPayroll({ ...run, daysWorked: days, status: "Draft" });
+          processPayroll({ ...run, daysWorked: days, status: "draft" });
           processed++;
         }
       }

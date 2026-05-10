@@ -957,7 +957,7 @@ function HRModule() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {(payroll as any).daysWorked || "—"}/26
+                            {(payroll as any).daysWorked ?? (payroll.status === "disbursed" || payroll.status === "Paid" ? 26 : "—")}/26
                             {false && (
                               <Badge variant="outline" className="ml-2 text-xs">Pro-rata</Badge>
                             )}
@@ -1635,7 +1635,7 @@ function HRModule() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Days Worked</p>
-                  <p className="font-semibold">{(selectedPayslip as any).daysWorked || "—"} / {(selectedPayslip as any).totalDays || 26}</p>
+                  <p className="font-semibold">{(selectedPayslip as any).daysWorked ?? (selectedPayslip?.status === "disbursed" ? 26 : "—")} / {(selectedPayslip as any).totalDays || 26}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Payment Status</p>
