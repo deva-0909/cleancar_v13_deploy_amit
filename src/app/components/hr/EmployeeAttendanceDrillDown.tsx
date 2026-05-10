@@ -152,36 +152,45 @@ const generateMockAttendanceData = (
       outTime = null;
       workingHours = 0;
     }
-    // Some random leave patterns
-    else if (day === 5) {
+    // Leave / late / absent patterns (only on non-Sunday, non-PH working days)
+    else if (day === 6) {
+      // CSL on 6th (Monday in April 2026)
       attendanceType = "CSL";
       inTime = null;
       outTime = null;
       workingHours = 0;
-    } else if (day === 12) {
-      attendanceType = "PL";
-      inTime = null;
-      outTime = null;
-      workingHours = 0;
+    } else if (day === 11) {
+      // Half-day CSL
+      attendanceType = "HCSL";
+      inTime = "09:00";
+      outTime = "13:30";
+      workingHours = 4.5;
     } else if (day === 20) {
+      // LWP on Monday
       attendanceType = "LWP";
       inTime = null;
       outTime = null;
       workingHours = 0;
+    } else if (day === 24) {
+      // Half LWP
+      attendanceType = "HLWP";
+      inTime = "13:30";
+      outTime = "18:00";
+      workingHours = 4.5;
     }
-    // Late coming
+    // Late coming (distinct days — each counts as 1 late day)
     else if (day === 8 || day === 15 || day === 22) {
       inTime = "09:45";
       outTime = "18:30";
       workingHours = 8.75;
-      lateComingCount = 1;
+      lateComingCount = 1; // 1 = this day is late
     }
-    // Auto logout
-    else if (day === 10 || day === 18) {
+    // Auto logout (distinct days)
+    else if (day === 10 || day === 17) {
       inTime = "09:00";
       outTime = null; // Auto logout
       workingHours = 8;
-      autoLogoutCount = 1;
+      autoLogoutCount = 1; // 1 = this day had auto logout
     }
     // Absent
     else if (day === 25) {
@@ -189,6 +198,13 @@ const generateMockAttendanceData = (
       inTime = null;
       outTime = null;
       workingHours = 0;
+    }
+    // Half day (no leave applied)
+    else if (day === 23) {
+      attendanceType = "H";
+      inTime = "09:00";
+      outTime = "13:30";
+      workingHours = 4.5;
     }
 
     records.push({
