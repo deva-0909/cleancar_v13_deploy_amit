@@ -135,18 +135,26 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
     blockedDeductionTypes: ["epf", "esic", "pt", "tds", "loan", "advance"],
   };
 
-  // Mock salary data - normally would come from employee master
-  const baseSalary = 20000;
-  const monthlyDays = data.summary.totalDays;
-  const perDayRate = baseSalary / monthlyDays;
+  // ✅ FIXED: Salary lookup from employeeDatabaseService (real salary, not hardcoded 20000)
+  const empRecord = (() => {
+    try {
+      const stored = localStorage.getItem("cleancar_employees");
+      const all: any[] = stored ? JSON.parse(stored) : [];
+      return all.find(e => e.employeeId === data.employeeCode || e.id === data.employeeCode);
+    } catch { return null; }
+  })();
+  const WORKING_DAYS = 26; // Standard working days per month
+  const baseSalary: number = empRecord?.baseSalary || empRecord?.grossSalary || 8000;
+  const calendarDays = data.summary.totalDays; // Calendar days (30/31) for basic proration
   
-  // Calculate based on attendance
-  const attendanceDeductionAmount = Math.round(data.adjustment.daysDeducted * perDayRate);
+  // ✅ FIXED: Attendance deduction uses WORKING days (26) as per 24/9 pay policy
+  const perDayRateForDeduction = baseSalary / WORKING_DAYS;
+  const attendanceDeductionAmount = Math.round(data.adjustment.daysDeducted * perDayRateForDeduction);
   
-  // Fixed Earnings Calculation
-  const basicSalary = Math.round(baseSalary * 0.4); // 40% of gross
-  const basicActual = Math.round((basicSalary / monthlyDays) * data.summary.payDays);
-  const statutoryBonus = 1000;
+  // Fixed Earnings Calculation — basic prorated on calendar days (matches screen)
+  const basicSalary = Math.round(baseSalary * 0.4); // 40% of gross as basic
+  const basicActual = Math.round((basicSalary / calendarDays) * data.summary.payDays);
+  const statutoryBonus = baseSalary <= 21000 ? 1000 : 0; // Only for gross ≤ ₹21,000
   
   // Variable Earnings
   const salesIncentive = 0;
@@ -155,8 +163,13 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
   
   // Deductions
   const epf = Math.round(basicActual * 0.12);
-  const esic = Math.round((basicActual + statutoryBonus) * 0.0075);
-  const pt = basicSalary >= 15000 ? 200 : 0;
+  const grossForESIC = basicActual + statutoryBonus;
+  const esic = grossForESIC <= 21000 ? Math.round(grossForESIC * 0.0075) : 0;
+  // ✅ FIXED: Gujarat PT slabs (was: baseSalary>=15000 → 200, missing ₹80 and ₹150 slabs)
+  const totalGross = basicActual + statutoryBonus + salesIncentive + performanceIncentive;
+  const pt = totalGross < 6000 ? 0 : totalGross < 9000 ? 80 : totalGross < 12000 ? 150 : 200;
+  // ✅ FIXED: LWF ₹6 Gujarat mandatory
+  const lwf = 6;
   const advance = 0;
   const otherDeduction = 0;
   
@@ -164,12 +177,13 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
   const pfGross = basicActual;
   const eps = Math.min(Math.round(basicActual * 0.0833), 1250);
   const epfEmployer = Math.round(basicActual * 0.0367);
-  const esicGross = basicActual + statutoryBonus;
-  const esicEmployer = Math.round(esicGross * 0.0325);
+  const esicGross = grossForESIC;
+  const esicEmployer = esicGross <= 21000 ? Math.round(esicGross * 0.0325) : 0;
+  const lwfEmployer = 12; // Employer LWF contribution Gujarat
   
   // Totals
   const totalEarnings = basicActual + statutoryBonus + salesIncentive + performanceIncentive + overtime;
-  const totalDeductions = epf + esic + pt + advance + attendanceDeductionAmount + otherDeduction;
+  const totalDeductions = epf + esic + pt + lwf + advance + attendanceDeductionAmount + otherDeduction;
   const netPayable = totalEarnings - totalDeductions;
 
   const monthNames = ["January", "February", "March", "April", "May", "June", 
@@ -536,7 +550,7 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
                       </tr>
                       <tr className="border-b">
                         <td className="p-2">LWF</td>
-                        <td className="text-right p-2">—</td>
+                        <td className="text-right p-2 font-medium text-red-800">{lwf.toLocaleString()}</td>
                       </tr>
                       <tr className="border-b">
                         <td className="p-2">TDS</td>
@@ -605,7 +619,7 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
                       </tr>
                       <tr>
                         <td className="p-2">LWF</td>
-                        <td className="text-right p-2">0</td>
+                        <td className="text-right p-2 text-blue-700">{lwfEmployer}</td>
                       </tr>
                     </tbody>
                   </table>
