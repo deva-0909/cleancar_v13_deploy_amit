@@ -6,7 +6,8 @@
  * RULE: Finance displays subscription data via subscriptionId lookup
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
+import { useEventListener } from "./EventSystem";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 import { useSync } from "../hooks/useSync";
@@ -270,7 +271,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return stored;
   });
 
-  // Persist to storage (local cache - instant)
+  // Persist to storage — only when data is non-empty to avoid overwriting Supabase data with []
   useEffect(() => {
     if (mrrData.length > 0) DataService.setAll("FINANCE_MRR", mrrData);
   }, [mrrData]);
@@ -280,7 +281,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }, [payables]);
 
   useEffect(() => {
-    // Revenues NOT written back — Supabase is source of truth (prevents overwrite with [])
+    // Never write revenues back to localStorage — Supabase is source of truth
+    // Writing back causes quota issues and overwrites good data with []
+    // DataService.get() fallback handles reading from cleancar_revenues legacy key
   }, [revenues]);
 
   useEffect(() => {
@@ -1058,6 +1061,38 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const getRecommendations = (cityId: string): Recommendation[] => {
     return recommendations.filter(r => r.cityId === cityId);
   };
+
+  // ─── C01 FIX: Subscribe to JOB_COMPLETED → auto-create revenue entry ────────
+  useEventListener("JOB_COMPLETED", (event: any) => {
+    const { jobId, customerId, cityId, amount, jobType, subscriptionId, completedAt } = event.data || event;
+    if (!amount || amount <= 0) return; // skip zero-amount jobs
+
+    // Map job type to revenue type
+    const revenueType: Revenue["type"] =
+      jobType === "Add-on"                           ? "Add-on" :
+      subscriptionId                                 ? "Subscription" :
+      (jobType === "One-Time Demo" || jobType === "Regular") ? "One-Time" :
+      "One-Time";
+
+    // Avoid duplicate: check if a revenue entry for this jobId already exists
+    setRevenues(prev => {
+      if (prev.some(r => r.jobId === jobId)) return prev;
+      const newRevenue: Revenue = {
+        revenueId:     `REV-JOB-${jobId}`,
+        customerId:    customerId || "",
+        subscriptionId: subscriptionId,
+        jobId,
+        type:          revenueType,
+        amount,
+        receivedDate:  (completedAt || new Date().toISOString()).split("T")[0],
+        paymentMethod: "UPI",           // default — can be updated by Accounts
+        status:        "Received",
+        cityId:        cityId || "CITY-SURAT",
+        createdAt:     new Date().toISOString(),
+      };
+      return [...prev, newRevenue];
+    });
+  }, []);
 
   return (
     <FinanceContext.Provider

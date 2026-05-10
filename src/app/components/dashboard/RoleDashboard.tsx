@@ -43,10 +43,15 @@ export function RoleDashboard() {
       return <CityDashboard />;
     case "procurement":
       return <ProcurementDashboard />;
-    case "operational":
-      return <OperationsDashboard />; // Manager role
-    case "marketing":
-      return <ExecutiveDashboard />; // Marketing Agency - uses exec view
+    case "city":
+    case "city-manager":
+      return <CityDashboard />;
+    case "accounts":
+    case "finance":
+      return <FinanceDashboard />;
+    case "admin":
+    case "super-admin":
+      return <ExecutiveDashboard />;
     default:
       return <ExecutiveDashboard />;
   }

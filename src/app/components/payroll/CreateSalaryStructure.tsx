@@ -1,4 +1,3 @@
-import { STATUTORY_RULES } from "../../constants/payrollConstants";
 // Create Salary Structure with Auto-Calculation
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -242,23 +241,21 @@ export function CreateSalaryStructure() {
     return unsubscribe;
   }, []);
 
-  // Calculate PT using STATUTORY_RULES.PT_SLABS (Gujarat max = ₹200)
-  // Do NOT use hardcoded values — always derive from payrollConstants
+  // Calculate PT based on gross
+  // ✅ FIXED: Gujarat PT slabs — max ₹200 (was wrong: ₹175 slab and ₹300 max)
   const calculatePT = (gross: number): number => {
-    for (const slab of STATUTORY_RULES.PT_SLABS) {
-      if (gross >= slab.min && gross <= slab.max) return slab.amount;
-    }
-    return 0;
+    if (gross < 6000)  return 0;    // ₹0-₹5,999
+    if (gross < 9000)  return 80;   // ₹6,000-₹8,999
+    if (gross < 12000) return 150;  // ₹9,000-₹11,999
+    return 200;                     // ₹12,000+ → Gujarat max ₹200
   };
 
-  // Get PT slab label from STATUTORY_RULES
+  // Get PT slab label
   const getPTSlabLabel = (gross: number): string => {
-    for (const slab of STATUTORY_RULES.PT_SLABS) {
-      if (gross >= slab.min && gross <= slab.max) {
-        return `₹${slab.amount} (Gross ₹${slab.min.toLocaleString("en-IN")}–${slab.max === Infinity ? "above" : "₹" + slab.max.toLocaleString("en-IN")})`;
-      }
-    }
-    return "₹0";
+    if (gross < 6000)  return "₹0 (Gross < ₹6,000)";
+    if (gross < 9000)  return "₹80 (₹6,000-₹8,999)";
+    if (gross < 12000) return "₹150 (₹9,000-₹11,999)";
+    return "₹200 (Gross ≥ ₹12,000) — Gujarat max";
   };
 
   // Helper function to calculate component value

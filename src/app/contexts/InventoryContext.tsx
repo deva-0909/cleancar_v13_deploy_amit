@@ -117,11 +117,11 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const { emit } = useEvents();
 
   useEffect(() => {
-    if (inventory.length > 0) DataService.setAll("INVENTORY_ITEMS", inventory);
+    DataService.setAll("INVENTORY_ITEMS", inventory);
   }, [inventory]);
 
   useEffect(() => {
-    if (stockTransactions.length > 0) DataService.setAll("STOCK_TRANSACTIONS", stockTransactions);
+    DataService.setAll("STOCK_TRANSACTIONS", stockTransactions);
   }, [stockTransactions]);
 
   // Inventory Item CRUD
@@ -217,18 +217,25 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         if (item.itemId === transaction.itemId) {
           const updated = { ...item };
 
-          // Decrease from source
+          // Decrease from source — guarded: never go below 0
           if (transaction.fromLocation === "Central") {
-            updated.centralStock -= transaction.quantity;
+            const available = updated.centralStock || 0;
+            if (available < transaction.quantity) {
+              console.warn(`[Inventory] Blocked: insufficient central stock for ${transaction.itemId}. Have ${available}, need ${transaction.quantity}`);
+              return item; // abort — leave stock unchanged
+            }
+            updated.centralStock = available - transaction.quantity;
           } else if (transaction.fromLocation === "Supervisor" && transaction.fromId) {
+            const avail = (updated.supervisorStock[transaction.fromId] || 0);
             updated.supervisorStock = {
               ...updated.supervisorStock,
-              [transaction.fromId]: (updated.supervisorStock[transaction.fromId] || 0) - transaction.quantity,
+              [transaction.fromId]: Math.max(0, avail - transaction.quantity),
             };
           } else if (transaction.fromLocation === "Washer" && transaction.fromId) {
+            const avail = (updated.washerStock[transaction.fromId] || 0);
             updated.washerStock = {
               ...updated.washerStock,
-              [transaction.fromId]: (updated.washerStock[transaction.fromId] || 0) - transaction.quantity,
+              [transaction.fromId]: Math.max(0, avail - transaction.quantity),
             };
           }
 

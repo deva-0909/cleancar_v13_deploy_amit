@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "../../lib/formatters";
 import {
   DollarSign,
@@ -85,72 +84,8 @@ interface PaymentSummary {
 // MOCK DATA
 // ============================================================================
 
-const mockPayments: Payment[] = [
-  {
-    id: "pay_001",
-    paymentNumber: "PAY-2026-001",
-    invoiceId: "inv_003",
-    invoiceNumber: "INV-2026-003",
-    customerName: "Amit Kumar",
-    paymentDate: "2026-04-18",
-    paymentMode: "UPI",
-    paymentReference: "UPI-202604181234567",
-    amount: 3576.0,
-    city: "Mumbai",
-    cluster: "Central Zone",
-    createdAt: "2026-04-18T14:30:00Z",
-    createdBy: "cashier@example.com",
-    paymentTransactionId: "txn_payment_001",
-  },
-  {
-    id: "pay_002",
-    paymentNumber: "PAY-2026-002",
-    invoiceId: "inv_002",
-    invoiceNumber: "INV-2026-002",
-    customerName: "Priya Sharma",
-    paymentDate: "2026-04-12",
-    paymentMode: "CASH",
-    paymentReference: "",
-    amount: 1000.0,
-    city: "Surat",
-    cluster: "South Zone",
-    createdAt: "2026-04-12T10:15:00Z",
-    createdBy: "cashier@example.com",
-    paymentTransactionId: "txn_payment_002",
-  },
-  {
-    id: "pay_003",
-    paymentNumber: "PAY-2026-003",
-    invoiceId: "inv_005",
-    invoiceNumber: "INV-2026-005",
-    customerName: "Vikram Singh",
-    paymentDate: "2026-04-16",
-    paymentMode: "CARD",
-    paymentReference: "CARD-****1234",
-    amount: 5200.0,
-    city: "Surat",
-    cluster: "West Zone",
-    createdAt: "2026-04-16T16:45:00Z",
-    createdBy: "cashier@example.com",
-    paymentTransactionId: "txn_payment_003",
-  },
-  {
-    id: "pay_004",
-    paymentNumber: "PAY-2026-004",
-    invoiceId: "inv_006",
-    invoiceNumber: "INV-2026-006",
-    customerName: "Anjali Mehta",
-    paymentDate: "2026-04-19",
-    paymentMode: "BANK_TRANSFER",
-    paymentReference: "NEFT123456789",
-    amount: 8900.0,
-    city: "Mumbai",
-    cluster: "Central Zone",
-    createdAt: "2026-04-19T09:20:00Z",
-    createdBy: "accounts@example.com",
-    paymentTransactionId: "txn_payment_004",
-  },
-];
+// ✅ FIXED: Removed hardcoded mockPayments — real payments come from FinanceContext
+const mockPayments: Payment[] = []; // empty — no fake data
 
 const mockSummary: PaymentSummary = {
   totalPayments: 4,
@@ -181,7 +116,7 @@ async function fetchPayments(
 
   await new Promise((resolve) => setTimeout(resolve, 600));
 
-  let filtered = [...mockPayments];
+  let filtered = [...livePayments];
 
   if (filters.city !== "all") {
     filtered = filtered.filter((pay) => pay.city === filters.city);
@@ -266,7 +201,6 @@ function getPaymentModeBadge(mode: string) {
 // ============================================================================
 
 export default function PaymentManagement() {
-  const navigate = useNavigate();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [summary, setSummary] = useState<PaymentSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -306,7 +240,7 @@ export default function PaymentManagement() {
   }
 
   function handleViewInvoice(invoiceId: string) {
-    navigate(`/finance/invoices/${invoiceId}`);
+    window.location.href = `/finance/invoices/${invoiceId}`;
   }
 
   function resetFilters() {

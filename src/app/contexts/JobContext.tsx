@@ -180,6 +180,22 @@ export function JobProvider({ children }: { children: ReactNode }) {
     allJobs.filter(j => ["Completed","Verified"].includes(j.status) && j.cityId === cityId);
 
   const createJob = (jobData: Omit<Job, "jobId" | "createdAt" | "updatedAt">): Job => {
+    // ✅ BUSINESS RULE: No jobs on Sunday (absolute rest day)
+    if (jobData.scheduledDate) {
+      const dayOfWeek = new Date(jobData.scheduledDate).getDay();
+      if (dayOfWeek === 0) {
+        throw new Error("Sunday is an absolute rest day — no jobs can be scheduled.");
+      }
+    }
+
+    // ✅ BUSINESS RULE: Jobs must be within wash band 05:00–09:00
+    if (jobData.timeSlot) {
+      const hour = parseInt((jobData.timeSlot).split(":")[0], 10);
+      if (hour < 5 || hour >= 9) {
+        throw new Error("Jobs must be scheduled within the wash band: 05:00–09:00.");
+      }
+    }
+
     const newJob: Job = {
       ...jobData,
       jobId: `JOB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

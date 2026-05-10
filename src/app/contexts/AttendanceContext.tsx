@@ -76,6 +76,8 @@ interface AttendanceContextType {
 
   // Statistics
   getPresentCount: (date: string) => number;
+  // ✅ C03 FIX: Payroll-ready days computation (Half Day = 0.5, Late = 1, Present = 1)
+  computeDaysPresent: (employeeId: string, month: string) => number;
   getAbsentCount: (date: string) => number;
   getLateCount: (date: string) => number;
 }
@@ -93,7 +95,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
   // Persist to storage
   useEffect(() => {
-    if (attendanceRecords.length > 0) DataService.setAll("ATTENDANCE_RECORDS", attendanceRecords);
+    DataService.setAll("ATTENDANCE_RECORDS", attendanceRecords);
   }, [attendanceRecords]);
 
   // ========== ACTIONS ==========
@@ -197,6 +199,16 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
   // ========== STATISTICS ==========
 
+  // ✅ C03 FIX: Compute payroll-ready days present with half-day weighting
+  const computeDaysPresent = useCallback((employeeId: string, month: string): number => {
+    const records = getAttendanceForMonth(employeeId, month);
+    return records.reduce((total, r) => {
+      if (r.status === "Present" || r.status === "Late") return total + 1;
+      if (r.status === "Half Day") return total + 0.5;
+      return total; // Absent, Leave, Week Off = 0
+    }, 0);
+  }, [getAttendanceForMonth]);
+
   const getPresentCount = useCallback((date: string): number => {
     return attendanceRecords.filter(
       (r) => r.date === date && (r.status === "Present" || r.status === "Late")
@@ -224,6 +236,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     getAttendanceByDateRange,
     getMonthlyAttendanceSummary,
     getPresentCount,
+    computeDaysPresent,
     getAbsentCount,
     getLateCount,
   };

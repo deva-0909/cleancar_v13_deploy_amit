@@ -1,4 +1,3 @@
-import { BackButton } from "../ui/back-button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -44,7 +43,11 @@ export function GSTDashboard() {
         planType: sub.packageType,
         vehicleCategory: sub.serviceDetails?.vehicleType || "Unknown",
         revenue,
-        gst: Math.round(revenue * 0.18), // 18% GST
+        // ✅ H05 FIX: Intra-state = 9% CGST + 9% SGST (not 18% IGST)
+        cgst: Math.round(revenue * 0.09),
+        sgst: Math.round(revenue * 0.09),
+        igst: 0,
+        gst: Math.round(revenue * 0.18), // total tax (cgst+sgst) kept for backward compat
         date: `2026-03-${String(idx + 1).padStart(2, '0')}`,
       };
     }),
@@ -57,7 +60,9 @@ export function GSTDashboard() {
   );
 
   const totalGST = useMemo(() =>
-    Math.round(totalRevenue * 0.18),
+    // ✅ H05 FIX: For intra-state (Surat) the total tax is CGST+SGST = 18% total
+    // but it should be reported as CGST 9% and SGST 9% separately in GSTR-1
+    Math.round(totalRevenue * 0.09) + Math.round(totalRevenue * 0.09), // CGST+SGST
     [totalRevenue]
   );
 
@@ -98,7 +103,6 @@ export function GSTDashboard() {
 
   return (
     <div className="space-y-6">
-      <BackButton />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">GST Management Module</h1>

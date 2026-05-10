@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { BackButton } from "../ui/back-button";
 import { formatCurrency } from "../../lib/formatters";
 import {
   FileText,
@@ -82,8 +80,6 @@ interface InvoiceFilters {
   city: string;
   status: string;
   dateRange: string;
-  startDate: string;
-  endDate: string;
   searchQuery: string;
 }
 
@@ -105,92 +101,8 @@ interface PaymentFormData {
 // MOCK DATA (Replace with real API in production)
 // ============================================================================
 
-const mockInvoices: Invoice[] = [
-  {
-    id: "inv_001",
-    invoiceNumber: "INV-2026-001",
-    customerId: "cust_123",
-    customerName: "Rajesh Patel",
-    serviceId: "svc_456",
-    serviceType: "AC Service",
-    invoiceDate: "2026-04-15",
-    dueDate: "2026-04-30",
-    subtotal: 2500.0,
-    taxAmount: 450.0,
-    discountAmount: 0.0,
-    totalAmount: 2950.0,
-    paidAmount: 0.0,
-    balanceDue: 2950.0,
-    status: "UNPAID",
-    paymentStatus: "PENDING",
-    city: "Surat",
-    cluster: "West Zone",
-    createdAt: "2026-04-15T10:30:00Z",
-  },
-  {
-    id: "inv_002",
-    invoiceNumber: "INV-2026-002",
-    customerId: "cust_124",
-    customerName: "Priya Sharma",
-    serviceId: "svc_457",
-    serviceType: "Washing Machine Repair",
-    invoiceDate: "2026-04-10",
-    dueDate: "2026-04-25",
-    subtotal: 1800.0,
-    taxAmount: 324.0,
-    discountAmount: 100.0,
-    totalAmount: 2024.0,
-    paidAmount: 1000.0,
-    balanceDue: 1024.0,
-    status: "PARTIAL",
-    paymentStatus: "PARTIAL",
-    city: "Surat",
-    cluster: "South Zone",
-    createdAt: "2026-04-10T14:20:00Z",
-  },
-  {
-    id: "inv_003",
-    invoiceNumber: "INV-2026-003",
-    customerId: "cust_125",
-    customerName: "Amit Kumar",
-    serviceId: "svc_458",
-    serviceType: "Refrigerator Service",
-    invoiceDate: "2026-04-05",
-    dueDate: "2026-04-20",
-    subtotal: 3200.0,
-    taxAmount: 576.0,
-    discountAmount: 200.0,
-    totalAmount: 3576.0,
-    paidAmount: 3576.0,
-    balanceDue: 0.0,
-    status: "PAID",
-    paymentStatus: "COMPLETED",
-    city: "Mumbai",
-    cluster: "Central Zone",
-    createdAt: "2026-04-05T09:15:00Z",
-  },
-  {
-    id: "inv_004",
-    invoiceNumber: "INV-2026-004",
-    customerId: "cust_126",
-    customerName: "Sneha Desai",
-    serviceId: "svc_459",
-    serviceType: "AC Installation",
-    invoiceDate: "2026-03-28",
-    dueDate: "2026-04-12",
-    subtotal: 15000.0,
-    taxAmount: 2700.0,
-    discountAmount: 500.0,
-    totalAmount: 17200.0,
-    paidAmount: 0.0,
-    balanceDue: 17200.0,
-    status: "OVERDUE",
-    paymentStatus: "PENDING",
-    city: "Surat",
-    cluster: "West Zone",
-    createdAt: "2026-03-28T11:45:00Z",
-  },
-];
+// ✅ FIXED: Removed hardcoded mockInvoices — real invoices come from FinanceContext
+const mockInvoices: Invoice[] = []; // empty — no fake fallback
 
 // ============================================================================
 // API FUNCTIONS
@@ -228,7 +140,8 @@ async function fetchInvoices(
     };
   });
 
-  let filtered = liveInvoices.length > 0 ? [...liveInvoices] : [...mockInvoices];
+  // ✅ FIXED: Always use live invoices — no mock fallback
+  let filtered = [...liveInvoices];
 
   if (filters.city !== "all") {
     filtered = filtered.filter((inv) => inv.city === filters.city);
@@ -236,13 +149,6 @@ async function fetchInvoices(
 
   if (filters.status !== "all") {
     filtered = filtered.filter((inv) => inv.status === filters.status);
-  }
-
-  if (filters.startDate) {
-    filtered = filtered.filter((inv) => inv.invoiceDate >= filters.startDate);
-  }
-  if (filters.endDate) {
-    filtered = filtered.filter((inv) => inv.invoiceDate <= filters.endDate);
   }
 
   if (filters.searchQuery) {
@@ -335,7 +241,6 @@ function isOverdue(dueDate: string, status: Invoice["status"]): boolean {
 // ============================================================================
 
 export default function InvoiceManagement() {
-  const navigate = useNavigate();
   const { city, cityInfo } = useCity();
   const { recordRevenue, revenues } = useFinance();
   const { customers } = useCustomers();
@@ -382,8 +287,6 @@ export default function InvoiceManagement() {
     city: "all",
     status: "all",
     dateRange: "all",
-    startDate: "",
-    endDate: "",
     searchQuery: "",
   });
 
@@ -461,7 +364,8 @@ export default function InvoiceManagement() {
   }
 
   function handleViewInvoice(invoiceId: string) {
-    navigate(`/finance/invoices/${invoiceId}`);
+    // Navigate to invoice detail page
+    window.location.href = `/finance/invoices/${invoiceId}`;
   }
 
   // ============================================================================
@@ -562,22 +466,24 @@ export default function InvoiceManagement() {
               </Select>
             </div>
 
-            {/* Custom Date Range Filter */}
+            {/* Date Range Filter */}
             <div>
-              <Label>From Date</Label>
-              <Input
-                type="date"
-                value={filters.startDate}
-                onChange={(e) => handleFilterChange("startDate", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>To Date</Label>
-              <Input
-                type="date"
-                value={filters.endDate}
-                onChange={(e) => handleFilterChange("endDate", e.target.value)}
-              />
+              <Label>Date Range</Label>
+              <Select
+                value={filters.dateRange}
+                onValueChange={(value) => handleFilterChange("dateRange", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="thisWeek">This Week</SelectItem>
+                  <SelectItem value="thisMonth">This Month</SelectItem>
+                  <SelectItem value="lastMonth">Last Month</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Search */}

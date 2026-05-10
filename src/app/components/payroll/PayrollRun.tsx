@@ -42,6 +42,7 @@ import { useEmployeeData } from "../../hooks/useEmployeeData";
 import { formatCurrency } from "../../lib/formatters";
 import { hasPermission } from "../../utils/permissionEngine";
 import { useRole } from "../../contexts/RoleContext";
+import { useAttendance } from "../../contexts/AttendanceContext";
 import { useEmployee } from "../../contexts/EmployeeContext";
 import { CITIES } from "../../contexts/CityContext";
 
@@ -71,6 +72,7 @@ export function PayrollRun() {
   // PHASE 2: Migrated to useEmployeeData
   const { payrollRuns, employees, getEmployeeById, getPayrollForMonth, processPayroll } = useEmployeeData();
   const { currentUser } = useRole();
+  const { computeDaysPresent } = useAttendance();
   const canApprove = hasPermission(currentUser, "payroll", "approve");
   const { employees: allEmployees } = useEmployee();
   const cityEmployees = allEmployees.filter(e =>
@@ -169,13 +171,24 @@ export function PayrollRun() {
     setHasRun(false);
 
     try {
-      // Simulate API call to payrollEngine
-      // Real processing — processPayroll called above handles calculation
+      // ✅ H09 FIX: Real payroll run — reads attendance for each employee
+      // computeDaysPresent uses AttendanceContext (Present=1, Late=1, HalfDay=0.5)
+      let processed = 0;
+      for (const run of payrollRuns.filter(r =>
+        r.month === String(selectedMonth) && r.year === Number(selectedYear)
+      )) {
+        const days = computeDaysPresent(run.employeeId, `${selectedYear}-${String(selectedMonth).padStart(2,"0")}`);
+        if (days > 0) {
+          // Days present computed from real attendance — update the payroll run
+          processPayroll({ ...run, daysWorked: days, status: "Draft" });
+          processed++;
+        }
+      }
 
-      // In production: const result = await payrollEngine.runPayroll({ month, year, city, cluster })
-      // For now, we're just marking that we've run the calculation
-      // The results are automatically computed from HRDataContext in the useMemo above
-
+      if (processed === 0) {
+        // No attendance records yet — still mark as run but show warning
+        toast.warning("No attendance records found for this period. daysPresent will need manual entry.");
+      }
       setHasRun(true);
       toast.success("Payroll calculated successfully!");
     } catch (err) {
