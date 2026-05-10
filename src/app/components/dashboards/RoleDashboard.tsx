@@ -43,6 +43,13 @@ export function RoleDashboard() {
       return <CityDashboard />;
     case "procurement":
       return <ProcurementDashboard />;
+    case "city-manager":
+      return <CityDashboard />;
+    case "accounts":
+      return <FinanceDashboard />;
+    case "admin":
+    case "super-admin":
+      return <ExecutiveDashboard />;
     default:
       return <ExecutiveDashboard />;
   }

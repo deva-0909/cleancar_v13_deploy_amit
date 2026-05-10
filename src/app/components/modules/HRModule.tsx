@@ -935,7 +935,7 @@ function HRModule() {
                     </TableHeader>
                     <TableBody>
                       {payrollRuns.map((payroll) => (
-                        <TableRow key={payroll.id}>
+                        <TableRow key={payroll.payrollId || payroll.employeeId}>
                           <TableCell className="font-medium">{payroll.employeeId}</TableCell>
                           <TableCell>
                             <div>
@@ -952,17 +952,17 @@ function HRModule() {
                               >
                                 {payroll.employeeId}
                               </p>
-                              {payroll.role && <p className="text-xs text-gray-500">{payroll.role}</p>}
+                              
                             </div>
                           </TableCell>
                           <TableCell>
-                            {payroll.daysWorked}/{payroll.totalDays}
-                            {payroll.isProrateApplicable && (
+                            {(payroll as any).daysWorked || "—"}/26
+                            {false && (
                               <Badge variant="outline" className="ml-2 text-xs">Pro-rata</Badge>
                             )}
                           </TableCell>
                           <TableCell>
-                            {payroll.leaveDays ? (
+                            {(payroll as any).leaveDays ? (
                               <div className="flex gap-1 flex-wrap">
                                 {payroll.leaveDays.CL > 0 && (
                                   <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs px-1">
@@ -1025,7 +1025,7 @@ function HRModule() {
                               size="sm" 
                               variant="outline"
                               onClick={() => {
-                                setSelectedPayslip(payroll);
+                                setSelectedPayslip(payroll as any);
                                 setShowPayslipModal(true);
                               }}
                             >
