@@ -847,7 +847,13 @@ export function EmployeeAttendanceDrillDown({
                   </div>
                 </div>
               }>
-                <GeneratedPayslip data={data} month={month} year={year} />
+                <GeneratedPayslip
+                  data={data}
+                  month={month}
+                  year={year}
+                  currentRole={(() => { try { const s = localStorage.getItem("cc360_session"); return s ? JSON.parse(s).role : undefined; } catch { return undefined; } })()}
+                  currentUser={(() => { try { const s = localStorage.getItem("cc360_session"); const p = s ? JSON.parse(s) : null; return p ? { name: p.employeeName } : undefined; } catch { return undefined; } })()}
+                />
               </React.Suspense>
             </>
           ) : (

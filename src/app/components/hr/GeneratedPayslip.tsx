@@ -23,7 +23,6 @@ import { Badge } from "../ui/badge";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
-import { useRole } from "../../contexts/RoleContext";
 
 interface AttendanceSummary {
   totalDays: number;
@@ -55,9 +54,12 @@ interface GeneratedPayslipProps {
   data: EmployeeAttendanceData;
   month: number;
   year: number;
+  // Optional: passed from parent to avoid circular import of RoleContext in lazy chunk
+  currentRole?: string;
+  currentUser?: { name?: string; fullName?: string; };
 }
 
-export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
+export function GeneratedPayslip({ data, month, year, currentRole: currentRoleProp, currentUser: currentUserProp }: GeneratedPayslipProps) {
   const [payslipStatus, setPayslipStatus] = useState<"pending" | "approved" | "rejected">("pending");
   const [hrComment, setHRComment] = useState("");
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -87,9 +89,20 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
   const [customAdjustmentDays, setCustomAdjustmentDays] = useState("0");
   const [manualAttendanceDeduction, setManualAttendanceDeduction] = useState("");
 
-  // Role context for permission checks and audit logging
-  const { currentRole, navEmployee } = useRole();
-  const currentUserName: string = (navEmployee as any)?.name || (navEmployee as any)?.fullName || currentRole || "HR";
+  // Role and user from props (passed by parent to avoid circular import in lazy chunk)
+  // Falls back to localStorage session if not provided
+  const currentRole: string = currentRoleProp || (() => {
+    try {
+      const s = localStorage.getItem("cc360_session");
+      return s ? (JSON.parse(s).role || "HR") : "HR";
+    } catch { return "HR"; }
+  })();
+  const currentUserName: string = currentUserProp?.name || currentUserProp?.fullName || (() => {
+    try {
+      const s = localStorage.getItem("cc360_session");
+      return s ? (JSON.parse(s).employeeName || currentRole) : currentRole;
+    } catch { return currentRole; }
+  })();
 
   // Load persisted approval status on mount
   React.useEffect(() => {
