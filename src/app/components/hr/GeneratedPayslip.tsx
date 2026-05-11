@@ -23,6 +23,7 @@ import { Badge } from "../ui/badge";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
+import { useRole } from "../../contexts/RoleContext";
 
 interface AttendanceSummary {
   totalDays: number;
@@ -86,6 +87,23 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
   const [customAdjustmentDays, setCustomAdjustmentDays] = useState("0");
   const [manualAttendanceDeduction, setManualAttendanceDeduction] = useState("");
 
+  // Role context for permission checks and audit logging
+  const { currentRole, navEmployee } = useRole();
+  const currentUserName: string = (navEmployee as any)?.name || (navEmployee as any)?.fullName || currentRole || "HR";
+
+  // Load persisted approval status on mount
+  React.useEffect(() => {
+    const key = `payslip_status_${data.employeeCode}_${year}_${month}`;
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.status) setPayslipStatus(parsed.status as any);
+        if (parsed.comment) setHRComment(parsed.comment);
+      }
+    } catch { /* ignore */ }
+  }, [data.employeeCode, month, year]);
+
   // Leave Adjustment Against Salary Deduction States
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
   const [adjustmentRequest, setAdjustmentRequest] = useState<{
@@ -115,36 +133,86 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
   const [adjustmentDays, setAdjustmentDays] = useState("");
   const [adjustmentReason, setAdjustmentReason] = useState("");
 
-  // Mock Employee Data (normally from API)
-  const employeePLBalance = 12; // Available PL days
-  const employeeMonthlyAdjustmentUsed = 0; // PL already used for adjustments this month
-  const employeeTenureMonths = 8; // Months since joining
-  const isProbationCompleted = true;
-  const isFullTime = true;
+  // Live employee leave and tenure data
+  const employeePLBalance: number = (() => {
+    try {
+      const saved = localStorage.getItem(`leave_balance_${data.employeeCode}`);
+      if (saved) { const b = JSON.parse(saved); return b.PL ?? b.pl ?? b.paidLeave ?? 12; }
+      return 12;
+    } catch { return 12; }
+  })();
+  const employeeMonthlyAdjustmentUsed: number = (() => {
+    try {
+      const saved = localStorage.getItem(`leave_adjustments_${data.employeeCode}_${year}_${month}`);
+      return saved ? (JSON.parse(saved).used ?? 0) : 0;
+    } catch { return 0; }
+  })();
+  const employeeTenureMonths: number = (() => {
+    if (!empRecord?.joiningDate) return 12;
+    const j = new Date(empRecord.joiningDate);
+    return Math.floor((Date.now() - j.getTime()) / (1000 * 60 * 60 * 24 * 30.44));
+  })();
+  const isProbationCompleted = employeeTenureMonths >= 3;
+  const isFullTime = empRecord?.employmentType !== "part-time";
 
-  // Policy Configuration (normally from Admin Config)
-  const policyConfig = {
-    enablePLAdjustment: true,
-    maxMonthlyLimit: 2, // Max PL days that can be used per month for adjustments
-    maxPerRequest: 1, // Max PL days per single request
-    minDeductionEligible: 0.5, // Minimum deduction days to be eligible
-    minTenureMonths: 3,
-    lateThreshold: 10, // If late count > 10, adjustment disabled
-    autoLogoutThreshold: 3, // If auto logout > 3, only 50% adjustment allowed
-    allowedDeductionTypes: ["attendance", "late_coming", "miss_punch"],
-    blockedDeductionTypes: ["epf", "esic", "pt", "tds", "loan", "advance"],
-  };
+  // Policy Configuration — read from shared admin config (falls back to defaults)
+  const policyConfig = (() => {
+    try {
+      const saved = localStorage.getItem("cc360_leaveAdjustmentPolicy");
+      if (saved) {
+        const p = JSON.parse(saved);
+        return {
+          enablePLAdjustment: p.enablePLAdjustment ?? true,
+          maxMonthlyLimit: p.maxMonthlyLimit ?? 2,
+          maxPerRequest: p.maxPerRequest ?? 1,
+          minDeductionEligible: p.minDeductionEligible ?? 0.5,
+          minTenureMonths: p.minTenureMonths ?? 3,
+          lateThreshold: p.lateThreshold ?? 10,
+          autoLogoutThreshold: p.autoLogoutThreshold ?? 3,
+          allowedDeductionTypes: p.allowedDeductionTypes ?? ["attendance", "late_coming", "miss_punch"],
+          blockedDeductionTypes: p.blockedDeductionTypes ?? ["epf", "esic", "pt", "tds", "loan", "advance"],
+        };
+      }
+    } catch { /* use defaults */ }
+    return {
+      enablePLAdjustment: true, maxMonthlyLimit: 2, maxPerRequest: 1,
+      minDeductionEligible: 0.5, minTenureMonths: 3, lateThreshold: 10,
+      autoLogoutThreshold: 3,
+      allowedDeductionTypes: ["attendance", "late_coming", "miss_punch"],
+      blockedDeductionTypes: ["epf", "esic", "pt", "tds", "loan", "advance"],
+    };
+  })();
 
-  // ✅ FIXED: Salary lookup from employeeDatabaseService (real salary, not hardcoded 20000)
+  // Salary lookup from employeeDatabaseService (service-first, no hardcoded fallback)
   const empRecord = (() => {
     try {
-      const stored = localStorage.getItem("cleancar_employees");
-      const all: any[] = stored ? JSON.parse(stored) : [];
-      return all.find(e => e.employeeId === data.employeeCode || e.id === data.employeeCode);
+      // Try the service namespace first
+      const key1 = localStorage.getItem("cc360_hrdata_employees");
+      const key2 = localStorage.getItem("cleancar_employees");
+      const raw = key1 || key2;
+      const all: any[] = raw ? JSON.parse(raw) : [];
+      return all.find((e: any) => e.employeeId === data.employeeCode || e.id === data.employeeCode || e.empCode === data.employeeCode);
     } catch { return null; }
   })();
+
   const WORKING_DAYS = 26; // Standard working days per month
-  const baseSalary: number = empRecord?.baseSalary || empRecord?.grossSalary || 8000;
+
+  if (!empRecord || (!empRecord.baseSalary && !empRecord.grossSalary)) {
+    return (
+      <div className="border-2 border-red-400 rounded-lg p-6 bg-red-50 text-center m-4">
+        <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+        <h3 className="text-lg font-bold text-red-900 mb-2">Cannot Generate Payslip</h3>
+        <p className="text-sm text-red-700 mb-1">
+          Salary data not found for employee <strong>{data.employeeCode} — {data.employeeName}</strong>.
+        </p>
+        <p className="text-xs text-red-600 mt-2">
+          Please ensure this employee has a valid salary structure assigned in the Employee Database before generating a payslip.
+        </p>
+      </div>
+    );
+  }
+
+  const baseSalary: number = empRecord.baseSalary || empRecord.grossSalary || empRecord.ctc || 0;
   const calendarDays = data.summary.totalDays; // Calendar days (30/31) for basic proration
   
   // ✅ FIXED: Attendance deduction uses WORKING days (26) as per 24/9 pay policy
@@ -162,36 +230,65 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
   const overtime = 0;
   
   // Deductions
-  const epf = Math.round(basicActual * 0.12);
-  const grossForESIC = basicActual + statutoryBonus;
+  // EPF statutory basis: full-month basic capped at ₹15,000 (EPFO rule — proration does not affect contribution basis)
+  const epfBasis = Math.min(basicSalary, 15000);
+  const epf = Math.round(epfBasis * 0.12);
+  // ESIC gross = total gross wages per ESIC Act (all earnings)
+  const grossForESIC = basicActual + statutoryBonus + salesIncentive + performanceIncentive + overtime;
   const esic = grossForESIC <= 21000 ? Math.round(grossForESIC * 0.0075) : 0;
   // ✅ FIXED: Gujarat PT slabs (was: baseSalary>=15000 → 200, missing ₹80 and ₹150 slabs)
   const totalGross = basicActual + statutoryBonus + salesIncentive + performanceIncentive;
   const pt = totalGross < 6000 ? 0 : totalGross < 9000 ? 80 : totalGross < 12000 ? 150 : 200;
-  // ✅ FIXED: LWF ₹6 Gujarat mandatory
+  // LWF ₹6 Gujarat mandatory
   const lwf = 6;
-  const advance = 0;
+  // TDS: New Tax Regime FY 2024-25 with Section 87A rebate
+  const annualGross = baseSalary * 12;
+  const standardDeduction = 75000;
+  const taxableIncome = Math.max(0, annualGross - standardDeduction);
+  const annualTax = (() => {
+    if (taxableIncome <= 300000) return 0;
+    if (taxableIncome <= 700000) return Math.round((taxableIncome - 300000) * 0.05);
+    if (taxableIncome <= 1000000) return 20000 + Math.round((taxableIncome - 700000) * 0.10);
+    if (taxableIncome <= 1200000) return 50000 + Math.round((taxableIncome - 1000000) * 0.15);
+    if (taxableIncome <= 1500000) return 80000 + Math.round((taxableIncome - 1200000) * 0.20);
+    return 140000 + Math.round((taxableIncome - 1500000) * 0.30);
+  })();
+  // Section 87A: zero tax if taxable income ≤ ₹7L under new regime
+  const tds = taxableIncome <= 700000 ? 0 : Math.round(annualTax / 12);
+  // Advance EMI from active loan
+  const advanceEMI: number = (() => {
+    try {
+      const saved = localStorage.getItem(`advance_emi_${data.employeeCode}`);
+      if (saved) { const e = JSON.parse(saved); return (e.isActive && e.outstandingBalance > 0) ? (e.monthlyEMI || 0) : 0; }
+      return 0;
+    } catch { return 0; }
+  })();
+  const advance = advanceEMI;
   const otherDeduction = 0;
   
   // Company Contribution
-  const pfGross = basicActual;
-  const eps = Math.min(Math.round(basicActual * 0.0833), 1250);
-  const epfEmployer = Math.round(basicActual * 0.0367);
+  const pfGross = epfBasis;
+  const eps = Math.min(Math.round(epfBasis * 0.0833), 1250);
+  const epfEmployer = Math.round(epfBasis * 0.0367);
   const esicGross = grossForESIC;
   const esicEmployer = esicGross <= 21000 ? Math.round(esicGross * 0.0325) : 0;
   const lwfEmployer = 12; // Employer LWF contribution Gujarat
   
   // Totals
   const totalEarnings = basicActual + statutoryBonus + salesIncentive + performanceIncentive + overtime;
-  const totalDeductions = epf + esic + pt + lwf + advance + attendanceDeductionAmount + otherDeduction;
+  const totalDeductions = epf + esic + pt + lwf + tds + advance + attendanceDeductionAmount + otherDeduction;
   const netPayable = totalEarnings - totalDeductions;
 
   const monthNames = ["January", "February", "March", "April", "May", "June", 
                       "July", "August", "September", "October", "November", "December"];
 
   const handleApprove = () => {
-    setPayslipStatus("approved");
-    toast.success("Payslip approved successfully! Forwarded to Super Admin for final approval.");
+    const key = `payslip_status_${data.employeeCode}_${year}_${month}`;
+    const record = { status: "pending_superadmin", approvedByHR: currentUserName, approvedAtHR: new Date().toISOString(), netPayable: finalNetPayable };
+    try { localStorage.setItem(key, JSON.stringify(record)); } catch { /* ignore */ }
+    setPayslipStatus("pending_superadmin" as any);
+    toast.success(`Payslip approved by ${currentUserName}. Forwarded to Super Admin for final approval.`);
+    logAuditEvent("HR_APPROVED", { netPayable: finalNetPayable, overrideApplied: overrideRequest.status === "approved" });
   };
 
   const handleReject = () => {
@@ -199,9 +296,13 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
       toast.error("Please provide a reason for rejection");
       return;
     }
+    const key = `payslip_status_${data.employeeCode}_${year}_${month}`;
+    const record = { status: "rejected", rejectedBy: currentUserName, rejectedAt: new Date().toISOString(), comment: hrComment };
+    try { localStorage.setItem(key, JSON.stringify(record)); } catch { /* ignore */ }
     setPayslipStatus("rejected");
     setShowRejectModal(false);
     toast.error("Payslip rejected and sent back for corrections");
+    logAuditEvent("HR_REJECTED", { reason: hrComment });
   };
 
   const handleSubmitOverride = () => {
@@ -226,6 +327,7 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
 
     setShowOverrideModal(false);
     toast.success("Override request submitted to Admin/Super Admin for approval");
+    logAuditEvent("OVERRIDE_REQUESTED", { rules: overrideRequest.overrides, reason: overrideReason });
   };
 
   const handleCancelOverride = () => {
@@ -246,7 +348,7 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
   };
 
   const finalAttendanceDeduction = calculateFinalDeduction();
-  const finalTotalDeductions = epf + esic + pt + advance + finalAttendanceDeduction + otherDeduction;
+  const finalTotalDeductions = epf + esic + pt + lwf + tds + advance + finalAttendanceDeduction + otherDeduction;
   const finalNetPayable = totalEarnings - finalTotalDeductions;
 
   // Policy Validation Function for Leave Adjustment
@@ -351,6 +453,7 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
       toast.warning("Adjustment request submitted with policy issues - Requires HR review");
     } else {
       toast.success("Leave adjustment request submitted for HR approval");
+    logAuditEvent("ADJUSTMENT_REQUESTED", { plDays, policyIssues: validation.issues.length });
     }
   };
 
@@ -358,6 +461,15 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
     setShowAdjustmentModal(false);
     setAdjustmentDays("");
     setAdjustmentReason("");
+  };
+
+  const logAuditEvent = (action: string, details: Record<string, unknown> = {}) => {
+    try {
+      const key = `payslip_audit_${data.employeeCode}_${year}_${month}`;
+      const existing: unknown[] = JSON.parse(localStorage.getItem(key) || "[]");
+      existing.push({ action, actor: currentUserName, role: currentRole, timestamp: new Date().toISOString(), ...details });
+      localStorage.setItem(key, JSON.stringify(existing));
+    } catch { /* audit failure must not crash payslip */ }
   };
 
   return (
@@ -391,6 +503,23 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
           </CardHeader>
           
           <CardContent className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+            {/* Attendance Finalization Warning */}
+            {!(() => {
+              try { return localStorage.getItem(`attendance_closed_${year}_${month}`) === "true"; }
+              catch { return false; }
+            })() && (
+              <div className="flex items-start gap-3 bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4">
+                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-yellow-900">Attendance Not Finalized</p>
+                  <p className="text-xs text-yellow-800 mt-1">
+                    Attendance for {monthNames[month - 1]} {year} has not been officially closed.
+                    Deduction figures may change. HR should finalize attendance before approving this payslip.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Payslip Header */}
             <div className="text-center border-b-2 pb-4">
               <h3 className="text-2xl font-bold text-gray-900">Payslip Summary – {monthNames[month - 1]} {year}</h3>
@@ -553,8 +682,10 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
                         <td className="text-right p-2 font-medium text-red-800">{lwf.toLocaleString()}</td>
                       </tr>
                       <tr className="border-b">
-                        <td className="p-2">TDS</td>
-                        <td className="text-right p-2">—</td>
+                        <td className="p-2">TDS
+                          {tds === 0 && <span className="text-xs text-gray-400 block">Below threshold</span>}
+                        </td>
+                        <td className="text-right p-2 font-semibold text-red-700">{tds > 0 ? tds.toLocaleString() : "—"}</td>
                       </tr>
                       <tr className="border-b">
                         <td className="p-2">Other Deduction</td>
@@ -576,7 +707,12 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
                             </button>
                           </div>
                         </td>
-                        <td className="text-right p-2 font-bold text-red-800">{attendanceDeductionAmount.toLocaleString()}</td>
+                        <td className="text-right p-2 font-bold text-red-800">
+                          {finalAttendanceDeduction.toLocaleString()}
+                          {overrideRequest.status === "approved" && finalAttendanceDeduction !== attendanceDeductionAmount && (
+                            <span className="text-xs text-purple-600 block">(overridden from ₹{attendanceDeductionAmount.toLocaleString()})</span>
+                          )}
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -947,7 +1083,17 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
             )}
 
             {/* HR Action Panel */}
-            {payslipStatus === "pending" && (
+            {payslipStatus === "pending" && !["HR", "HR Manager", "Admin", "Super Admin"].includes(currentRole as string) && (
+              <Card className="border border-gray-200 bg-gray-50">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <Clock className="w-5 h-5" />
+                    <p className="text-sm">This payslip is pending HR review and approval.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {payslipStatus === "pending" && ["HR", "HR Manager", "Admin", "Super Admin"].includes(currentRole as string) && (
               <Card className="border-2 border-blue-400 bg-blue-50">
                 <CardHeader className="bg-blue-100 border-b border-blue-300">
                   <CardTitle className="text-base text-blue-900">HR Action Panel</CardTitle>
@@ -972,6 +1118,7 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
                     <Button
                       variant="outline"
                       className="px-6 py-2 gap-2"
+                      onClick={() => setShowOverrideModal(true)}
                     >
                       <Edit className="w-5 h-5" />
                       Edit Adjustments
@@ -992,14 +1139,75 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
               </Card>
             )}
 
+            {/* pending_superadmin — waiting for Super Admin */}
+            {(payslipStatus as string) === "pending_superadmin" && (currentRole as string) === "Super Admin" && (
+              <Card className="border-2 border-indigo-400 bg-indigo-50">
+                <CardHeader className="bg-indigo-100 border-b border-indigo-300">
+                  <CardTitle className="text-base text-indigo-900 flex items-center gap-2">
+                    <Shield className="w-5 h-5" />
+                    Super Admin Final Approval Required
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-3">
+                  <p className="text-sm text-indigo-900">HR has reviewed and approved this payslip. Your final approval will release it for salary processing.</p>
+                  <div className="flex gap-3">
+                    <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+                      onClick={() => {
+                        const key = `payslip_status_${data.employeeCode}_${year}_${month}`;
+                        try {
+                          const ex = JSON.parse(localStorage.getItem(key) || "{}");
+                          ex.status = "approved"; ex.superAdminApprovedBy = currentUserName; ex.superAdminApprovedAt = new Date().toISOString();
+                          localStorage.setItem(key, JSON.stringify(ex));
+                        } catch { /* ignore */ }
+                        setPayslipStatus("approved");
+                        toast.success("Payslip finally approved by Super Admin. Ready for salary processing.");
+                      }}>
+                      <CheckCircle className="w-5 h-5" />
+                      Final Approve & Release
+                    </Button>
+                    <Button variant="destructive" onClick={() => { setPayslipStatus("pending" as any); toast.error("Sent back to HR for revision."); }}>
+                      Send Back to HR
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {(payslipStatus as string) === "pending_superadmin" && (currentRole as string) !== "Super Admin" && (
+              <Card className="border-2 border-indigo-300 bg-indigo-50">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3 text-indigo-900">
+                    <Clock className="w-5 h-5" />
+                    <div>
+                      <p className="font-bold text-sm">Awaiting Super Admin Final Approval</p>
+                      <p className="text-xs text-indigo-700 mt-1">HR has approved. Super Admin review is pending before processing.</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {payslipStatus === "approved" && (
               <Card className="border-2 border-green-400 bg-green-50">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3 text-green-900">
                     <CheckCircle className="w-6 h-6 text-green-600" />
-                    <div>
-                      <p className="font-bold">Payslip Approved by HR</p>
-                      <p className="text-sm">Forwarded to Super Admin for final approval and processing</p>
+                    <div className="flex-1">
+                      <p className="font-bold">Payslip Fully Approved — Ready for Processing</p>
+                      <p className="text-sm mt-1">Final approval complete. Net payable: ₹{finalNetPayable.toLocaleString()}</p>
+                      <div className="flex gap-2 mt-3">
+                        <Button size="sm" variant="outline" className="gap-2 border-green-500 text-green-700"
+                          onClick={() => window.print()}>
+                          🖨 Print
+                        </Button>
+                        <Button size="sm" className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => {
+                            const content = `PAYSLIP\n${data.employeeName} (${data.employeeCode})\n${monthNames[month-1]} ${year}\n\nNet Payable: Rs.${finalNetPayable.toLocaleString()}\nTotal Earnings: Rs.${totalEarnings.toLocaleString()}\nTotal Deductions: Rs.${finalTotalDeductions.toLocaleString()}\n\nBasic: Rs.${basicActual.toLocaleString()}\nEPF: Rs.${epf.toLocaleString()}\nESIC: Rs.${esic.toLocaleString()}\nPT: Rs.${pt}\nLWF: Rs.${lwf}\nTDS: Rs.${tds}\nAttendance Deduction: Rs.${finalAttendanceDeduction.toLocaleString()}`;
+                            const blob = new Blob([content], {type:"text/plain"});
+                            const a = Object.assign(document.createElement("a"), {href:URL.createObjectURL(blob), download:`Payslip_${data.employeeCode}_${monthNames[month-1]}_${year}.txt`});
+                            a.click();
+                          }}>
+                          ⬇ Download
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -1622,6 +1830,28 @@ export function GeneratedPayslip({ data, month, year }: GeneratedPayslipProps) {
           )}
         </div>
       )}
+      {/* Audit Trail — visible to HR and above */}
+      {["HR", "HR Manager", "Admin", "Super Admin"].includes(currentRole as string) && (() => {
+        try {
+          const trail = JSON.parse(localStorage.getItem(`payslip_audit_${data.employeeCode}_${year}_${month}`) || "[]");
+          if (!trail.length) return null;
+          return (
+            <div className="border-t-2 border-gray-200 pt-4 mt-4 px-1">
+              <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">Audit Trail</p>
+              <div className="space-y-1">
+                {trail.map((e: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3 text-xs text-gray-500 py-1 border-b border-gray-100">
+                    <span className="font-mono text-gray-400 flex-shrink-0">{new Date(e.timestamp).toLocaleString()}</span>
+                    <span className="font-semibold text-gray-700">{e.actor} ({e.role})</span>
+                    <span className="text-gray-600">{e.action?.replace(/_/g," ")}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        } catch { return null; }
+      })()}
+
     </>
   );
 }
