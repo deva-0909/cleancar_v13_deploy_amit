@@ -25,6 +25,7 @@ import { useCustomers } from "../../contexts/CustomerContext";
 import { employeeDatabaseService } from "../../services/employeeDatabaseService";
 import { BackButton } from "../ui/back-button";
 import { toast } from "sonner";
+import { useRevenueMetrics } from "../../hooks/useRevenueMetrics";
 
 const COLORS = ["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899"];
 

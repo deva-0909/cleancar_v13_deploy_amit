@@ -18,6 +18,8 @@ import { Label } from "../ui/label";
 import { Separator } from "../ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { useCity } from "../../contexts/CityContext";
+import { useFinanceForCurrentUser } from "../../hooks/useFinanceForCurrentUser";
+import { useRole } from "../../contexts/RoleContext";
 import {
   Table,
   TableBody,
@@ -311,6 +313,9 @@ const getMockTransactions = (cityName: string): FinanceTransaction[] => [
 
 export function FinanceTransactions() {
   const { city, cityInfo } = useCity();
+  const { currentRole } = useRole();
+  // FIX: Finance RBAC — scope data to current user's city
+  const { getRevenues, getPayables, canSeeAllCities } = useFinanceForCurrentUser();
   const [transactions, setTransactions] = useState<FinanceTransaction[]>(() => getMockTransactions(cityInfo.displayName));
   const [typeFilter, setTypeFilter] = useState<TransactionType | "ALL">("ALL");
   const [sourceFilter, setSourceFilter] = useState<TransactionSource | "ALL">("ALL");

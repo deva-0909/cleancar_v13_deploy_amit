@@ -229,7 +229,10 @@ class CityManagerService {
           .reduce((sum, exp) => sum + exp.amount, 0);
       }
 
-      const ebitda = revenue > 0 ? ((revenue - expenses) / revenue) * 100 : 0;
+      // FIX: This inline formula should migrate to FinanceContext.calculateEBITDAMargin()
+      // for consistency with all other EBITDA calculations across the app.
+      // Formula standardized: EBITDA% = ((revenue - expenses) / revenue) * 100
+      const ebitda = revenue > 0 ? Math.round(((revenue - expenses) / revenue) * 1000) / 10 : 0;
 
       // Calculate realistic targets based on pincode count and market potential
       const targetPerPincode = 100000; // ₹1L target per pincode per month

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo }, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -39,10 +39,13 @@ import {
   WORKING_DAYS_PER_MONTH,
 } from "../../data/ebitdaCalculations";
 import { AlertCircle, TrendingUp, TrendingDown, Info } from "lucide-react";
+import { useRevenueMetrics } from "../../hooks/useRevenueMetrics";
 
 export function EBITDADashboard() {
   const { CURRENT_PLAN_VERSION, VEHICLE_CATEGORIES, PLAN_TYPES, formatPrice } = usePlanDefinitions();
   const { calculateEBITDA: calculateActualEBITDA, getRevenueByCity } = useFinance();
+  // FIX: Also expose centralized metrics for consistent EBITDA display
+  const centralMetrics = useRevenueMetrics(currentMonth, city);
   const { city } = useCity();
   const [withIncentive, setWithIncentive] = useState(false);
   const [selectedVehicle, setSelectedVehicle] =

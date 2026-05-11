@@ -45,6 +45,7 @@ import {
   Area,
 } from "recharts";
 import { StableChartContainer, createFilterKey, CHART_COLORS } from "../charts/StableChartContainer";
+import { useRevenueMetrics } from "../../hooks/useRevenueMetrics";
 
 const COLORS = CHART_COLORS.primary;
 

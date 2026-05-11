@@ -64,8 +64,11 @@ export function FinanceModule() {
   const totalRevenue = financialData.reduce((sum, data) => sum + data.totalRevenue, 0);
   const totalExpenses = financialData.reduce((sum, data) => sum + data.totalExpenses, 0);
   const totalMRR = financialData.reduce((sum, data) => sum + data.totalMRR, 0);
-  const ebitda = totalRevenue - totalExpenses;
-  const margin = totalRevenue ? (ebitda / totalRevenue) * 100 : 0;
+  // FIX: Use centralized useRevenueMetrics instead of inline calculation
+  // This ensures consistent EBITDA across all screens
+  const revenueMetrics = useRevenueMetrics(selectedMonth, selectedCity);
+  const ebitda = revenueMetrics.ebitdaAmount;
+  const margin = revenueMetrics.ebitdaMargin;
 
   // Get real payroll data from HRDataContext via FinanceContext
   const salaryPayables = getSalaryPayablesWithDetails();
