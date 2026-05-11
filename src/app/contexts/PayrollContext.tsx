@@ -168,7 +168,10 @@ const withCityFallback = <T extends { cityId?: string }>(item: T, defaultCityId:
 export function PayrollProvider({ children }: { children: ReactNode }) {
   const { currentUser } = useRole();
   const currentCityId = currentUser.cityId || DEFAULT_CITY;
-  const { createPayable } = useFinance();
+  // Defensive: FinanceProvider must be above PayrollProvider in AppProvider (now fixed).
+  // This guard prevents crashes if provider order is ever changed again.
+  const _financeCtx = (() => { try { return useFinance(); } catch { return null; } })();
+  const createPayable = _financeCtx?.createPayable;
 
   const [payrollRuns, setPayrollRuns] = useState<PayrollRun[]>(() => {
     const stored = DataService.get<PayrollRun>("PAYROLL_RUNS");

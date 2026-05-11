@@ -79,7 +79,10 @@ interface CustomerSubscriptionContextType {
 const CustomerSubscriptionContext = createContext<CustomerSubscriptionContextType | undefined>(undefined);
 
 export function CustomerSubscriptionProvider({ children }: { children: ReactNode }) {
-  const { addMRREntry, removeMRREntry } = useFinance();
+  // Defensive: FinanceProvider must be above CustomerSubscriptionProvider in AppProvider (now fixed).
+  const _finCtx = (() => { try { return useFinance(); } catch { return null; } })();
+  const addMRREntry = _finCtx?.addMRREntry;
+  const removeMRREntry = _finCtx?.removeMRREntry;
   const { city } = useCity();
 
   const [subscriptions, setSubscriptions] = useState<CustomerSubscription[]>(() => {

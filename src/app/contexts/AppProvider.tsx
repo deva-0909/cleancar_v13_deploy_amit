@@ -92,17 +92,22 @@ export function AppProvider({ children }: AppProviderProps) {
                 <EmployeeProvider>
                   <AttendanceProvider>
                     <ShiftProvider>
-                      <PayrollProvider>
-                        <IncentiveProvider>
-                          <CustomRoleProvider>
-                            <PlanDefinitionProvider>
-                              <DemoProvider>
-                                <ScenarioProvider>
-                                  <CustomerProvider>
-                                    <CustomerSubscriptionProvider>
-                                      <JobProvider>
-                                        <InventoryProvider>
-                                          <FinanceProvider>
+                      {/* FIX: FinanceProvider moved here — above PayrollProvider AND CustomerSubscriptionProvider.
+                          PayrollContext (line 171) calls useFinance() to create salary payables.
+                          CustomerSubscriptionContext (line 82) calls useFinance() for MRR entries.
+                          Both were crashing with "Cannot access 'ne' before initialization" because
+                          FinanceProvider was their child, not their ancestor. */}
+                      <FinanceProvider>
+                        <PayrollProvider>
+                          <IncentiveProvider>
+                            <CustomRoleProvider>
+                              <PlanDefinitionProvider>
+                                <DemoProvider>
+                                  <ScenarioProvider>
+                                    <CustomerProvider>
+                                      <CustomerSubscriptionProvider>
+                                        <JobProvider>
+                                          <InventoryProvider>
                                             <ApprovalProvider>
                                               <WasherProvider>
                                                 <SupervisorProvider>
@@ -114,17 +119,17 @@ export function AppProvider({ children }: AppProviderProps) {
                                                 </SupervisorProvider>
                                               </WasherProvider>
                                             </ApprovalProvider>
-                                          </FinanceProvider>
-                                        </InventoryProvider>
-                                      </JobProvider>
-                                    </CustomerSubscriptionProvider>
-                                  </CustomerProvider>
-                                </ScenarioProvider>
-                              </DemoProvider>
-                            </PlanDefinitionProvider>
-                          </CustomRoleProvider>
-                        </IncentiveProvider>
-                      </PayrollProvider>
+                                          </InventoryProvider>
+                                        </JobProvider>
+                                      </CustomerSubscriptionProvider>
+                                    </CustomerProvider>
+                                  </ScenarioProvider>
+                                </DemoProvider>
+                              </PlanDefinitionProvider>
+                            </CustomRoleProvider>
+                          </IncentiveProvider>
+                        </PayrollProvider>
+                      </FinanceProvider>
                     </ShiftProvider>
                   </AttendanceProvider>
                 </EmployeeProvider>
