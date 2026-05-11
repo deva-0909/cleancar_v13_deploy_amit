@@ -2,7 +2,7 @@
  * Comprehensive HR Module - Fully Functional
  * Rebuild: Cache cleared
  */
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -32,7 +32,11 @@ import { BackButton } from "../ui/back-button";
 import { calculateProrateSalary, getLeaveBalance, ANNUAL_LEAVE_QUOTA } from "../../lib/leaveManagement";
 import { MASTER_EMPLOYEES, requiredDocuments, type Employee } from "../../data/employeeData";
 import { salaryStructureService } from "../../services/salaryStructureService";
-import { EmployeeAttendanceDrillDown } from "../hr/EmployeeAttendanceDrillDown";
+// Lazy load the full drilldown+payslip tree to prevent circular bundle initialization
+// (EmployeeAttendanceDrillDown → GeneratedPayslip; lazy-loading isolates the chunk correctly)
+const EmployeeAttendanceDrillDown = React.lazy(() =>
+  import("../hr/EmployeeAttendanceDrillDown").then(m => ({ default: m.EmployeeAttendanceDrillDown }))
+);
 import { offerLetterService } from "../../services/offerLetterService";
 import { employeeDatabaseService } from "../../services/employeeDatabaseService";
 
@@ -178,13 +182,6 @@ function HRModule() {
   const { currentRole, roleConfig } = useRole();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  // Reactive employee list — updated whenever employeeDatabaseService changes
-  const [liveEmployeeList, setLiveEmployeeList] = useState(() => {
-    const live = employeeDatabaseService.getAll();
-    return live.length > 0
-      ? live.map(e => ({ ...e, name: (e.firstName || "") + " " + (e.lastName || ""), empCode: e.employeeId || e.id, status: e.status || "Active" }))
-      : MASTER_EMPLOYEES;
-  });
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [selectedPayslip, setSelectedPayslip] = useState<PayrollRecord | null>(null);
   const [showPayslipModal, setShowPayslipModal] = useState(false);
@@ -281,31 +278,25 @@ function HRModule() {
 
     calculateBadgeCounts();
 
-    // Subscribe to employee database changes — update badge counts AND employee list
-    const unsubscribe = employeeDatabaseService.subscribe((updatedEmployees) => {
+    // Subscribe to employee database changes
+    const unsubscribe = employeeDatabaseService.subscribe(() => {
       calculateBadgeCounts();
-      // Update mockEmployees with live data so employee tabs show current state
-      const mapped = updatedEmployees.length > 0
-        ? updatedEmployees.map(e => ({ ...e, name: (e.firstName || "") + " " + (e.lastName || ""), empCode: e.employeeId || e.id, status: e.status || "Active" }))
-        : MASTER_EMPLOYEES;
-      // Force re-render by updating a state variable
-      setLiveEmployeeList(mapped);
     });
 
     return unsubscribe;
   }, []);
 
   // Filter employees based on search
-  const filteredEmployees = liveEmployeeList.filter(emp =>
-    (emp.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.empCode || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ((emp as any).role || (emp as any).designation || "").toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEmployees = mockEmployees.filter(emp => 
+    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.empCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalEmployees = liveEmployeeList.length;
-  const activeEmployees = liveEmployeeList.filter(e => e.status === "Active").length;
-  const onLeave = liveEmployeeList.filter(e => e.status === "On Leave").length;
-  const inNoticePeriod = liveEmployeeList.filter(e => e.status === "Notice Period").length;
+  const totalEmployees = mockEmployees.length;
+  const activeEmployees = mockEmployees.filter(e => e.status === "Active").length;
+  const onLeave = mockEmployees.filter(e => e.status === "On Leave").length;
+  const inNoticePeriod = mockEmployees.filter(e => e.status === "Notice Period").length;
 
   return (
     <div className="space-y-6">
@@ -1911,6 +1902,7 @@ function HRModule() {
 
       {/* Attendance Drill-Down Modal */}
       {showAttendanceDrillDown && selectedEmployeeForDrillDown && (
+        <Suspense fallback={null}>
         <EmployeeAttendanceDrillDown
           isOpen={showAttendanceDrillDown}
           onClose={() => setShowAttendanceDrillDown(false)}
@@ -1919,6 +1911,7 @@ function HRModule() {
           month={4}
           year={2026}
         />
+        </Suspense>
       )}
     </div>
   );
