@@ -178,6 +178,13 @@ function HRModule() {
   const { currentRole, roleConfig } = useRole();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  // Reactive employee list — updated whenever employeeDatabaseService changes
+  const [liveEmployeeList, setLiveEmployeeList] = useState(() => {
+    const live = employeeDatabaseService.getAll();
+    return live.length > 0
+      ? live.map(e => ({ ...e, name: (e.firstName || "") + " " + (e.lastName || ""), empCode: e.employeeId || e.id, status: e.status || "Active" }))
+      : MASTER_EMPLOYEES;
+  });
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [selectedPayslip, setSelectedPayslip] = useState<PayrollRecord | null>(null);
   const [showPayslipModal, setShowPayslipModal] = useState(false);
@@ -274,25 +281,31 @@ function HRModule() {
 
     calculateBadgeCounts();
 
-    // Subscribe to employee database changes
-    const unsubscribe = employeeDatabaseService.subscribe(() => {
+    // Subscribe to employee database changes — update badge counts AND employee list
+    const unsubscribe = employeeDatabaseService.subscribe((updatedEmployees) => {
       calculateBadgeCounts();
+      // Update mockEmployees with live data so employee tabs show current state
+      const mapped = updatedEmployees.length > 0
+        ? updatedEmployees.map(e => ({ ...e, name: (e.firstName || "") + " " + (e.lastName || ""), empCode: e.employeeId || e.id, status: e.status || "Active" }))
+        : MASTER_EMPLOYEES;
+      // Force re-render by updating a state variable
+      setLiveEmployeeList(mapped);
     });
 
     return unsubscribe;
   }, []);
 
   // Filter employees based on search
-  const filteredEmployees = mockEmployees.filter(emp => 
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.empCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.role.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEmployees = liveEmployeeList.filter(emp =>
+    (emp.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (emp.empCode || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ((emp as any).role || (emp as any).designation || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalEmployees = mockEmployees.length;
-  const activeEmployees = mockEmployees.filter(e => e.status === "Active").length;
-  const onLeave = mockEmployees.filter(e => e.status === "On Leave").length;
-  const inNoticePeriod = mockEmployees.filter(e => e.status === "Notice Period").length;
+  const totalEmployees = liveEmployeeList.length;
+  const activeEmployees = liveEmployeeList.filter(e => e.status === "Active").length;
+  const onLeave = liveEmployeeList.filter(e => e.status === "On Leave").length;
+  const inNoticePeriod = liveEmployeeList.filter(e => e.status === "Notice Period").length;
 
   return (
     <div className="space-y-6">
