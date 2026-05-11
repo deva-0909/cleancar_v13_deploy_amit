@@ -269,8 +269,7 @@ export function formatCityName(city: string): string {
   return capitalizeWords(city);
 }
 
-// ─── Financial Formatters (Standardized) ─────────────────────────────────────
-// Use ONLY these functions for financial numbers — never .toFixed() directly on amounts
+// ─── Additional Financial Formatters ─────────────────────────────────────────
 
 /** Round a financial amount to nearest rupee */
 export const roundAmount = (amount: number): number => Math.round(amount);
@@ -279,21 +278,12 @@ export const roundAmount = (amount: number): number => Math.round(amount);
 export const formatPct = (pct: number): string =>
   `${(Math.round(pct * 10) / 10).toFixed(1)}%`;
 
-/** Format currency in Indian format */
-export const formatCurrency = (amount: number, compact = false): string => {
-  const rounded = Math.round(amount);
-  if (compact && rounded >= 10000000) return `₹${(rounded / 10000000).toFixed(1)}Cr`;
-  if (compact && rounded >= 100000) return `₹${(rounded / 100000).toFixed(1)}L`;
-  if (compact && rounded >= 1000) return `₹${(rounded / 1000).toFixed(0)}K`;
-  return `₹${rounded.toLocaleString("en-IN")}`;
-};
-
 /** Format EBITDA as amount + margin */
 export const formatEBITDA = (amount: number, margin: number): string =>
-  `${formatCurrency(amount, true)} (${formatPct(margin)})`;
+  `${formatCurrency(amount, { compact: true })} (${formatPct ? formatPct(margin) : margin.toFixed(1) + '%'})`;
 
-/** Format a financial change (growth %) with sign and colour class */
+/** Format a financial growth % with colour class */
 export const formatGrowth = (pct: number): { text: string; cls: string } => ({
-  text: `${pct >= 0 ? "+" : ""}${formatPct(pct)}`,
-  cls: pct >= 0 ? "text-green-600" : "text-red-600",
+  text: `${pct >= 0 ? '+' : ''}${(Math.round(pct * 10) / 10).toFixed(1)}%`,
+  cls: pct >= 0 ? 'text-green-600' : 'text-red-600',
 });
