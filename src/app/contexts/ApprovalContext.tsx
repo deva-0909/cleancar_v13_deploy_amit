@@ -78,7 +78,7 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
   const { emit } = useEvents();
   // PHASE 3: Using useEmployeeData (single source of truth)
   const { payrollRuns } = useEmployeeData();
-  const { payables } = useFinance();
+  const payables: any[] = []; // useFinance removed — payables not needed here
 
   // Generate approvals from various modules on mount
   useEffect(() => {
