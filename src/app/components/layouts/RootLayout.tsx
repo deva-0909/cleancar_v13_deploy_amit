@@ -435,6 +435,7 @@ export function RootLayout() {
                   <Link
                     key={navItem.path}
                     to={navItem.path}
+                    onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-3 rounded-lg transition-colors ${
                       collapsed
                         ? "lg:justify-center lg:w-10 lg:h-10 lg:mx-auto px-3"
@@ -483,20 +484,35 @@ export function RootLayout() {
                     {/* Desktop: icon with tooltip */}
                     <Tooltip>
                       <TooltipTrigger asChild className="hidden lg:block">
-                        <div className={`flex items-center justify-center w-10 h-10 mx-auto mb-0.5 rounded-lg cursor-default transition-colors ${
-                          childrenActive
-                            ? "bg-blue-50 text-blue-600 border-l-2 border-blue-600"
-                            : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                        }`}>
+                        <button
+                          onClick={() => toggleSidebar()}
+                          className={`flex items-center justify-center w-10 h-10 mx-auto mb-0.5 rounded-lg cursor-pointer transition-colors ${
+                            childrenActive
+                              ? "bg-blue-50 text-blue-600 border-l-2 border-blue-600"
+                              : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                          }`}
+                          title={`Click to expand sidebar`}
+                        >
                           <Icon className="w-5 h-5" />
-                        </div>
+                        </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="hidden lg:block">
-                        <p className="font-semibold mb-1">{navItem.label}</p>
-                        <div className="space-y-1">
-                          {navItem.children.map((child) => (
-                            <p key={child.path} className="text-xs">{child.label}</p>
-                          ))}
+                      <TooltipContent side="right" className="hidden lg:block p-0 overflow-hidden">
+                        <div className="py-1">
+                          <p className="font-semibold px-3 py-1.5 text-xs uppercase tracking-wider text-gray-500 border-b">{navItem.label}</p>
+                          {navItem.children.map((child) => {
+                            const CIcon = child.icon;
+                            return (
+                              <Link
+                                key={child.path}
+                                to={child.path}
+                                onClick={() => { toggleSidebar(); }}
+                                className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                              >
+                                <CIcon className="w-3.5 h-3.5" />
+                                {child.label}
+                              </Link>
+                            );
+                          })}
                         </div>
                       </TooltipContent>
                     </Tooltip>
@@ -573,6 +589,7 @@ export function RootLayout() {
                           <Link
                             key={child.path}
                             to={child.path}
+                            onClick={() => setMobileMenuOpen(false)}
                             className={`flex items-center gap-3 px-3 py-2 pl-8 rounded-lg transition-colors text-sm ${
                               active
                                 ? "bg-blue-50 text-blue-600 font-medium"
