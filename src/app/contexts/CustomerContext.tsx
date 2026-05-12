@@ -9,11 +9,7 @@ import { createContext, useContext, useState, ReactNode, useEffect, useMemo } fr
 import { LeadConversionService, type Lead, type LeadActivity, type SubscriptionPlan, type ConversionResult } from "../services/leadConversionService";
 import { useCustomerSubscriptions } from "./CustomerSubscriptionContext";
 import { useJobs } from "./JobContext";
-<<<<<<< HEAD
-// FIX: removed circular import useFinance (CustomerContext)
-=======
 // REMOVED: circular import useFinance from FinanceContext
->>>>>>> 0b851aa9b2e9fd6bbad4ae32c45f3398309867bf
 import { useEvents } from "./EventSystem";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
