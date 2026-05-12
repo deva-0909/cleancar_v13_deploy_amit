@@ -20,21 +20,11 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     catch { return false; }
   });
   const [userToggled, setUserToggled] = useState(false);
-  // All nav groups start OPEN by default for better discoverability
-  // After first visit, user's manual open/close choices are persisted
-  const ALL_GROUPS = ["Analytics","CRM","TSE App","CCE App","Operations",
-    "Team & Settings","HR & People","Payroll","Finance","Accounts",
-    "GST Compliance","Inventory","Admin"];
-
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem("sidebarOpenGroups");
-      // If no stored preference, open all groups by default
-      if (!stored) return new Set<string>(ALL_GROUPS);
-      const parsed = JSON.parse(stored);
-      // If stored but empty (user closed everything), still show Dashboard-relevant ones
-      return parsed.length > 0 ? new Set(parsed) : new Set<string>(ALL_GROUPS);
-    } catch { return new Set<string>(ALL_GROUPS); }
+      return stored ? new Set(JSON.parse(stored)) : new Set<string>();
+    } catch { return new Set<string>(); }
   });
 
   const toggleSidebar = () => { setCollapsed(p => !p); setUserToggled(true); };
