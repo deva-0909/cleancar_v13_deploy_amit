@@ -9,7 +9,7 @@ import { createContext, useContext, useState, ReactNode, useEffect, useMemo } fr
 import { LeadConversionService, type Lead, type LeadActivity, type SubscriptionPlan, type ConversionResult } from "../services/leadConversionService";
 import { useCustomerSubscriptions } from "./CustomerSubscriptionContext";
 import { useJobs } from "./JobContext";
-import { useFinance } from "./FinanceContext";
+// REMOVED: circular import useFinance from FinanceContext
 import { useEvents } from "./EventSystem";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
