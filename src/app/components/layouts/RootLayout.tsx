@@ -204,18 +204,42 @@ export function RootLayout() {
     });
   }, [location.pathname, location.search]);
 
-  // Storage quota monitoring — warn users before localStorage fills up
+  // Storage management — purge old data on every startup to prevent quota errors
   useEffect(() => {
-    const quota = checkStorageQuota();
-    if (quota.isNearLimit) {
-      setTimeout(() => {
+    // Step 1: Always purge low-priority data first
+    const purgeable = [
+      'cc360_error_log', 'SYNC_RETRY_QUEUE', 'cc360_retry_queue',
+      'cc360_audit_trail', 'cc360_monthly_snapshots',
+      'cc360_payroll_approved_event', 'cc360_mrr_event', 'cc360_mrr_remove_event',
+    ];
+    purgeable.forEach(k => { try { localStorage.removeItem(k); } catch {} });
+
+    // Step 2: Trim attendance records to last 90 (remove old bulk data)
+    try {
+      const attKey = 'attendance_records';
+      const raw = localStorage.getItem(attKey);
+      if (raw) {
+        const records = JSON.parse(raw);
+        if (records.length > 90) {
+          // Keep most recent 90 records
+          const trimmed = records.slice(-90);
+          localStorage.setItem(attKey, JSON.stringify(trimmed));
+          console.log(`[Storage] Trimmed attendance: ${records.length} → ${trimmed.length}`);
+        }
+      }
+    } catch {}
+
+    // Step 3: Check quota — only warn if genuinely over 90% after purge
+    setTimeout(() => {
+      const quota = checkStorageQuota();
+      if (quota.percentUsed > 90) {
         toast.warning(
-          `Storage ${quota.percentUsed.toFixed(0)}% full. Export data to prevent data loss.`,
-          { duration: 8000 }
+          `Storage ${quota.percentUsed.toFixed(0)}% full. Consider clearing browser cache.`,
+          { duration: 5000 }
         );
-      }, 3000);
-    }
-  }, []); // check once on mount
+      }
+    }, 3000);
+  }, []); // run once on mount
 
 
   return (

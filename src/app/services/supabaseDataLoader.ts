@@ -98,6 +98,13 @@ function safeWrite(key: string, data: any[]): void {
   const attempts = [data, data.slice(0, 500), data.slice(0, 200), data.slice(0, 50)];
   for (const attempt of attempts) {
     try {
+      // Quota guard: stop writing if storage > 4MB
+      let _used = 0;
+      for (const _k of Object.keys(localStorage)) _used += (localStorage.getItem(_k) || '').length * 2;
+      if (_used > 4 * 1024 * 1024) {
+        console.warn(`[Supabase] Skipping ${key} — storage > 4MB`);
+        return;
+      }
       localStorage.setItem(key, JSON.stringify(attempt));
       return; // Success
     } catch (e) {
