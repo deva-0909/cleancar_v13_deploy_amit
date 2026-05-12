@@ -35,6 +35,7 @@ import {
   TooltipTrigger,
 } from "../ui/tooltip";
 import { toast } from "sonner";
+import { checkStorageQuota } from "../../services/logger";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 
 // Navigation is now fully dynamic - built from navigationConfig.ts
@@ -202,6 +203,20 @@ export function RootLayout() {
       }
     });
   }, [location.pathname, location.search]);
+
+  // Storage quota monitoring — warn users before localStorage fills up
+  useEffect(() => {
+    const quota = checkStorageQuota();
+    if (quota.isNearLimit) {
+      setTimeout(() => {
+        toast.warning(
+          `Storage ${quota.percentUsed.toFixed(0)}% full. Export data to prevent data loss.`,
+          { duration: 8000 }
+        );
+      }, 3000);
+    }
+  }, []); // check once on mount
+
 
   return (
     <GlobalFiltersProvider>

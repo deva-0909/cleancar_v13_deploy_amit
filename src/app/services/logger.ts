@@ -150,3 +150,49 @@ export const logger = new Logger();
 
 // Export type for external use
 export type { LogContext };
+
+// ─── Storage Monitoring & Error Reporting ────────────────────────────────────
+
+/** Check localStorage usage — warn when approaching 5MB browser limit */
+export function checkStorageQuota(): {
+  used: number; total: number; percentUsed: number; isNearLimit: boolean;
+} {
+  try {
+    let used = 0;
+    for (const key of Object.keys(localStorage)) {
+      used += ((localStorage.getItem(key) || "").length) * 2; // UTF-16 = 2 bytes/char
+    }
+    const total = 5 * 1024 * 1024; // 5MB typical browser limit
+    const percentUsed = (used / total) * 100;
+    return { used, total, percentUsed, isNearLimit: percentUsed > 80 };
+  } catch {
+    return { used: 0, total: 5242880, percentUsed: 0, isNearLimit: false };
+  }
+}
+
+/** Report an error to local error log (always, not just dev mode) */
+export function reportError(error: Error, context?: Record<string, unknown>): void {
+  // Always log to console.error
+  console.error("[CleanCar360]", error.message, context || "");
+  // Persist to localStorage for later retrieval
+  try {
+    const raw = localStorage.getItem("cc360_error_log");
+    const log: unknown[] = raw ? JSON.parse(raw) : [];
+    log.push({
+      message: error.message,
+      stack: error.stack?.slice(0, 500),
+      context,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent.slice(0, 100),
+    });
+    // Keep only last 50 errors to avoid bloat
+    if (log.length > 50) log.splice(0, log.length - 50);
+    localStorage.setItem("cc360_error_log", JSON.stringify(log));
+  } catch { /* storage full — silent fail */ }
+}
+
+/** Retrieve stored error log for support/debugging */
+export function getErrorLog(): unknown[] {
+  try { return JSON.parse(localStorage.getItem("cc360_error_log") || "[]"); }
+  catch { return []; }
+}

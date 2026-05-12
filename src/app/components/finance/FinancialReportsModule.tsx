@@ -80,8 +80,13 @@ export function FinancialReportsModule() {
     setTimeout(() => setIsLoading(false), 1000);
   };
 
-  const handleExport = () => {
-    // In production: Export current report to PDF/Excel
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (isExporting) return; // prevent double-click
+    setIsExporting(true);
+    // Yield to browser so UI updates before heavy computation
+    await new Promise(resolve => setTimeout(resolve, 0));
     try {
       const city = cityInfo?.id || "CITY-SURAT";
       const revs = getRevenueByCity ? getRevenueByCity(city) : [];
@@ -92,12 +97,18 @@ export function FinancialReportsModule() {
         ...pays.map((p: any) => [p.dueDate, "Expense", p.description, p.amount, p.status]),
       ];
       const csv = rows.map(r => r.join(",")).join("\n");
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
       const a = document.createElement("a");
       a.href = "data:text/csv," + encodeURIComponent(csv);
-      a.download = `finance_report_${city}_${new Date().toISOString().split("T")[0]}.csv`;
+      a.download = `finance_report_${city}_${timestamp}.csv`;
       a.click();
-      toast?.success?.("Report exported");
-    } catch(e) { console.error("Export failed:", e); }
+      toast?.success?.("Report exported successfully");
+    } catch(e) {
+      console.error("Export failed:", e);
+      toast?.error?.("Export failed — please try again");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -121,8 +132,8 @@ export function FinancialReportsModule() {
             <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button onClick={handleExport}>
-            <Download className="w-4 h-4 mr-2" />
+          <Button onClick={handleExport} disabled={isExporting}>
+            <Download className={`w-4 h-4 mr-2 ${isExporting ? "animate-bounce" : ""}`} />
             Export
           </Button>
         </div>

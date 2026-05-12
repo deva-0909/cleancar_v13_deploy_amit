@@ -1,7 +1,8 @@
 // Router Configuration - FIXED: Removed bad imports (Updated: 2026-03-26)
 import React, { lazy, Suspense } from "react";
-import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
+import { createHashRouter, Navigate, Outlet } from "react-router-dom";
 import { RootLayoutWrapper } from "./components/layouts/RootLayoutWrapper";
+import { ProtectedRoute } from "./components/guards/ProtectedRoute";
 
 // Loading fallback for lazy-loaded routes
 const PageLoader = () => (
@@ -240,7 +241,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { MobileChangeRequest } from "./components/hr/MobileChangeRequest";
 import { MyAccountPage } from "./components/hr/MyAccountPage";
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: "/login",
     element: <LoginPage />,
@@ -316,7 +317,7 @@ export const router = createBrowserRouter([
       { path: "inventory/my-stock", element: <MyStock /> },
       { path: "store", element: <StoreModule /> },
       { path: "procurement", element: <ProcurementModule /> },
-      { path: "finance", element: <FinanceModule /> },
+      { path: "finance", element: <ProtectedRoute module="finance"><FinanceModule /></ProtectedRoute> },
       { path: "finance/analytics", element: <FinanceAnalyticsDashboard /> },
       { path: "finance/reports", element: <FinancialReportsModule /> },
       { path: "finance/transactions", element: <FinanceTransactions /> },
@@ -329,7 +330,7 @@ export const router = createBrowserRouter([
       { path: "finance/package-cost-matrix", element: <PackageCostMatrix /> },
       { path: "finance/cost-per-wash", element: <CostPerWashModule /> },
       { path: "finance/cost-per-wash/actual-inputs", element: <ActualCostInputs /> },
-      { path: "hr", element: <Suspense fallback={<PageLoader />}><HRModule /></Suspense> },
+      { path: "hr", element: <ProtectedRoute module="hr"><Suspense fallback={<PageLoader />}><HRModule /></Suspense></ProtectedRoute> },
       { path: "hr/leave", element: <Navigate to="/hr/professional-leave" replace /> },
       { path: "hr/enhanced-leave", element: <Navigate to="/hr/professional-leave" replace /> },
       { path: "hr/professional-leave", element: <Suspense fallback={<PageLoader />}><ProfessionalLeaveManagement /></Suspense> },
@@ -439,7 +440,7 @@ export const router = createBrowserRouter([
           { path: "role-based-demo", element: <DevOnlyRoute element={<RoleBasedAnalyticsDashboard />} /> },
         ]
       },
-      { path: "founder/control-tower", element: <FounderControlTower /> },
+      { path: "founder/control-tower", element: <ProtectedRoute module="founder"><FounderControlTower /></ProtectedRoute> },
       { path: "founder/financial-view", element: <DetailedFinancialView /> },
       { path: "founder/cash-flow", element: <CashFlowDashboard /> },
       { path: "founder/marketing-roi", element: <MarketingROIDrilldown /> },

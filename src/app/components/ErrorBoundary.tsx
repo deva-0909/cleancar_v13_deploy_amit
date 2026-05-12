@@ -4,6 +4,7 @@
  */
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
+import { reportError } from "../services/logger";
 import { AlertCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -32,10 +33,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo);
-    this.setState({
-      error,
-      errorInfo,
-    });
+    this.setState({ error, errorInfo });
+    // Persist to error log for debugging
+    reportError(error, { componentStack: errorInfo.componentStack?.slice(0, 500) });
   }
 
   private handleReset = () => {

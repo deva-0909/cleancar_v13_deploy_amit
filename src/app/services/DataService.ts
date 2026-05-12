@@ -74,12 +74,32 @@ type EntityType = keyof typeof STORAGE_KEYS;
  * Each entity type can be stored/retrieved using these methods
  */
 class DataServiceClass {
+  // In-memory read cache to reduce repeated JSON.parse() calls on every context render
+  private readCache = new Map<string, { data: unknown; timestamp: number }>();
+  private readonly CACHE_TTL = 2000; // 2 seconds — freshness vs performance balance
+  
+  private getCacheKey(entityType: string, cityId?: string): string {
+    return cityId ? `${entityType}:${cityId}` : entityType;
+  }
+  
+  clearCache(entityType?: string): void {
+    if (!entityType) { this.readCache.clear(); return; }
+    for (const key of this.readCache.keys()) {
+      if (key.startsWith(entityType)) this.readCache.delete(key);
+    }
+  }
   /**
    * Get all records for an entity type
    * @param entityType - Type of entity to retrieve
    * @param cityId - Optional city identifier for multi-city isolation
    */
   get<T>(entityType: EntityType, cityId?: string): T[] {
+    // Check in-memory cache first to avoid repeated JSON.parse() on every render
+    const cacheKey = this.getCacheKey(entityType, cityId);
+    const cached = this.readCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < this.CACHE_TTL) {
+      return cached.data as T[];
+    }
     try {
       const baseKey = STORAGE_KEYS[entityType];
 
@@ -125,6 +145,7 @@ class DataServiceClass {
         }
       }
 
+      this.readCache.set(cacheKey, { data: [], timestamp: Date.now() });
       return [];
     } catch (error) {
       console.error(`[DataService] Error reading ${entityType}:`, error);
@@ -156,6 +177,7 @@ class DataServiceClass {
    * @param cityId - Optional city identifier
    */
   insert<T>(entityType: EntityType, record: T | T[], cityId?: string): void {
+    this.clearCache(entityType); // invalidate cache on write
     try {
       const baseKey = STORAGE_KEYS[entityType];
       const key = buildKey(baseKey, cityId);

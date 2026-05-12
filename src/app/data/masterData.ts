@@ -824,46 +824,36 @@ export const MASTER_AUDIT_LOGS: AuditLog[] = [
 // ============================================
 
 export const MASTER_KPI_DATA = {
-  // March 2026 Actuals
-  totalCustomers: 856,
-  activeSubscriptions: 742,
-  pausedSubscriptions: 87,
-  cancelledSubscriptions: 27,
-  
-  // Revenue
-  monthlyRevenue: 892450,
-  monthlyTarget: 950000,
-  revenueGrowth: 12.4, // % vs last month
-  
-  // Leads & Conversions
-  totalLeads: 142,
-  newLeads: 38,
-  convertedLeads: 24,
-  conversionRate: 16.9, // %
-  
-  // Operations
-  totalWashes: 8632, // March 2026
-  avgWashesPerDay: 295,
-  onTimeServiceRate: 94.2, // %
-  avgWashDuration: 31, // minutes
-  
-  // Complaints
-  totalComplaints: 42,
-  openComplaints: 8,
-  avgResolutionTime: 4.2, // hours
-  customerSatisfaction: 4.7, // out of 5
-  
-  // Team
-  totalEmployees: 47,
-  activeWashers: 28,
-  activeSupervisors: 4,
-  attendanceRate: 96.8, // %
-  
-  // Profitability
-  avgCostPerWash: 61.04,
-  avgRevenuePerWash: 103.40,
-  avgProfitPerWash: 42.36,
-  ebitdaMargin: 41.0, // %
+  // DEPRECATED: All values zeroed. Use useLiveKPI() hook instead.
+  // These hardcoded March 2026 values were causing all dashboards to show frozen data.
+  // Migration: import { useLiveKPI } from "../hooks/useLiveKPI" and use that instead.
+  totalCustomers: 0,
+  activeSubscriptions: 0,
+  pausedSubscriptions: 0,
+  cancelledSubscriptions: 0,
+  monthlyRevenue: 0,
+  monthlyTarget: 950000,  // target stays as business constant
+  revenueGrowth: 0,
+  totalLeads: 0,
+  newLeads: 0,
+  convertedLeads: 0,
+  conversionRate: 0,
+  totalWashes: 0,
+  avgWashesPerDay: 0,
+  onTimeServiceRate: 0,
+  avgWashDuration: 31,    // operational constant, not a KPI
+  totalComplaints: 0,
+  openComplaints: 0,
+  avgResolutionTime: 0,
+  customerSatisfaction: 0,
+  totalEmployees: 0,
+  activeWashers: 0,
+  activeSupervisors: 0,
+  attendanceRate: 0,
+  avgCostPerWash: 0,
+  avgRevenuePerWash: 0,
+  avgProfitPerWash: 0,
+  ebitdaMargin: 0,
 };
 
 // ============================================

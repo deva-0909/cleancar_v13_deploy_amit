@@ -24,6 +24,7 @@ import { hasPermission } from "../../utils/permissionEngine";
 import { getRouteConfig, getDefaultRoute, isPublicRoute } from "../../config/routeConfig";
 import type { Module } from "../../types/permissions";
 import { AlertCircle, Home, Shield, Loader2 } from "lucide-react";
+import { auditLogService } from "../../services/auditLogService";
 import { Button } from "../ui/button";
 import { Link } from "react-router-dom";
 
@@ -100,34 +101,7 @@ export function ProtectedRoute({
     hasAccess = hasPermission(syntheticEmployee, requiredModule, "view");
   }
 
-<<<<<<< HEAD
   // ── Grant access ────────────────────────────────────────────────
-=======
-  // Build employee shape — use real record if available, else session data
-  const empForCheck = currentEmployee || (currentUser ? {
-    role: currentUser.role,
-    cityId: currentUser.cityId || "CITY-SURAT",
-    customPermissions: currentUser.customPermissions,
-  } : null);
-
-// My Account and Travel: always allow for authenticated users
-  const SELF_SERVICE: string[] = ["dashboard", "travel"];
-  if (SELF_SERVICE.includes(requiredModule) && currentUser) {
-    return <>{children}</>;
-  }
-
-  const empForCheck = currentEmployee || (currentUser ? {
-    role: currentUser.role,
-    cityId: currentUser.cityId || "CITY-SURAT",
-    customPermissions: (currentUser as any).customPermissions,
-  } : null);
-
-  const hasAccess = empForCheck
-    ? hasPermission(empForCheck, requiredModule, "view")
-    : false;
-
-  // Grant access if permitted
->>>>>>> 2875853602a3dbbc855bf6be7773c4c22f14e334
   if (hasAccess) {
     return <>{children}</>;
   }

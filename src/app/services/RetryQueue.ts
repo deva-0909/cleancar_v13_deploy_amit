@@ -38,6 +38,11 @@ class RetryQueueClass {
   constructor() {
     this.loadQueue();
     this.startRetryProcess();
+    // Flush queue immediately when network is restored
+    window.addEventListener("online", () => {
+      console.log("[RetryQueue] Network restored — flushing queued operations");
+      this.processQueue();
+    });
   }
 
   /**
