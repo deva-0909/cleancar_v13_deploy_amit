@@ -14,7 +14,7 @@ import { createContext, useContext, useState, ReactNode, useEffect, useCallback 
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 import { useRole } from "./RoleContext";
-// REMOVED: import { useFinance } from "./FinanceContext"
+
 // Static import created a circular ES module dependency causing TDZ crash.
 // useFinance is now accessed lazily at CALL TIME via FinanceContext directly.
 // The FinanceProvider is guaranteed to be mounted above PayrollProvider in AppProvider.tsx.
