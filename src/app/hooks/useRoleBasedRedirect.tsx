@@ -79,43 +79,18 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
   },
 
   // Support roles
+  // HR, Accounts, Store Manager, Procurement Manager:
+  // Initial redirect handled by RoleRouter (/ → /hr etc.)
+  // DO NOT restrict here — useRoleBasedRedirect was trapping them
+  // on a single path and preventing sub-route navigation.
+  // HR needs /hr/*, Accounts needs /finance/*, etc.
   HR: {
     defaultPath: "/hr",
-    allowedPaths: [
-      "/hr",
-      "/hr/employee-ledger",
-      "/hr/attendance-data-manager",
-      "/hr/onboarding-automation",
-      "/hr/onboarding",
-      "/hr/professional-leave",
-      "/hr/leave-policy-engine",
-      "/hr/letters-documents",
-      "/hr/lifecycle-management",
-      "/hr/lifecycle-reports",
-      "/hr/exit-settlement",
-      "/hr/approval-center",
-      "/hr/payroll-approval",
-      "/hr/self-service",
-      "/hr/role-suggestions",
-      "/hr/intelligence-dashboard",
-      "/hr/id-card-generator",
-      "/hr/holiday-management",
-      "/hr/statutory-forms-onboarding",
-      "/hr/statutory-forms-verification",
-      "/advance/hr-management",
-      "/advance/other-earnings",
-      "/advance/other-deductions",
-      "/travel",
-      "/payroll/run",
-      "/payroll/configuration",
-      "/payroll",
-      "/my-account",
-      "/my-account/mobile-change",
-    ],
+    allowedPaths: [], // Empty = no restrictions (like Admin)
   },
   Accounts: {
     defaultPath: "/finance",
-    allowedPaths: ["/finance", "/accounts", "/my-account"],
+    allowedPaths: [], // Empty = no restrictions
   },
 };
 
