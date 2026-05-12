@@ -31,7 +31,7 @@ const TABLE_MAP: Array<{ table: string; localKey: string; limit?: number }> = [
   { table: "cleancar_payroll_runs",        localKey: "payroll_runs"       },
   { table: "cleancar_employees",           localKey: "employees"          },
   { table: "cleancar_jobs",                localKey: "jobs",        limit: 1500 },
-  { table: "cleancar_attendance",          localKey: "attendance_records", limit: 1000 },
+  { table: "cleancar_attendance",          localKey: "attendance_records", limit: 90 },  // FIX: reduced from 1000 — only last 3 months needed
 ];
 
 // Normalize field names to match context interfaces

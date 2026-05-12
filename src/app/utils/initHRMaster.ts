@@ -93,7 +93,7 @@ export function autoInitHRMaster(): void {
   if (!hasRun) {
     logger.log("First run detected - initializing HR Master system");
     initHRMaster();
-    localStorage.setItem("HR_MASTER_INITIALIZED", "true");
+    try { localStorage.setItem("HR_MASTER_INITIALIZED", "true"); } catch(e) { /* quota full — ok */ }
   } else {
     logger.log("HR Master system already initialized");
   }

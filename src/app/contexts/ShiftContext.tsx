@@ -70,9 +70,13 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     return DEFAULT_SHIFTS;
   });
 
-  // Persist to storage
+  // Persist to storage — wrapped in try/catch to prevent quota crash
   useEffect(() => {
-    localStorage.setItem("cleancar_shifts", JSON.stringify(shifts));
+    try {
+      localStorage.setItem("cleancar_shifts", JSON.stringify(shifts));
+    } catch (e) {
+      console.warn("[ShiftContext] localStorage full — shifts not persisted");
+    }
   }, [shifts]);
 
   // ========== ACTIONS ==========
