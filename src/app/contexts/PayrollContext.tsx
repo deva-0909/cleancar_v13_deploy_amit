@@ -170,8 +170,7 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
   const currentCityId = currentUser.cityId || DEFAULT_CITY;
   // Defensive: FinanceProvider must be above PayrollProvider in AppProvider (now fixed).
   // This guard prevents crashes if provider order is ever changed again.
-  const _financeCtx = (() => { try { return useFinance(); } catch { return null; } })();
-  const createPayable = _financeCtx?.createPayable;
+  // useFinance removed — salary payable fires via cc360_payroll_approved event
 
   const [payrollRuns, setPayrollRuns] = useState<PayrollRun[]>(() => {
     const stored = DataService.get<PayrollRun>("PAYROLL_RUNS");
