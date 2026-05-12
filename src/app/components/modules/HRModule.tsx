@@ -40,10 +40,17 @@ const EmployeeAttendanceDrillDown = React.lazy(() =>
 import { offerLetterService } from "../../services/offerLetterService";
 import { employeeDatabaseService } from "../../services/employeeDatabaseService";
 
-// Use centralized employee data
-const dbEmployees = employeeDatabaseService.getAll();
-const mockEmployees = dbEmployees.length > 0
-  ? dbEmployees.map(e => ({ ...e, name: e.firstName + " " + e.lastName, empCode: e.employeeId, status: e.status || "Active" }))
+// NOTE: mockEmployees computed at module load — see reactive liveEmployeeList inside component
+// Do NOT use mockEmployees directly — use liveEmployeeList state instead
+const _initialDbEmployees = employeeDatabaseService.getAll();
+const mockEmployees = _initialDbEmployees.length > 0
+  ? _initialDbEmployees.map(e => ({
+      ...e,
+      name: e.fullName || (e.firstName + " " + e.lastName),
+      empCode: e.empCode || e.employeeId || e.id || e.tempId,
+      role: e.designation || (e as any).role || "Employee", // FIX: EmployeeDatabaseRecord uses .designation not .role
+      status: e.status || "Active"
+    }))
   : MASTER_EMPLOYEES;
 
 // Payroll Interface
@@ -182,6 +189,19 @@ function HRModule() {
   const { currentRole, roleConfig } = useRole();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  // Reactive employee list — updates when employeeDatabaseService changes
+  const [liveEmployeeList, setLiveEmployeeList] = useState(() => {
+    const live = employeeDatabaseService.getAll();
+    return live.length > 0
+      ? live.map(e => ({
+          ...e,
+          name: e.fullName || (e.firstName + " " + e.lastName),
+          empCode: e.empCode || e.employeeId || e.id || e.tempId,
+          role: e.designation || (e as any).role || "Employee",
+          status: e.status || "Active"
+        }))
+      : MASTER_EMPLOYEES;
+  });
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [selectedPayslip, setSelectedPayslip] = useState<PayrollRecord | null>(null);
   const [showPayslipModal, setShowPayslipModal] = useState(false);
@@ -278,25 +298,35 @@ function HRModule() {
 
     calculateBadgeCounts();
 
-    // Subscribe to employee database changes
-    const unsubscribe = employeeDatabaseService.subscribe(() => {
+    // Subscribe to employee database changes — update badge counts AND employee list
+    const unsubscribe = employeeDatabaseService.subscribe((updatedEmployees) => {
       calculateBadgeCounts();
+      const mapped = updatedEmployees.length > 0
+        ? updatedEmployees.map(e => ({
+            ...e,
+            name: e.fullName || (e.firstName + " " + e.lastName),
+            empCode: e.empCode || e.employeeId || e.id || e.tempId,
+            role: e.designation || (e as any).role || "Employee",
+            status: e.status || "Active"
+          }))
+        : MASTER_EMPLOYEES;
+      setLiveEmployeeList(mapped);
     });
 
     return unsubscribe;
   }, []);
 
   // Filter employees based on search
-  const filteredEmployees = mockEmployees.filter(emp => 
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.empCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.role.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEmployees = liveEmployeeList.filter(emp =>
+    (emp.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (emp.empCode || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ((emp as any).role || (emp as any).designation || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalEmployees = mockEmployees.length;
-  const activeEmployees = mockEmployees.filter(e => e.status === "Active").length;
-  const onLeave = mockEmployees.filter(e => e.status === "On Leave").length;
-  const inNoticePeriod = mockEmployees.filter(e => e.status === "Notice Period").length;
+  const totalEmployees = liveEmployeeList.length;
+  const activeEmployees = liveEmployeeList.filter(e => e.status === "Active").length;
+  const onLeave = liveEmployeeList.filter(e => e.status === "On Leave").length;
+  const inNoticePeriod = liveEmployeeList.filter(e => e.status === "Notice Period").length;
 
   return (
     <div className="space-y-6">
