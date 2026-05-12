@@ -229,16 +229,15 @@ export function RootLayout() {
       }
     } catch {}
 
-    // Step 3: Check quota — only warn if genuinely over 90% after purge
-    setTimeout(() => {
-      const quota = checkStorageQuota();
-      if (quota.percentUsed > 90) {
-        toast.warning(
-          `Storage ${quota.percentUsed.toFixed(0)}% full. Consider clearing browser cache.`,
-          { duration: 5000 }
-        );
-      }
-    }, 3000);
+    // Step 3: Log storage usage — only warn in DEV, never show to users
+    if (import.meta.env.DEV) {
+      setTimeout(() => {
+        const quota = checkStorageQuota();
+        if (quota.percentUsed > 80) {
+          console.warn(`[Storage] ${quota.percentUsed.toFixed(0)}% used`);
+        }
+      }, 3000);
+    }
   }, []); // run once on mount
 
 

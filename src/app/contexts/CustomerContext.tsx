@@ -112,11 +112,12 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (customers.length > 0) DataService.setAll("CUSTOMERS", customers);
+    // Only persist if small dataset — large customer lists use Supabase directly
+    if (customers.length > 0 && customers.length <= 200) DataService.setAll("CUSTOMERS", customers);
   }, [customers]);
 
   useEffect(() => {
-    if (leads.length > 0) DataService.setAll("LEADS", leads);
+    if (leads.length > 0 && leads.length <= 300) DataService.setAll("LEADS", leads);
   }, [leads]);
 
   // Backend sync (background, non-blocking)

@@ -260,15 +260,16 @@ class DataServiceClass {
       // Skip writing large tables that exceed localStorage quota
       // Max record limits to prevent localStorage overflow
       const MAX_RECORDS: Record<string, number> = {
-        jobs:               100,   // Jobs are operational, not historical
-        subscriptions:      300,   // Keep last 300 subscriptions
-        customers:          400,   // Keep last 400 customers
-        leads:              500,   // Keep last 500 leads
-        attendance_records: 500,   // Keep last 500 attendance records
-        payroll_runs:       200,   // Keep last 200 payroll runs
-        finance_revenues:   200,
-        finance_payables:   200,
-        finance_ledger:     300,
+        jobs:               50,    // Jobs are real-time — minimal localStorage
+        subscriptions:      200,   // Keep last 200 subscriptions
+        customers:          200,   // Keep last 200 customers
+        leads:              300,   // Keep last 300 leads
+        attendance_records: 200,   // Keep last 200 attendance records
+        payroll_runs:       100,   // Keep last 100 payroll runs
+        finance_revenues:   100,
+        finance_payables:   100,
+        finance_ledger:     100,
+        employee_incentives: 100,
       };
       const limit = MAX_RECORDS[baseKey];
       let recordsToStore = records as any[];

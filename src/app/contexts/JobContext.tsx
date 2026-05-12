@@ -153,7 +153,8 @@ export function JobProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (allJobs.length > 0) DataService.setAll("JOBS", allJobs);
+    // Jobs are real-time operational data — only cache last 50 to avoid quota issues
+    if (allJobs.length > 0) DataService.setAll("JOBS", allJobs.slice(-50));
   }, [allJobs]);
 
   // Backend sync (background, non-blocking)

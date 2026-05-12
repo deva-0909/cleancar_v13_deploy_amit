@@ -81,9 +81,12 @@ class EmployeeDatabaseService {
       const client = await supabase.from(SUPABASE_TABLE);
       const rows = await client.selectAll();
       if (rows && rows.length > 0) {
-        // Save to localStorage so sync reads work
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+        // Use in-memory cache only — localStorage is too small for 100+ employees
         supabaseCache = rows;
+        // Only save a small subset to localStorage for offline fallback (first 20)
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(rows.slice(0, 20)));
+        } catch { /* quota exceeded - in-memory only */ }
         console.log(`✅ Loaded ${rows.length} employees from Supabase`);
       }
       cacheLoaded = true;
@@ -96,6 +99,15 @@ class EmployeeDatabaseService {
    * Get all employees — from localStorage (which is seeded from Supabase on app start)
    */
   getAll(): EmployeeDatabaseRecord[] {
+    // Prefer in-memory Supabase cache to avoid localStorage reads
+    if (supabaseCache && supabaseCache.length > 0) {
+      return supabaseCache.map((emp: any) => ({
+        onboardingPasswordSet: false,
+        accountStatus: "pending_onboarding",
+        failedLoginAttempts: 0,
+        ...emp,
+      }));
+    }
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       return (stored ? JSON.parse(stored) : []).map((emp: any) => ({

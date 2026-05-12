@@ -1,8 +1,10 @@
 /**
  * Supabase Data Loader
- * Loads ALL data from Supabase into localStorage on app startup.
- * Strategy: write ONLY legacy combined keys to avoid localStorage quota issues.
- * DataService falls back to legacy key when city-namespaced key is missing.
+ * Loads ONLY small/critical tables from Supabase into localStorage.
+ * Large tables (customers, leads, jobs, attendance) are read directly from
+ * Supabase at query time via their respective contexts — NOT stored in localStorage.
+ * 
+ * This prevents localStorage from exceeding the 5MB browser limit.
  */
 
 import { isSupabaseEnabled } from "./supabaseClient";
@@ -15,60 +17,39 @@ const HEADERS = {
   "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
 };
 
-// Map: Supabase table → localStorage legacy key (format: cleancar_{key})
-// DataService falls back to this when city-namespaced key is missing
-const TABLE_MAP: Array<{ table: string; localKey: string; limit?: number }> = [
-  { table: "cleancar_revenues",            localKey: "revenues"           },
-  { table: "cleancar_payables",            localKey: "payables"           },
-  { table: "cleancar_mrr",                 localKey: "mrr"                },
-  { table: "cleancar_customers",           localKey: "customers"          },
-  { table: "cleancar_leads",               localKey: "leads"              },
-  { table: "cleancar_subscriptions",       localKey: "subscriptions"      },
-  { table: "cleancar_inventory",           localKey: "inventory"          },
-  { table: "cleancar_salary_structures",   localKey: "salary_structures"  },
-  { table: "cleancar_incentive_plans",     localKey: "incentive_plans"    },
-  { table: "cleancar_employee_incentives", localKey: "employee_incentives"},
-  { table: "cleancar_payroll_runs",        localKey: "payroll_runs"       },
-  { table: "cleancar_employees",           localKey: "employees"          },
-  { table: "cleancar_jobs",                localKey: "jobs",        limit: 1500 },
-  { table: "cleancar_attendance",          localKey: "attendance_records", limit: 1000 },
+// ONLY small/critical tables are stored in localStorage
+// Large tables (customers, leads, jobs, attendance, subscriptions) are NOT cached here
+const SMALL_TABLES: Array<{ table: string; localKey: string; maxRows: number }> = [
+  { table: "cleancar_salary_structures",   localKey: "salary_structures",   maxRows: 50  },
+  { table: "cleancar_incentive_plans",     localKey: "incentive_plans",     maxRows: 20  },
+  { table: "cleancar_payroll_runs",        localKey: "payroll_runs",        maxRows: 100 },
+  { table: "cleancar_employee_incentives", localKey: "employee_incentives", maxRows: 100 },
+  { table: "cleancar_inventory",           localKey: "inventory",           maxRows: 200 },
+  { table: "cleancar_mrr",                 localKey: "mrr",                 maxRows: 50  },
 ];
 
-async function fetchTable(table: string, limit?: number): Promise<any[]> {
-  const allRows: any[] = [];
-  const pageSize = Math.min(limit || 1000, 1000);
-  let offset = 0;
-
-  while (true) {
-    const url = `${SUPABASE_URL}/rest/v1/${table}?select=data&limit=${pageSize}&offset=${offset}`;
-    try {
-      const res = await fetch(url, { headers: HEADERS });
-      if (!res.ok) break;
-      const rows = await res.json();
-      if (!Array.isArray(rows) || rows.length === 0) break;
-      allRows.push(...rows.map((r: any) => r.data));
-      if (rows.length < pageSize) break;
-      if (limit && allRows.length >= limit) break;
-      offset += pageSize;
-    } catch (e) {
-      break;
-    }
+async function fetchTable(table: string, limit: number): Promise<any[]> {
+  const url = `${SUPABASE_URL}/rest/v1/${table}?select=data&limit=${limit}`;
+  try {
+    const res = await fetch(url, { headers: HEADERS });
+    if (!res.ok) return [];
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return [];
+    return rows.map((r: any) => r.data).filter(Boolean);
+  } catch {
+    return [];
   }
-  return allRows;
 }
 
-function safeWrite(key: string, data: any[]): void {
-  // Try full data first, then progressively smaller until it fits
-  const attempts = [data, data.slice(0, 500), data.slice(0, 200), data.slice(0, 50)];
-  for (const attempt of attempts) {
-    try {
-      localStorage.setItem(key, JSON.stringify(attempt));
-      return; // Success
-    } catch (e) {
-      // Quota exceeded — try smaller
-    }
+function safeWrite(key: string, data: any[]): boolean {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    return true;
+  } catch {
+    // Quota exceeded — skip this table
+    console.warn(`[Supabase] Skipped ${key} — localStorage quota exceeded`);
+    return false;
   }
-  console.warn(`[Supabase] Could not store ${key} even at 50 records — localStorage full`);
 }
 
 export async function loadAllDataFromSupabase(forceReload = false): Promise<void> {
@@ -77,48 +58,35 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
     return;
   }
 
-  // Check if data already exists in localStorage
+  // Skip if already loaded (unless forced)
   if (!forceReload) {
-    try {
-      const existing = localStorage.getItem("cleancar_revenues");
-      if (existing) {
-        const parsed = JSON.parse(existing);
-        if (Array.isArray(parsed) && parsed.length > 10) {
-          console.log(`[Supabase] Data already in localStorage (${parsed.length} revenues) — skipping fetch`);
-          return;
-        }
-      }
-    } catch (e) { /* corrupt data — proceed with fetch */ }
+    const alreadyLoaded = localStorage.getItem("cleancar_salary_structures");
+    if (alreadyLoaded) {
+      console.log("[Supabase] Small tables already in localStorage — skipping fetch");
+      return;
+    }
   }
 
-  console.log("[Supabase] Loading all data into localStorage...");
+  // ONLY remove stale backup and migration keys — do NOT clear all cleancar_ keys
+  // Clearing all keys would remove valid data like HRDataContext employees
+  const staleKeys = Object.keys(localStorage).filter(k =>
+    k.startsWith("BACKUP_PAYROLL_PRE") || k.startsWith("BACKUP_SALARY_PRE")
+  );
+  staleKeys.forEach(k => { try { localStorage.removeItem(k); } catch {} });
 
-  // Clear ALL existing cleancar keys first to free up space
-  const keysToDelete = Object.keys(localStorage).filter(k => k.startsWith("cleancar_"));
-  keysToDelete.forEach(k => {
-    try { localStorage.removeItem(k); } catch (e) {}
-  });
-  console.log(`[Supabase] Cleared ${keysToDelete.length} existing keys`);
+  console.log("[Supabase] Loading small/critical tables into localStorage...");
 
-  // Fetch and store each table sequentially (not parallel) to avoid race conditions
-  for (const { table, localKey, limit } of TABLE_MAP) {
+  for (const { table, localKey, maxRows } of SMALL_TABLES) {
     try {
-      const rows = await fetchTable(table, limit);
-      if (rows.length === 0) {
-        console.log(`[Supabase] ⚠️ ${table}: 0 records`);
-        continue;
-      }
-
-      // Write ONLY the legacy key: cleancar_{localKey}
-      // DataService automatically falls back to this when city-namespaced key is missing
-      const legacyKey = `cleancar_${localKey}`;
-      safeWrite(legacyKey, rows);
-      console.log(`[Supabase] ✅ ${table}: ${rows.length} records → ${legacyKey}`);
-
+      const rows = await fetchTable(table, maxRows);
+      if (rows.length === 0) continue;
+      const key = `cleancar_${localKey}`;
+      safeWrite(key, rows);
+      console.log(`[Supabase] ✅ ${table}: ${rows.length} records`);
     } catch (err) {
       console.error(`[Supabase] Failed ${table}:`, err);
     }
   }
 
-  console.log("[Supabase] ✅ All data loaded");
+  console.log("[Supabase] ✅ Critical tables loaded. Large tables (customers/leads/jobs) read from Supabase at query time.");
 }
