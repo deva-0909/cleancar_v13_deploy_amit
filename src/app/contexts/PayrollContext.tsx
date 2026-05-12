@@ -284,19 +284,19 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
             updated.approvedBy = userId;
             updated.approvedAt = now;
 
-            // Auto-create Salary Payable in FinanceContext
-            if (createPayable) {
-              createPayable({
+            // Fire cc360_payroll_approved — FinanceContext listener creates the payable
+            try {
+              const _evt = {
                 type: "Salary",
                 employeeId: p.employeeId,
-                payrollId: p.payrollId,
                 amount: p.netSalary,
                 dueDate: p.month + "-28",
                 status: "Pending",
                 description: `Salary — ${p.employeeId} — ${p.month}`,
                 cityId: p.cityId,
-              });
-            }
+              };
+              window.dispatchEvent(new CustomEvent("cc360_payroll_approved", { detail: _evt }));
+            } catch (_e) { /* non-critical */ }
           } else if (nextStatus === "disbursed") {
             updated.disbursedBy = userId;
             updated.disbursedAt = now;

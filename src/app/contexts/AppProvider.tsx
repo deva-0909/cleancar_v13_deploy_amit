@@ -92,17 +92,17 @@ export function AppProvider({ children }: AppProviderProps) {
                 <EmployeeProvider>
                   <AttendanceProvider>
                     <ShiftProvider>
-                      <PayrollProvider>
-                        <IncentiveProvider>
-                          <CustomRoleProvider>
-                            <PlanDefinitionProvider>
-                              <DemoProvider>
-                                <ScenarioProvider>
-                                  <CustomerProvider>
-                                    <CustomerSubscriptionProvider>
-                                      <JobProvider>
-                                        <InventoryProvider>
-                                          <FinanceProvider>
+                      <FinanceProvider>
+                        <PayrollProvider>
+                          <IncentiveProvider>
+                            <CustomRoleProvider>
+                              <PlanDefinitionProvider>
+                                <DemoProvider>
+                                  <ScenarioProvider>
+                                    <CustomerProvider>
+                                      <CustomerSubscriptionProvider>
+                                        <JobProvider>
+                                          <InventoryProvider>
                                             <ApprovalProvider>
                                               <WasherProvider>
                                                 <SupervisorProvider>
@@ -114,17 +114,17 @@ export function AppProvider({ children }: AppProviderProps) {
                                                 </SupervisorProvider>
                                               </WasherProvider>
                                             </ApprovalProvider>
-                                          </FinanceProvider>
-                                        </InventoryProvider>
-                                      </JobProvider>
-                                    </CustomerSubscriptionProvider>
-                                  </CustomerProvider>
-                                </ScenarioProvider>
-                              </DemoProvider>
-                            </PlanDefinitionProvider>
-                          </CustomRoleProvider>
-                        </IncentiveProvider>
-                      </PayrollProvider>
+                                          </InventoryProvider>
+                                        </JobProvider>
+                                      </CustomerSubscriptionProvider>
+                                    </CustomerProvider>
+                                  </ScenarioProvider>
+                                </DemoProvider>
+                              </PlanDefinitionProvider>
+                            </CustomRoleProvider>
+                          </IncentiveProvider>
+                        </PayrollProvider>
+                      </FinanceProvider>
                     </ShiftProvider>
                   </AttendanceProvider>
                 </EmployeeProvider>

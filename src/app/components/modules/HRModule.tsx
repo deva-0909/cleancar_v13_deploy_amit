@@ -32,11 +32,9 @@ import { BackButton } from "../ui/back-button";
 import { calculateProrateSalary, getLeaveBalance, ANNUAL_LEAVE_QUOTA } from "../../lib/leaveManagement";
 import { MASTER_EMPLOYEES, requiredDocuments, type Employee } from "../../data/employeeData";
 import { salaryStructureService } from "../../services/salaryStructureService";
-// Lazy load the full drilldown+payslip tree to prevent circular bundle initialization
-// (EmployeeAttendanceDrillDown → GeneratedPayslip; lazy-loading isolates the chunk correctly)
-const EmployeeAttendanceDrillDown = React.lazy(() =>
-  import("../hr/EmployeeAttendanceDrillDown").then(m => ({ default: m.EmployeeAttendanceDrillDown }))
-);
+// Static import — HRModule is already the lazy boundary (lazy in routes.tsx)
+// Nested React.lazy inside a lazy chunk causes ES module circular init crash
+import { EmployeeAttendanceDrillDown } from "../hr/EmployeeAttendanceDrillDown";
 import { offerLetterService } from "../../services/offerLetterService";
 import { employeeDatabaseService } from "../../services/employeeDatabaseService";
 

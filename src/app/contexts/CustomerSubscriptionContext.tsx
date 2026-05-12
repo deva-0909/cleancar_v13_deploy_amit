@@ -111,17 +111,19 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
 
     setSubscriptions((prev) => [...prev, newSubscription]);
 
-    // Auto-create MRR entry in FinanceContext when subscription goes Active
-    if (newSubscription.status === "Active" && addMRREntry) {
-      const monthKey = new Date().toISOString().slice(0, 7); // "2026-04"
-      addMRREntry({
-        month: monthKey,
-        subscriptionId: newSubscription.subscriptionId,
-        customerId: newSubscription.customerId,
-        revenue: newSubscription.priceLocked,
-        status: "Active",
-        cityId: city,
-      });
+    // Fire cc360_mrr_add — FinanceContext listener handles MRR creation
+    if (newSubscription.status === "Active") {
+      try {
+        const _mrrEvt = {
+          month: new Date().toISOString().slice(0, 7),
+          subscriptionId: newSubscription.subscriptionId,
+          customerId: newSubscription.customerId,
+          revenue: newSubscription.priceLocked,
+          status: "Active",
+          cityId: city,
+        };
+        window.dispatchEvent(new CustomEvent("cc360_mrr_add", { detail: _mrrEvt }));
+      } catch (_e) { /* non-critical */ }
     }
 
     return newSubscription;
@@ -204,10 +206,10 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
   const cancelSubscription = (subscriptionId: string) => {
     updateSubscriptionStatus(subscriptionId, "Cancelled");
 
-    // Remove MRR entry when subscription is cancelled
-    if (removeMRREntry) {
-      removeMRREntry(subscriptionId);
-    }
+    // Fire cc360_mrr_remove — FinanceContext listener handles MRR removal
+    try {
+      window.dispatchEvent(new CustomEvent("cc360_mrr_remove", { detail: { subscriptionId } }));
+    } catch (_e) { /* non-critical */ }
   };
 
   const deleteSubscription = (subscriptionId: string) => {
