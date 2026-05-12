@@ -78,8 +78,14 @@ const backupPayrollData = (data: PayrollRun[]): boolean => {
   try {
     // Only backup if no backup exists (prevent overwriting)
     if (!localStorage.getItem(BACKUP_KEY_PAYROLL)) {
-      localStorage.setItem(BACKUP_KEY_PAYROLL, JSON.stringify(data));
-      logger.log("Payroll backup created", { count: data.length });
+      try {
+        localStorage.setItem(BACKUP_KEY_PAYROLL, JSON.stringify(data));
+        logger.log("Payroll backup created", { count: data.length });
+      } catch (quotaErr) {
+        // localStorage full — skip backup, migration can still proceed
+        logger.warn("Payroll backup skipped — localStorage full", { count: data.length });
+        return true; // Don't block migration for quota issues
+      }
       return true;
     }
     logger.debug("Payroll backup already exists - skipping");
@@ -94,7 +100,12 @@ const backupSalaryData = (data: SalaryStructure[]): boolean => {
   try {
     // Only backup if no backup exists
     if (!localStorage.getItem(BACKUP_KEY_SALARY)) {
-      localStorage.setItem(BACKUP_KEY_SALARY, JSON.stringify(data));
+      try {
+        localStorage.setItem(BACKUP_KEY_SALARY, JSON.stringify(data));
+      } catch (quotaErr) {
+        logger.warn("Salary backup skipped — localStorage full", { count: data.length });
+        return true; // Don't block migration for quota issues
+      }
       logger.log("Salary structure backup created", { count: data.length });
       return true;
     }

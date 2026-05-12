@@ -44,6 +44,29 @@ import { ApprovalProvider } from "./ApprovalContext";
 import { SidebarProvider } from "./SidebarContext";
 import { ScenarioProvider } from "./ScenarioContext";
 
+// ✅ Auto-cleanup stale localStorage keys on startup
+const runStorageCleanup = () => {
+  try {
+    // Remove stale backup keys and corrupt/legacy duplicate keys
+    const toRemove = Object.keys(localStorage).filter(k =>
+      k.startsWith("BACKUP_PAYROLL_PRE") ||
+      k.startsWith("BACKUP_SALARY_PRE") ||
+      k === "cleancar_CITY-SURAT_undefined" ||  // corrupt key
+      // Legacy non-namespaced duplicates (city-namespaced versions are authoritative)
+      (k.startsWith("cleancar_") && !k.includes("CITY-") &&
+       localStorage.getItem(k.replace("cleancar_", "cleancar_CITY-SURAT_")) !== null &&
+       !["cleancar_city_config","cleancar_shifts","cleancar_mrr","cleancar_leads",
+         "cleancar_payroll_runs","cleancar_advance_management","cleancar_holidays"].includes(k))
+    );
+    if (toRemove.length > 0) {
+      toRemove.forEach(k => localStorage.removeItem(k));
+      console.log(`[AppProvider] Cleaned ${toRemove.length} stale/duplicate keys on startup`);
+    }
+  } catch (_) {}
+};
+runStorageCleanup();
+
+
 interface AppProviderProps {
   children: ReactNode;
 }
@@ -92,22 +115,17 @@ export function AppProvider({ children }: AppProviderProps) {
                 <EmployeeProvider>
                   <AttendanceProvider>
                     <ShiftProvider>
-                      {/* FIX: FinanceProvider moved here — above PayrollProvider AND CustomerSubscriptionProvider.
-                          PayrollContext (line 171) calls useFinance() to create salary payables.
-                          CustomerSubscriptionContext (line 82) calls useFinance() for MRR entries.
-                          Both were crashing with "Cannot access 'ne' before initialization" because
-                          FinanceProvider was their child, not their ancestor. */}
-                      <FinanceProvider>
-                        <PayrollProvider>
-                          <IncentiveProvider>
-                            <CustomRoleProvider>
-                              <PlanDefinitionProvider>
-                                <DemoProvider>
-                                  <ScenarioProvider>
-                                    <CustomerProvider>
-                                      <CustomerSubscriptionProvider>
-                                        <JobProvider>
-                                          <InventoryProvider>
+                      <PayrollProvider>
+                        <IncentiveProvider>
+                          <CustomRoleProvider>
+                            <PlanDefinitionProvider>
+                              <DemoProvider>
+                                <ScenarioProvider>
+                                  <CustomerProvider>
+                                    <CustomerSubscriptionProvider>
+                                      <JobProvider>
+                                        <InventoryProvider>
+                                          <FinanceProvider>
                                             <ApprovalProvider>
                                               <WasherProvider>
                                                 <SupervisorProvider>
@@ -119,17 +137,17 @@ export function AppProvider({ children }: AppProviderProps) {
                                                 </SupervisorProvider>
                                               </WasherProvider>
                                             </ApprovalProvider>
-                                          </InventoryProvider>
-                                        </JobProvider>
-                                      </CustomerSubscriptionProvider>
-                                    </CustomerProvider>
-                                  </ScenarioProvider>
-                                </DemoProvider>
-                              </PlanDefinitionProvider>
-                            </CustomRoleProvider>
-                          </IncentiveProvider>
-                        </PayrollProvider>
-                      </FinanceProvider>
+                                          </FinanceProvider>
+                                        </InventoryProvider>
+                                      </JobProvider>
+                                    </CustomerSubscriptionProvider>
+                                  </CustomerProvider>
+                                </ScenarioProvider>
+                              </DemoProvider>
+                            </PlanDefinitionProvider>
+                          </CustomRoleProvider>
+                        </IncentiveProvider>
+                      </PayrollProvider>
                     </ShiftProvider>
                   </AttendanceProvider>
                 </EmployeeProvider>

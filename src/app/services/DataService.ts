@@ -74,32 +74,12 @@ type EntityType = keyof typeof STORAGE_KEYS;
  * Each entity type can be stored/retrieved using these methods
  */
 class DataServiceClass {
-  // In-memory read cache to reduce repeated JSON.parse() calls on every context render
-  private readCache = new Map<string, { data: unknown; timestamp: number }>();
-  private readonly CACHE_TTL = 2000; // 2 seconds — freshness vs performance balance
-  
-  private getCacheKey(entityType: string, cityId?: string): string {
-    return cityId ? `${entityType}:${cityId}` : entityType;
-  }
-  
-  clearCache(entityType?: string): void {
-    if (!entityType) { this.readCache.clear(); return; }
-    for (const key of this.readCache.keys()) {
-      if (key.startsWith(entityType)) this.readCache.delete(key);
-    }
-  }
   /**
    * Get all records for an entity type
    * @param entityType - Type of entity to retrieve
    * @param cityId - Optional city identifier for multi-city isolation
    */
   get<T>(entityType: EntityType, cityId?: string): T[] {
-    // Check in-memory cache first to avoid repeated JSON.parse() on every render
-    const cacheKey = this.getCacheKey(entityType, cityId);
-    const cached = this.readCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < this.CACHE_TTL) {
-      return cached.data as T[];
-    }
     try {
       const baseKey = STORAGE_KEYS[entityType];
 
@@ -145,7 +125,6 @@ class DataServiceClass {
         }
       }
 
-      this.readCache.set(cacheKey, { data: [], timestamp: Date.now() });
       return [];
     } catch (error) {
       console.error(`[DataService] Error reading ${entityType}:`, error);
@@ -177,7 +156,6 @@ class DataServiceClass {
    * @param cityId - Optional city identifier
    */
   insert<T>(entityType: EntityType, record: T | T[], cityId?: string): void {
-    this.clearCache(entityType); // invalidate cache on write
     try {
       const baseKey = STORAGE_KEYS[entityType];
       const key = buildKey(baseKey, cityId);
@@ -187,12 +165,8 @@ class DataServiceClass {
       localStorage.setItem(key, JSON.stringify(updated));
       import.meta.env.DEV && console.log(`[DataService] Inserted ${newRecords.length} record(s) to ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
-      const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
-      if (isQuota) {
-        console.warn(`[DataService] Could not insert to ${entityType} — localStorage full`);
-      } else {
-        console.error(`[DataService] Error inserting to ${entityType}:`, error);
-      }
+      console.error(`[DataService] Error inserting to ${entityType}:`, error);
+      throw error;
     }
   }
 
@@ -221,12 +195,8 @@ class DataServiceClass {
       localStorage.setItem(key, JSON.stringify(updated));
       import.meta.env.DEV && console.log(`[DataService] Updated record ${id} in ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
-      const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
-      if (isQuota) {
-        console.warn(`[DataService] Could not update ${entityType} — localStorage full`);
-      } else {
-        console.error(`[DataService] Error updating ${entityType}:`, error);
-      }
+      console.error(`[DataService] Error updating ${entityType}:`, error);
+      throw error;
     }
   }
 
@@ -251,12 +221,8 @@ class DataServiceClass {
       localStorage.setItem(key, JSON.stringify(filtered));
       import.meta.env.DEV && console.log(`[DataService] Deleted record ${id} from ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
-      const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
-      if (isQuota) {
-        console.warn(`[DataService] Could not delete from ${entityType} — localStorage full`);
-      } else {
-        console.error(`[DataService] Error deleting from ${entityType}:`, error);
-      }
+      console.error(`[DataService] Error deleting from ${entityType}:`, error);
+      throw error;
     }
   }
 
@@ -292,15 +258,32 @@ class DataServiceClass {
 
       const key = buildKey(baseKey, cityId);
       // Skip writing large tables that exceed localStorage quota
-      const LARGE_TABLES = ["attendance_records", "jobs", "payroll_runs"];
-      if (LARGE_TABLES.includes(baseKey) && records.length > 500) {
-        import.meta.env.DEV && console.log(`[DataService] Skipping large table ${entityType} (${records.length} records) to avoid quota`);
-        return;
+      // Max record limits to prevent localStorage overflow
+      const MAX_RECORDS: Record<string, number> = {
+        jobs:               100,   // Jobs are operational, not historical
+        subscriptions:      300,   // Keep last 300 subscriptions
+        customers:          400,   // Keep last 400 customers
+        leads:              500,   // Keep last 500 leads
+        attendance_records: 500,   // Keep last 500 attendance records
+        payroll_runs:       200,   // Keep last 200 payroll runs
+        finance_revenues:   200,
+        finance_payables:   200,
+        finance_ledger:     300,
+      };
+      const limit = MAX_RECORDS[baseKey];
+      let recordsToStore = records as any[];
+      if (limit && recordsToStore.length > limit) {
+        recordsToStore = recordsToStore.slice(-limit); // Keep most recent
+        import.meta.env.DEV && console.log(`[DataService] Capped ${entityType} at ${limit} records (had ${records.length})`);
       }
       try {
-        localStorage.setItem(key, JSON.stringify(records));
-      } catch (e) {
-        // Quota exceeded — try writing smaller slice
+        localStorage.setItem(key, JSON.stringify(recordsToStore));
+      } catch (e: any) {
+        // Quota exceeded — free stale backups then retry with smaller slice
+        const staleKeys = Object.keys(localStorage).filter(k =>
+          k.startsWith("BACKUP_PAYROLL_PRE") || k.startsWith("BACKUP_SALARY_PRE")
+        );
+        staleKeys.forEach(k => { try { localStorage.removeItem(k); } catch(_) {} });
         try {
           localStorage.setItem(key, JSON.stringify((records as any[]).slice(0, 200)));
           console.warn(`[DataService] Quota exceeded for ${entityType} — stored 200 of ${records.length}`);
@@ -310,12 +293,8 @@ class DataServiceClass {
       }
       import.meta.env.DEV && console.log(`[DataService] Set ${records.length} record(s) for ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
-      const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
-      if (isQuota) {
-        console.warn(`[DataService] Could not store ${entityType} — localStorage full`);
-      } else {
-        console.error(`[DataService] Error setting ${entityType}:`, error);
-      }
+      console.error(`[DataService] Error setting ${entityType}:`, error);
+      throw error;
     }
   }
 
@@ -332,6 +311,7 @@ class DataServiceClass {
       import.meta.env.DEV && console.log(`[DataService] Cleared ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
       console.error(`[DataService] Error clearing ${entityType}:`, error);
+      throw error;
     }
   }
 
@@ -350,6 +330,7 @@ class DataServiceClass {
       import.meta.env.DEV && console.log(`[DataService] Cleared all data for ${city}`);
     } catch (error) {
       console.error("[DataService] Error clearing all data:", error);
+      throw error;
     }
   }
 
@@ -470,3 +451,51 @@ migrateAttendanceData();
  * - delete() → supabase.from('employees').delete()
  * - Contexts don't need to change
  */
+
+// ── localStorage Cleanup Utility ─────────────────────────────────────────────
+// Call window.__cleanStorage() in browser console to free space
+
+export function cleanupStaleStorage(): { freed: string[], total: number } {
+  const stalePatterns = [
+    /^BACKUP_PAYROLL_PRE/,
+    /^BACKUP_SALARY_PRE/,
+    /^cleancar_.*_jobs$/,        // Jobs are re-generated from context
+    /^__temp_/,
+  ];
+
+  const freed: string[] = [];
+  const keys = Object.keys(localStorage);
+
+  keys.forEach(key => {
+    if (stalePatterns.some(p => p.test(key))) {
+      try {
+        localStorage.removeItem(key);
+        freed.push(key);
+      } catch (_) {}
+    }
+  });
+
+  const total = keys.length;
+  if (freed.length > 0) {
+    console.log(`[Storage Cleanup] Freed ${freed.length} stale keys:`, freed);
+  }
+  return { freed, total };
+}
+
+export function getStorageUsage(): { usedKB: number, pct: number, keys: Record<string, number> } {
+  const keys: Record<string, number> = {};
+  let total = 0;
+  Object.keys(localStorage).forEach(k => {
+    const bytes = (localStorage.getItem(k) || "").length * 2;
+    keys[k] = Math.round(bytes / 1024);
+    total += bytes;
+  });
+  const sorted = Object.fromEntries(Object.entries(keys).sort(([,a],[,b]) => b - a));
+  return { usedKB: Math.round(total / 1024), pct: Math.round(total / (5 * 1024 * 1024) * 100), keys: sorted };
+}
+
+// Expose to window for emergency console access
+if (typeof window !== "undefined") {
+  (window as any).__cleanStorage = cleanupStaleStorage;
+  (window as any).__storageUsage = getStorageUsage;
+}
