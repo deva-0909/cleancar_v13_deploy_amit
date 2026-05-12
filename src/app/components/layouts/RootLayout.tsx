@@ -33,6 +33,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider,
 } from "../ui/tooltip";
 import { toast } from "sonner";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
@@ -204,6 +205,7 @@ export function RootLayout() {
   }, [location.pathname, location.search]);
 
   return (
+    <TooltipProvider delayDuration={300}>
     <GlobalFiltersProvider>
       <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
         {/* Header */}
@@ -746,5 +748,6 @@ export function RootLayout() {
       />
     </div>
     </GlobalFiltersProvider>
+    </TooltipProvider>
   );
 }
