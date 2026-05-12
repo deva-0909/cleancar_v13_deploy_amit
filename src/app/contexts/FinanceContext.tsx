@@ -326,6 +326,46 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
   }, []); // Run on mount only
 
+  // Cross-context event bus listeners
+  // PayrollContext and CustomerSubscriptionContext fire these events instead of
+  // statically importing useFinance (which caused ES module circular TDZ crash)
+  useEffect(() => {
+    const handlePayrollApproved = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (!d?.amount) return;
+      try {
+        addPayable({
+          type: "Salary" as any,
+          employeeId: d.employeeId,
+          amount: d.amount,
+          dueDate: d.dueDate || "",
+          status: "Pending" as any,
+          description: d.description || "Salary payable",
+          cityId: d.cityId,
+        });
+      } catch { /* context may not be ready yet */ }
+    };
+    const handleMRRAdd = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (!d?.subscriptionId) return;
+      try { addMRREntry(d as any); } catch { /* ignore */ }
+    };
+    const handleMRRRemove = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (!d?.subscriptionId) return;
+      try { updateMRRForCancellation(d.subscriptionId, new Date().toISOString()); } catch { /* ignore */ }
+    };
+    window.addEventListener("cc360_payroll_approved", handlePayrollApproved);
+    window.addEventListener("cc360_mrr_add", handleMRRAdd);
+    window.addEventListener("cc360_mrr_remove", handleMRRRemove);
+    return () => {
+      window.removeEventListener("cc360_payroll_approved", handlePayrollApproved);
+      window.removeEventListener("cc360_mrr_add", handleMRRAdd);
+      window.removeEventListener("cc360_mrr_remove", handleMRRRemove);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Re-hydrate from localStorage after Supabase data loads
   // Run at 1s and 3s to catch slow Supabase responses
   useEffect(() => {

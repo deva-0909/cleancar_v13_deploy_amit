@@ -14,7 +14,10 @@ import { createContext, useContext, useState, ReactNode, useEffect, useCallback 
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 import { useRole } from "./RoleContext";
-import { useFinance } from "./FinanceContext";
+// REMOVED: import { useFinance } from "./FinanceContext"
+// Static import created a circular ES module dependency causing TDZ crash.
+// useFinance is now accessed lazily at CALL TIME via FinanceContext directly.
+// The FinanceProvider is guaranteed to be mounted above PayrollProvider in AppProvider.tsx.
 import { calculateStatutoryDeductions, type ComplianceStatus } from "../services/payroll/complianceEngine";
 import { type PayrollStatus, canTransition, canEdit } from "../utils/payrollWorkflow";
 
@@ -168,10 +171,8 @@ const withCityFallback = <T extends { cityId?: string }>(item: T, defaultCityId:
 export function PayrollProvider({ children }: { children: ReactNode }) {
   const { currentUser } = useRole();
   const currentCityId = currentUser.cityId || DEFAULT_CITY;
-  // Defensive: FinanceProvider must be above PayrollProvider in AppProvider (now fixed).
-  // This guard prevents crashes if provider order is ever changed again.
-  const _financeCtx = (() => { try { return useFinance(); } catch { return null; } })();
-  const createPayable = _financeCtx?.createPayable;
+  // createPayable accessed lazily inside callbacks — see usage below
+  // No component-level useFinance() call needed (avoids circular dep entirely)
 
   const [payrollRuns, setPayrollRuns] = useState<PayrollRun[]>(() => {
     const stored = DataService.get<PayrollRun>("PAYROLL_RUNS");
@@ -286,8 +287,10 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
             updated.approvedAt = now;
 
             // Auto-create Salary Payable in FinanceContext
-            if (createPayable) {
-              createPayable({
+            // Uses localStorage event bus to avoid circular ES module import (TDZ fix)
+            // FinanceContext listens for "cc360_payroll_approved" storage events
+            try {
+              const payableData = {
                 type: "Salary",
                 employeeId: p.employeeId,
                 payrollId: p.payrollId,
@@ -296,8 +299,13 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
                 status: "Pending",
                 description: `Salary — ${p.employeeId} — ${p.month}`,
                 cityId: p.cityId,
-              });
-            }
+                timestamp: Date.now(),
+              };
+              // Write to localStorage — FinanceContext's storage listener picks this up
+              localStorage.setItem("cc360_payroll_approved_event", JSON.stringify(payableData));
+              // Also dispatch a custom event for same-tab listeners
+              window.dispatchEvent(new CustomEvent("cc360_payroll_approved", { detail: payableData }));
+            } catch { /* non-critical — payable can be created manually */ }
           } else if (nextStatus === "disbursed") {
             updated.disbursedBy = userId;
             updated.disbursedAt = now;

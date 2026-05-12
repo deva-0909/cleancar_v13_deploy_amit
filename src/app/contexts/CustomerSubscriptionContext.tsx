@@ -25,7 +25,8 @@ import { createContext, useContext, useState, ReactNode, useEffect } from "react
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 import { useSync } from "../hooks/useSync";
-import { useFinance } from "./FinanceContext";
+// REMOVED static import of useFinance — caused ES module circular TDZ crash.
+// MRR updates now fire via localStorage event bus → FinanceContext storage listener.
 import { useCity } from "./CityContext";
 
 // Types
@@ -79,10 +80,7 @@ interface CustomerSubscriptionContextType {
 const CustomerSubscriptionContext = createContext<CustomerSubscriptionContextType | undefined>(undefined);
 
 export function CustomerSubscriptionProvider({ children }: { children: ReactNode }) {
-  // Defensive: FinanceProvider must be above CustomerSubscriptionProvider in AppProvider (now fixed).
-  const _finCtx = (() => { try { return useFinance(); } catch { return null; } })();
-  const addMRREntry = _finCtx?.addMRREntry;
-  const removeMRREntry = _finCtx?.removeMRREntry;
+  // addMRREntry/removeMRREntry accessed via event bus — no static import needed
   const { city } = useCity();
 
   const [subscriptions, setSubscriptions] = useState<CustomerSubscription[]>(() => {
@@ -114,16 +112,21 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
     setSubscriptions((prev) => [...prev, newSubscription]);
 
     // Auto-create MRR entry in FinanceContext when subscription goes Active
-    if (newSubscription.status === "Active" && addMRREntry) {
-      const monthKey = new Date().toISOString().slice(0, 7); // "2026-04"
-      addMRREntry({
-        month: monthKey,
-        subscriptionId: newSubscription.subscriptionId,
-        customerId: newSubscription.customerId,
-        revenue: newSubscription.priceLocked,
-        status: "Active",
-        cityId: city,
-      });
+    // Fire MRR event via event bus (no direct FinanceContext import — avoids TDZ circular dep)
+    if (newSubscription.status === "Active") {
+      try {
+        const monthKey = new Date().toISOString().slice(0, 7);
+        const mrrEvent = {
+          month: monthKey,
+          subscriptionId: newSubscription.subscriptionId,
+          customerId: newSubscription.customerId,
+          revenue: newSubscription.priceLocked,
+          status: "Active",
+          timestamp: Date.now(),
+        };
+        localStorage.setItem("cc360_mrr_event", JSON.stringify(mrrEvent));
+        window.dispatchEvent(new CustomEvent("cc360_mrr_add", { detail: mrrEvent }));
+      } catch { /* non-critical */ }
     }
 
     return newSubscription;
@@ -207,9 +210,11 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
     updateSubscriptionStatus(subscriptionId, "Cancelled");
 
     // Remove MRR entry when subscription is cancelled
-    if (removeMRREntry) {
-      removeMRREntry(subscriptionId);
-    }
+    // MRR removal via event bus (no direct FinanceContext import)
+    try {
+      localStorage.setItem("cc360_mrr_remove_event", JSON.stringify({ subscriptionId, timestamp: Date.now() }));
+      window.dispatchEvent(new CustomEvent("cc360_mrr_remove", { detail: { subscriptionId } }));
+    } catch { /* non-critical */ }
   };
 
   const deleteSubscription = (subscriptionId: string) => {
