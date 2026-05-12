@@ -205,7 +205,7 @@ export function RootLayout() {
 
   return (
     <GlobalFiltersProvider>
-      <div className="min-h-screen bg-gray-50">
+      <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
         {/* Header */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
           <div className="flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3">
@@ -305,17 +305,14 @@ export function RootLayout() {
           <GlobalFilterBar />
         )}
 
-        <div className="flex">
+        <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - Smart Collapsible */}
         <aside
           className={`
-            ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
-            fixed lg:sticky top-[57px] left-0 z-30 h-[calc(100vh-57px)]
+            hidden lg:flex flex-col flex-shrink-0 overflow-hidden
             bg-white border-r border-gray-200
-            transition-all duration-300 ease-in-out
-            overflow-hidden flex flex-col
-            lg:translate-x-0
-            ${collapsed ? "lg:w-16 w-64" : "w-64"}
+            transition-[width] duration-200 ease-in-out
+            ${collapsed ? "w-16" : "w-64"}
           `}
         >
           {/* City Context Header */}
@@ -654,16 +651,77 @@ export function RootLayout() {
           </div>
         </aside>
 
-        {/* Mobile Sidebar Backdrop */}
+        {/* Mobile Sidebar - Full overlay drawer */}
         {mobileMenuOpen && (
-          <div
-            className="fixed inset-0 bg-black/40 z-20 lg:hidden"
-            onClick={() => setMobileMenuOpen(false)}
-          />
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <div className="absolute left-0 top-0 h-full w-64 bg-white border-r border-gray-200 flex flex-col overflow-hidden shadow-xl">
+              {/* Reuse sidebar content - city header */}
+              <div className="p-3 border-b border-gray-200 bg-blue-50">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-blue-600" />
+                  <div>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wide">City</p>
+                    <p className="text-sm font-semibold text-blue-700">{CITIES[city].displayName}</p>
+                  </div>
+                </div>
+              </div>
+              <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
+                {filteredNavigation.map((navItem) => {
+                  const Icon = navItem.icon;
+                  const active = isActiveRoute(location.pathname, location.search, navItem.path, navItem.match);
+                  if (!navItem.children || navItem.children.length === 0) {
+                    return (
+                      <Link
+                        key={navItem.path}
+                        to={navItem.path}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          active ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        <Icon className="w-5 h-5 flex-shrink-0" />
+                        <span>{navItem.label}</span>
+                      </Link>
+                    );
+                  }
+                  const childActive = hasActiveChild(location.pathname, location.search, navItem.children);
+                  return (
+                    <div key={navItem.label}>
+                      <div className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide ${childActive ? "text-blue-600" : "text-gray-400"}`}>
+                        <Icon className="w-4 h-4" />
+                        {navItem.label}
+                      </div>
+                      {navItem.children.map((child) => {
+                        const CIcon = child.icon;
+                        const cActive = isActiveRoute(location.pathname, location.search, child.path, child.match);
+                        return (
+                          <Link
+                            key={child.path}
+                            to={child.path}
+                            onClick={() => setMobileMenuOpen(false)}
+                            className={`flex items-center gap-3 px-3 py-2 pl-8 rounded-lg text-sm transition-colors ${
+                              cActive ? "bg-blue-50 text-blue-600 font-medium" : "text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            <CIcon className="w-4 h-4" />
+                            <span>{child.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </nav>
+            </div>
+          </div>
         )}
 
-        {/* Main Content - Adjusts based on sidebar state */}
-        <main className={`flex-1 p-3 sm:p-4 md:p-6 lg:p-8 transition-all duration-300 min-w-0`}>
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 min-w-0">
           {/* Route Guard - Protects all routes automatically */}
           <RouteGuard />
           <Outlet />
