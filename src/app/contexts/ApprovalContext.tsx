@@ -7,7 +7,11 @@ import { employeeDatabaseService } from "../services/employeeDatabaseService";
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useEvents } from "./EventSystem";
 import { useEmployeeData } from "../hooks/useEmployeeData";
+<<<<<<< HEAD
 // FIX: removed circular import useFinance (ApprovalContext)
+=======
+// REMOVED: circular import useFinance from FinanceContext
+>>>>>>> 0b851aa9b2e9fd6bbad4ae32c45f3398309867bf
 import { useInventory } from "./InventoryContext";
 
 export type ApprovalType =
