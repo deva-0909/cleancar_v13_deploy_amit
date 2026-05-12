@@ -9,6 +9,7 @@ import { useGlobalEventHandlers } from "./hooks/useGlobalEventHandlers";
 import { AppProvider } from "./contexts/AppProvider";
 import { employeeDatabaseService } from "./services/employeeDatabaseService";
 import { loadAllDataFromSupabase } from "./services/supabaseDataLoader";
+import { startupStorageCleanup } from "./services/DataService";
 
 function AppContent() {
   useGlobalEventHandlers();
@@ -62,6 +63,9 @@ export default function App() {
   useEffect(() => {
     async function bootstrap() {
       try {
+        // Free up localStorage space before loading data
+        startupStorageCleanup();
+
         setLoadingMsg("Loading employees...");
         await employeeDatabaseService.loadFromSupabase();
 
