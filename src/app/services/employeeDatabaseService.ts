@@ -85,7 +85,9 @@ class EmployeeDatabaseService {
         supabaseCache = rows;
         // Only save a small subset to localStorage for offline fallback (first 20)
         try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(rows.slice(0, 20)));
+          // Store slim version for offline fallback — full records in supabaseCache
+          const slimRows = rows.slice(0, 30).map((e:any) => ({ id:e.id, tempId:e.tempId, fullName:e.fullName, mobile:e.mobile, loginMobile:e.loginMobile, email:e.email, designation:e.designation, department:e.department, status:e.status, accountStatus:e.accountStatus, passwordHash:e.passwordHash, tempPin:e.tempPin, failedLoginAttempts:e.failedLoginAttempts||0, lockedUntil:e.lockedUntil, dateOfJoining:e.dateOfJoining, cityId:e.cityId, role:e.role, employeeId:e.employeeId }));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(slimRows));
         } catch { /* quota exceeded - in-memory only */ }
         console.log(`✅ Loaded ${rows.length} employees from Supabase`);
       }
@@ -149,7 +151,19 @@ class EmployeeDatabaseService {
 
   private save(employees: EmployeeDatabaseRecord[]): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(employees));
+      // Slim records before writing — saves ~70% space vs full employee objects
+      const slim = employees.map((e: any) => ({
+        id: e.id, tempId: e.tempId, fullName: e.fullName,
+        mobile: e.mobile, loginMobile: e.loginMobile, email: e.email,
+        designation: e.designation, department: e.department,
+        status: e.status, accountStatus: e.accountStatus,
+        passwordHash: e.passwordHash, tempPin: e.tempPin,
+        failedLoginAttempts: e.failedLoginAttempts || 0,
+        lockedUntil: e.lockedUntil, dateOfJoining: e.dateOfJoining,
+        cityId: e.cityId, role: e.role, employeeId: e.employeeId,
+        firstName: e.firstName, lastName: e.lastName,
+      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(slim));
       this.notifySubscribers(employees);
     } catch (error) {
       console.error("Error saving employees to storage:", error);

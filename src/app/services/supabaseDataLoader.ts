@@ -14,17 +14,15 @@ const HEADERS = {
   "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
 };
 
-// ONLY small tables stored in localStorage. Max 4MB total budget.
-// Large tables (customers, leads, jobs, attendance, subscriptions) are
-// read directly from context memory — NOT stored in localStorage.
+// ONLY small tables stored in localStorage. Hard budget: 3MB max.
+// Rows limits kept tight — payroll_runs was 100 (huge), now 20 most recent.
 const SMALL_TABLES: Array<{ table: string; localKey: string; maxRows: number }> = [
-  { table: "cleancar_salary_structures",   localKey: "salary_structures",   maxRows: 50  },
+  { table: "cleancar_salary_structures",   localKey: "salary_structures",   maxRows: 30  },
   { table: "cleancar_incentive_plans",     localKey: "incentive_plans",     maxRows: 20  },
-  { table: "cleancar_payroll_runs",        localKey: "payroll_runs",        maxRows: 100 },
-  { table: "cleancar_employee_incentives", localKey: "employee_incentives", maxRows: 100 },
-  { table: "cleancar_inventory",           localKey: "inventory",           maxRows: 100 },
-  { table: "cleancar_mrr",                 localKey: "mrr",                 maxRows: 50  },
-  { table: "cleancar_public_holidays",     localKey: "public_holidays",     maxRows: 30  },
+  { table: "cleancar_payroll_runs",        localKey: "payroll_runs",        maxRows: 20  },
+  { table: "cleancar_employee_incentives", localKey: "employee_incentives", maxRows: 50  },
+  { table: "cleancar_inventory",           localKey: "inventory",           maxRows: 50  },
+  { table: "cleancar_mrr",                 localKey: "mrr",                 maxRows: 20  },
 ];
 
 function getStorageUsedBytes(): number {
@@ -51,7 +49,7 @@ async function fetchTable(table: string, limit: number): Promise<any[]> {
 }
 
 function safeWrite(key: string, data: any[]): void {
-  const BUDGET = 4 * 1024 * 1024; // 4MB — leave 1MB headroom
+  const BUDGET = 3 * 1024 * 1024; // 3MB — leave 2MB headroom
   if (getStorageUsedBytes() > BUDGET) {
     console.warn(`[Supabase] Skipping ${key} — storage > 4MB`);
     return;
@@ -80,15 +78,25 @@ export async function loadAllDataFromSupabase(forceReload = false): Promise<void
     } catch {}
   }
 
-  // Remove ONLY stale migration backups — do NOT clear all data
-  const staleKeys = Object.keys(localStorage).filter(k =>
+  // Aggressive cleanup before loading — free as much space as possible
+  const keysToRemove = Object.keys(localStorage).filter(k =>
     k.startsWith("BACKUP_PAYROLL_PRE") ||
     k.startsWith("BACKUP_SALARY_PRE") ||
-    k === "cleancar_CITY-SURAT_undefined"
+    k === "cleancar_CITY-SURAT_undefined" ||
+    k.startsWith("cleancar_CITY-MUMBAI_") ||
+    k.startsWith("cleancar_CITY-AHMEDABAD_") ||
+    k.includes("attendance_records") ||
+    k.includes("_jobs") ||
+    k.includes("_leads") ||
+    k.includes("_customers") ||
+    k.includes("_subscriptions") ||
+    k.includes("_revenues") ||
+    k.includes("_payables") ||
+    k.includes("_ledger")
   );
-  if (staleKeys.length > 0) {
-    staleKeys.forEach(k => { try { localStorage.removeItem(k); } catch {} });
-    console.log(`[Supabase] Removed ${staleKeys.length} stale keys`);
+  if (keysToRemove.length > 0) {
+    keysToRemove.forEach(k => { try { localStorage.removeItem(k); } catch {} });
+    console.log(`[Supabase] Removed ${keysToRemove.length} stale/large keys`);
   }
 
   console.log("[Supabase] Loading critical tables...");
