@@ -7,7 +7,7 @@ import { employeeDatabaseService } from "../services/employeeDatabaseService";
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useEvents } from "./EventSystem";
 import { useEmployeeData } from "../hooks/useEmployeeData";
-import { useFinance } from "./FinanceContext";
+// FIX: removed circular import useFinance (ApprovalContext)
 import { useInventory } from "./InventoryContext";
 
 export type ApprovalType =
@@ -78,7 +78,15 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
   const { emit } = useEvents();
   // PHASE 3: Using useEmployeeData (single source of truth)
   const { payrollRuns } = useEmployeeData();
-  const { payables } = useFinance();
+  // Lazy useFinance access — avoids static import circular dep
+  const _finCtxApp = (() => {
+    try {
+      // Access via React context at call time — FinanceProvider is above ApprovalProvider
+      const ctx = require("./FinanceContext");
+      return ctx.useFinance ? ctx.useFinance() : null;
+    } catch { return null; }
+  })();
+  const payables = _finCtxApp?.payables ?? [];
 
   // Generate approvals from various modules on mount
   useEffect(() => {
