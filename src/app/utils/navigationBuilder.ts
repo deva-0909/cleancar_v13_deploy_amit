@@ -43,6 +43,30 @@ export interface NavEmployee {
  * @param city - Optional city context to inject into paths
  * @returns Filtered navigation tree for this specific user
  */
+/**
+ * Get a human-readable label for the current role's navigation context
+ */
+export function getRoleNavigationLabel(role: string): string {
+  const labels: Record<string, string> = {
+    "Super Admin": "Super Admin Console",
+    "Admin": "Admin Console",
+    "City Manager": "City Operations",
+    "Cluster Manager": "Cluster Command",
+    "Sr Operations Manager": "Operations Control",
+    "Operations Manager": "Operations",
+    "Supervisor": "Field Supervisor",
+    "Car Washer": "My Workspace",
+    "TSE": "Sales Workspace",
+    "TSM": "Sales Management",
+    "CCE": "Customer Care",
+    "Store Manager": "Store Management",
+    "Procurement Manager": "Procurement",
+    "Accounts": "Accounts & Finance",
+    "Finance": "Finance Console",
+  };
+  return labels[role] || role;
+}
+
 export function buildNavigation(employee: NavEmployee | null, city?: CityId): NavItem[] {
   if (!employee) {
     // Guest/unauthenticated users only see dashboard

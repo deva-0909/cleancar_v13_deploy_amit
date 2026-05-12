@@ -533,6 +533,9 @@ export const router = createHashRouter([
           { path: "visibility", element: <SupervisorAppConnected /> },
           { path: "audit-trail", element: <SupervisorAppConnected /> },
           { path: "kpi-dashboard", element: <SupervisorAppConnected /> },
+          // FIX: My Account route for supervisor (was missing — clicking My Account from supervisor-app resulted in wrong navigation)
+          { path: "my-account", element: <MyAccountPage /> },
+          { path: "my-account/mobile-change", element: <MobileChangeRequest /> },
         ]
       },
 

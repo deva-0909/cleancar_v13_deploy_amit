@@ -79,6 +79,15 @@ export function SupervisorAppConnected() {
   } = useSupervisor();
 
   const [currentScreen, setCurrentScreen] = useState("dashboard");
+  // Offline detection for field supervisors
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => { window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
+  }, []);
 
   // Detect URL path and auto-switch to corresponding tab
   useEffect(() => {
@@ -743,6 +752,12 @@ export function SupervisorAppConnected() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      {/* Offline indicator for field supervisors */}
+      {!isOnline && (
+        <div className="bg-amber-500 text-white text-center text-xs py-1.5 px-3 font-medium">
+          ⚠ You are offline — changes will sync when connection is restored
+        </div>
+      )}
         <p className="text-gray-600">Loading supervisor data...</p>
       </div>
     );
