@@ -80,9 +80,7 @@ const CustomerSubscriptionContext = createContext<CustomerSubscriptionContextTyp
 
 export function CustomerSubscriptionProvider({ children }: { children: ReactNode }) {
   // Defensive: FinanceProvider must be above CustomerSubscriptionProvider in AppProvider (now fixed).
-  const _finCtx = (() => { try { return useFinance(); } catch { return null; } })();
-  const addMRREntry = _finCtx?.addMRREntry;
-  const removeMRREntry = _finCtx?.removeMRREntry;
+  // useFinance removed — MRR fires via cc360_mrr_add event
   const { city } = useCity();
 
   const [subscriptions, setSubscriptions] = useState<CustomerSubscription[]>(() => {
