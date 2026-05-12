@@ -56,28 +56,81 @@ interface CityProviderProps {
   children: ReactNode;
 }
 
+// Helper: read ?city= from the current hash URL
+// HashRouter uses /#/path?city=surat — query string is after the hash
+function getCityFromURL(): CityId | null {
+  try {
+    const hash = window.location.hash; // e.g. "#/analytics/cac?city=surat"
+    const queryIndex = hash.indexOf("?");
+    if (queryIndex === -1) return null;
+    const params = new URLSearchParams(hash.slice(queryIndex + 1));
+    const cityName = params.get("city")?.toLowerCase();
+    if (!cityName) return null;
+    const found = Object.values(CITIES).find(c => c.name === cityName);
+    return found ? found.id : null;
+  } catch {
+    return null;
+  }
+}
+
+// Helper: update ?city= in the current hash URL without a full navigation
+function updateCityInURL(cityId: CityId) {
+  try {
+    const hash = window.location.hash;
+    const queryIndex = hash.indexOf("?");
+    const cityParam = `city=${CITIES[cityId].name}`;
+
+    let newHash: string;
+    if (queryIndex === -1) {
+      newHash = `${hash}?${cityParam}`;
+    } else {
+      const params = new URLSearchParams(hash.slice(queryIndex + 1));
+      params.set("city", CITIES[cityId].name);
+      newHash = `${hash.slice(0, queryIndex)}?${params.toString()}`;
+    }
+    // Replace hash without triggering a full navigation
+    window.history.replaceState(null, "", newHash);
+  } catch {
+    // Non-critical — silently ignore
+  }
+}
+
 export function CityProvider({ children }: CityProviderProps) {
   const { currentUser, currentRole } = useRole();
 
-  // Default to user's city, then persisted selection, then Surat
+  // Priority: URL param > user's assigned city > persisted localStorage > default Surat
+  const urlCity = getCityFromURL();
   const persistedCity = localStorage.getItem("cleancar_selected_city") as CityId | null;
-  const defaultCity = (currentUser?.cityId as CityId) || persistedCity || "CITY-SURAT";
+  const defaultCity = urlCity || (currentUser?.cityId as CityId) || persistedCity || "CITY-SURAT";
   const [city, setCityState] = useState<CityId>(defaultCity);
 
-  // Persist city selection on change
+  // Persist city selection and sync URL whenever city changes
   useEffect(() => {
     localStorage.setItem("cleancar_selected_city", city);
+    updateCityInURL(city);
+  }, [city]);
+
+  // When the URL hash changes (user clicks a nav link), sync city from URL -> context
+  useEffect(() => {
+    const handleHashChange = () => {
+      const urlCityId = getCityFromURL();
+      if (urlCityId && urlCityId !== city) {
+        setCityState(urlCityId);
+      }
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
   }, [city]);
 
   // Determine if city is locked based on role
   const isLocked = currentRole === "City Manager";
 
-  // Get available cities (all for super admin, user's city for city managers)
+  // Get available cities
   const availableCities = isLocked
     ? [CITIES[defaultCity]]
     : Object.values(CITIES);
 
-  // Sync city with user's city when it changes
+  // Sync city with user's assigned city when role is locked
   useEffect(() => {
     if (currentUser?.cityId && isLocked) {
       setCityState(currentUser.cityId as CityId);
@@ -85,7 +138,6 @@ export function CityProvider({ children }: CityProviderProps) {
   }, [currentUser?.cityId, isLocked]);
 
   const setCity = (newCity: CityId) => {
-    // Don't allow changing city if locked
     if (isLocked && newCity !== defaultCity) {
       console.warn(`City is locked to ${defaultCity} for role ${currentRole}`);
       return;
