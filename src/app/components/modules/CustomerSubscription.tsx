@@ -38,8 +38,8 @@ export function CustomerSubscription() {
 
   // Map subscriptions with customer data
   const customerSubscriptions = useMemo(() => {
-    return subscriptions.map(sub => {
-      const customer = customers.find(c => c.customerId === sub.customerId);
+    return (subscriptions || []).map(sub => {
+      const customer = (customers || []).find(c => c.customerId === sub.customerId);
 
       return {
         customerId: sub.customerId,

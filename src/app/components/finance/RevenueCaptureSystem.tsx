@@ -111,7 +111,7 @@ export function RevenueCaptureSystem() {
       if (!r.receivedDate?.startsWith(selectedMonth)) return false;
       if (filterPincode !== "All") {
         // Match via job pincode
-        const job = allJobs.find(j => j.jobId === r.jobId);
+        const job = (allJobs || []).find(j => j.jobId === r.jobId);
         if (job?.pinCode !== filterPincode) return false;
       }
       if (filterType !== "All" && r.type !== filterType) return false;
@@ -148,13 +148,13 @@ export function RevenueCaptureSystem() {
 
   // ── KPI Metrics ────────────────────────────────────────────────────────────
   const metrics = useMemo(() => {
-    const totalRevenue      = revenues.reduce((s,r) => s + r.amount, 0);
-    const prevTotalRevenue  = prevRevenues.reduce((s,r) => s + r.amount, 0);
-    const subRevenue        = revenues.filter(r => r.type === "Subscription").reduce((s,r) => s+r.amount, 0);
+    const totalRevenue      = (revenues || []).reduce((s,r) => s + r.amount, 0);
+    const prevTotalRevenue  = (prevRevenues || []).reduce((s,r) => s + r.amount, 0);
+    const subRevenue        = (revenues || []).filter(r => r.type === "Subscription").reduce((s,r) => s+r.amount, 0);
     const prevSubRevenue    = prevRevenues.filter(r => r.type === "Subscription").reduce((s,r) => s+r.amount, 0);
-    const onetimeRevenue    = revenues.filter(r => r.type === "One-Time").reduce((s,r) => s+r.amount, 0);
+    const onetimeRevenue    = (revenues || []).filter(r => r.type === "One-Time").reduce((s,r) => s+r.amount, 0);
 
-    const uniqueCusts       = new Set(revenues.map(r => r.customerId));
+    const uniqueCusts       = new Set((revenues || []).map(r => r.customerId));
     const prevUniqueCusts   = new Set(prevRevenues.map(r => r.customerId));
     const retainedCusts     = [...uniqueCusts].filter(id => prevUniqueCusts.has(id));
     const newCusts          = [...uniqueCusts].filter(id => !prevUniqueCusts.has(id)).length;
@@ -212,8 +212,8 @@ export function RevenueCaptureSystem() {
 
   // ── Monthly comparison ─────────────────────────────────────────────────────
   const monthCompareData = useMemo(() => {
-    const curr = revenues.reduce((s,r) => s+r.amount, 0);
-    const prev = prevRevenues.reduce((s,r) => s+r.amount, 0);
+    const curr = (revenues || []).reduce((s,r) => s+r.amount, 0);
+    const prev = (prevRevenues || []).reduce((s,r) => s+r.amount, 0);
     return [
       { id:"mc1", month: MONTHS.find(m=>m.value===prevMonth)?.label||prevMonth, revenue: prev },
       { id:"mc2", month: MONTHS.find(m=>m.value===selectedMonth)?.label||selectedMonth, revenue: curr },
@@ -224,7 +224,7 @@ export function RevenueCaptureSystem() {
   const locationData = useMemo(() => {
     const byPin: Record<string,{revenue:number;count:number}> = {};
     revenues.forEach(r => {
-      const job = allJobs.find(j => j.jobId === r.jobId);
+      const job = (allJobs || []).find(j => j.jobId === r.jobId);
       const pin = job?.pinCode || "Unknown";
       if (!byPin[pin]) byPin[pin] = { revenue:0, count:0 };
       byPin[pin].revenue += r.amount;
@@ -278,7 +278,7 @@ export function RevenueCaptureSystem() {
     if (revenues.length === 0) { toast.error("No data to export"); return; }
     const rows = [
       ["Revenue ID","Date","Customer ID","Type","Amount","Payment Method","Status","City"],
-      ...revenues.map(r => [
+      ...(revenues || []).map(r => [
         r.revenueId, r.receivedDate, r.customerId,
         r.type, r.amount, r.paymentMethod, r.status, cityInfo.displayName,
       ]),

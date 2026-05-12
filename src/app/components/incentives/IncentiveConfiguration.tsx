@@ -432,11 +432,11 @@ function IncentiveConfiguration() {
   const [editingRule, setEditingRule] = useState<IncentiveRule | null>(null);
 
   // Get selected role data
-  const selectedRole = roles.find(r => r.code === selectedRoleCode);
+  const selectedRole = (roles || []).find(r => r.code === selectedRoleCode);
 
 
   // Calculate metrics (mock data for now - should come from backend)
-  const activeEmployeesInRole = employees.filter(e =>
+  const activeEmployeesInRole = (employees || []).filter(e =>
     selectedRole &&
     e.employmentInfo.role === selectedRole.name &&
     e.status === "active"
@@ -452,7 +452,7 @@ function IncentiveConfiguration() {
   // Auto-select first role when roles load
   useEffect(() => {
     if (roles.length > 0 && !selectedRoleCode) {
-      const firstActiveRole = roles.find(r => r.isActive);
+      const firstActiveRole = (roles || []).find(r => r.isActive);
       if (firstActiveRole) {
         setSelectedRoleCode(firstActiveRole.code);
       }
@@ -1050,7 +1050,7 @@ function IncentiveConfiguration() {
         <CardContent>
           <Tabs value={selectedRoleCode} onValueChange={setSelectedRoleCode}>
             <TabsList className="grid grid-cols-7 w-full gap-1">
-              {roles.filter(r => r.isActive).slice(0, 15).map(role => (
+              {(roles || []).filter(r => r.isActive).slice(0, 15).map(role => (
                 <TabsTrigger
                   key={role.id}
                   value={role.code}

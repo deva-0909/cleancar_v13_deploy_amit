@@ -25,18 +25,18 @@ export function GSTR3BModule() {
   );
 
   const salesTransactions = useMemo(() =>
-    monthTransactions.filter(t => t.transactionType === "Sale"),
+    (monthTransactions || []).filter(t => t.transactionType === "Sale"),
     [monthTransactions]
   );
 
   const purchaseTransactions = useMemo(() =>
-    monthTransactions.filter(t => t.transactionType === "Purchase"),
+    (monthTransactions || []).filter(t => t.transactionType === "Purchase"),
     [monthTransactions]
   );
 
   const table31 = useMemo(() => {
     // Row (a): Outward taxable supplies (other than zero rated, nil rated, exempt)
-    const taxableSupplies = salesTransactions.filter(t =>
+    const taxableSupplies = (salesTransactions || []).filter(t =>
       t.supplyNature === "Taxable" || (!t.supplyNature && t.gstRate > 0)
     );
     const taxableValue = taxableSupplies.reduce((s, t) => s + t.taxableValue, 0);
@@ -45,11 +45,11 @@ export function GSTR3BModule() {
     const taxableSGST = taxableSupplies.reduce((s, t) => s + t.sgst, 0);
 
     // Row (b): Zero rated outward supplies
-    const zeroRatedSupplies = salesTransactions.filter(t => t.supplyNature === "ZeroRated");
+    const zeroRatedSupplies = (salesTransactions || []).filter(t => t.supplyNature === "ZeroRated");
     const zeroRatedValue = zeroRatedSupplies.reduce((s, t) => s + t.taxableValue, 0);
 
     // Row (c): Nil rated, exempt
-    const nilExemptSupplies = salesTransactions.filter(t =>
+    const nilExemptSupplies = (salesTransactions || []).filter(t =>
       t.supplyNature === "NilRated" || t.supplyNature === "Exempt"
     );
     const nilExemptValue = nilExemptSupplies.reduce((s, t) => s + t.taxableValue, 0);
@@ -62,7 +62,7 @@ export function GSTR3BModule() {
     const rcmSGST = rcmSupplies.reduce((s, t) => s + t.sgst, 0);
 
     // Row (e): Non-GST outward supplies
-    const nonGSTSupplies = salesTransactions.filter(t => t.supplyNature === "NonGST");
+    const nonGSTSupplies = (salesTransactions || []).filter(t => t.supplyNature === "NonGST");
     const nonGSTValue = nonGSTSupplies.reduce((s, t) => s + t.taxableValue, 0);
 
     return {
@@ -76,7 +76,7 @@ export function GSTR3BModule() {
 
   // Table 3.2 — Inter-State Supplies (state-wise breakdown for inter-state B2C)
   const table32 = useMemo(() => {
-    const interStateB2C = salesTransactions.filter(t =>
+    const interStateB2C = (salesTransactions || []).filter(t =>
       t.supplyType === "INTER_STATE" && !t.customerGSTIN
     );
     const stateWise = interStateB2C.reduce((acc, t) => {

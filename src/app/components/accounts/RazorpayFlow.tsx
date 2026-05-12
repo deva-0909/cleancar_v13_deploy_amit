@@ -83,7 +83,7 @@ export function RazorpayFlow() {
   const [newAmount, setNewAmount] = useState("");
   const [customerSearch, setCustomerSearch] = useState("");
 
-  const filteredCustomers = cityCustomers.filter(c =>
+  const filteredCustomers = (cityCustomers || []).filter(c =>
     c.status === "Active" &&
     (!customerSearch || `${c.firstName} ${c.lastName} ${c.phone}`.toLowerCase().includes(customerSearch.toLowerCase()))
   );
@@ -99,7 +99,7 @@ export function RazorpayFlow() {
 
   // Calculate totals
   const totalSales = useMemo(() => {
-    return customers.reduce((sum, c) => sum + c.amount, 0);
+    return (customers || []).reduce((sum, c) => sum + c.amount, 0);
   }, [customers]);
 
   const gstAmount = useMemo(() => {
@@ -119,7 +119,7 @@ export function RazorpayFlow() {
   // Group customers by package for sales entry
   const salesByPackage = useMemo(() => {
     const grouped: Record<string, { packageName: string; total: number }> = {};
-    customers.forEach(c => {
+    (customers || []).forEach(c => {
       if (!grouped[c.packageCode]) {
         grouped[c.packageCode] = { packageName: c.packageName, total: 0 };
       }
@@ -156,7 +156,7 @@ export function RazorpayFlow() {
   };
 
   const handleRemoveCustomer = (id: string) => {
-    setCustomers(customers.filter(c => c.id !== id));
+    setCustomers((customers || []).filter(c => c.id !== id));
   };
 
   const handleNext = () => {
@@ -179,7 +179,7 @@ export function RazorpayFlow() {
 
   const handlePostAll = () => {
     // Create customer ledgers first
-    customers.forEach(c => {
+    (customers || []).forEach(c => {
       accountingEntryService.createCustomerLedger(
         c.id,
         c.customerName,
@@ -193,7 +193,7 @@ export function RazorpayFlow() {
 
     // Entry 1 - Sales Entry (Customers Dr, Sales Cr by package)
     const salesLines: JournalLine[] = [];
-    customers.forEach(c => {
+    (customers || []).forEach(c => {
       salesLines.push({
         accountHead: `CUST-LEDGER-${c.id}`,
         accountLabel: c.customerName,
@@ -234,7 +234,7 @@ export function RazorpayFlow() {
         credit: 0,
       }
     ];
-    customers.forEach(c => {
+    (customers || []).forEach(c => {
       collectionLines.push({
         accountHead: `CUST-LEDGER-${c.id}`,
         accountLabel: c.customerName,

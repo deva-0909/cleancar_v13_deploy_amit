@@ -31,7 +31,7 @@ export function GSTR1Module() {
     const noCriticalRisk = monthTransactions.every(t => t.riskLevel !== "Critical");
     const hasHSN = monthTransactions.every(t => t.hsnSacCode && t.hsnSacCode.length >= 4);
     const hasPlaceOfSupply = monthTransactions.every(t => t.placeOfSupply);
-    const uniqueInvoices = new Set(monthTransactions.map(t => t.invoiceNumber)).size === monthTransactions.length;
+    const uniqueInvoices = new Set((monthTransactions || []).map(t => t.invoiceNumber)).size === monthTransactions.length;
 
     return {
       allApproved,
@@ -44,17 +44,17 @@ export function GSTR1Module() {
   }, [monthTransactions]);
 
   const b2bInvoices = useMemo(() =>
-    monthTransactions.filter(t => t.gstType === "B2B"),
+    (monthTransactions || []).filter(t => t.gstType === "B2B"),
     [monthTransactions]
   );
 
   const b2cLarge = useMemo(() =>
-    monthTransactions.filter(t => t.gstType === "B2C" && t.invoiceTotal > 250000),
+    (monthTransactions || []).filter(t => t.gstType === "B2C" && t.invoiceTotal > 250000),
     [monthTransactions]
   );
 
   const b2cSmallSummary = useMemo(() => {
-    const small = monthTransactions.filter(t => t.gstType === "B2C" && t.invoiceTotal <= 250000);
+    const small = (monthTransactions || []).filter(t => t.gstType === "B2C" && t.invoiceTotal <= 250000);
     const byState: Record<string, { count: number; taxable: number; cgst: number; sgst: number; igst: number }> = {};
 
     small.forEach(t => {
@@ -108,8 +108,8 @@ export function GSTR1Module() {
 
   const currentMonthData = useMemo(() => ({
     count: monthTransactions.length,
-    taxable: monthTransactions.reduce((s, t) => s + t.taxableValue, 0),
-    totalTax: monthTransactions.reduce((s, t) => s + t.totalTax, 0)
+    taxable: (monthTransactions || []).reduce((s, t) => s + t.taxableValue, 0),
+    totalTax: (monthTransactions || []).reduce((s, t) => s + t.totalTax, 0)
   }), [monthTransactions]);
 
   const handleGenerate = () => {
@@ -308,7 +308,7 @@ export function GSTR1Module() {
     }));
 
     // Sheet 5 — Document Summary
-    const allInvoiceNos = monthTransactions.map(t => t.invoiceNumber);
+    const allInvoiceNos = (monthTransactions || []).map(t => t.invoiceNumber);
     const docsData = [
       {
         "Nature of Document": "Invoices for outward supply",

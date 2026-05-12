@@ -231,6 +231,8 @@ export const permissionMatrix: Record<City, RolePermissions> = {
     HR: {
       dashboard: ["view"],
       users: ["view", "create", "edit"],
+      crm: ["view"],            // HR can view CRM for employee lead conversion tracking
+      customers: ["view"],      // HR can view customer list
       hr: ["view", "create", "edit", "approve", "export"],
       advance: ["view", "create", "edit", "approve"],
       payroll: ["view", "create", "edit", "approve", "export"],

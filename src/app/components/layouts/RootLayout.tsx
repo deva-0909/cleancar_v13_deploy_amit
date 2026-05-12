@@ -224,7 +224,7 @@ export function RootLayout() {
           // Keep most recent 90 records
           const trimmed = records.slice(-90);
           localStorage.setItem(attKey, JSON.stringify(trimmed));
-          console.log(`[Storage] Trimmed attendance: ${records.length} → ${trimmed.length}`);
+          logger.log(`[Storage] Trimmed attendance: ${records.length} → ${trimmed.length}`);
         }
       }
     } catch {}
