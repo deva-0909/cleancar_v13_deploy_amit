@@ -39,7 +39,7 @@ export function ExitManagement() {
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
-            {mockExits.map((exit) => (
+            {([] as any[]).map((exit) => (
               <div key={exit.id} className="border rounded-lg p-6 space-y-4">
                 <div className="flex items-start justify-between">
                   <div>
