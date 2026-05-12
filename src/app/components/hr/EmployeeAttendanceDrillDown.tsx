@@ -32,12 +32,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
 import { Textarea } from "../ui/textarea";
-// Lazy import breaks the static bundle circular dependency chain:
-// HRModule → EmployeeAttendanceDrillDown → GeneratedPayslip → useRole → RoleContext
-// By lazy-loading, Vite puts GeneratedPayslip in a separate chunk, eliminating the TDZ error.
-const GeneratedPayslip = React.lazy(() =>
-  import("./GeneratedPayslip").then(m => ({ default: m.GeneratedPayslip }))
-);
+// GeneratedPayslip is statically imported here.
+// HRModule lazy-loads THIS component (EmployeeAttendanceDrillDown) as the lazy boundary.
+// GeneratedPayslip is bundled INTO this chunk — no nested React.lazy needed.
+// Nested lazy-within-lazy caused "Cannot access 'y' before initialization" (React useState TDZ).
+import { GeneratedPayslip } from "./GeneratedPayslip";
 import { useEmployeeData } from "../../hooks/useEmployeeData";
 
 // ==================== INTERFACES ====================
@@ -839,22 +838,13 @@ export function EmployeeAttendanceDrillDown({
                 </CardContent>
               </Card>
 
-              <React.Suspense fallback={
-                <div className="flex items-center justify-center p-8 text-gray-400">
-                  <div className="text-center">
-                    <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin mx-auto mb-2" />
-                    <p className="text-sm">Loading payslip...</p>
-                  </div>
-                </div>
-              }>
-                <GeneratedPayslip
+              <GeneratedPayslip
                   data={data}
                   month={month}
                   year={year}
                   currentRole={(() => { try { const s = localStorage.getItem("cc360_session"); return s ? JSON.parse(s).role : undefined; } catch { return undefined; } })()}
                   currentUser={(() => { try { const s = localStorage.getItem("cc360_session"); const p = s ? JSON.parse(s) : null; return p ? { name: p.employeeName } : undefined; } catch { return undefined; } })()}
                 />
-              </React.Suspense>
             </>
           ) : (
             <div className="text-center py-12">
