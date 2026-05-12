@@ -49,8 +49,13 @@ export function RootLayout() {
 
   if (!isPreview) {
     const session = localStorage.getItem("cc360_session");
-    if (!session && !window.location.pathname.startsWith("/login")) {
-      window.location.replace("/login");
+    // FIX: use hash-router-compatible check (hash contains the route, not pathname)
+    // window.location.replace("/login") was breaking hash router navigation
+    const currentHash = window.location.hash.replace("#", "");
+    const isOnLogin = currentHash.startsWith("/login") || window.location.pathname === "/login";
+    if (!session && !isOnLogin) {
+      // Use hash-compatible redirect instead of window.location.replace
+      window.location.hash = "/login";
       return null;
     }
   }
@@ -224,20 +229,21 @@ export function RootLayout() {
           // Keep most recent 90 records
           const trimmed = records.slice(-90);
           localStorage.setItem(attKey, JSON.stringify(trimmed));
-          logger.log(`[Storage] Trimmed attendance: ${records.length} → ${trimmed.length}`);
+          console.log(`[Storage] Trimmed attendance: ${records.length} → ${trimmed.length}`);
         }
       }
     } catch {}
 
-    // Step 3: Log storage usage — only warn in DEV, never show to users
-    if (import.meta.env.DEV) {
-      setTimeout(() => {
-        const quota = checkStorageQuota();
-        if (quota.percentUsed > 80) {
-          console.warn(`[Storage] ${quota.percentUsed.toFixed(0)}% used`);
-        }
-      }, 3000);
-    }
+    // Step 3: Check quota — only warn if genuinely over 90% after purge
+    setTimeout(() => {
+      const quota = checkStorageQuota();
+      if (quota.percentUsed > 90) {
+        toast.warning(
+          `Storage ${quota.percentUsed.toFixed(0)}% full. Consider clearing browser cache.`,
+          { duration: 5000 }
+        );
+      }
+    }, 3000);
   }, []); // run once on mount
 
 
@@ -434,7 +440,6 @@ export function RootLayout() {
                   <Link
                     key={navItem.path}
                     to={navItem.path}
-                    onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-3 rounded-lg transition-colors ${
                       collapsed
                         ? "lg:justify-center lg:w-10 lg:h-10 lg:mx-auto px-3"
@@ -483,35 +488,20 @@ export function RootLayout() {
                     {/* Desktop: icon with tooltip */}
                     <Tooltip>
                       <TooltipTrigger asChild className="hidden lg:block">
-                        <button
-                          onClick={() => toggleSidebar()}
-                          className={`flex items-center justify-center w-10 h-10 mx-auto mb-0.5 rounded-lg cursor-pointer transition-colors ${
-                            childrenActive
-                              ? "bg-blue-50 text-blue-600 border-l-2 border-blue-600"
-                              : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                          }`}
-                          title={`Click to expand sidebar`}
-                        >
+                        <div className={`flex items-center justify-center w-10 h-10 mx-auto mb-0.5 rounded-lg cursor-default transition-colors ${
+                          childrenActive
+                            ? "bg-blue-50 text-blue-600 border-l-2 border-blue-600"
+                            : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                        }`}>
                           <Icon className="w-5 h-5" />
-                        </button>
+                        </div>
                       </TooltipTrigger>
-                      <TooltipContent side="right" className="hidden lg:block p-0 overflow-hidden">
-                        <div className="py-1">
-                          <p className="font-semibold px-3 py-1.5 text-xs uppercase tracking-wider text-gray-500 border-b">{navItem.label}</p>
-                          {navItem.children.map((child) => {
-                            const CIcon = child.icon;
-                            return (
-                              <Link
-                                key={child.path}
-                                to={child.path}
-                                onClick={() => { toggleSidebar(); }}
-                                className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                              >
-                                <CIcon className="w-3.5 h-3.5" />
-                                {child.label}
-                              </Link>
-                            );
-                          })}
+                      <TooltipContent side="right" className="hidden lg:block">
+                        <p className="font-semibold mb-1">{navItem.label}</p>
+                        <div className="space-y-1">
+                          {navItem.children.map((child) => (
+                            <p key={child.path} className="text-xs">{child.label}</p>
+                          ))}
                         </div>
                       </TooltipContent>
                     </Tooltip>
@@ -588,7 +578,6 @@ export function RootLayout() {
                           <Link
                             key={child.path}
                             to={child.path}
-                            onClick={() => setMobileMenuOpen(false)}
                             className={`flex items-center gap-3 px-3 py-2 pl-8 rounded-lg transition-colors text-sm ${
                               active
                                 ? "bg-blue-50 text-blue-600 font-medium"
