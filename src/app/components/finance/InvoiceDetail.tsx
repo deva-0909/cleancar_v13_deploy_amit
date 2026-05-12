@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
-import { formatCurrency } from "../../lib/formatters";
+import { formatCurrency as _formatCurrencyBase } from "../../lib/formatters";
+// Invoice amounts must show exact values — never compact (₹3K vs ₹2,950)
+const formatCurrency = (amount: number | null | undefined) =>
+  _formatCurrencyBase(amount, { compact: false, decimals: 2 });
 import {
   FileText,
   DollarSign,

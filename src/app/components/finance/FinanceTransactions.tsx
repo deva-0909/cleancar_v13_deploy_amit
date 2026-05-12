@@ -192,30 +192,120 @@ const getMockTransactions = (cityName: string): FinanceTransaction[] => [
     date: "2026-04-20",
     type: "EXPENSE",
     source: "manualEntry",
-    description: "Cleaning supplies purchase",
+    description: "Cleaning supplies — materials consumed",
     referenceId: "PO-2026-045",
-    amount: 15000, // From financeEngine (includes GST)
-    accountDebit: "5100 - Materials Expense",
+    amount: 15000,
+    accountDebit: "5100 - Materials / COGS",
     accountCredit: "2000 - Accounts Payable",
     status: "POSTED",
     city: cityName,
     postedBy: "Finance Team",
-    notes: "Vendor: CleanPro Supplies",
+    notes: "Vendor: CleanPro Supplies — Material consumption entry",
   },
   {
-    id: "TXN-004",
+    id: "TXN-004A",
     date: "2026-04-20",
     type: "SALARY",
     source: "payrollEngine",
-    description: "February 2026 Payroll - Car Washers",
-    referenceId: "PAYROLL-FEB-2026-WASHERS",
-    amount: 285000, // From financeEngine (payrollEngine output)
+    description: "Feb 2026 — Ravi Kumar Sharma (Supervisor)",
+    referenceId: "PAYROLL-FEB-2026-EMP001",
+    amount: 28000,
     accountDebit: "5200 - Wage Expense",
-    accountCredit: "2100 - Salary Payable",
+    accountCredit: "2100 - Salary Payable / Ravi Kumar",
     status: "POSTED",
     city: cityName,
     postedBy: "payrollEngine",
-    notes: "Auto-posted from payroll processing",
+    notes: "Salary Dr to Ravi Kumar Sharma",
+  },
+  {
+    id: "TXN-004B",
+    date: "2026-04-20",
+    type: "SALARY",
+    source: "payrollEngine",
+    description: "Feb 2026 — Suresh Yadav (Car Washer)",
+    referenceId: "PAYROLL-FEB-2026-EMP002",
+    amount: 18000,
+    accountDebit: "5200 - Wage Expense",
+    accountCredit: "2100 - Salary Payable / Suresh Yadav",
+    status: "POSTED",
+    city: cityName,
+    postedBy: "payrollEngine",
+    notes: "Salary Dr to Suresh Yadav",
+  },
+  {
+    id: "TXN-004C",
+    date: "2026-04-20",
+    type: "SALARY",
+    source: "payrollEngine",
+    description: "Feb 2026 — Anita Joshi (Accounts)",
+    referenceId: "PAYROLL-FEB-2026-EMP003",
+    amount: 32000,
+    accountDebit: "5200 - Wage Expense",
+    accountCredit: "2100 - Salary Payable / Anita Joshi",
+    status: "POSTED",
+    city: cityName,
+    postedBy: "payrollEngine",
+    notes: "Salary Dr to Anita Joshi",
+  },
+  {
+    id: "TXN-004D",
+    date: "2026-04-20",
+    type: "SALARY",
+    source: "payrollEngine",
+    description: "Feb 2026 — Mohan Singh (Operations Manager)",
+    referenceId: "PAYROLL-FEB-2026-EMP004",
+    amount: 48000,
+    accountDebit: "5200 - Wage Expense",
+    accountCredit: "2100 - Salary Payable / Mohan Singh",
+    status: "POSTED",
+    city: cityName,
+    postedBy: "payrollEngine",
+    notes: "Salary Dr to Mohan Singh",
+  },
+  {
+    id: "TXN-004E",
+    date: "2026-04-20",
+    type: "SALARY",
+    source: "payrollEngine",
+    description: "Feb 2026 — Priya Patel (HR Manager)",
+    referenceId: "PAYROLL-FEB-2026-EMP005",
+    amount: 35000,
+    accountDebit: "5200 - Wage Expense",
+    accountCredit: "2100 - Salary Payable / Priya Patel",
+    status: "POSTED",
+    city: cityName,
+    postedBy: "payrollEngine",
+    notes: "Salary Dr to Priya Patel",
+  },
+  {
+    id: "TXN-004F",
+    date: "2026-04-20",
+    type: "SALARY",
+    source: "payrollEngine",
+    description: "Feb 2026 — PF Employer Contribution (All staff)",
+    referenceId: "PAYROLL-FEB-2026-PF-EMPLOYER",
+    amount: 15400,
+    accountDebit: "5210 - PF Expense",
+    accountCredit: "2110 - PF Payable",
+    status: "POSTED",
+    city: cityName,
+    postedBy: "payrollEngine",
+    notes: "12% employer PF on eligible wages",
+  },
+  {
+    id: "TXN-004G",
+    date: "2026-04-20",
+    type: "SALARY",
+    source: "payrollEngine",
+    description: "Feb 2026 — ESI Employer Contribution",
+    referenceId: "PAYROLL-FEB-2026-ESI",
+    amount: 7200,
+    accountDebit: "5211 - ESI Expense",
+    accountCredit: "2111 - ESI Payable",
+    status: "POSTED",
+    city: cityName,
+    postedBy: "payrollEngine",
+    notes: "3.25% employer ESI",
   },
   {
     id: "TXN-005",
@@ -248,21 +338,8 @@ const getMockTransactions = (cityName: string): FinanceTransaction[] => [
     cluster: "Central",
     postedBy: "operationsEngine",
   },
-  {
-    id: "TXN-007",
-    date: "2026-04-19",
-    type: "EXPENSE",
-    source: "payrollEngine",
-    description: "PF Employer Contribution - Feb 2026",
-    referenceId: "PAYROLL-FEB-2026-PF",
-    amount: 34200, // From financeEngine
-    accountDebit: "5210 - PF Expense",
-    accountCredit: "2110 - PF Payable",
-    status: "POSTED",
-    city: cityName,
-    postedBy: "payrollEngine",
-    notes: "Auto-posted from payroll processing",
-  },
+  // TXN-007 moved to SALARY tab as TXN-004F
+
   {
     id: "TXN-008",
     date: "2026-04-18",
@@ -583,6 +660,34 @@ export function FinanceTransactions() {
           </div>
         </CardHeader>
         <CardContent>
+          {typeFilter === "SALARY" && (
+            <div className="mb-3 space-y-2">
+              <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-blue-800">Employee-wise Salary Entries</p>
+                  <p className="text-xs text-blue-600 mt-0.5">
+                    Each row = one employee or statutory component (Dr Wage Expense / Cr Salary Payable).
+                    Verified by HR → auto-posted via payrollEngine.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">Payroll → Finance Auto-Post</p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    Once HR Manager verifies payroll, salary journal entries are automatically posted here.
+                    Go to <strong>Payroll → Review & Approval</strong> to process.
+                  </p>
+                </div>
+                <a
+                  href="#/payroll/review-approval"
+                  className="ml-4 flex-shrink-0 px-3 py-1.5 text-xs font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+                >
+                  Open Payroll ↗
+                </a>
+              </div>
+            </div>
+          )}
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>

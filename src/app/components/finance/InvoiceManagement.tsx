@@ -256,9 +256,9 @@ export default function InvoiceManagement() {
       const invoiceNum = i + 1;
       const baseAmount = sub.pricing?.finalPrice || 0;
       const taxableAmount = baseAmount;
-      const cgst = Math.round(taxableAmount * 0.09);
-      const sgst = Math.round(taxableAmount * 0.09);
-      const totalAmount = Math.round(taxableAmount * 1.18);
+      const cgst = parseFloat((taxableAmount * 0.09).toFixed(2));
+      const sgst = parseFloat((taxableAmount * 0.09).toFixed(2));
+      const totalAmount = parseFloat((taxableAmount + cgst + sgst).toFixed(2));
 
       return {
         id: sub.subscriptionId,

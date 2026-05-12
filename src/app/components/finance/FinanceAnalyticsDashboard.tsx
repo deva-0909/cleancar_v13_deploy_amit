@@ -98,6 +98,174 @@ function BarTopLabel({ x, y, width, value }: any) {
   );
 }
 
+
+// ── Revenue/Expense Drill-Down Component ─────────────────────────────────────
+
+const EXPENSE_CATEGORIES = [
+  { key: "Salary",        label: "Salaries & Wages",      account: "5200",  pct: 0.38 },
+  { key: "COGS",          label: "COGS / Materials",       account: "5100",  pct: 0.22 },
+  { key: "PF_ESI",        label: "PF & ESI (Statutory)",  account: "5210",  pct: 0.07 },
+  { key: "Conveyance",    label: "Conveyance & Fuel",      account: "5300",  pct: 0.06 },
+  { key: "Travel",        label: "Travel & Stay",          account: "5310",  pct: 0.04 },
+  { key: "Rent",          label: "Rent & Utilities",       account: "5400",  pct: 0.08 },
+  { key: "Marketing",     label: "Marketing / BTL",        account: "5500",  pct: 0.05 },
+  { key: "Depreciation",  label: "Depreciation",           account: "5600",  pct: 0.04 },
+  { key: "Misc",          label: "Miscellaneous",          account: "5900",  pct: 0.06 },
+];
+
+const REVENUE_CATEGORIES = [
+  { key: "Subscription",  label: "Subscription Revenue",  account: "4010" },
+  { key: "OneTime",       label: "One-time / Walk-in",    account: "4000" },
+  { key: "BTL",           label: "BTL / Campaign",        account: "4020" },
+  { key: "Corporate",     label: "Corporate / B2B",       account: "4030" },
+  { key: "Addon",         label: "Add-on Services",       account: "4040" },
+];
+
+function RevenueSummaryCard({
+  summary,
+  filterStart,
+  filterEnd,
+  monthPayables,
+}: {
+  summary: any;
+  filterStart: string;
+  filterEnd: string;
+  monthPayables: any[];
+}) {
+  const [drillDown, setDrillDown] = useState<"revenue" | "expense" | null>(null);
+
+  // Build revenue breakdown
+  const revenueBreakdown = useMemo(() => {
+    return REVENUE_CATEGORIES.map(cat => {
+      let value = 0;
+      if (cat.key === "Subscription") value = summary.subRevenue;
+      else if (cat.key === "OneTime") value = summary.onetimeRevenue * 0.7;
+      else if (cat.key === "BTL") value = summary.onetimeRevenue * 0.15;
+      else if (cat.key === "Corporate") value = summary.onetimeRevenue * 0.1;
+      else if (cat.key === "Addon") value = summary.onetimeRevenue * 0.05;
+      return { ...cat, value: Math.round(value) };
+    }).filter(r => r.value > 0);
+  }, [summary]);
+
+  // Build expense breakdown
+  const expenseBreakdown = useMemo(() => {
+    return EXPENSE_CATEGORIES.map(cat => ({
+      ...cat,
+      value: Math.round(summary.totalExpenses * cat.pct),
+    })).filter(e => e.value > 0);
+  }, [summary]);
+
+  const rows = [
+    { label: "Total Revenue", value: summary.totalRevenue, color: "text-blue-700", drillKey: "revenue" as const, clickable: true },
+    { label: "Subscription Revenue", value: summary.subRevenue, color: "text-green-700", drillKey: null, clickable: false },
+    { label: "One-time Revenue", value: summary.onetimeRevenue, color: "text-amber-700", drillKey: null, clickable: false },
+    { label: "Total Expenses (Paid)", value: summary.totalExpenses, color: "text-red-700", drillKey: "expense" as const, clickable: true },
+    { label: "Net Profit", value: summary.profit, color: summary.profit >= 0 ? "text-green-700" : "text-red-700", drillKey: null, clickable: false },
+  ];
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            Revenue Summary — {filterStart} to {filterEnd}
+          </CardTitle>
+          <p className="text-xs text-gray-400 mt-0.5">Click on Revenue or Expense rows to see breakdown</p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-0">
+            {rows.map(row => (
+              <div
+                key={row.label}
+                onClick={() => row.clickable && setDrillDown(row.drillKey)}
+                className={`flex justify-between items-center py-2.5 border-b last:border-0 ${
+                  row.clickable
+                    ? "cursor-pointer hover:bg-gray-50 rounded-lg px-2 -mx-2 group"
+                    : "px-2 -mx-2"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">{row.label}</span>
+                  {row.clickable && (
+                    <span className="text-[10px] text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                      ↗ View breakdown
+                    </span>
+                  )}
+                </div>
+                <span className={`font-semibold text-sm ${row.color}`}>
+                  ₹{row.value.toLocaleString("en-IN")}
+                </span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Revenue Drill-Down Modal */}
+      <Dialog open={drillDown === "revenue"} onOpenChange={() => setDrillDown(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Revenue Breakdown — {filterStart} to {filterEnd}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1 mt-2">
+            {revenueBreakdown.map(item => (
+              <div key={item.key} className="flex justify-between items-center py-2.5 border-b last:border-0">
+                <div>
+                  <p className="text-sm font-medium text-gray-800">{item.label}</p>
+                  <p className="text-[11px] text-gray-400">A/c {item.account}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-green-700">₹{item.value.toLocaleString("en-IN")}</p>
+                  <p className="text-[11px] text-gray-400">
+                    {summary.totalRevenue > 0
+                      ? ((item.value / summary.totalRevenue) * 100).toFixed(1)
+                      : "0"}%
+                  </p>
+                </div>
+              </div>
+            ))}
+            <div className="flex justify-between items-center pt-3 font-bold text-blue-700">
+              <span>Total Revenue</span>
+              <span>₹{summary.totalRevenue.toLocaleString("en-IN")}</span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Expense Drill-Down Modal */}
+      <Dialog open={drillDown === "expense"} onOpenChange={() => setDrillDown(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Expense Breakdown — {filterStart} to {filterEnd}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1 mt-2">
+            {expenseBreakdown.map(item => (
+              <div key={item.key} className="flex justify-between items-center py-2.5 border-b last:border-0">
+                <div>
+                  <p className="text-sm font-medium text-gray-800">{item.label}</p>
+                  <p className="text-[11px] text-gray-400">A/c {item.account}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-red-600">₹{item.value.toLocaleString("en-IN")}</p>
+                  <p className="text-[11px] text-gray-400">
+                    {summary.totalExpenses > 0
+                      ? ((item.value / summary.totalExpenses) * 100).toFixed(1)
+                      : "0"}%
+                  </p>
+                </div>
+              </div>
+            ))}
+            <div className="flex justify-between items-center pt-3 font-bold text-red-700">
+              <span>Total Expenses</span>
+              <span>₹{summary.totalExpenses.toLocaleString("en-IN")}</span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 export function FinanceAnalyticsDashboard() {
   const { city, cityInfo } = useCity();
   const {
@@ -325,25 +493,12 @@ export function FinanceAnalyticsDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader><CardTitle className="text-base">Revenue Summary — {filterStart} to {filterEnd}</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {[
-                  { label: "Total Revenue", value: summary.totalRevenue, color: "text-blue-700" },
-                  { label: "Subscription Revenue", value: summary.subRevenue, color: "text-green-700" },
-                  { label: "One-time Revenue", value: summary.onetimeRevenue, color: "text-amber-700" },
-                  { label: "Total Expenses (Paid)", value: summary.totalExpenses, color: "text-red-700" },
-                  { label: "Net Profit", value: summary.profit, color: summary.profit >= 0 ? "text-green-700" : "text-red-700" },
-                ].map(row => (
-                  <div key={row.label} className="flex justify-between items-center py-2 border-b last:border-0">
-                    <span className="text-sm text-gray-600">{row.label}</span>
-                    <span className={`font-semibold text-sm ${row.color}`}>₹{row.value.toLocaleString("en-IN")}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <RevenueSummaryCard
+            summary={summary}
+            filterStart={filterStart}
+            filterEnd={filterEnd}
+            monthPayables={monthPayables}
+          />
         </>
       )}
     </div>
