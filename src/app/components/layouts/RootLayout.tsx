@@ -190,12 +190,6 @@ export function RootLayout() {
     setUserToggled(false);
   }, [location.pathname, setUserToggled]);
 
-  // Scroll main content to top on every route change
-  useEffect(() => {
-    const mainEl = document.querySelector("main");
-    if (mainEl) mainEl.scrollTop = 0;
-  }, [location.pathname, location.hash]);
-
   // Auto-open the group containing the active route
   useEffect(() => {
     userNavigation.forEach((item) => {
@@ -726,10 +720,7 @@ export function RootLayout() {
         {/* Main Content — key forces remount on every route/role change */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 min-w-0">
           <RouteGuard />
-          {/* Stable key: pathname+hash guarantees full remount on every navigation */}
-          <div key={location.key}>
-            <Outlet />
-          </div>
+          <Outlet />
         </main>
       </div>
 
