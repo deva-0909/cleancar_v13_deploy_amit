@@ -6,10 +6,20 @@ import { Award, Users, AlertCircle, TrendingUp, Calculator, ArrowRight, Lightbul
 import { MASTER_KPI_DATA, MASTER_COMPLAINTS } from "../../data/masterData";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { useCity } from "../../contexts/CityContext";
+import { useJobs } from "../../contexts/JobContext";
+import { useMemo } from "react";
 
 export function OperationsDashboard() {
-  // Use centralized complaints data
-  const activeComplaints = MASTER_COMPLAINTS.filter(c => c.status !== "Closed" && c.status !== "Resolved");
+  const { city } = useCity();
+  const { getJobsByCityId } = useJobs();
+
+  // City-filtered data
+  const cityJobs = useMemo(() => getJobsByCityId(city), [city, getJobsByCityId]);
+  const activeComplaints = useMemo(() =>
+    MASTER_COMPLAINTS.filter(c => c.status !== "Closed" && c.status !== "Resolved" && (c.cityId === city || !c.cityId)),
+    [city]
+  );
 
   // Calculate operational metrics from real data
   const totalClusters = MASTER_KPI_DATA.activeSupervisors; // 4 supervisors = 4 clusters

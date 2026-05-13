@@ -18,32 +18,38 @@ export function RouteGuard() {
     const routeConfig = getRouteConfig(location.pathname);
     if (!routeConfig) return;
 
-    // My Account and Travel are self-service — all authenticated users can access them
+    // Self-service routes — all authenticated users can access
     const SELF_SERVICE = ["dashboard", "travel"];
     if (SELF_SERVICE.includes(routeConfig.module) && currentUser) return;
 
-    const currentEmployee = currentUser
-      ? employees.find(e =>
-          e.employeeId === currentUser.employeeId ||
-          e.id === currentUser.employeeId
-        ) || null
-      : null;
+    // Debounce: wait for role/employee context to settle after a role switch
+    // Without this, the guard fires mid-transition with stale role data
+    const timer = setTimeout(() => {
+      const currentEmployee = currentUser
+        ? employees.find(e =>
+            e.employeeId === currentUser.employeeId ||
+            e.id === currentUser.employeeId
+          ) || null
+        : null;
 
-    const empForCheck = currentEmployee || (currentUser ? {
-      role: currentUser.role,
-      cityId: currentUser.cityId || "CITY-SURAT",
-      customPermissions: (currentUser as any).customPermissions,
-    } : null);
+      const empForCheck = currentEmployee || (currentUser ? {
+        role: currentUser.role,
+        cityId: currentUser.cityId || "CITY-SURAT",
+        customPermissions: (currentUser as any).customPermissions,
+      } : null);
 
-    const hasAccess = empForCheck
-      ? hasPermission(empForCheck, routeConfig.module, "view")
-      : false;
+      const hasAccess = empForCheck
+        ? hasPermission(empForCheck, routeConfig.module, "view")
+        : false;
 
-    if (!hasAccess) {
-      const defaultRoute = getDefaultRoute(currentRole);
-      logger.warn(`Access denied: ${location.pathname} for ${currentRole}`);
-      navigate(defaultRoute, { replace: true });
-    }
+      if (!hasAccess) {
+        const defaultRoute = getDefaultRoute(currentRole);
+        logger.warn(`Access denied: ${location.pathname} for ${currentRole}`);
+        navigate(defaultRoute, { replace: true });
+      }
+    }, 80); // 80ms debounce — role context settles before guard fires
+
+    return () => clearTimeout(timer);
   }, [location.pathname, currentUser, currentRole, employees, navigate]);
 
   return null;

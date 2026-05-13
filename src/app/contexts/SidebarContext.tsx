@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useRole } from "./RoleContext";
 
 interface SidebarContextType {
   collapsed: boolean;
@@ -15,6 +16,7 @@ const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 SidebarContext.displayName = "SidebarContext";
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
+  const { currentRole } = useRole();
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem("sidebarCollapsed") === "true"; }
     catch { return false; }
@@ -26,6 +28,12 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
       return stored ? new Set(JSON.parse(stored)) : new Set<string>();
     } catch { return new Set<string>(); }
   });
+
+  // Clear open groups when role changes — prevents stale nav state
+  useEffect(() => {
+    setOpenGroups(new Set<string>());
+    try { localStorage.removeItem("sidebarOpenGroups"); } catch {}
+  }, [currentRole]);
 
   const toggleSidebar = () => { setCollapsed(p => !p); setUserToggled(true); };
 

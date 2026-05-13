@@ -13,44 +13,50 @@ import { CityDashboard } from "./CityDashboard";
 import { ProcurementDashboard } from "./ProcurementDashboard";
 
 export function RoleDashboard() {
-  const { roleConfig } = useRole();
+  const { roleConfig, currentRole } = useRole();
+  const { city } = useCity();
 
   // Safety check for roleConfig
   if (!roleConfig || !roleConfig.dashboardType) {
-    return <ExecutiveDashboard />;
+    return <ExecutiveDashboard key={`exec__${currentRole}__${city}`} />;
   }
+
+  // key prop forces full remount when role or city changes
+  // Without this, switching from "executive" to "hr" keeps the old
+  // ExecutiveDashboard DOM alive and only swaps the content inside
+  const dashKey = `${roleConfig.dashboardType}__${currentRole}__${city}`;
 
   switch (roleConfig.dashboardType) {
     case "executive":
-      return <ExecutiveDashboard />;
+      return <ExecutiveDashboard key={dashKey} />;
     case "washer":
-      return <WasherDashboard />;
+      return <WasherDashboard key={dashKey} />;
     case "supervisor":
-      return <SupervisorDashboard />;
+      return <SupervisorDashboard key={dashKey} />;
     case "sales":
-      return <SalesDashboard />;
+      return <SalesDashboard key={dashKey} />;
     case "customer-care":
-      return <CustomerCareDashboard />;
+      return <CustomerCareDashboard key={dashKey} />;
     case "finance":
-      return <FinanceDashboard />;
+      return <FinanceDashboard key={dashKey} />;
     case "inventory":
-      return <InventoryDashboard />;
+      return <InventoryDashboard key={dashKey} />;
     case "hr":
-      return <HRDashboard />;
+      return <HRDashboard key={dashKey} />;
     case "operations":
-      return <OperationsDashboard />;
+      return <OperationsDashboard key={dashKey} />;
     case "city":
-      return <CityDashboard />;
+      return <CityDashboard key={dashKey} />;
     case "procurement":
-      return <ProcurementDashboard />;
+      return <ProcurementDashboard key={dashKey} />;
     case "city-manager":
-      return <CityDashboard />;
+      return <CityDashboard key={dashKey} />;
     case "accounts":
-      return <FinanceDashboard />;
+      return <FinanceDashboard key={dashKey} />;
     case "admin":
     case "super-admin":
-      return <ExecutiveDashboard />;
+      return <ExecutiveDashboard key={dashKey} />;
     default:
-      return <ExecutiveDashboard />;
+      return <ExecutiveDashboard key={dashKey} />;
   }
 }
