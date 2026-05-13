@@ -4,7 +4,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { RoleInfo } from "../RoleInfo";
 import { PlanChangeImpactDashboard } from "../subscription/PlanChangeImpactDashboard";
-import { Link , useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Users, TrendingUp, Car, AlertTriangle,
   DollarSign, Package, CheckCircle, Crown,
@@ -86,12 +86,6 @@ const kpiCards = [
 ];
 
 export function ExecutiveDashboard() {
-  const location = useLocation();
-  // Only render at index route — prevents bleed-through on sub-routes
-  if (location.pathname !== "/" && location.pathname !== "") {
-    return null;
-  }
-
   const { currentRole } = useRole();
   const { customers } = useCustomers();
   const { employees } = useEmployee();
