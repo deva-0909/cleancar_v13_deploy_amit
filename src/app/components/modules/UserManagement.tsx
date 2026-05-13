@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -36,6 +37,7 @@ type User = {
 };
 
 export function UserManagement() {
+  const navigate = useNavigate();
   const { employees } = useEmployee();
   const { addEmployee, updateEmployee, deleteEmployee } = useHRData();
   const { currentRole } = useRole();
@@ -233,7 +235,7 @@ export function UserManagement() {
           icon: <Download className="w-4 h-4 mr-2" />,
         }}
         breadcrumbs={[
-          { label: "Dashboard", onClick: () => window.location.href = "/" },
+          { label: "Dashboard", onClick: () => navigate("/") },
           { label: "User Management" },
         ]}
       />

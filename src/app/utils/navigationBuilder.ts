@@ -15,7 +15,7 @@ import type { NavItem } from "../config/navigationConfig";
 import { NAV_CONFIG, QUICK_ACTIONS } from "../config/navigationConfig";
 import { hasPermission } from "./permissionEngine";
 import type { Role } from "../lib/roleConfig";
-import { attachCityToPath, type CityId } from "../contexts/CityContext";
+import type { CityId } from "../contexts/CityContext";
 import { permissionMatrix, type City } from "../config/permissionMatrix";
 
 /**
@@ -69,7 +69,7 @@ export function buildNavigation(employee: NavEmployee | null, city?: CityId): Na
         if (item.path && item.path !== "#") {
           return {
             ...item,
-            path: city ? attachCityToPath(item.path, city) : item.path,
+            path: item.path,
             children: undefined
           };
         }
@@ -79,7 +79,7 @@ export function buildNavigation(employee: NavEmployee | null, city?: CityId): Na
       // Return parent with filtered children and city-injected path
       return {
         ...item,
-        path: city ? attachCityToPath(item.path, city) : item.path,
+        path: item.path,
         children: filteredChildren
       };
     }
@@ -87,7 +87,7 @@ export function buildNavigation(employee: NavEmployee | null, city?: CityId): Na
     // Leaf item - user has access, inject city into path
     return {
       ...item,
-      path: city ? attachCityToPath(item.path, city) : item.path
+      path: item.path
     };
   };
 
@@ -119,7 +119,7 @@ export function buildQuickActions(employee: NavEmployee | null, city?: CityId): 
     return hasPermission(employee, action.module, "view");
   }).map((action) => ({
     ...action,
-    path: city ? attachCityToPath(action.path, city) : action.path
+    path: action.path
   }));
 
   return filteredActions;
