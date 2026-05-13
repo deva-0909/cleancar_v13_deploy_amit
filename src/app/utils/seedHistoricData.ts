@@ -683,7 +683,7 @@ export const HISTORIC_PAYABLES: any[] = [
 // ─────────────────────────────────────────────────────────────────────────
 // 8b. REVENUE RECORDS — daily subscription + one-time wash revenue
 // ─────────────────────────────────────────────────────────────────────────
-export const HISTORIC_REVENUES: any[] = [];
+// HISTORIC_REVENUES already declared above — removed duplicate export
 const PAYMENT_METHODS = ["UPI","UPI","UPI","Card","Cash","Bank Transfer"] as const;
 const CUSTOMER_IDS_SUR = ["CST-SUR-001","CST-SUR-002","CST-SUR-003","CST-SUR-004","CST-SUR-005",
   "CST-SUR-006","CST-SUR-007","CST-SUR-008","CST-SUR-009","CST-SUR-010"];
