@@ -1,3 +1,4 @@
+import { useCity } from "../../contexts/CityContext";
 /**
  * Lead Pipeline Kanban - WITH COMPLETE FILTER & SORT INTEGRATION
  * Enhanced version with comprehensive filtering and sorting for both Kanban and List views
@@ -237,10 +238,14 @@ const stageConfig = {
 
 export function LeadPipelineKanbanWithFilters() {
   const [searchParams] = useSearchParams();
+  const { city: cityContextId } = useCity();
+  // Use CityContext as primary source — URL param as fallback for deep links
   const { leads: contextLeads } = useCustomers();
 
   // Get selected city from URL
-  const selectedCity = searchParams.get("city")?.toLowerCase() || "";
+  // Derive city name from CityContext (primary) or URL param (fallback)
+  const ctxCityName = cityContextId?.replace("CITY-", "").toLowerCase() || "";
+  const selectedCity = ctxCityName || searchParams.get("city")?.toLowerCase() || "";
 
   // Map context leads to pipeline Lead format and filter by city
   const leads: Lead[] = useMemo(() => {

@@ -52,7 +52,9 @@ const STORE_CITY_MAP: Record<string, string> = {
 
 function BreakEvenAnalysis() {
   const [searchParams] = useSearchParams();
-  const selectedCity = searchParams.get("city")?.toLowerCase() || "surat";
+  // Use CityContext as primary source of truth for city filtering
+  const { city: cityCtxId } = useCity();
+  const selectedCity = (cityCtxId?.replace("CITY-", "").toLowerCase()) || searchParams.get("city")?.toLowerCase() || "surat";
   const { currentRole } = useRole();
   const { getRevenueByCity, getPayablesByCity } = useFinance();
   const { availableCities } = useCity();

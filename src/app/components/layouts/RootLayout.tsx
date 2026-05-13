@@ -725,7 +725,8 @@ export function RootLayout() {
         {/* Main Content — key forces remount on route/city/role change */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 min-w-0">
           <RouteGuard />
-          <div key={`${location.pathname}__${city}__${currentRole}`}>
+          {/* key includes search so ?city=mumbai triggers remount same as pathname change */}
+          <div key={`${location.pathname}${location.search}__${currentRole}`}>
             <Outlet />
           </div>
         </main>

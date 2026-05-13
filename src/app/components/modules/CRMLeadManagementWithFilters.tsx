@@ -43,6 +43,7 @@ import { MyFollowUps } from "../crm/MyFollowUps";
 import { AutomationPanel } from "../crm/AutomationPanel";
 import { EventTriggerLabel } from "../crm/EventBadge";
 import { LeadConversionModal } from "../crm/LeadConversionModal";
+import { useCity } from "../../contexts/CityContext";
 import { useRole } from "../../contexts/RoleContext";
 import { useCustomers } from "../../contexts/CustomerContext";
 import { SortableTableHeader, useTableSort } from "../common/SortableTableHeader";
@@ -70,11 +71,15 @@ export function CRMLeadManagementWithFilters() {
   const { currentRole } = useRole();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { city: cityContextId } = useCity();
+  // Use CityContext as primary source — URL param as fallback for deep links
   const { leads: contextLeads, addLead: contextAddLead, updateLead: contextUpdateLead, deleteLead: contextDeleteLead } = useCustomers();
   const [activeTab, setActiveTab] = useState("list"); // Start on list view
 
   // Get selected city from URL
-  const selectedCity = searchParams.get("city")?.toLowerCase() || "";
+  // Derive city name from CityContext (primary) or URL param (fallback)
+  const ctxCityName = cityContextId?.replace("CITY-", "").toLowerCase() || "";
+  const selectedCity = ctxCityName || searchParams.get("city")?.toLowerCase() || "";
 
   // Get city-specific data from organization hierarchy
   const availableAreas = useMemo(() => {
