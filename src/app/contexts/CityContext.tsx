@@ -76,7 +76,7 @@ function getCityFromURL(): CityId | null {
 // Helper: update ?city= in the current hash URL without a full navigation
 function updateCityInURL(cityId: CityId) {
   try {
-    const hash = window.location.hash;
+    const hash = window.location.hash; // e.g. "#/analytics/cac?city=surat"
     const queryIndex = hash.indexOf("?");
     const cityParam = `city=${CITIES[cityId].name}`;
 
@@ -88,8 +88,12 @@ function updateCityInURL(cityId: CityId) {
       params.set("city", CITIES[cityId].name);
       newHash = `${hash.slice(0, queryIndex)}?${params.toString()}`;
     }
-    // Replace hash without triggering a full navigation
-    window.history.replaceState(null, "", newHash);
+
+    // CRITICAL: replaceState 3rd arg must be the FULL URL, not just the hash.
+    // Using just the hash string causes it to be treated as a path,
+    // resulting in /?city=surat#/route — breaking HashRouter entirely.
+    const fullURL = window.location.pathname + window.location.search.replace(/[?&]city=[^&]*/g, "").replace(/^&/, "?").replace(/^\?$/, "") + newHash;
+    window.history.replaceState(null, "", fullURL);
   } catch {
     // Non-critical — silently ignore
   }
@@ -104,10 +108,12 @@ export function CityProvider({ children }: CityProviderProps) {
   const defaultCity = urlCity || (currentUser?.cityId as CityId) || persistedCity || "CITY-SURAT";
   const [city, setCityState] = useState<CityId>(defaultCity);
 
-  // Persist city selection and sync URL whenever city changes
+  // Persist city selection to localStorage whenever city changes
+  // NOTE: We do NOT update the URL here — nav links already have ?city= appended
+  // by attachCityToPath(). Updating URL here caused double ?city= params and
+  // corrupted the HashRouter URL format (?city=surat#/route instead of #/route?city=surat)
   useEffect(() => {
     localStorage.setItem("cleancar_selected_city", city);
-    updateCityInURL(city);
   }, [city]);
 
   // When the URL hash changes (user clicks a nav link), sync city from URL -> context

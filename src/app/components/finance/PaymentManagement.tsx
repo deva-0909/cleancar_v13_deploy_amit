@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { formatCurrency } from "../../lib/formatters";
 import {
@@ -240,7 +241,7 @@ export default function PaymentManagement() {
   }
 
   function handleViewInvoice(invoiceId: string) {
-    window.location.href = `/finance/invoices/${invoiceId}`;
+    navigate(`/finance/invoices/${invoiceId}`);
   }
 
   function resetFilters() {

@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { formatCurrency } from "../../lib/formatters";
@@ -367,7 +368,7 @@ export default function InvoiceManagement() {
 
   function handleViewInvoice(invoiceId: string) {
     // Navigate to invoice detail page
-    window.location.href = `/finance/invoices/${invoiceId}`;
+    navigate(`/finance/invoices/${invoiceId}`);
   }
 
   // ============================================================================
