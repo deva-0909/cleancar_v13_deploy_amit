@@ -45,15 +45,10 @@ export function RootLayout() {
   const isPreview = import.meta.env.MODE === "development"
     || window.location.hostname === "localhost"
     || window.location.hostname.includes("figma")
-    || new URLSearchParams(window.location.search).get("preview-route") !== null;
+    || window.location.hash.includes("preview-route");
 
-  if (!isPreview) {
-    const session = localStorage.getItem("cc360_session");
-    if (!session && !window.location.pathname.startsWith("/login")) {
-      window.location.replace("/login");
-      return null;
-    }
-  }
+  // Auth redirect removed — HashRouter pathname is always "/"
+  // Route-level auth is handled by ProtectedRoute in routes.tsx
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
@@ -311,7 +306,7 @@ export function RootLayout() {
         {/* Sidebar - Smart Collapsible */}
         <aside
           className={`
-            hidden lg:flex flex-col flex-shrink-0 overflow-hidden
+            hidden md:flex flex-col flex-shrink-0 overflow-hidden
             bg-white border-r border-gray-200
             transition-[width] duration-200 ease-in-out
             ${collapsed ? "w-16" : "w-64"}
@@ -722,11 +717,11 @@ export function RootLayout() {
           </div>
         )}
 
-        {/* Main Content — key forces remount on route/city/role change */}
+        {/* Main Content — key forces remount on every route/role change */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 min-w-0">
           <RouteGuard />
-          {/* key includes search so ?city=mumbai triggers remount same as pathname change */}
-          <div key={`${location.pathname}${location.search}__${currentRole}`}>
+          {/* Use full hash as key — guarantees remount when hash route changes */}
+          <div key={`${location.pathname}${location.search}${location.hash}__${currentRole}`}>
             <Outlet />
           </div>
         </main>
