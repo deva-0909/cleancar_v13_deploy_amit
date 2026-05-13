@@ -5,7 +5,8 @@
  * Usage: Add this hook to RootLayout component
  */
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Role } from "../lib/roleConfig";
 
@@ -79,50 +80,67 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
   },
 
   // Support roles
+  // HR, Accounts, Store Manager, Procurement Manager:
+  // Initial redirect handled by RoleRouter (/ → /hr etc.)
+  // DO NOT restrict here — useRoleBasedRedirect was trapping them
+  // on a single path and preventing sub-route navigation.
+  // HR needs /hr/*, Accounts needs /finance/*, etc.
   HR: {
     defaultPath: "/hr",
-    allowedPaths: ["/hr", "/advance/hr-management", "/my-account"],
+    allowedPaths: [], // Empty = no restrictions (like Admin)
   },
   Accounts: {
     defaultPath: "/finance",
-    allowedPaths: ["/finance", "/accounts", "/my-account"],
+    allowedPaths: [], // Empty = no restrictions
   },
 };
 
 /**
  * Hook to handle role-based redirects
+ *
+ * IMPORTANT: This hook ONLY redirects when the ROLE CHANGES and the current
+ * path is the previous role's landing page (not a general nav destination).
+ *
+ * It does NOT maintain an allowedPaths whitelist — that pattern always falls
+ * out of sync and silently blocks legitimate navigation.
+ *
+ * Per-route access control is handled by RouteGuard using the permissionMatrix.
  */
 export function useRoleBasedRedirect(currentRole: Role, enabled: boolean = true) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Track previous role to detect role switches
+  const prevRoleRef = React.useRef<Role>(currentRole);
+
   useEffect(() => {
     if (!enabled) return;
 
     const roleConfig = ROLE_REDIRECTS[currentRole];
-    if (!roleConfig) return; // No redirect configured for this role
+    if (!roleConfig) return;
+
+    const prevRole = prevRoleRef.current;
+    const roleChanged = prevRole !== currentRole;
+    prevRoleRef.current = currentRole;
+
+    // Only redirect on role change, not on every navigation
+    // RouteGuard handles per-route access control
+    if (!roleChanged) return;
 
     const currentPath = location.pathname;
-    const { defaultPath, allowedPaths = [] } = roleConfig;
+    const { defaultPath } = roleConfig;
 
-    // Don't redirect if:
-    // 1. Already on default path
-    // 2. On an allowed path for this role
-    // 3. No allowed paths defined (admin roles - unrestricted access)
-    // 4. On an exact match of allowed path (not just startsWith)
-    if (currentPath === defaultPath) return;
-    if (allowedPaths.length === 0) return; // Admin roles have unrestricted access
+    // On role change: if the user is on "/" or the previous role's default path,
+    // redirect to new role's default path
+    const prevRoleDefault = ROLE_REDIRECTS[prevRole]?.defaultPath ?? "/";
+    const shouldRedirect =
+      currentPath === "/" ||
+      currentPath === prevRoleDefault ||
+      currentPath === "/login";
 
-    // Check if current path matches any allowed path
-    const isAllowed = allowedPaths.some((path) => {
-      // Exact match or starts with for nested routes
-      return currentPath === path || currentPath.startsWith(path + '/');
-    });
+    if (!shouldRedirect) return;
 
-    if (isAllowed) return;
-
-    // Redirect to default path
-    console.log(`[Role Redirect] ${currentRole} → ${defaultPath} (from ${currentPath})`);
+    console.log(`[Role Redirect] Role changed ${prevRole} → ${currentRole}, navigating to ${defaultPath}`);
     navigate(defaultPath, { replace: true });
   }, [currentRole, navigate, location.pathname, enabled]);
 }
