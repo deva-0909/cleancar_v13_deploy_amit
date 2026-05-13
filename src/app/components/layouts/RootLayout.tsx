@@ -498,7 +498,7 @@ export function RootLayout() {
               // Expanded mode: accordion group
               const isOpen = openGroups.has(navItem.label) || childrenActive;
               return (
-                <div key={navItem.label} className={`mb-1 rounded-lg overflow-hidden ${
+                <div key={navItem.label} className={`mb-1 rounded-lg ${
                   childrenActive ? "border-l-2 border-blue-600" : "border-l-2 border-transparent"
                 }`}>
                   {/* Clickable section header */}
