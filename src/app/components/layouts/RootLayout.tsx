@@ -26,6 +26,7 @@ import { NotificationDrawer } from "../shared/NotificationDrawer";
 import { buildNavigation, buildQuickActions, type NavEmployee } from "../../utils/navigationBuilder";
 import { isActiveRoute, hasActiveChild } from "../../utils/isActiveRoute";
 import { RouteGuard } from "../guards/RouteGuard";
+import { ErrorBoundary } from "../ErrorBoundary";
 import { useCity, CITIES } from "../../contexts/CityContext";
 import { useSidebar } from "../../contexts/SidebarContext";
 import { isDenseRoute, shouldForceExpand, detectConflicts } from "../../config/layoutRules";
@@ -725,7 +726,9 @@ export function RootLayout() {
         {/* Main Content — key forces remount on every route/role change */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 min-w-0">
           <RouteGuard />
-          <Outlet />
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
 
