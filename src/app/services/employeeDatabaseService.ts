@@ -4,6 +4,7 @@
  */
 
 import { isSupabaseEnabled, supabase } from "./supabaseClient";
+import { HISTORIC_EMPLOYEE_DB } from "../utils/seedHistoricData";
 
 export type SkillLevel = "Skilled" | "Semi-Skilled" | "Unskilled";
 export type EmploymentStage = "Temporary" | "Permanent" | "Not Converted";
@@ -94,6 +95,11 @@ class EmployeeDatabaseService {
       cacheLoaded = true;
     } catch (err) {
       console.error("Failed to load employees from Supabase:", err);
+      // Seed fallback data so login still works
+      if (!supabaseCache || supabaseCache.length === 0) {
+        supabaseCache = HISTORIC_EMPLOYEE_DB as any[];
+        console.log(`[Auth] Using ${HISTORIC_EMPLOYEE_DB.length} seeded employees as fallback`);
+      }
     }
   }
 
@@ -101,27 +107,24 @@ class EmployeeDatabaseService {
    * Get all employees — from localStorage (which is seeded from Supabase on app start)
    */
   getAll(): EmployeeDatabaseRecord[] {
-    // Prefer in-memory Supabase cache to avoid localStorage reads
+    const defaults = { onboardingPasswordSet: false, accountStatus: "pending_onboarding" as const, failedLoginAttempts: 0 };
+    // Prefer in-memory Supabase cache
     if (supabaseCache && supabaseCache.length > 0) {
-      return supabaseCache.map((emp: any) => ({
-        onboardingPasswordSet: false,
-        accountStatus: "pending_onboarding",
-        failedLoginAttempts: 0,
-        ...emp,
-      }));
+      return supabaseCache.map((emp: any) => ({ ...defaults, ...emp }));
     }
+    // Try localStorage
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      return (stored ? JSON.parse(stored) : []).map((emp: any) => ({
-        onboardingPasswordSet: false,
-        accountStatus: "pending_onboarding",
-        failedLoginAttempts: 0,
-        ...emp,
-      }));
+      const parsed = stored ? JSON.parse(stored) : [];
+      if (parsed.length > 0) {
+        return parsed.map((emp: any) => ({ ...defaults, ...emp }));
+      }
     } catch (error) {
       console.error("Error loading employees from storage:", error);
-      return [];
     }
+    // Fallback: use seeded demo data (includes Super Admin, all roles)
+    // This ensures login always works even with empty localStorage
+    return HISTORIC_EMPLOYEE_DB.map((emp: any) => ({ ...defaults, ...emp }));
   }
 
   getById(id: string): EmployeeDatabaseRecord | undefined {
