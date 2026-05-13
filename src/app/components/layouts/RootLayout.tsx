@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation , useNavigationType } from "react-router-dom";
 import {
   Users, BarChart3, UserCircle, Car, ClipboardList,
   AlertCircle, Package, DollarSign, UserCog, Menu, X,
@@ -96,6 +96,7 @@ export function RootLayout() {
   const { currentRole, setCurrentRole, currentUser } = useRole();
   const { city } = useCity();
   const location = useLocation();
+  const navigationType = useNavigationType(); // POP, PUSH, REPLACE
   const {
     collapsed,
     setCollapsed,
@@ -721,7 +722,7 @@ export function RootLayout() {
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 min-w-0">
           <RouteGuard />
           {/* Use full hash as key — guarantees remount when hash route changes */}
-          <div key={`${location.pathname}${location.search}${location.hash}__${currentRole}`}>
+          <div key={`${location.pathname}${location.search}${location.hash}__${currentRole}__${navigationType}`}>
             <Outlet />
           </div>
         </main>
