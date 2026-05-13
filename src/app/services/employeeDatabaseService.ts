@@ -4,7 +4,7 @@
  */
 
 import { isSupabaseEnabled, supabase } from "./supabaseClient";
-import { HISTORIC_EMPLOYEE_DB } from "../utils/seedHistoricData";
+import { HISTORIC_EMPLOYEE_DB } from "../utils/demoEmployees";
 
 export type SkillLevel = "Skilled" | "Semi-Skilled" | "Unskilled";
 export type EmploymentStage = "Temporary" | "Permanent" | "Not Converted";
