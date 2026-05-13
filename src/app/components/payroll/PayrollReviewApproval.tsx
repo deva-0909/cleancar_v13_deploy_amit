@@ -646,7 +646,7 @@ export function PayrollReviewApproval() {
         isLoading={isLoading}
         details={[
           { label: "Total Employees", value: summary.totalEmployees },
-          { label: "Total Amount", value: `₹${summary.totalNetPayable.toLocaleString()}` },
+          { label: "Total Amount", value: `₹${(summary?.totalNetPayable ?? 0).toLocaleString()}` },
           { label: "Pay Period", value: `${summary.month} ${summary.year}` },
         ]}
       />

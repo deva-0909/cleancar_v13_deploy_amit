@@ -411,6 +411,7 @@ export const router = createHashRouter([
       {
         path: "analytics",
         element: <Outlet />,
+        errorElement: <div className="p-8 text-center"><h2 className="text-lg font-semibold text-red-600 mb-2">Page Error</h2><p className="text-sm text-gray-500 mb-4">This analytics page has an error.</p><a href="/" className="text-blue-600 underline text-sm">Go to Dashboard</a></div>,
         children: [
           { index: true, element: <Navigate to="/analytics/dashboard" replace /> },
           { path: "dashboard", element: <AnalyticsDashboardWithDrillDown /> },

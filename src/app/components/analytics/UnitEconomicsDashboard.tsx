@@ -196,7 +196,7 @@ function UnitEconomicsDashboard() {
   const contributionMargin = revenuePerWash > 0 ? Number(((grossMarginPerWash / revenuePerWash) * 100).toFixed(1)) : 0;
 
   // ✅ TODO: metrics come from FinanceContext + JobContext aggregation
-    const mockMetrics: UnitEconomicsMetrics = {} as UnitEconomicsMetrics; // empty until live
+    const mockMetrics: UnitEconomicsMetrics = { revenuePerWash: 0, revenuePerCustomer: 0, costPerWash: 0, grossMarginPerWash: 0, contributionMargin: 0, customerLTV: 0, customerCAC: 0, ltvCacRatio: 0 }; // empty until live
 
   // Memoize static chart data to prevent re-renders
   const memoizedCostTrend = useMemo(() => costPerWashTrend, []);
@@ -488,7 +488,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">LTV:CAC Ratio</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  {mockMetrics.ltvCacRatio.toFixed(1)}x
+                  {(mockMetrics?.ltvCacRatio ?? 0).toFixed(1)}x
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <Badge className="bg-green-500 text-xs">Excellent</Badge>

@@ -265,7 +265,7 @@ function CityComparison() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Profit Margin</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{city.profitMargin.toFixed(1)}%</span>
+                    <span className="font-medium">{(city?.profitMargin ?? 0).toFixed(1)}%</span>
                     {isTopProfit && <Star className="w-4 h-4 text-yellow-500" />}
                   </div>
                 </div>
@@ -283,7 +283,7 @@ function CityComparison() {
                           : "bg-red-100 text-red-700 hover:bg-red-100"
                       }
                     >
-                      {city.refundRate.toFixed(1)}%
+                      {(city?.refundRate ?? 0).toFixed(1)}%
                     </Badge>
                     {isLowRefund && <Award className="w-4 h-4 text-green-500" />}
                   </div>
@@ -294,7 +294,7 @@ function CityComparison() {
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-muted-foreground">Units</p>
-                    <p className="font-medium">{city.unitsCompleted.toLocaleString()}</p>
+                    <p className="font-medium">{(city?.unitsCompleted ?? 0).toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Customers</p>

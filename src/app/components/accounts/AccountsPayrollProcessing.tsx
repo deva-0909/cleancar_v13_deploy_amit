@@ -250,7 +250,7 @@ export function AccountsPayrollProcessing() {
             </div>
             <div>
               <p className="text-sm text-gray-600">Total Payout</p>
-              <p className="text-base font-semibold text-green-600">₹{snapshot.totalPayout.toLocaleString()}</p>
+              <p className="text-base font-semibold text-green-600">₹{(snapshot?.totalPayout ?? 0).toLocaleString()}</p>
             </div>
           </div>
         </CardContent>
@@ -275,7 +275,7 @@ export function AccountsPayrollProcessing() {
               <div>
                 <p className="text-xs text-gray-600">Advances</p>
                 <p className="text-lg font-semibold text-gray-900">
-                  ₹{adjustmentsSummary.advances.toLocaleString()}
+                  ₹{(adjustmentsSummary?.advances ?? 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -284,7 +284,7 @@ export function AccountsPayrollProcessing() {
               <div>
                 <p className="text-xs text-teal-700">Other Earnings</p>
                 <p className="text-lg font-semibold text-teal-600">
-                  +₹{adjustmentsSummary.otherEarnings.toLocaleString()}
+                  +₹{(adjustmentsSummary?.otherEarnings ?? 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -293,7 +293,7 @@ export function AccountsPayrollProcessing() {
               <div>
                 <p className="text-xs text-amber-700">Other Deductions</p>
                 <p className="text-lg font-semibold text-amber-600">
-                  -₹{adjustmentsSummary.otherDeductions.toLocaleString()}
+                  -₹{(adjustmentsSummary?.otherDeductions ?? 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -302,7 +302,7 @@ export function AccountsPayrollProcessing() {
               <div>
                 <p className="text-xs text-blue-700">Net Adjustment Impact</p>
                 <p className={`text-lg font-semibold ${adjustmentsSummary.netImpact >= 0 ? "text-teal-600" : "text-red-600"}`}>
-                  {adjustmentsSummary.netImpact >= 0 ? "+" : ""}₹{adjustmentsSummary.netImpact.toLocaleString()}
+                  {adjustmentsSummary.netImpact >= 0 ? "+" : ""}₹{(adjustmentsSummary?.netImpact ?? 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -354,7 +354,7 @@ export function AccountsPayrollProcessing() {
                     <td className="py-3 px-4 text-sm text-gray-700 font-mono">{emp.accountNumber || "N/A"}</td>
                     <td className="py-3 px-4 text-sm text-gray-700 font-mono">{emp.ifscCode || "N/A"}</td>
                     <td className="py-3 px-4 text-sm text-right font-semibold text-green-600">
-                      ₹{emp.totalPay.toLocaleString()}
+                      ₹{(emp?.totalPay ?? 0).toLocaleString()}
                     </td>
                   </tr>
                 ))}
@@ -363,7 +363,7 @@ export function AccountsPayrollProcessing() {
                 <tr className="border-t-2 border-gray-300 bg-gray-50">
                   <td colSpan={4} className="py-3 px-4 text-sm font-semibold text-gray-900">Total Payout</td>
                   <td className="py-3 px-4 text-sm text-right font-bold text-green-600">
-                    ₹{snapshot.totalPayout.toLocaleString()}
+                    ₹{(snapshot?.totalPayout ?? 0).toLocaleString()}
                   </td>
                 </tr>
               </tfoot>

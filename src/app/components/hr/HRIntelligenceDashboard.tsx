@@ -452,7 +452,7 @@ function IncentivesTab({ summary = null }: any) {
         <Card>
           <CardContent className="p-3 sm:p-6">
             <p className="text-sm text-gray-600">Total Amount</p>
-            <p className="text-2xl font-bold text-green-600">₹{summary.totalAmount.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-green-600">₹{(summary?.totalAmount ?? 0).toLocaleString()}</p>
           </CardContent>
         </Card>
         <Card>
@@ -480,7 +480,7 @@ function IncentivesTab({ summary = null }: any) {
                   </div>
                   <div className="text-sm font-medium text-gray-900">{emp.name}</div>
                 </div>
-                <div className="text-sm font-semibold text-green-600">₹{emp.totalAmount.toLocaleString()}</div>
+                <div className="text-sm font-semibold text-green-600">₹{(emp?.totalAmount ?? 0).toLocaleString()}</div>
               </div>
             ))}
           </div>

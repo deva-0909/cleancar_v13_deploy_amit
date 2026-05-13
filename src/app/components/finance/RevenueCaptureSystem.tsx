@@ -399,7 +399,7 @@ export function RevenueCaptureSystem() {
         <KPICard title="Active Customers"    value={metrics.uniqueCusts.toString()}                        change={metrics.custGrowth} trend="prev month" icon={UserPlus} />
         <KPICard title="New Customers"       value={metrics.newCusts.toString()}                           change={0}  trend="prev month" icon={TrendingUp} />
         <KPICard title="Retained Customers"  value={metrics.retainedCusts.toString()}                      change={metrics.retentionRate > 80 ? 5 : -3} trend="prev month" icon={TrendingUp} />
-        <KPICard title="Retention Rate"      value={`${metrics.retentionRate.toFixed(1)}%`}                change={metrics.retentionRate > 80 ? 2.1 : -1.5} trend="prev month" icon={Percent} />
+        <KPICard title="Retention Rate"      value={`${(metrics?.retentionRate ?? 0).toFixed(1)}%`}                change={metrics.retentionRate > 80 ? 2.1 : -1.5} trend="prev month" icon={Percent} />
         <KPICard title="One-Time Revenue"    value={`₹${metrics.onetimeRevenue.toLocaleString("en-IN")}`} change={0}  trend="prev month" icon={DollarSign} />
       </div>
 
@@ -526,7 +526,7 @@ export function RevenueCaptureSystem() {
           <CardContent className="space-y-4">
             <div>
               <p className="text-sm text-gray-500">Retention Rate</p>
-              <h3 className="text-3xl font-bold text-gray-900">{metrics.retentionRate.toFixed(1)}%</h3>
+              <h3 className="text-3xl font-bold text-gray-900">{(metrics?.retentionRate ?? 0).toFixed(1)}%</h3>
               <p className="text-xs text-gray-400 mt-1">
                 {metrics.retainedCusts} of {metrics.uniqueCusts} customers were also active in {MONTHS.find(m=>m.value===prevMonth)?.label}
               </p>

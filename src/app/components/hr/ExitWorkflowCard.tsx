@@ -207,31 +207,31 @@ export function ExitWorkflowCard({
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Pending Salary</span>
                 <span className="text-sm font-medium text-gray-900">
-                  ₹{workflow.settlement.pendingSalary.toLocaleString()}
+                  ₹{(workflow?.settlement?.pendingSalary ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Leave Encashment</span>
                 <span className="text-sm font-medium text-gray-900">
-                  ₹{workflow.settlement.leaveEncashment.toLocaleString()}
+                  ₹{(workflow?.settlement?.leaveEncashment ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Bonus</span>
                 <span className="text-sm font-medium text-gray-900">
-                  ₹{workflow.settlement.bonus.toLocaleString()}
+                  ₹{(workflow?.settlement?.bonus ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Other Payments</span>
                 <span className="text-sm font-medium text-gray-900">
-                  ₹{workflow.settlement.otherPayments.toLocaleString()}
+                  ₹{(workflow?.settlement?.otherPayments ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-sm text-gray-600">Deductions</span>
                 <span className="text-sm font-medium text-red-600">
-                  -₹{workflow.settlement.deductions.toLocaleString()}
+                  -₹{(workflow?.settlement?.deductions ?? 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center py-3 bg-green-50 px-3 rounded-lg">
@@ -239,7 +239,7 @@ export function ExitWorkflowCard({
                   Net Settlement
                 </span>
                 <span className="text-lg font-bold text-green-900">
-                  ₹{workflow.settlement.netSettlement.toLocaleString()}
+                  ₹{(workflow?.settlement?.netSettlement ?? 0).toLocaleString()}
                 </span>
               </div>
             </div>

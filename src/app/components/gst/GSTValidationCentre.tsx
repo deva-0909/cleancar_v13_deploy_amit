@@ -132,7 +132,7 @@ export function GSTValidationCentre() {
                 <div>
                   <h3 className="font-semibold text-gray-900">{txn.invoiceNumber}</h3>
                   <p className="text-sm text-gray-600">
-                    {txn.transactionType} | {txn.partyName} | ₹{txn.invoiceTotal.toLocaleString()}
+                    {txn.transactionType} | {txn.partyName} | ₹{(txn?.invoiceTotal ?? 0).toLocaleString()}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

@@ -335,25 +335,25 @@ export function EBITDADashboard() {
                             {analysis.plan}
                           </TableCell>
                           <TableCell>
-                            ₹{analysis.costBreakdown.labour.toFixed(2)}
+                            ₹{(analysis?.costBreakdown?.labour ?? 0).toFixed(2)}
                           </TableCell>
                           <TableCell>
-                            ₹{analysis.costBreakdown.consumables.toFixed(2)}
+                            ₹{(analysis?.costBreakdown?.consumables ?? 0).toFixed(2)}
                           </TableCell>
                           <TableCell>
-                            ₹{analysis.costBreakdown.cloth.toFixed(2)}
+                            ₹{(analysis?.costBreakdown?.cloth ?? 0).toFixed(2)}
                           </TableCell>
                           <TableCell>
-                            ₹{analysis.costBreakdown.equipment.toFixed(2)}
+                            ₹{(analysis?.costBreakdown?.equipment ?? 0).toFixed(2)}
                           </TableCell>
                           <TableCell>
-                            ₹{analysis.costBreakdown.laundry.toFixed(2)}
+                            ₹{(analysis?.costBreakdown?.laundry ?? 0).toFixed(2)}
                           </TableCell>
                           <TableCell>
-                            ₹{analysis.costBreakdown.fixedOverhead.toFixed(2)}
+                            ₹{(analysis?.costBreakdown?.fixedOverhead ?? 0).toFixed(2)}
                           </TableCell>
                           <TableCell className="font-semibold">
-                            ₹{analysis.costBreakdown.total.toFixed(2)}
+                            ₹{(analysis?.costBreakdown?.total ?? 0).toFixed(2)}
                           </TableCell>
                         </TableRow>
                       );

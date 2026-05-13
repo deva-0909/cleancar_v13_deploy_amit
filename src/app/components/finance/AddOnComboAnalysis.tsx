@@ -57,7 +57,7 @@ export function AddOnComboAnalysis() {
                 const ebitdaData = getAddOnEBITDA(addon.id);
                 const margin4W = ebitdaData?.ebitdaPercentage4W
                   ? (ebitdaData.ebitdaPercentage4W * 100).toFixed(0)
-                  : addon.estimatedMargin.toFixed(0);
+                  : (addon?.estimatedMargin ?? 0).toFixed(0);
                 const ebitdaAmount4W = ebitdaData?.ebitdaAmount4W || 0;
 
                 return (

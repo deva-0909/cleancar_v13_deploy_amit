@@ -478,7 +478,7 @@ function CostPerWashByConsumption() {
                             <div>
                               <div className="text-xs text-gray-600">Total Cost</div>
                               <div className="text-xl font-semibold text-gray-800">
-                                ₹{washerResult.totalCost.toLocaleString()}
+                                ₹{(washerResult?.totalCost ?? 0).toLocaleString()}
                               </div>
                             </div>
                           </div>
@@ -498,42 +498,42 @@ function CostPerWashByConsumption() {
                           <Package className="w-4 h-4 text-blue-600" />
                           <span className="text-sm font-medium">Materials</span>
                         </div>
-                        <span className="font-semibold">₹{washerResult.breakdown.materials.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(washerResult?.breakdown?.materials ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <Package className="w-4 h-4 text-green-600" />
                           <span className="text-sm font-medium">Consumables</span>
                         </div>
-                        <span className="font-semibold">₹{washerResult.breakdown.consumables.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(washerResult?.breakdown?.consumables ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-cyan-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-cyan-600" />
                           <span className="text-sm font-medium">Water</span>
                         </div>
-                        <span className="font-semibold">₹{washerResult.breakdown.water.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(washerResult?.breakdown?.water ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-orange-600" />
                           <span className="text-sm font-medium">Fuel/Transport</span>
                         </div>
-                        <span className="font-semibold">₹{washerResult.breakdown.fuel.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(washerResult?.breakdown?.fuel ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <Building2 className="w-4 h-4 text-purple-600" />
                           <span className="text-sm font-medium">Overhead (Allocated)</span>
                         </div>
-                        <span className="font-semibold">₹{washerResult.breakdown.overhead.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(washerResult?.breakdown?.overhead ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-yellow-600" />
                           <span className="text-sm font-medium">Equipment</span>
                         </div>
-                        <span className="font-semibold">₹{washerResult.breakdown.equipment.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(washerResult?.breakdown?.equipment ?? 0).toFixed(2)}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -637,7 +637,7 @@ function CostPerWashByConsumption() {
                             <div>
                               <div className="text-xs text-gray-600">Total Cost</div>
                               <div className="text-xl font-semibold text-gray-800">
-                                ₹{supervisorResult.totalCost.toLocaleString()}
+                                ₹{(supervisorResult?.totalCost ?? 0).toLocaleString()}
                               </div>
                             </div>
                           </div>
@@ -657,49 +657,49 @@ function CostPerWashByConsumption() {
                           <Package className="w-4 h-4 text-blue-600" />
                           <span className="text-sm font-medium">Materials</span>
                         </div>
-                        <span className="font-semibold">₹{supervisorResult.breakdown.materials.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(supervisorResult?.breakdown?.materials ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <Package className="w-4 h-4 text-green-600" />
                           <span className="text-sm font-medium">Consumables</span>
                         </div>
-                        <span className="font-semibold">₹{supervisorResult.breakdown.consumables.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(supervisorResult?.breakdown?.consumables ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-cyan-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-cyan-600" />
                           <span className="text-sm font-medium">Water</span>
                         </div>
-                        <span className="font-semibold">₹{supervisorResult.breakdown.water.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(supervisorResult?.breakdown?.water ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-orange-600" />
                           <span className="text-sm font-medium">Fuel/Transport</span>
                         </div>
-                        <span className="font-semibold">₹{supervisorResult.breakdown.fuel.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(supervisorResult?.breakdown?.fuel ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <Building2 className="w-4 h-4 text-purple-600" />
                           <span className="text-sm font-medium">Overhead (Allocated)</span>
                         </div>
-                        <span className="font-semibold">₹{supervisorResult.breakdown.overhead.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(supervisorResult?.breakdown?.overhead ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-yellow-600" />
                           <span className="text-sm font-medium">Equipment</span>
                         </div>
-                        <span className="font-semibold">₹{supervisorResult.breakdown.equipment.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(supervisorResult?.breakdown?.equipment ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-pink-50 rounded-lg border-2 border-pink-200">
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-pink-600" />
                           <span className="text-sm font-medium">Supervision Cost</span>
                         </div>
-                        <span className="font-semibold">₹{supervisorResult.breakdown.supervision.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(supervisorResult?.breakdown?.supervision ?? 0).toFixed(2)}</span>
                       </div>
                     </CardContent>
                   </Card>
@@ -812,7 +812,7 @@ function CostPerWashByConsumption() {
                             <div>
                               <div className="text-xs text-gray-600">Total Cost</div>
                               <div className="text-xl font-semibold text-gray-800">
-                                ₹{cityResult.totalCost.toLocaleString()}
+                                ₹{(cityResult?.totalCost ?? 0).toLocaleString()}
                               </div>
                             </div>
                           </div>
@@ -832,49 +832,49 @@ function CostPerWashByConsumption() {
                           <Package className="w-4 h-4 text-blue-600" />
                           <span className="text-sm font-medium">Materials</span>
                         </div>
-                        <span className="font-semibold">₹{cityResult.breakdown.materials.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(cityResult?.breakdown?.materials ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <Package className="w-4 h-4 text-green-600" />
                           <span className="text-sm font-medium">Consumables</span>
                         </div>
-                        <span className="font-semibold">₹{cityResult.breakdown.consumables.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(cityResult?.breakdown?.consumables ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-cyan-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-cyan-600" />
                           <span className="text-sm font-medium">Water</span>
                         </div>
-                        <span className="font-semibold">₹{cityResult.breakdown.water.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(cityResult?.breakdown?.water ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-orange-600" />
                           <span className="text-sm font-medium">Fuel/Transport</span>
                         </div>
-                        <span className="font-semibold">₹{cityResult.breakdown.fuel.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(cityResult?.breakdown?.fuel ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <Building2 className="w-4 h-4 text-purple-600" />
                           <span className="text-sm font-medium">Overhead (Allocated)</span>
                         </div>
-                        <span className="font-semibold">₹{cityResult.breakdown.overhead.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(cityResult?.breakdown?.overhead ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-yellow-600" />
                           <span className="text-sm font-medium">Equipment</span>
                         </div>
-                        <span className="font-semibold">₹{cityResult.breakdown.equipment.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(cityResult?.breakdown?.equipment ?? 0).toFixed(2)}</span>
                       </div>
                       <div className="flex items-center justify-between p-3 bg-pink-50 rounded-lg border-2 border-pink-200">
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-pink-600" />
                           <span className="text-sm font-medium">Manpower Cost</span>
                         </div>
-                        <span className="font-semibold">₹{cityResult.breakdown.manpower.toFixed(2)}</span>
+                        <span className="font-semibold">₹{(cityResult?.breakdown?.manpower ?? 0).toFixed(2)}</span>
                       </div>
                     </CardContent>
                   </Card>

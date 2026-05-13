@@ -346,25 +346,25 @@ export function CostModelParameters() {
                         <TableRow>
                           <TableCell>Washer</TableCell>
                           <TableCell className="font-semibold">
-                            ₹{MONTHLY_SALARIES.washerCTC.toLocaleString()}
+                            ₹{(MONTHLY_SALARIES?.washerCTC ?? 0).toLocaleString()}
                           </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell>Supervisor</TableCell>
                           <TableCell className="font-semibold">
-                            ₹{MONTHLY_SALARIES.supervisorCTC.toLocaleString()}
+                            ₹{(MONTHLY_SALARIES?.supervisorCTC ?? 0).toLocaleString()}
                           </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell>Operations Manager</TableCell>
                           <TableCell className="font-semibold">
-                            ₹{MONTHLY_SALARIES.opsManagerCTC.toLocaleString()}
+                            ₹{(MONTHLY_SALARIES?.opsManagerCTC ?? 0).toLocaleString()}
                           </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell>City Manager</TableCell>
                           <TableCell className="font-semibold">
-                            ₹{MONTHLY_SALARIES.cityManagerCTC.toLocaleString()}
+                            ₹{(MONTHLY_SALARIES?.cityManagerCTC ?? 0).toLocaleString()}
                           </TableCell>
                         </TableRow>
                       </TableBody>
@@ -390,7 +390,7 @@ export function CostModelParameters() {
                             <TableRow>
                               <TableCell className="text-sm">Washer</TableCell>
                               <TableCell className="text-sm font-semibold">
-                                ₹{labourBase.washer.toFixed(2)}
+                                ₹{(labourBase?.washer ?? 0).toFixed(2)}
                               </TableCell>
                             </TableRow>
                             <TableRow>
@@ -398,7 +398,7 @@ export function CostModelParameters() {
                                 Supervisor
                               </TableCell>
                               <TableCell className="text-sm font-semibold">
-                                ₹{labourBase.supervisor.toFixed(2)}
+                                ₹{(labourBase?.supervisor ?? 0).toFixed(2)}
                               </TableCell>
                             </TableRow>
                             <TableRow>
@@ -406,7 +406,7 @@ export function CostModelParameters() {
                                 Ops Manager
                               </TableCell>
                               <TableCell className="text-sm font-semibold">
-                                ₹{labourBase.opsManager.toFixed(2)}
+                                ₹{(labourBase?.opsManager ?? 0).toFixed(2)}
                               </TableCell>
                             </TableRow>
                             <TableRow>
@@ -414,7 +414,7 @@ export function CostModelParameters() {
                                 City Manager
                               </TableCell>
                               <TableCell className="text-sm font-semibold">
-                                ₹{labourBase.cityManager.toFixed(2)}
+                                ₹{(labourBase?.cityManager ?? 0).toFixed(2)}
                               </TableCell>
                             </TableRow>
                             <TableRow className="border-t-2">
@@ -422,7 +422,7 @@ export function CostModelParameters() {
                                 Total (4W)
                               </TableCell>
                               <TableCell className="font-bold text-lg">
-                                ₹{labourBase.total.toFixed(2)}
+                                ₹{(labourBase?.total ?? 0).toFixed(2)}
                               </TableCell>
                             </TableRow>
                             <TableRow>
@@ -444,7 +444,7 @@ export function CostModelParameters() {
                             <TableRow>
                               <TableCell className="text-sm">Washer</TableCell>
                               <TableCell className="text-sm font-semibold">
-                                ₹{labourIncentive.washer.toFixed(2)}
+                                ₹{(labourIncentive?.washer ?? 0).toFixed(2)}
                               </TableCell>
                             </TableRow>
                             <TableRow>
@@ -452,7 +452,7 @@ export function CostModelParameters() {
                                 Supervisor
                               </TableCell>
                               <TableCell className="text-sm font-semibold">
-                                ₹{labourIncentive.supervisor.toFixed(2)}
+                                ₹{(labourIncentive?.supervisor ?? 0).toFixed(2)}
                               </TableCell>
                             </TableRow>
                             <TableRow>
@@ -460,7 +460,7 @@ export function CostModelParameters() {
                                 Ops Manager
                               </TableCell>
                               <TableCell className="text-sm font-semibold">
-                                ₹{labourIncentive.opsManager.toFixed(2)}
+                                ₹{(labourIncentive?.opsManager ?? 0).toFixed(2)}
                               </TableCell>
                             </TableRow>
                             <TableRow>
@@ -468,7 +468,7 @@ export function CostModelParameters() {
                                 City Manager
                               </TableCell>
                               <TableCell className="text-sm font-semibold">
-                                ₹{labourIncentive.cityManager.toFixed(2)}
+                                ₹{(labourIncentive?.cityManager ?? 0).toFixed(2)}
                               </TableCell>
                             </TableRow>
                             <TableRow className="border-t-2">
@@ -476,7 +476,7 @@ export function CostModelParameters() {
                                 Total (4W)
                               </TableCell>
                               <TableCell className="font-bold text-lg">
-                                ₹{labourIncentive.total.toFixed(2)}
+                                ₹{(labourIncentive?.total ?? 0).toFixed(2)}
                               </TableCell>
                             </TableRow>
                             <TableRow>
@@ -578,26 +578,26 @@ export function CostModelParameters() {
                         <TableRow>
                           <TableCell>Tyre Wax</TableCell>
                           <TableCell className="font-semibold">
-                            ₹{CONSUMABLE_UNIT_COSTS.tyreWaxPerMl.toFixed(2)}/ml
+                            ₹{(CONSUMABLE_UNIT_COSTS?.tyreWaxPerMl ?? 0).toFixed(2)}/ml
                           </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell>Shampoo</TableCell>
                           <TableCell className="font-semibold">
-                            ₹{CONSUMABLE_UNIT_COSTS.shampooPerMl.toFixed(2)}/ml
+                            ₹{(CONSUMABLE_UNIT_COSTS?.shampooPerMl ?? 0).toFixed(2)}/ml
                           </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell>Exterior Wax</TableCell>
                           <TableCell className="font-semibold">
-                            ₹{CONSUMABLE_UNIT_COSTS.exteriorWaxPerMl.toFixed(2)}
+                            ₹{(CONSUMABLE_UNIT_COSTS?.exteriorWaxPerMl ?? 0).toFixed(2)}
                             /ml
                           </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell>Interior Wax</TableCell>
                           <TableCell className="font-semibold">
-                            ₹{CONSUMABLE_UNIT_COSTS.interiorWaxPerMl.toFixed(2)}
+                            ₹{(CONSUMABLE_UNIT_COSTS?.interiorWaxPerMl ?? 0).toFixed(2)}
                             /ml
                           </TableCell>
                         </TableRow>
@@ -675,7 +675,7 @@ export function CostModelParameters() {
                         <TableRow>
                           <TableCell>Pressure Spray Gun</TableCell>
                           <TableCell>
-                            ₹{EQUIPMENT_DATA.pressureSprayGun.cost.toLocaleString()}{" "}
+                            ₹{(EQUIPMENT_DATA?.pressureSprayGun?.cost ?? 0).toLocaleString()}{" "}
                             (life: {EQUIPMENT_DATA.pressureSprayGun.lifeMonths}{" "}
                             months)
                           </TableCell>
@@ -692,7 +692,7 @@ export function CostModelParameters() {
                         <TableRow>
                           <TableCell>Vacuum Cleaner</TableCell>
                           <TableCell>
-                            ₹{EQUIPMENT_DATA.vacuumCleaner.cost.toLocaleString()}{" "}
+                            ₹{(EQUIPMENT_DATA?.vacuumCleaner?.cost ?? 0).toLocaleString()}{" "}
                             (life: {EQUIPMENT_DATA.vacuumCleaner.lifeMonths}{" "}
                             months)
                           </TableCell>
@@ -747,14 +747,14 @@ export function CostModelParameters() {
                         <TableRow>
                           <TableCell>Office Rent</TableCell>
                           <TableCell className="font-semibold">
-                            ₹{MONTHLY_FIXED_OVERHEAD.officeRent.toLocaleString()}
+                            ₹{(MONTHLY_FIXED_OVERHEAD?.officeRent ?? 0).toLocaleString()}
                             /month
                           </TableCell>
                         </TableRow>
                         <TableRow>
                           <TableCell>ERP Licence</TableCell>
                           <TableCell className="font-semibold">
-                            ₹{MONTHLY_FIXED_OVERHEAD.erpLicence.toLocaleString()}
+                            ₹{(MONTHLY_FIXED_OVERHEAD?.erpLicence ?? 0).toLocaleString()}
                             /month
                           </TableCell>
                         </TableRow>

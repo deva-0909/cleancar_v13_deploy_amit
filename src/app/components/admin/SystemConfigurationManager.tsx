@@ -225,8 +225,8 @@ export function SystemConfigurationManager() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>Base Units/Month: <span className="font-semibold">{metrics.baseUnitsPerWasherPerMonth}</span></div>
                 <div>Max Additional Units/Month: <span className="font-semibold">{metrics.maxAdditionalUnitsPerWasherPerMonth}</span></div>
-                <div>Total Base Washes/Month: <span className="font-semibold">{metrics.totalBaseWashesPerMonth.toLocaleString()}</span></div>
-                <div>Max Total Washes/Month: <span className="font-semibold">{metrics.maxTotalWashesPerMonth.toLocaleString()}</span></div>
+                <div>Total Base Washes/Month: <span className="font-semibold">{(metrics?.totalBaseWashesPerMonth ?? 0).toLocaleString()}</span></div>
+                <div>Max Total Washes/Month: <span className="font-semibold">{(metrics?.maxTotalWashesPerMonth ?? 0).toLocaleString()}</span></div>
               </div>
             </div>
           </div>
@@ -268,12 +268,12 @@ export function SystemConfigurationManager() {
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="font-medium text-blue-900 mb-2">Calculated Costs</h4>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>Washer Cost/Wash: <span className="font-semibold">₹{metrics.washerCostPerWashBase.toFixed(2)}</span></div>
-                <div>Supervisor Cost/Wash: <span className="font-semibold">₹{metrics.supervisorCostPerWash.toFixed(2)}</span></div>
-                <div>Ops Manager Cost/Wash: <span className="font-semibold">₹{metrics.opsManagerCostPerWash.toFixed(2)}</span></div>
-                <div>City Manager Cost/Wash: <span className="font-semibold">₹{metrics.cityManagerCostPerWash.toFixed(2)}</span></div>
+                <div>Washer Cost/Wash: <span className="font-semibold">₹{(metrics?.washerCostPerWashBase ?? 0).toFixed(2)}</span></div>
+                <div>Supervisor Cost/Wash: <span className="font-semibold">₹{(metrics?.supervisorCostPerWash ?? 0).toFixed(2)}</span></div>
+                <div>Ops Manager Cost/Wash: <span className="font-semibold">₹{(metrics?.opsManagerCostPerWash ?? 0).toFixed(2)}</span></div>
+                <div>City Manager Cost/Wash: <span className="font-semibold">₹{(metrics?.cityManagerCostPerWash ?? 0).toFixed(2)}</span></div>
                 <div className="col-span-2 font-semibold text-blue-900">
-                  Total Labour/Wash (Base): <span className="font-bold">₹{metrics.totalLabourCostPerWashBase.toFixed(2)}</span>
+                  Total Labour/Wash (Base): <span className="font-bold">₹{(metrics?.totalLabourCostPerWashBase ?? 0).toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -350,8 +350,8 @@ export function SystemConfigurationManager() {
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="font-medium text-blue-900 mb-2">Calculated Metrics</h4>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>Blended Rate/Unit: <span className="font-semibold">₹{metrics.blendedIncentiveRatePerUnit.toFixed(2)}</span></div>
-                <div>Avg Incentive/Washer/Month: <span className="font-semibold">₹{metrics.avgIncentivePerWasherPerMonth.toFixed(2)}</span></div>
+                <div>Blended Rate/Unit: <span className="font-semibold">₹{(metrics?.blendedIncentiveRatePerUnit ?? 0).toFixed(2)}</span></div>
+                <div>Avg Incentive/Washer/Month: <span className="font-semibold">₹{(metrics?.avgIncentivePerWasherPerMonth ?? 0).toFixed(2)}</span></div>
               </div>
             </div>
           </div>
@@ -392,7 +392,7 @@ export function SystemConfigurationManager() {
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="font-medium text-blue-900 mb-2">Calculated Costs</h4>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>Cloth Cost/Wash: <span className="font-semibold">₹{metrics.clothCostPerWash.toFixed(4)}</span></div>
+                <div>Cloth Cost/Wash: <span className="font-semibold">₹{(metrics?.clothCostPerWash ?? 0).toFixed(4)}</span></div>
               </div>
             </div>
 
@@ -428,8 +428,8 @@ export function SystemConfigurationManager() {
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="font-medium text-blue-900 mb-2">Calculated Costs</h4>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>Sponge Cost/Wash: <span className="font-semibold">₹{metrics.spongeCostPerWash.toFixed(4)}</span></div>
-                <div>Interior Cloth Cost/Wash: <span className="font-semibold">₹{metrics.interiorClothCostPerWash.toFixed(4)}</span></div>
+                <div>Sponge Cost/Wash: <span className="font-semibold">₹{(metrics?.spongeCostPerWash ?? 0).toFixed(4)}</span></div>
+                <div>Interior Cloth Cost/Wash: <span className="font-semibold">₹{(metrics?.interiorClothCostPerWash ?? 0).toFixed(4)}</span></div>
               </div>
             </div>
           </div>
@@ -504,8 +504,8 @@ export function SystemConfigurationManager() {
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="font-medium text-blue-900 mb-2">Calculated Costs</h4>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>Spray Gun Cost/Wash: <span className="font-semibold">₹{metrics.sprayGunCostPerWash.toFixed(4)}</span></div>
-                <div>Vacuum Cost/Wash: <span className="font-semibold">₹{metrics.vacuumCostPerWash.toFixed(4)}</span></div>
+                <div>Spray Gun Cost/Wash: <span className="font-semibold">₹{(metrics?.sprayGunCostPerWash ?? 0).toFixed(4)}</span></div>
+                <div>Vacuum Cost/Wash: <span className="font-semibold">₹{(metrics?.vacuumCostPerWash ?? 0).toFixed(4)}</span></div>
               </div>
             </div>
           </div>
@@ -555,13 +555,13 @@ export function SystemConfigurationManager() {
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="font-medium text-blue-900 mb-2">Calculated Costs</h4>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>ERP Monthly Amortization: <span className="font-semibold">₹{metrics.erpMonthlyAmortization.toLocaleString()}</span></div>
-                <div>ERP Monthly AMC: <span className="font-semibold">₹{metrics.erpMonthlyAMC.toLocaleString()}</span></div>
+                <div>ERP Monthly Amortization: <span className="font-semibold">₹{(metrics?.erpMonthlyAmortization ?? 0).toLocaleString()}</span></div>
+                <div>ERP Monthly AMC: <span className="font-semibold">₹{(metrics?.erpMonthlyAMC ?? 0).toLocaleString()}</span></div>
                 <div className="col-span-2 font-semibold text-blue-900">
-                  Total ERP Monthly: <span className="font-bold">₹{metrics.erpMonthlyTotal.toLocaleString()}</span>
+                  Total ERP Monthly: <span className="font-bold">₹{(metrics?.erpMonthlyTotal ?? 0).toLocaleString()}</span>
                 </div>
                 <div className="col-span-2 font-semibold text-blue-900">
-                  Fixed Overhead/Wash (Base): <span className="font-bold">₹{metrics.fixedOverheadPerWashBase.toFixed(4)}</span>
+                  Fixed Overhead/Wash (Base): <span className="font-bold">₹{(metrics?.fixedOverheadPerWashBase ?? 0).toFixed(4)}</span>
                 </div>
               </div>
             </div>
@@ -604,8 +604,8 @@ export function SystemConfigurationManager() {
             <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="font-medium text-blue-900 mb-2">Calculated Costs</h4>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>Total Laundry/Month: <span className="font-semibold">₹{metrics.totalLaundryCostPerMonth.toLocaleString()}</span></div>
-                <div>Laundry Cost/Wash (Base): <span className="font-semibold">₹{metrics.laundryCostPerWash.toFixed(4)}</span></div>
+                <div>Total Laundry/Month: <span className="font-semibold">₹{(metrics?.totalLaundryCostPerMonth ?? 0).toLocaleString()}</span></div>
+                <div>Laundry Cost/Wash (Base): <span className="font-semibold">₹{(metrics?.laundryCostPerWash ?? 0).toFixed(4)}</span></div>
               </div>
             </div>
           </div>
@@ -650,11 +650,11 @@ export function SystemConfigurationManager() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Total Base Washes/Month:</span>
-                    <span className="font-semibold">{summary.throughput.totalBaseWashesPerMonth.toLocaleString()}</span>
+                    <span className="font-semibold">{(summary?.throughput?.totalBaseWashesPerMonth ?? 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Max Total Washes/Month:</span>
-                    <span className="font-semibold">{summary.throughput.maxTotalWashesPerMonth.toLocaleString()}</span>
+                    <span className="font-semibold">{(summary?.throughput?.maxTotalWashesPerMonth ?? 0).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -664,15 +664,15 @@ export function SystemConfigurationManager() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Washer Cost/Wash:</span>
-                    <span className="font-semibold">₹{summary.costs.washerCostPerWashBase.toFixed(2)}</span>
+                    <span className="font-semibold">₹{(summary?.costs?.washerCostPerWashBase ?? 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Management Overhead:</span>
-                    <span className="font-semibold">₹{summary.costs.managementOverheadPerWash.toFixed(2)}</span>
+                    <span className="font-semibold">₹{(summary?.costs?.managementOverheadPerWash ?? 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-semibold text-blue-900">
                     <span>Total Labour/Wash:</span>
-                    <span>₹{summary.costs.totalLabourCostPerWashBase.toFixed(2)}</span>
+                    <span>₹{(summary?.costs?.totalLabourCostPerWashBase ?? 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -682,7 +682,7 @@ export function SystemConfigurationManager() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Cloth Cost/Wash:</span>
-                    <span className="font-semibold">₹{summary.costs.clothCostPerWash.toFixed(4)}</span>
+                    <span className="font-semibold">₹{(summary?.costs?.clothCostPerWash ?? 0).toFixed(4)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Equipment Cost/Wash:</span>
@@ -690,11 +690,11 @@ export function SystemConfigurationManager() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Laundry Cost/Wash:</span>
-                    <span className="font-semibold">₹{summary.costs.laundryCostPerWash.toFixed(4)}</span>
+                    <span className="font-semibold">₹{(summary?.costs?.laundryCostPerWash ?? 0).toFixed(4)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Fixed Overhead/Wash:</span>
-                    <span className="font-semibold">₹{summary.costs.fixedOverheadPerWashBase.toFixed(4)}</span>
+                    <span className="font-semibold">₹{(summary?.costs?.fixedOverheadPerWashBase ?? 0).toFixed(4)}</span>
                   </div>
                 </div>
               </div>
@@ -716,7 +716,7 @@ export function SystemConfigurationManager() {
                   </div>
                   <div className="flex justify-between font-semibold text-blue-900">
                     <span>Blended Rate/Unit:</span>
-                    <span>₹{summary.incentives.blendedRate.toFixed(2)}</span>
+                    <span>₹{(summary?.incentives?.blendedRate ?? 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -726,15 +726,15 @@ export function SystemConfigurationManager() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Office & Stationery:</span>
-                    <span className="font-semibold">₹{summary.overhead.officeAndStationery.toLocaleString()}</span>
+                    <span className="font-semibold">₹{(summary?.overhead?.officeAndStationery ?? 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">ERP Monthly Total:</span>
-                    <span className="font-semibold">₹{summary.overhead.erpMonthlyTotal.toLocaleString()}</span>
+                    <span className="font-semibold">₹{(summary?.overhead?.erpMonthlyTotal ?? 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between font-semibold text-blue-900">
                     <span>Total Monthly Overhead:</span>
-                    <span>₹{summary.overhead.totalMonthlyOverhead.toLocaleString()}</span>
+                    <span>₹{(summary?.overhead?.totalMonthlyOverhead ?? 0).toLocaleString()}</span>
                   </div>
                 </div>
               </div>

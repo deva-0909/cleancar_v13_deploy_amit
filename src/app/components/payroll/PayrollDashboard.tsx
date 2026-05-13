@@ -151,7 +151,7 @@ export function PayrollDashboard() {
                     <p className="text-sm text-gray-600">{earner.role}</p>
                   </div>
                 </div>
-                <p className="font-bold text-blue-600">₹{earner.amount.toLocaleString()}</p>
+                <p className="font-bold text-blue-600">₹{(earner?.amount ?? 0).toLocaleString()}</p>
               </div>
             ))}
           </div>

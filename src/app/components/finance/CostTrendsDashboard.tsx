@@ -441,7 +441,7 @@ export function CostTrendsDashboard() {
                         <td className="border p-2 text-right">₹{row.standard}</td>
                         <td className="border p-2 text-right">
                           <span className={row.variance > 0 ? "text-red-600" : "text-green-600"}>
-                            {row.variance > 0 ? "+" : ""}₹{row.variance.toFixed(2)}
+                            {row.variance > 0 ? "+" : ""}₹{(row?.variance ?? 0).toFixed(2)}
                           </span>
                         </td>
                       </tr>

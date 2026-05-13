@@ -206,23 +206,23 @@ export function GSTFilingModule() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Taxable Value</p>
-                <p className="text-xl font-semibold text-gray-900">₹{summaryData.totalTaxableValue.toLocaleString()}</p>
+                <p className="text-xl font-semibold text-gray-900">₹{(summaryData?.totalTaxableValue ?? 0).toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Output Tax</p>
-                <p className="text-xl font-semibold text-gray-900">₹{summaryData.totalOutputTax.toLocaleString()}</p>
+                <p className="text-xl font-semibold text-gray-900">₹{(summaryData?.totalOutputTax ?? 0).toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total ITC</p>
-                <p className="text-xl font-semibold text-green-600">₹{summaryData.totalITC.toLocaleString()}</p>
+                <p className="text-xl font-semibold text-green-600">₹{(summaryData?.totalITC ?? 0).toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Net Tax Payable</p>
-                <p className="text-xl font-semibold text-purple-600">₹{summaryData.netTaxPayable.toLocaleString()}</p>
+                <p className="text-xl font-semibold text-purple-600">₹{(summaryData?.netTaxPayable ?? 0).toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Late Fee/Penalty</p>
-                <p className="text-xl font-semibold text-gray-900">₹{summaryData.lateFeePenalty.toLocaleString()}</p>
+                <p className="text-xl font-semibold text-gray-900">₹{(summaryData?.lateFeePenalty ?? 0).toLocaleString()}</p>
               </div>
             </div>
 

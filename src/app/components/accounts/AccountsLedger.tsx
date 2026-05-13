@@ -91,9 +91,9 @@ export function AccountsLedger() {
       e.date,
       e.voucherNumber,
       e.narration || e.invoiceNumber || "-",
-      e.debit.toFixed(2),
-      e.credit.toFixed(2),
-      e.balance.toFixed(2),
+      (e?.debit ?? 0).toFixed(2),
+      (e?.credit ?? 0).toFixed(2),
+      (e?.balance ?? 0).toFixed(2),
     ]);
     const csv = [headers, ...rows].map((row) => row.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -217,7 +217,7 @@ export function AccountsLedger() {
             <div>
               <p className="text-xs text-gray-500">Current Balance</p>
               <p className={`font-semibold ${ledgerBalance.balanceType === "Dr" ? "text-red-600" : "text-green-600"}`}>
-                ₹{ledgerBalance.balance.toFixed(2)} {ledgerBalance.balanceType}
+                ₹{(ledgerBalance?.balance ?? 0).toFixed(2)} {ledgerBalance.balanceType}
               </p>
             </div>
             <div>
@@ -271,12 +271,12 @@ export function AccountsLedger() {
                   <td className="px-4 py-3 text-sm font-mono">{entry.voucherNumber}</td>
                   <td className="px-4 py-3 text-sm">{entry.narration || entry.invoiceNumber || "-"}</td>
                   <td className="px-4 py-3 text-sm text-right text-red-600">
-                    {entry.debit > 0 ? `₹${entry.debit.toFixed(2)}` : "-"}
+                    {entry.debit > 0 ? `₹${(entry?.debit ?? 0).toFixed(2)}` : "-"}
                   </td>
                   <td className="px-4 py-3 text-sm text-right text-green-600">
-                    {entry.credit > 0 ? `₹${entry.credit.toFixed(2)}` : "-"}
+                    {entry.credit > 0 ? `₹${(entry?.credit ?? 0).toFixed(2)}` : "-"}
                   </td>
-                  <td className="px-4 py-3 text-sm text-right font-medium">₹{entry.balance.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-right font-medium">₹{(entry?.balance ?? 0).toFixed(2)}</td>
                 </tr>
               ))}
 

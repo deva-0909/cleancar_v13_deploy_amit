@@ -533,13 +533,13 @@ export function LifeCycleReports() {
                           "en-IN"
                         )}
                       </TableCell>
-                      <TableCell>₹{record.oldSalary.toLocaleString()}</TableCell>
+                      <TableCell>₹{(record?.oldSalary ?? 0).toLocaleString()}</TableCell>
                       <TableCell className="font-semibold text-green-600">
-                        ₹{record.newSalary.toLocaleString()}
+                        ₹{(record?.newSalary ?? 0).toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <Badge variant="default">
-                          +{record.increasePercent.toFixed(1)}%
+                          +{(record?.increasePercent ?? 0).toFixed(1)}%
                         </Badge>
                       </TableCell>
                       <TableCell>{record.revisionType}</TableCell>
@@ -666,13 +666,13 @@ export function LifeCycleReports() {
                             )}
                           </td>
                           <td className="border p-2">
-                            ₹{record.oldSalary.toLocaleString()}
+                            ₹{(record?.oldSalary ?? 0).toLocaleString()}
                           </td>
                           <td className="border p-2">
-                            ₹{record.newSalary.toLocaleString()}
+                            ₹{(record?.newSalary ?? 0).toLocaleString()}
                           </td>
                           <td className="border p-2">
-                            +{record.increasePercent.toFixed(1)}%
+                            +{(record?.increasePercent ?? 0).toFixed(1)}%
                           </td>
                           <td className="border p-2">{record.revisionType}</td>
                         </tr>

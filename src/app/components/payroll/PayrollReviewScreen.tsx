@@ -297,12 +297,12 @@ export function PayrollReviewScreen() {
                         </div>
                       )}
                     </td>
-                    <td className="p-3 text-right text-sm">₹{entry.fixedSalary.toLocaleString()}</td>
+                    <td className="p-3 text-right text-sm">₹{(entry?.fixedSalary ?? 0).toLocaleString()}</td>
                     <td className="p-3 text-right text-sm text-purple-600">
-                      +₹{entry.incentives.toLocaleString()}
+                      +₹{(entry?.incentives ?? 0).toLocaleString()}
                     </td>
                     <td className="p-3 text-right text-sm text-orange-600">
-                      +₹{entry.bonuses.toLocaleString()}
+                      +₹{(entry?.bonuses ?? 0).toLocaleString()}
                     </td>
                     <td className="p-3 text-right text-sm">
                       <div>
@@ -315,7 +315,7 @@ export function PayrollReviewScreen() {
                       </div>
                     </td>
                     <td className="p-3 text-right">
-                      <span className="font-bold text-blue-600">₹{entry.netSalary.toLocaleString()}</span>
+                      <span className="font-bold text-blue-600">₹{(entry?.netSalary ?? 0).toLocaleString()}</span>
                     </td>
                     <td className="p-3 text-center">
                       {entry.status === "reviewed" ? (
@@ -386,7 +386,7 @@ export function PayrollReviewScreen() {
                 <p className="text-sm font-medium">{selectedEntry.name}</p>
                 <p className="text-xs text-gray-600">{selectedEntry.empId} • {selectedEntry.role}</p>
                 <p className="text-xs text-gray-600 mt-1">
-                  Current Net: ₹{selectedEntry.netSalary.toLocaleString()}
+                  Current Net: ₹{(selectedEntry?.netSalary ?? 0).toLocaleString()}
                 </p>
               </div>
 
@@ -426,7 +426,7 @@ export function PayrollReviewScreen() {
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span>Current Net Salary:</span>
-                      <span>₹{selectedEntry.netSalary.toLocaleString()}</span>
+                      <span>₹{(selectedEntry?.netSalary ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between font-medium">
                       <span>{adjustmentType === "addition" ? "Addition:" : "Deduction:"}</span>

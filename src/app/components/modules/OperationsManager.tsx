@@ -356,7 +356,7 @@ export function OperationsManager() {
                         variant={plan.percentage >= 50 ? "secondary" : "outline"}
                         className="text-sm"
                       >
-                        {plan.percentage.toFixed(2)}%
+                        {(plan?.percentage ?? 0).toFixed(2)}%
                       </Badge>
                     </div>
                     <div className="grid grid-cols-5 gap-4">
@@ -365,7 +365,7 @@ export function OperationsManager() {
                         <p className="text-xs text-gray-600">Subscriptions</p>
                       </div>
                       <div className="text-center p-3 bg-green-50 rounded-lg">
-                        <p className="text-2xl font-bold text-green-600">{plan.revenue.toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-green-600">{(plan?.revenue ?? 0).toFixed(2)}</p>
                         <p className="text-xs text-gray-600">Revenue</p>
                       </div>
                     </div>

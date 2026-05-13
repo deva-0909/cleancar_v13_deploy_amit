@@ -560,7 +560,7 @@ export function RazorpayFlow() {
                             <TableRow key={c.id}>
                               <TableCell className="font-medium">{c.customerName}</TableCell>
                               <TableCell>{c.packageName}</TableCell>
-                              <TableCell className="text-right">₹{c.amount.toLocaleString()}</TableCell>
+                              <TableCell className="text-right">₹{(c?.amount ?? 0).toLocaleString()}</TableCell>
                               <TableCell>
                                 <Button
                                   size="sm"
@@ -595,12 +595,12 @@ export function RazorpayFlow() {
                       <div className="space-y-1 text-sm font-mono">
                         {customers.map((c) => (
                           <div key={c.id} className="text-blue-600">
-                            {c.customerName} (Debtors) Dr ₹{c.amount.toLocaleString()}
+                            {c.customerName} (Debtors) Dr ₹{(c?.amount ?? 0).toLocaleString()}
                           </div>
                         ))}
                         {Object.entries(salesByPackage).map(([code, data]) => (
                           <div key={code} className="text-green-600 ml-8">
-                            To Sales — {data.packageName} Cr ₹{data.total.toLocaleString()}
+                            To Sales — {data.packageName} Cr ₹{(data?.total ?? 0).toLocaleString()}
                           </div>
                         ))}
                       </div>
@@ -625,7 +625,7 @@ export function RazorpayFlow() {
                       </div>
                       {customers.map((c) => (
                         <div key={c.id} className="text-green-600 ml-8">
-                          To {c.customerName} Cr ₹{c.amount.toLocaleString()}
+                          To {c.customerName} Cr ₹{(c?.amount ?? 0).toLocaleString()}
                         </div>
                       ))}
                     </div>
@@ -914,13 +914,13 @@ export function RazorpayFlow() {
                             <TableCell>{batch.settlementDate}</TableCell>
                             <TableCell>{batch.customers.length}</TableCell>
                             <TableCell className="text-right">
-                              ₹{batch.totalSales.toLocaleString()}
+                              ₹{(batch?.totalSales ?? 0).toLocaleString()}
                             </TableCell>
                             <TableCell className="text-right">
-                              ₹{batch.totalDeduction.toFixed(2)}
+                              ₹{(batch?.totalDeduction ?? 0).toFixed(2)}
                             </TableCell>
                             <TableCell className="text-right text-green-600 font-semibold">
-                              ₹{batch.netSettlement.toFixed(2)}
+                              ₹{(batch?.netSettlement ?? 0).toFixed(2)}
                             </TableCell>
                             <TableCell>
                               <Badge>{batch.voucherNumbers.length} entries</Badge>
@@ -968,7 +968,7 @@ export function RazorpayFlow() {
                                       >
                                         <div className="font-medium">{c.customerName}</div>
                                         <div className="text-gray-500">
-                                          {c.packageName} - ₹{c.amount.toLocaleString()}
+                                          {c.packageName} - ₹{(c?.amount ?? 0).toLocaleString()}
                                         </div>
                                       </div>
                                     ))}

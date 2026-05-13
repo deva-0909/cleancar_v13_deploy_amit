@@ -507,7 +507,7 @@ export function OtherDeductionsModule() {
                             <td className="py-3 px-4 text-sm text-gray-700">{deduction.employeeId}</td>
                             <td className="py-3 px-4 text-sm text-gray-700">{deduction.employeeRole}</td>
                             <td className="py-3 px-4 text-sm text-right font-semibold text-amber-600">
-                              ₹{deduction.amount.toLocaleString()}
+                              ₹{(deduction?.amount ?? 0).toLocaleString()}
                             </td>
                             <td className="py-3 px-4 text-sm text-gray-700">{deduction.category}</td>
                             <td className="py-3 px-4 text-sm text-gray-700">{deduction.payrollMonth}</td>
@@ -711,7 +711,7 @@ export function OtherDeductionsModule() {
                             <td className="py-3 px-4 text-sm text-gray-900">{deduction.employeeName}</td>
                             <td className="py-3 px-4 text-sm text-gray-700">{deduction.employeeRole}</td>
                             <td className="py-3 px-4 text-sm text-right font-semibold text-amber-600">
-                              ₹{deduction.amount.toLocaleString()}
+                              ₹{(deduction?.amount ?? 0).toLocaleString()}
                             </td>
                             <td className="py-3 px-4 text-sm text-gray-700">{deduction.category}</td>
                             <td className="py-3 px-4 text-sm text-gray-700">{deduction.payrollMonth}</td>

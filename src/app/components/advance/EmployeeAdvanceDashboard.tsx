@@ -110,7 +110,7 @@ export function EmployeeAdvanceDashboard() {
               <div>
                 <p className="text-xs text-gray-600 mb-1">Total Outstanding</p>
                 <p className="text-2xl font-bold text-red-600">
-                  ₹{summary.totalOutstanding.toLocaleString()}
+                  ₹{(summary?.totalOutstanding ?? 0).toLocaleString()}
                 </p>
               </div>
               <DollarSign className="w-8 h-8 text-red-300" />
@@ -158,7 +158,7 @@ export function EmployeeAdvanceDashboard() {
               <div>
                 <p className="text-xs text-gray-600 mb-1">Next EMI Amount</p>
                 <p className="text-lg font-bold text-green-600">
-                  {summary.nextEmiAmount ? `₹${summary.nextEmiAmount.toLocaleString()}` : "N/A"}
+                  {summary.nextEmiAmount ? `₹${(summary?.nextEmiAmount ?? 0).toLocaleString()}` : "N/A"}
                 </p>
               </div>
               <TrendingUp className="w-8 h-8 text-green-300" />
@@ -296,7 +296,7 @@ export function EmployeeAdvanceDashboard() {
                   <p className="font-semibold text-blue-900">Good Repayment History</p>
                   <p className="text-sm text-blue-700 mt-1">
                     {summary.completedAdvances} advance(s) completed • ₹
-                    {summary.totalRepaid.toLocaleString()} repaid
+                    {(summary?.totalRepaid ?? 0).toLocaleString()} repaid
                   </p>
                 </div>
               </div>

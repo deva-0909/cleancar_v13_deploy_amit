@@ -231,7 +231,7 @@ export function PayrollProcessing() {
           <CardContent className="p-4">
             <p className="text-sm text-orange-700 mb-1">Deduction Days</p>
             <p className="text-2xl font-bold text-orange-900">
-              {attendance.summary.deductionDays.toFixed(1)}
+              {(attendance?.summary?.deductionDays ?? 0).toFixed(1)}
             </p>
           </CardContent>
         </Card>
@@ -239,7 +239,7 @@ export function PayrollProcessing() {
           <CardContent className="p-4">
             <p className="text-sm text-purple-700 mb-1">Net Pay</p>
             <p className="text-2xl font-bold text-purple-900">
-              ₹{payroll.netPay.toFixed(0)}
+              ₹{(payroll?.netPay ?? 0).toFixed(0)}
             </p>
           </CardContent>
         </Card>
@@ -341,14 +341,14 @@ export function PayrollProcessing() {
                   <TableRow key={index}>
                     <TableCell className="font-medium">{earning.name}</TableCell>
                     <TableCell className="text-right font-semibold">
-                      ₹{earning.amount.toFixed(2)}
+                      ₹{(earning?.amount ?? 0).toFixed(2)}
                     </TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="bg-green-50 border-t-2 border-green-300">
                   <TableCell className="font-bold text-green-900">Gross Pay</TableCell>
                   <TableCell className="text-right font-bold text-green-900">
-                    ₹{payroll.grossPay.toFixed(2)}
+                    ₹{(payroll?.grossPay ?? 0).toFixed(2)}
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -374,14 +374,14 @@ export function PayrollProcessing() {
                   <TableRow key={index}>
                     <TableCell className="font-medium">{deduction.name}</TableCell>
                     <TableCell className="text-right font-semibold">
-                      ₹{deduction.amount.toFixed(2)}
+                      ₹{(deduction?.amount ?? 0).toFixed(2)}
                     </TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="bg-red-50 border-t-2 border-red-300">
                   <TableCell className="font-bold text-red-900">Total Deductions</TableCell>
                   <TableCell className="text-right font-bold text-red-900">
-                    ₹{payroll.totalDeductions.toFixed(2)}
+                    ₹{(payroll?.totalDeductions ?? 0).toFixed(2)}
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -397,12 +397,12 @@ export function PayrollProcessing() {
             <div>
               <p className="text-lg text-purple-700 mb-2">Net Salary</p>
               <p className="text-4xl font-bold text-purple-900">
-                ₹{payroll.netPay.toFixed(2)}
+                ₹{(payroll?.netPay ?? 0).toFixed(2)}
               </p>
               <p className="text-sm text-purple-600 mt-2">
-                Employer Contribution: EPF ₹{payroll.employerContribution.epf.toFixed(2)} + ESIC ₹
-                {payroll.employerContribution.esic.toFixed(2)} = ₹
-                {payroll.employerContribution.total.toFixed(2)}
+                Employer Contribution: EPF ₹{(payroll?.employerContribution?.epf ?? 0).toFixed(2)} + ESIC ₹
+                {(payroll?.employerContribution?.esic ?? 0).toFixed(2)} = ₹
+                {(payroll?.employerContribution?.total ?? 0).toFixed(2)}
               </p>
             </div>
             <div className="flex gap-3">

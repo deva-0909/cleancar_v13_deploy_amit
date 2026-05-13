@@ -262,7 +262,7 @@ export function AppointmentLetterGenerator() {
     setOfferSearchTerm("");
 
     toast.success(
-      `✅ Appointment Letter Created!\n\n${appointmentId} - ${offer.candidateName}\nFrom Offer: ${offer.id}\nGross: ₹${offer.salaryComponents.monthlyGross.toLocaleString()} | Net: ₹${offer.salaryComponents.netTakeHome.toLocaleString()}`
+      `✅ Appointment Letter Created!\n\n${appointmentId} - ${offer.candidateName}\nFrom Offer: ${offer.id}\nGross: ₹${(offer?.salaryComponents?.monthlyGross ?? 0).toLocaleString()} | Net: ₹${(offer?.salaryComponents?.netTakeHome ?? 0).toLocaleString()}`
     );
   };
 
@@ -556,14 +556,14 @@ export function AppointmentLetterGenerator() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="font-semibold text-gray-900">
-                          ₹{appointment.salaryComponents.monthlyGross.toLocaleString()}
+                          ₹{(appointment?.salaryComponents?.monthlyGross ?? 0).toLocaleString()}
                         </div>
                         <div className="text-xs text-gray-500">Gross</div>
                         <div className="text-xs text-green-600 font-medium">
-                          ₹{appointment.salaryComponents.netTakeHome.toLocaleString()} net
+                          ₹{(appointment?.salaryComponents?.netTakeHome ?? 0).toLocaleString()} net
                         </div>
                         <div className="text-xs text-gray-400 mt-1">
-                          Basic: ₹{appointment.salaryComponents.basic.toLocaleString()}
+                          Basic: ₹{(appointment?.salaryComponents?.basic ?? 0).toLocaleString()}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -782,7 +782,7 @@ export function AppointmentLetterGenerator() {
                           >
                             <div className="flex items-center justify-between w-full">
                               <span>
-                                {offer.id} | {offer.candidateName} | {offer.designation} | ₹{offer.salaryComponents.monthlyGross.toLocaleString()}
+                                {offer.id} | {offer.candidateName} | {offer.designation} | ₹{(offer?.salaryComponents?.monthlyGross ?? 0).toLocaleString()}
                               </span>
                               {offer.convertedToAppointment && (
                                 <Badge className="ml-2 bg-gray-400 text-white text-xs">Converted</Badge>
@@ -832,13 +832,13 @@ export function AppointmentLetterGenerator() {
                         <div>
                           <span className="text-gray-600">Gross Salary:</span>{" "}
                           <span className="ml-2 font-semibold text-green-700">
-                            ₹{offer.salaryComponents.monthlyGross.toLocaleString()}
+                            ₹{(offer?.salaryComponents?.monthlyGross ?? 0).toLocaleString()}
                           </span>
                         </div>
                         <div>
                           <span className="text-gray-600">Net Take Home:</span>{" "}
                           <span className="ml-2 font-semibold text-green-700">
-                            ₹{offer.salaryComponents.netTakeHome.toLocaleString()}
+                            ₹{(offer?.salaryComponents?.netTakeHome ?? 0).toLocaleString()}
                           </span>
                         </div>
                       </div>
@@ -993,26 +993,26 @@ export function AppointmentLetterGenerator() {
                         <tr className="border-b">
                           <td className="py-1 pl-4">Basic Salary</td>
                           <td className="text-right py-1">
-                            ₹{selectedAppointment.salaryComponents.basic.toLocaleString()}
+                            ₹{(selectedAppointment?.salaryComponents?.basic ?? 0).toLocaleString()}
                           </td>
                         </tr>
                         <tr className="border-b">
                           <td className="py-1 pl-4">House Rent Allowance (HRA)</td>
                           <td className="text-right py-1">
-                            ₹{selectedAppointment.salaryComponents.hra.toLocaleString()}
+                            ₹{(selectedAppointment?.salaryComponents?.hra ?? 0).toLocaleString()}
                           </td>
                         </tr>
                         <tr className="border-b">
                           <td className="py-1 pl-4">Conveyance Allowance</td>
                           <td className="text-right py-1">
-                            ₹{selectedAppointment.salaryComponents.conveyance.toLocaleString()}
+                            ₹{(selectedAppointment?.salaryComponents?.conveyance ?? 0).toLocaleString()}
                           </td>
                         </tr>
                         {selectedAppointment.salaryComponents.medical > 0 && (
                           <tr className="border-b">
                             <td className="py-1 pl-4">Medical Allowance</td>
                             <td className="text-right py-1">
-                              ₹{selectedAppointment.salaryComponents.medical.toLocaleString()}
+                              ₹{(selectedAppointment?.salaryComponents?.medical ?? 0).toLocaleString()}
                             </td>
                           </tr>
                         )}
@@ -1020,14 +1020,14 @@ export function AppointmentLetterGenerator() {
                           <tr className="border-b">
                             <td className="py-1 pl-4">Special Allowance</td>
                             <td className="text-right py-1">
-                              ₹{selectedAppointment.salaryComponents.specialAllowance.toLocaleString()}
+                              ₹{(selectedAppointment?.salaryComponents?.specialAllowance ?? 0).toLocaleString()}
                             </td>
                           </tr>
                         )}
                         <tr className="border-b border-t-2 border-gray-400 font-semibold bg-green-100">
                           <td className="py-1">Gross Salary</td>
                           <td className="text-right py-1">
-                            ₹{selectedAppointment.salaryComponents.monthlyGross.toLocaleString()}
+                            ₹{(selectedAppointment?.salaryComponents?.monthlyGross ?? 0).toLocaleString()}
                           </td>
                         </tr>
                         <tr className="border-b">
@@ -1037,27 +1037,27 @@ export function AppointmentLetterGenerator() {
                         <tr className="border-b text-red-600">
                           <td className="py-1 pl-4">Provident Fund (PF) - 12%</td>
                           <td className="text-right py-1">
-                            -₹{selectedAppointment.salaryComponents.employeePF.toLocaleString()}
+                            -₹{(selectedAppointment?.salaryComponents?.employeePF ?? 0).toLocaleString()}
                           </td>
                         </tr>
                         {selectedAppointment.salaryComponents.employeeESIC > 0 && (
                           <tr className="border-b text-red-600">
                             <td className="py-1 pl-4">ESIC - 0.75%</td>
                             <td className="text-right py-1">
-                              -₹{selectedAppointment.salaryComponents.employeeESIC.toLocaleString()}
+                              -₹{(selectedAppointment?.salaryComponents?.employeeESIC ?? 0).toLocaleString()}
                             </td>
                           </tr>
                         )}
                         <tr className="border-b text-red-600">
                           <td className="py-1 pl-4">Professional Tax</td>
                           <td className="text-right py-1">
-                            -₹{selectedAppointment.salaryComponents.professionalTax.toLocaleString()}
+                            -₹{(selectedAppointment?.salaryComponents?.professionalTax ?? 0).toLocaleString()}
                           </td>
                         </tr>
                         <tr className="border-t-2 border-gray-400 font-bold text-green-700 bg-green-100">
                           <td className="py-2">Net Take Home Salary</td>
                           <td className="text-right py-2">
-                            ₹{selectedAppointment.salaryComponents.netTakeHome.toLocaleString()}
+                            ₹{(selectedAppointment?.salaryComponents?.netTakeHome ?? 0).toLocaleString()}
                           </td>
                         </tr>
                       </tbody>
@@ -1066,7 +1066,7 @@ export function AppointmentLetterGenerator() {
                       <div className="flex justify-between text-xs text-green-800">
                         <span>Annual CTC (Cost to Company):</span>
                         <span className="font-bold">
-                          ₹{selectedAppointment.salaryComponents.annualCTC.toLocaleString()}
+                          ₹{(selectedAppointment?.salaryComponents?.annualCTC ?? 0).toLocaleString()}
                         </span>
                       </div>
                     </div>

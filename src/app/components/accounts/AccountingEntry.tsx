@@ -707,7 +707,7 @@ export function AccountingEntry() {
                           const bal = accountingEntryService.getLedgerBalance(ledger.id);
                           return (
                             <option key={ledger.id} value={ledger.id}>
-                              {ledger.name} — Bal: ₹{bal.balance.toLocaleString()} {bal.balanceType}
+                              {ledger.name} — Bal: ₹{(bal?.balance ?? 0).toLocaleString()} {bal.balanceType}
                             </option>
                           );
                         })}
@@ -746,7 +746,7 @@ export function AccountingEntry() {
                           const bal = accountingEntryService.getLedgerBalance(ledger.id);
                           return (
                             <option key={ledger.id} value={ledger.id}>
-                              {ledger.name} — Bal: ₹{bal.balance.toLocaleString()} {bal.balanceType}
+                              {ledger.name} — Bal: ₹{(bal?.balance ?? 0).toLocaleString()} {bal.balanceType}
                             </option>
                           );
                         })}

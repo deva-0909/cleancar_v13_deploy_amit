@@ -519,7 +519,7 @@ export function CostPerWashCompany() {
                         Labour Cost
                       </TableCell>
                       <TableCell className="text-right text-blue-600 font-medium">
-                        ₹{breakdown.labour.toFixed(2)}
+                        ₹{(breakdown?.labour ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-blue-600">
                         ₹{(breakdown.labour * monthlyWashes).toFixed(2)}
@@ -538,7 +538,7 @@ export function CostPerWashCompany() {
                         Consumables
                       </TableCell>
                       <TableCell className="text-right text-purple-600 font-medium">
-                        ₹{breakdown.consumables.toFixed(2)}
+                        ₹{(breakdown?.consumables ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-purple-600">
                         ₹{(breakdown.consumables * monthlyWashes).toFixed(2)}
@@ -555,7 +555,7 @@ export function CostPerWashCompany() {
                         Cloth & Sponge
                       </TableCell>
                       <TableCell className="text-right text-green-600 font-medium">
-                        ₹{breakdown.cloth.toFixed(2)}
+                        ₹{(breakdown?.cloth ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-green-600">
                         ₹{(breakdown.cloth * monthlyWashes).toFixed(2)}
@@ -572,7 +572,7 @@ export function CostPerWashCompany() {
                         Equipment
                       </TableCell>
                       <TableCell className="text-right text-amber-600 font-medium">
-                        ₹{breakdown.equipment.toFixed(2)}
+                        ₹{(breakdown?.equipment ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-amber-600">
                         ₹{(breakdown.equipment * monthlyWashes).toFixed(2)}
@@ -589,7 +589,7 @@ export function CostPerWashCompany() {
                         Laundry
                       </TableCell>
                       <TableCell className="text-right text-indigo-600 font-medium">
-                        ₹{breakdown.laundry.toFixed(2)}
+                        ₹{(breakdown?.laundry ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-indigo-600">
                         ₹{(breakdown.laundry * monthlyWashes).toFixed(2)}
@@ -606,7 +606,7 @@ export function CostPerWashCompany() {
                         Fixed Overhead
                       </TableCell>
                       <TableCell className="text-right text-orange-600 font-medium">
-                        ₹{breakdown.fixedOverhead.toFixed(2)}
+                        ₹{(breakdown?.fixedOverhead ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-orange-600">
                         ₹{(breakdown.fixedOverhead * monthlyWashes).toFixed(2)}
@@ -623,7 +623,7 @@ export function CostPerWashCompany() {
                         Total Cost to Company
                       </TableCell>
                       <TableCell className="text-right font-bold text-xl text-teal-600">
-                        ₹{breakdown.totalCost.toFixed(2)}
+                        ₹{(breakdown?.totalCost ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right font-bold text-lg text-teal-600">
                         ₹{(breakdown.totalCost * monthlyWashes).toFixed(2)}
@@ -728,7 +728,7 @@ export function CostPerWashCompany() {
                             Cost Increasing Trend Detected
                           </div>
                           <div className="text-sm text-amber-700">
-                            Cost per wash has increased {costTrend.percentChange.toFixed(1)}% in
+                            Cost per wash has increased {(costTrend?.percentChange ?? 0).toFixed(1)}% in
                             the last 3 months. Review material usage and efficiency.
                           </div>
                         </div>
@@ -745,7 +745,7 @@ export function CostPerWashCompany() {
                             Cost Efficiency Improving
                           </div>
                           <div className="text-sm text-green-700">
-                            {costTrend.percentChange.toFixed(1)}% reduction over last 3 months.
+                            {(costTrend?.percentChange ?? 0).toFixed(1)}% reduction over last 3 months.
                             Great work!
                           </div>
                         </div>
@@ -772,7 +772,7 @@ export function CostPerWashCompany() {
                         Standard Cost
                       </div>
                       <div className="text-xl font-bold text-blue-900">
-                        ₹{actualVsStandard.standard.toFixed(2)}
+                        ₹{(actualVsStandard?.standard ?? 0).toFixed(2)}
                       </div>
                       <div className="text-xs text-blue-700 mt-1">
                         From Package Matrix
@@ -785,7 +785,7 @@ export function CostPerWashCompany() {
                         Actual Cost
                       </div>
                       <div className="text-xl font-bold text-purple-900">
-                        ₹{actualVsStandard.actual.toFixed(2)}
+                        ₹{(actualVsStandard?.actual ?? 0).toFixed(2)}
                       </div>
                       <div className="text-xs text-purple-700 mt-1">
                         From Job Records
@@ -822,7 +822,7 @@ export function CostPerWashCompany() {
                           <TrendingDown className="w-5 h-5" />
                         )}
                         {actualVsStandard.isOverStandard ? "+" : ""}₹
-                        {actualVsStandard.variance.toFixed(2)}
+                        {(actualVsStandard?.variance ?? 0).toFixed(2)}
                       </div>
                       <div
                         className={`text-xs mt-1 ${
@@ -832,7 +832,7 @@ export function CostPerWashCompany() {
                         }`}
                       >
                         {actualVsStandard.isOverStandard ? "+" : ""}
-                        {actualVsStandard.variancePercent.toFixed(1)}%
+                        {(actualVsStandard?.variancePercent ?? 0).toFixed(1)}%
                       </div>
                     </CardContent>
                   </Card>
@@ -850,7 +850,7 @@ export function CostPerWashCompany() {
                           </div>
                           <div className="text-sm text-amber-700">
                             Actual cost exceeds standard by{" "}
-                            {actualVsStandard.variancePercent.toFixed(1)}%. Review washer
+                            {(actualVsStandard?.variancePercent ?? 0).toFixed(1)}%. Review washer
                             material usage in {selectedZones[0]} for {selectedPackage}{" "}
                             package.
                           </div>

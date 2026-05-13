@@ -426,8 +426,8 @@ export function ManageableRecommendationCard({
                     </div>
                     {recommendation.verification.beforeCPW && recommendation.verification.afterCPW && (
                       <div className="text-sm text-gray-700">
-                        CPW improved from ₹{recommendation.verification.beforeCPW.toFixed(2)} to ₹
-                        {recommendation.verification.afterCPW.toFixed(2)} (
+                        CPW improved from ₹{(recommendation?.verification?.beforeCPW ?? 0).toFixed(2)} to ₹
+                        {(recommendation?.verification?.afterCPW ?? 0).toFixed(2)} (
                         {recommendation.verification.improvementPercent?.toFixed(1)}% improvement)
                       </div>
                     )}

@@ -143,7 +143,7 @@ export function ComboOffersManagement() {
                             variant="outline"
                             className="bg-green-50 text-green-700 border-green-200"
                           >
-                            {offer.savingsPercentage.toFixed(1)}%
+                            {(offer?.savingsPercentage ?? 0).toFixed(1)}%
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -184,7 +184,7 @@ export function ComboOffersManagement() {
                         variant="outline"
                         className="bg-green-50 text-green-700"
                       >
-                        Save {offer.savingsPercentage.toFixed(1)}%
+                        Save {(offer?.savingsPercentage ?? 0).toFixed(1)}%
                       </Badge>
                     </div>
                     <CardDescription>{offer.description}</CardDescription>

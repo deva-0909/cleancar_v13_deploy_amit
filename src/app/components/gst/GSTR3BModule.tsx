@@ -235,11 +235,11 @@ export function GSTR3BModule() {
       "Table 3.1 — Details of Outward Supplies",
       ["Nature of Supply", "Txbl. Value (₹)", "IGST (₹)", "CGST (₹)", "SGST (₹)", "Cess (₹)"],
       [
-        ["(a) Outward taxable supplies", table31.taxableValue.toFixed(2), table31.taxableIGST.toFixed(2), table31.taxableCGST.toFixed(2), table31.taxableSGST.toFixed(2), "0.00"],
-        ["(b) Zero-rated supplies", table31.zeroRatedValue.toFixed(2), "0.00", "0.00", "0.00", "0.00"],
-        ["(c) Nil/Exempt supplies", table31.nilExemptValue.toFixed(2), "0.00", "0.00", "0.00", "0.00"],
-        ["(d) RCM supplies", table31.rcmValue.toFixed(2), table31.rcmIGST.toFixed(2), table31.rcmCGST.toFixed(2), table31.rcmSGST.toFixed(2), "0.00"],
-        ["(e) Non-GST supplies", table31.nonGSTValue.toFixed(2), "0.00", "0.00", "0.00", "0.00"]
+        ["(a) Outward taxable supplies", (table31?.taxableValue ?? 0).toFixed(2), (table31?.taxableIGST ?? 0).toFixed(2), (table31?.taxableCGST ?? 0).toFixed(2), (table31?.taxableSGST ?? 0).toFixed(2), "0.00"],
+        ["(b) Zero-rated supplies", (table31?.zeroRatedValue ?? 0).toFixed(2), "0.00", "0.00", "0.00", "0.00"],
+        ["(c) Nil/Exempt supplies", (table31?.nilExemptValue ?? 0).toFixed(2), "0.00", "0.00", "0.00", "0.00"],
+        ["(d) RCM supplies", (table31?.rcmValue ?? 0).toFixed(2), (table31?.rcmIGST ?? 0).toFixed(2), (table31?.rcmCGST ?? 0).toFixed(2), (table31?.rcmSGST ?? 0).toFixed(2), "0.00"],
+        ["(e) Non-GST supplies", (table31?.nonGSTValue ?? 0).toFixed(2), "0.00", "0.00", "0.00", "0.00"]
       ]
     );
 
@@ -247,8 +247,8 @@ export function GSTR3BModule() {
     if (Object.entries(table32).length > 0) {
       const stateRows = Object.entries(table32).map(([state, data]) => [
         state,
-        data.taxableValue.toFixed(2),
-        data.igst.toFixed(2)
+        (data?.taxableValue ?? 0).toFixed(2),
+        (data?.igst ?? 0).toFixed(2)
       ]);
       buildSection(
         "Table 3.2 — Inter-State Supplies",
@@ -264,7 +264,7 @@ export function GSTR3BModule() {
       [
         ["A(5) All other ITC", (itcData.allOtherITC * 0.5).toFixed(2), (itcData.allOtherITC * 0.25).toFixed(2), (itcData.allOtherITC * 0.25).toFixed(2), "0.00"],
         ["A(4) Self-assessed RCM", (itcData.rcmITC * 0.5).toFixed(2), (itcData.rcmITC * 0.25).toFixed(2), (itcData.rcmITC * 0.25).toFixed(2), "0.00"],
-        ["B ITC Reversed", itcData.itcReversed.toFixed(2), "0.00", "0.00", "0.00"],
+        ["B ITC Reversed", (itcData?.itcReversed ?? 0).toFixed(2), "0.00", "0.00", "0.00"],
         ["C Net ITC", (itcData.netITC * 0.5).toFixed(2), (itcData.netITC * 0.25).toFixed(2), (itcData.netITC * 0.25).toFixed(2), "0.00"]
       ]
     );
@@ -274,9 +274,9 @@ export function GSTR3BModule() {
       "Table 6 — Net Tax Payable",
       ["Description", "Amount (₹)"],
       [
-        ["Output tax", table6.outputTax.toFixed(2)],
-        ["ITC credit", table6.itcCredit.toFixed(2)],
-        ["Cash payment required", table6.cashPayment.toFixed(2)]
+        ["Output tax", (table6?.outputTax ?? 0).toFixed(2)],
+        ["ITC credit", (table6?.itcCredit ?? 0).toFixed(2)],
+        ["Cash payment required", (table6?.cashPayment ?? 0).toFixed(2)]
       ]
     );
 
@@ -303,7 +303,7 @@ export function GSTR3BModule() {
     // ITC Reconciliation Status
     if (Math.abs(itcData.difference) > 0) {
       rows.push("ITC Reconciliation Alert");
-      rows.push(`Difference between books and GSTR-2B: ₹${itcData.difference.toFixed(2)}`);
+      rows.push(`Difference between books and GSTR-2B: ₹${(itcData?.difference ?? 0).toFixed(2)}`);
       if (Math.abs(itcData.difference) > 1000) {
         rows.push("⚠️ Difference exceeds ₹1,000 - Reconciliation required before filing");
       }
@@ -641,15 +641,15 @@ export function GSTR3BModule() {
             <tbody>
               <tr className="border-b border-gray-100 text-sm">
                 <td className="py-3 text-gray-900">Output tax</td>
-                <td className="py-3 text-right text-gray-700">₹{table6.outputTax.toLocaleString()}</td>
+                <td className="py-3 text-right text-gray-700">₹{(table6?.outputTax ?? 0).toLocaleString()}</td>
               </tr>
               <tr className="border-b border-gray-100 text-sm">
                 <td className="py-3 text-gray-900">ITC credit</td>
-                <td className="py-3 text-right text-green-600">-₹{table6.itcCredit.toLocaleString()}</td>
+                <td className="py-3 text-right text-green-600">-₹{(table6?.itcCredit ?? 0).toLocaleString()}</td>
               </tr>
               <tr className="text-sm bg-purple-50">
                 <td className="py-3 font-semibold text-gray-900">Cash payment required</td>
-                <td className="py-3 text-right font-semibold text-purple-600">₹{table6.cashPayment.toLocaleString()}</td>
+                <td className="py-3 text-right font-semibold text-purple-600">₹{(table6?.cashPayment ?? 0).toLocaleString()}</td>
               </tr>
             </tbody>
           </table>

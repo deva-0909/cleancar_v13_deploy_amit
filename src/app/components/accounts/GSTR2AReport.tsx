@@ -183,16 +183,16 @@ export function GSTR2AReport() {
                   <td className="px-4 py-3 text-sm">{row.vendorName}</td>
                   <td className="px-4 py-3 text-sm">{row.invoiceNumber}</td>
                   <td className="px-4 py-3 text-sm">{row.invoiceDate}</td>
-                  <td className="px-4 py-3 text-sm text-right">₹{row.invoiceValue.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-right">₹{(row?.invoiceValue ?? 0).toFixed(2)}</td>
                   <td className="px-4 py-3 text-sm">{row.placeOfSupply}</td>
                   <td className="px-4 py-3 text-sm">{row.reverseCharge}</td>
                   <td className="px-4 py-3 text-sm">{row.invoiceType}</td>
                   <td className="px-4 py-3 text-sm text-right">{row.rate}%</td>
-                  <td className="px-4 py-3 text-sm text-right">₹{row.taxableValue.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-sm text-right">₹{row.igst.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-sm text-right">₹{row.cgst.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-sm text-right">₹{row.sgst.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-sm text-right">₹{row.cess.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-right">₹{(row?.taxableValue ?? 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-right">₹{(row?.igst ?? 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-right">₹{(row?.cgst ?? 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-right">₹{(row?.sgst ?? 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-right">₹{(row?.cess ?? 0).toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
@@ -224,10 +224,10 @@ export function GSTR2AReport() {
                   <td className="px-4 py-3 text-sm">-</td>
                   <td className="px-4 py-3 text-sm">OTH</td>
                   <td className="px-4 py-3 text-sm text-right">{row.qty}</td>
-                  <td className="px-4 py-3 text-sm text-right">₹{row.taxableValue.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-sm text-right">₹{row.igst.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-sm text-right">₹{row.cgst.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-sm text-right">₹{row.sgst.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-right">₹{(row?.taxableValue ?? 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-right">₹{(row?.igst ?? 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-right">₹{(row?.cgst ?? 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-right">₹{(row?.sgst ?? 0).toFixed(2)}</td>
                   <td className="px-4 py-3 text-sm text-right">₹0.00</td>
                 </tr>
               ))}

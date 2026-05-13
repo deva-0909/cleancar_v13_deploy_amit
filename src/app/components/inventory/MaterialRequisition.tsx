@@ -165,7 +165,7 @@ export function MaterialRequisition() {
                     <div className="text-right">
                       <p className="text-sm text-gray-600">Estimated Cost</p>
                       <p className="text-xl font-bold text-purple-600">
-                        ₹{pr.totalEstimatedCost.toLocaleString()}
+                        ₹{(pr?.totalEstimatedCost ?? 0).toLocaleString()}
                       </p>
                       {canApprovePR && pr.status === "Pending" && (
                         <Button size="sm" className="mt-2">
@@ -186,7 +186,7 @@ export function MaterialRequisition() {
                         </div>
                         <div className="text-right">
                           <span className="font-medium">{item.quantity} {item.unit}</span>
-                          <p className="text-xs text-gray-600">₹{item.estimatedCost.toLocaleString()}</p>
+                          <p className="text-xs text-gray-600">₹{(item?.estimatedCost ?? 0).toLocaleString()}</p>
                         </div>
                       </div>
                     ))}

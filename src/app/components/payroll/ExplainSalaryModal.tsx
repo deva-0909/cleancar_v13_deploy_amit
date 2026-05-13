@@ -82,7 +82,7 @@ export function ExplainSalaryModal({ open, onClose, payrollData }: ExplainSalary
                 <div>
                   <p className="text-sm text-orange-700">Deduction Days</p>
                   <p className="text-2xl font-bold text-orange-900">
-                    {attendance.summary.deductionDays.toFixed(1)}
+                    {(attendance?.summary?.deductionDays ?? 0).toFixed(1)}
                   </p>
                 </div>
                 <div>
@@ -121,7 +121,7 @@ export function ExplainSalaryModal({ open, onClose, payrollData }: ExplainSalary
                       <p className="text-sm text-gray-600 mt-2">
                         Deduction Amount:{" "}
                         <span className="font-semibold text-red-600">
-                          ₹{explanation.amount.toFixed(2)}
+                          ₹{(explanation?.amount ?? 0).toFixed(2)}
                         </span>
                       </p>
                     </div>
@@ -179,7 +179,7 @@ export function ExplainSalaryModal({ open, onClose, payrollData }: ExplainSalary
                         </code>
                       </TableCell>
                       <TableCell className="text-right font-semibold text-green-700">
-                        ₹{earning.amount.toFixed(2)}
+                        ₹{(earning?.amount ?? 0).toFixed(2)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -191,7 +191,7 @@ export function ExplainSalaryModal({ open, onClose, payrollData }: ExplainSalary
                       </code>
                     </TableCell>
                     <TableCell className="text-right font-bold text-green-900">
-                      ₹{payroll.grossPay.toFixed(2)}
+                      ₹{(payroll?.grossPay ?? 0).toFixed(2)}
                     </TableCell>
                   </TableRow>
                 </TableBody>
@@ -228,7 +228,7 @@ export function ExplainSalaryModal({ open, onClose, payrollData }: ExplainSalary
                         </code>
                       </TableCell>
                       <TableCell className="text-right font-semibold text-red-700">
-                        ₹{deduction.amount.toFixed(2)}
+                        ₹{(deduction?.amount ?? 0).toFixed(2)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -240,7 +240,7 @@ export function ExplainSalaryModal({ open, onClose, payrollData }: ExplainSalary
                       </code>
                     </TableCell>
                     <TableCell className="text-right font-bold text-red-900">
-                      ₹{payroll.totalDeductions.toFixed(2)}
+                      ₹{(payroll?.totalDeductions ?? 0).toFixed(2)}
                     </TableCell>
                   </TableRow>
                 </TableBody>
@@ -261,20 +261,20 @@ export function ExplainSalaryModal({ open, onClose, payrollData }: ExplainSalary
                 <div className="flex items-center justify-between text-lg">
                   <span className="text-gray-700">Gross Pay</span>
                   <span className="font-bold text-green-700">
-                    ₹{payroll.grossPay.toFixed(2)}
+                    ₹{(payroll?.grossPay ?? 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-lg">
                   <span className="text-gray-700">Total Deductions</span>
                   <span className="font-bold text-red-700">
-                    - ₹{payroll.totalDeductions.toFixed(2)}
+                    - ₹{(payroll?.totalDeductions ?? 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="border-t-2 border-purple-300 pt-3">
                   <div className="flex items-center justify-between text-2xl">
                     <span className="font-bold text-purple-900">Net Salary</span>
                     <span className="font-bold text-purple-900">
-                      ₹{payroll.netPay.toFixed(2)}
+                      ₹{(payroll?.netPay ?? 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -284,8 +284,8 @@ export function ExplainSalaryModal({ open, onClose, payrollData }: ExplainSalary
                     Net Salary = Gross Pay - Total Deductions
                   </code>
                   <p className="text-sm text-gray-700 mt-2">
-                    = ₹{payroll.grossPay.toFixed(2)} - ₹{payroll.totalDeductions.toFixed(2)} = ₹
-                    {payroll.netPay.toFixed(2)}
+                    = ₹{(payroll?.grossPay ?? 0).toFixed(2)} - ₹{(payroll?.totalDeductions ?? 0).toFixed(2)} = ₹
+                    {(payroll?.netPay ?? 0).toFixed(2)}
                   </p>
                 </div>
               </div>
@@ -300,19 +300,19 @@ export function ExplainSalaryModal({ open, onClose, payrollData }: ExplainSalary
                 <div className="flex items-center justify-between">
                   <span className="text-gray-700">EPF (Employer)</span>
                   <span className="font-semibold">
-                    ₹{payroll.employerContribution.epf.toFixed(2)}
+                    ₹{(payroll?.employerContribution?.epf ?? 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-700">ESIC (Employer)</span>
                   <span className="font-semibold">
-                    ₹{payroll.employerContribution.esic.toFixed(2)}
+                    ₹{(payroll?.employerContribution?.esic ?? 0).toFixed(2)}
                   </span>
                 </div>
                 <div className="border-t pt-2 flex items-center justify-between">
                   <span className="font-bold text-blue-900">Total Employer Cost</span>
                   <span className="font-bold text-blue-900">
-                    ₹{payroll.employerContribution.total.toFixed(2)}
+                    ₹{(payroll?.employerContribution?.total ?? 0).toFixed(2)}
                   </span>
                 </div>
               </div>

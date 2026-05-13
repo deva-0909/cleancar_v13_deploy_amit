@@ -4,7 +4,7 @@
  * Integrated with existing design system
  */
 
-import { useState, useEffect , useMemo } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSupervisor } from "../../contexts/SupervisorContext";

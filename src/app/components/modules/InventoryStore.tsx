@@ -304,7 +304,7 @@ export function InventoryStore() {
                       <TableCell>
                         <Badge variant="outline">{po.items} items</Badge>
                       </TableCell>
-                      <TableCell>₹{po.amount.toLocaleString()}</TableCell>
+                      <TableCell>₹{(po?.amount ?? 0).toLocaleString()}</TableCell>
                       <TableCell>{po.date}</TableCell>
                       <TableCell>{po.approver}</TableCell>
                       <TableCell>

@@ -101,8 +101,8 @@ export function SalaryStructureSelector({
                     <div className="flex flex-col py-1">
                       <span className="font-medium">{structure.id}</span>
                       <span className="text-xs text-gray-500">
-                        Role: {structure.roleName} | Gross: ₹{structure.monthlyGross.toLocaleString()} | Net:
-                        ₹{structure.components.netTakeHome.toLocaleString()} |{" "}
+                        Role: {structure.roleName} | Gross: ₹{(structure?.monthlyGross ?? 0).toLocaleString()} | Net:
+                        ₹{(structure?.components?.netTakeHome ?? 0).toLocaleString()} |{" "}
                         {structure.isMetro ? "Metro" : "Non-Metro"}
                         {structure.applyPFCap && " | PF Capped"}
                       </span>
@@ -194,31 +194,31 @@ export function SalaryStructureSelector({
             <div className="flex justify-between">
               <span className="text-gray-600">Basic Salary:</span>
               <span className="font-medium">
-                ₹{selectedStructure.components.basic.toLocaleString()}
+                ₹{(selectedStructure?.components?.basic ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">HRA:</span>
               <span className="font-medium">
-                ₹{selectedStructure.components.hra.toLocaleString()}
+                ₹{(selectedStructure?.components?.hra ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Conveyance:</span>
               <span className="font-medium">
-                ₹{selectedStructure.components.conveyance.toLocaleString()}
+                ₹{(selectedStructure?.components?.conveyance ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Medical:</span>
               <span className="font-medium">
-                ₹{selectedStructure.components.medical.toLocaleString()}
+                ₹{(selectedStructure?.components?.medical ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between col-span-2">
               <span className="text-gray-600">Special Allowance:</span>
               <span className="font-medium">
-                ₹{selectedStructure.components.specialAllowance.toLocaleString()}
+                ₹{(selectedStructure?.components?.specialAllowance ?? 0).toLocaleString()}
               </span>
             </div>
 
@@ -228,7 +228,7 @@ export function SalaryStructureSelector({
                   Monthly Gross:
                 </span>
                 <span className="font-bold text-green-700">
-                  ₹{selectedStructure.monthlyGross.toLocaleString()}
+                  ₹{(selectedStructure?.monthlyGross ?? 0).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -239,19 +239,19 @@ export function SalaryStructureSelector({
             <div className="flex justify-between">
               <span className="text-gray-600">Employee PF:</span>
               <span className="text-red-600">
-                -₹{selectedStructure.components.employeePF.toLocaleString()}
+                -₹{(selectedStructure?.components?.employeePF ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Employee ESIC:</span>
               <span className="text-red-600">
-                -₹{selectedStructure.components.employeeESIC.toLocaleString()}
+                -₹{(selectedStructure?.components?.employeeESIC ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between col-span-2">
               <span className="text-gray-600">Professional Tax:</span>
               <span className="text-red-600">
-                -₹{selectedStructure.components.professionalTax.toLocaleString()}
+                -₹{(selectedStructure?.components?.professionalTax ?? 0).toLocaleString()}
               </span>
             </div>
 
@@ -261,7 +261,7 @@ export function SalaryStructureSelector({
                   Net Take Home:
                 </span>
                 <span className="font-bold text-blue-900 text-lg">
-                  ₹{selectedStructure.components.netTakeHome.toLocaleString()}
+                  ₹{(selectedStructure?.components?.netTakeHome ?? 0).toLocaleString()}
                 </span>
               </div>
             </div>

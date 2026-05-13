@@ -129,10 +129,10 @@ export function BalanceSheet() {
       section.ledgers.forEach(ledger => {
         leftRows.push([`  ${ledger.ledgerName}`, (ledger.balanceType === "Cr" ? ledger.balance : -ledger.balance).toFixed(2)]);
       });
-      leftRows.push([`Subtotal`, section.subtotal.toFixed(2)]);
+      leftRows.push([`Subtotal`, (section?.subtotal ?? 0).toFixed(2)]);
     });
     leftRows.push(["PROFIT & LOSS", ""]);
-    leftRows.push([`  Net Profit`, profitLoss.netProfit.toFixed(2)]);
+    leftRows.push([`  Net Profit`, (profitLoss?.netProfit ?? 0).toFixed(2)]);
     leftRows.push(["TOTAL LIABILITIES", totalLiabilitiesAndCapital.toFixed(2)]);
 
     const rightRows: string[][] = [];
@@ -141,9 +141,9 @@ export function BalanceSheet() {
       section.ledgers.forEach(ledger => {
         rightRows.push([`  ${ledger.ledgerName}`, (ledger.balanceType === "Dr" ? ledger.balance : -ledger.balance).toFixed(2)]);
       });
-      rightRows.push([`Subtotal`, section.subtotal.toFixed(2)]);
+      rightRows.push([`Subtotal`, (section?.subtotal ?? 0).toFixed(2)]);
     });
-    rightRows.push(["TOTAL ASSETS", assets.total.toFixed(2)]);
+    rightRows.push(["TOTAL ASSETS", (assets?.total ?? 0).toFixed(2)]);
 
     for (let i = 0; i < Math.max(leftRows.length, rightRows.length); i++) {
       const left = leftRows[i] || ["", ""];

@@ -162,12 +162,12 @@ export function SalarySlipGenerator() {
                       </div>
                     </td>
                     <td className="p-3 text-sm">{slip.month}</td>
-                    <td className="p-3 text-right text-sm">₹{slip.grossSalary.toLocaleString()}</td>
+                    <td className="p-3 text-right text-sm">₹{(slip?.grossSalary ?? 0).toLocaleString()}</td>
                     <td className="p-3 text-right text-sm text-red-600">
-                      -₹{slip.totalDeductions.toLocaleString()}
+                      -₹{(slip?.totalDeductions ?? 0).toLocaleString()}
                     </td>
                     <td className="p-3 text-right">
-                      <span className="font-bold text-blue-600">₹{slip.netSalary.toLocaleString()}</span>
+                      <span className="font-bold text-blue-600">₹{(slip?.netSalary ?? 0).toLocaleString()}</span>
                     </td>
                     <td className="p-3 text-center">
                       <Badge
@@ -266,27 +266,27 @@ export function SalarySlipGenerator() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Basic Salary</span>
-                      <span>₹{selectedSlip.earnings.basicSalary.toLocaleString()}</span>
+                      <span>₹{(selectedSlip?.earnings?.basicSalary ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>HRA</span>
-                      <span>₹{selectedSlip.earnings.hra.toLocaleString()}</span>
+                      <span>₹{(selectedSlip?.earnings?.hra ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Allowances</span>
-                      <span>₹{selectedSlip.earnings.allowances.toLocaleString()}</span>
+                      <span>₹{(selectedSlip?.earnings?.allowances ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Incentives</span>
-                      <span>₹{selectedSlip.earnings.incentives.toLocaleString()}</span>
+                      <span>₹{(selectedSlip?.earnings?.incentives ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Bonuses</span>
-                      <span>₹{selectedSlip.earnings.bonuses.toLocaleString()}</span>
+                      <span>₹{(selectedSlip?.earnings?.bonuses ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between font-semibold pt-2 border-t">
                       <span>Gross Salary</span>
-                      <span className="text-green-600">₹{selectedSlip.grossSalary.toLocaleString()}</span>
+                      <span className="text-green-600">₹{(selectedSlip?.grossSalary ?? 0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -297,27 +297,27 @@ export function SalarySlipGenerator() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Provident Fund</span>
-                      <span>₹{selectedSlip.deductions.pf.toLocaleString()}</span>
+                      <span>₹{(selectedSlip?.deductions?.pf ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>ESI</span>
-                      <span>₹{selectedSlip.deductions.esi.toLocaleString()}</span>
+                      <span>₹{(selectedSlip?.deductions?.esi ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Professional Tax</span>
-                      <span>₹{selectedSlip.deductions.professionalTax.toLocaleString()}</span>
+                      <span>₹{(selectedSlip?.deductions?.professionalTax ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>TDS</span>
-                      <span>₹{selectedSlip.deductions.tds.toLocaleString()}</span>
+                      <span>₹{(selectedSlip?.deductions?.tds ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Others</span>
-                      <span>₹{selectedSlip.deductions.others.toLocaleString()}</span>
+                      <span>₹{(selectedSlip?.deductions?.others ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between font-semibold pt-2 border-t">
                       <span>Total Deductions</span>
-                      <span className="text-red-600">₹{selectedSlip.totalDeductions.toLocaleString()}</span>
+                      <span className="text-red-600">₹{(selectedSlip?.totalDeductions ?? 0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -327,7 +327,7 @@ export function SalarySlipGenerator() {
               <div className="bg-blue-600 text-white p-4 rounded-lg">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold">Net Salary</span>
-                  <span className="text-2xl font-bold">₹{selectedSlip.netSalary.toLocaleString()}</span>
+                  <span className="text-2xl font-bold">₹{(selectedSlip?.netSalary ?? 0).toLocaleString()}</span>
                 </div>
               </div>
 

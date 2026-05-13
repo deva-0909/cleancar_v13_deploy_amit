@@ -394,19 +394,19 @@ export function PayrollCalculationDashboard() {
                           {emp.role}
                         </Badge>
                       </td>
-                      <td className="p-3 text-right text-sm">₹{emp.fixedSalary.toLocaleString()}</td>
+                      <td className="p-3 text-right text-sm">₹{(emp?.fixedSalary ?? 0).toLocaleString()}</td>
                       <td className="p-3 text-right text-sm text-purple-600 font-medium">
-                        +₹{emp.incentivesEarned.toLocaleString()}
+                        +₹{(emp?.incentivesEarned ?? 0).toLocaleString()}
                       </td>
                       <td className="p-3 text-right text-sm text-orange-600 font-medium">
-                        +₹{emp.bonuses.toLocaleString()}
+                        +₹{(emp?.bonuses ?? 0).toLocaleString()}
                       </td>
                       <td className="p-3 text-right text-sm text-red-600">
-                        -₹{emp.deductions.toLocaleString()}
+                        -₹{(emp?.deductions ?? 0).toLocaleString()}
                       </td>
                       <td className="p-3 text-right">
                         <span className={`font-bold ${isBlocked ? "text-gray-400 line-through" : "text-blue-600"}`}>
-                          ₹{emp.netSalary.toLocaleString()}
+                          ₹{(emp?.netSalary ?? 0).toLocaleString()}
                         </span>
                       </td>
                       <td className="p-3 text-center text-sm">{emp.attendanceDays}</td>

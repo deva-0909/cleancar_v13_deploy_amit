@@ -155,7 +155,7 @@ export function RCMReport() {
                   <td className="px-4 py-3 text-sm">{entry.vendorName || "-"}</td>
                   <td className="px-4 py-3 text-sm font-mono">{entry.vendorGstin || "-"}</td>
                   <td className="px-4 py-3 text-sm">{entry.invoiceNumber}</td>
-                  <td className="px-4 py-3 text-sm text-right">₹{entry.taxableValue.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-sm text-right">₹{(entry?.taxableValue ?? 0).toFixed(2)}</td>
                   <td className="px-4 py-3 text-sm text-right text-amber-600">₹{(entry.rcmCgst || 0).toFixed(2)}</td>
                   <td className="px-4 py-3 text-sm text-right text-amber-600">₹{(entry.rcmSgst || 0).toFixed(2)}</td>
                   <td className="px-4 py-3 text-sm text-right text-amber-600">₹{(entry.rcmIgst || 0).toFixed(2)}</td>

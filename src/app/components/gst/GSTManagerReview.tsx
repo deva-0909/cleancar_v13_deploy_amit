@@ -240,15 +240,15 @@ export function GSTManagerReview() {
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Taxable Value:</span>
-                      <span className="font-medium">₹{txn.taxableValue.toLocaleString()}</span>
+                      <span className="font-medium">₹{(txn?.taxableValue ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">GST ({txn.gstRate}%):</span>
-                      <span className="font-medium">₹{txn.totalTax.toLocaleString()}</span>
+                      <span className="font-medium">₹{(txn?.totalTax ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between border-t pt-1">
                       <span className="font-medium text-gray-900">Invoice Total:</span>
-                      <span className="font-semibold text-gray-900">₹{txn.invoiceTotal.toLocaleString()}</span>
+                      <span className="font-semibold text-gray-900">₹{(txn?.invoiceTotal ?? 0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -313,7 +313,7 @@ export function GSTManagerReview() {
               <div className="mb-4">
                 <h3 className="font-semibold text-gray-900">{txn.invoiceNumber}</h3>
                 <p className="text-sm text-gray-600">
-                  {txn.transactionType} | {txn.partyName} | ₹{txn.invoiceTotal.toLocaleString()}
+                  {txn.transactionType} | {txn.partyName} | ₹{(txn?.invoiceTotal ?? 0).toLocaleString()}
                 </p>
               </div>
 
@@ -389,7 +389,7 @@ export function GSTManagerReview() {
             <div className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <p className="text-sm font-medium text-amber-900 mb-1">Transaction Details</p>
-                <p className="text-sm text-amber-800">{selectedTxn.invoiceNumber} | {selectedTxn.partyName} | ₹{selectedTxn.invoiceTotal.toLocaleString()}</p>
+                <p className="text-sm text-amber-800">{selectedTxn.invoiceNumber} | {selectedTxn.partyName} | ₹{(selectedTxn?.invoiceTotal ?? 0).toLocaleString()}</p>
               </div>
 
               <div>

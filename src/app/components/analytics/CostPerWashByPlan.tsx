@@ -397,11 +397,11 @@ function CostPerWashByPlan() {
                       <div className="flex items-center gap-6">
                         <div className="text-right">
                           <div className="text-xs text-gray-500">Ideal</div>
-                          <div className="font-semibold text-green-600">₹{data.idealMaterialCost.toFixed(2)}</div>
+                          <div className="font-semibold text-green-600">₹{(data?.idealMaterialCost ?? 0).toFixed(2)}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-xs text-gray-500">Actual</div>
-                          <div className="font-semibold text-orange-600">₹{data.actualMaterialCost.toFixed(2)}</div>
+                          <div className="font-semibold text-orange-600">₹{(data?.actualMaterialCost ?? 0).toFixed(2)}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-xs text-gray-500">Variance</div>
@@ -425,11 +425,11 @@ function CostPerWashByPlan() {
                       <div className="flex items-center gap-6">
                         <div className="text-right">
                           <div className="text-xs text-gray-500">Ideal</div>
-                          <div className="font-semibold text-green-600">₹{data.idealConsumablesCost.toFixed(2)}</div>
+                          <div className="font-semibold text-green-600">₹{(data?.idealConsumablesCost ?? 0).toFixed(2)}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-xs text-gray-500">Actual</div>
-                          <div className="font-semibold text-orange-600">₹{data.actualConsumablesCost.toFixed(2)}</div>
+                          <div className="font-semibold text-orange-600">₹{(data?.actualConsumablesCost ?? 0).toFixed(2)}</div>
                         </div>
                         <div className="text-right">
                           <div className="text-xs text-gray-500">Variance</div>
@@ -452,7 +452,7 @@ function CostPerWashByPlan() {
                       </div>
                       <div className="text-right">
                         <div className="text-xs text-gray-500">Per Wash</div>
-                        <div className="font-semibold text-gray-900">₹{data.manpowerCost.toFixed(2)}</div>
+                        <div className="font-semibold text-gray-900">₹{(data?.manpowerCost ?? 0).toFixed(2)}</div>
                       </div>
                     </div>
 
@@ -467,7 +467,7 @@ function CostPerWashByPlan() {
                       </div>
                       <div className="text-right">
                         <div className="text-xs text-gray-500">Per Wash</div>
-                        <div className="font-semibold text-gray-900">₹{data.overheadCost.toFixed(2)}</div>
+                        <div className="font-semibold text-gray-900">₹{(data?.overheadCost ?? 0).toFixed(2)}</div>
                       </div>
                     </div>
 
@@ -475,30 +475,30 @@ function CostPerWashByPlan() {
                     <div className="grid grid-cols-3 gap-4 pt-4 border-t-2 border-gray-200">
                       <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border-2 border-green-300">
                         <div className="text-xs text-gray-600 mb-1">Ideal Total Cost</div>
-                        <div className="text-2xl font-bold text-gray-900">₹{data.totalIdealCost.toFixed(2)}</div>
+                        <div className="text-2xl font-bold text-gray-900">₹{(data?.totalIdealCost ?? 0).toFixed(2)}</div>
                         <div className="text-xs text-green-700 mt-2 flex items-center gap-1">
                           <TrendingUp className="w-3 h-3" />
-                          Profit: ₹{data.profitIdeal.toFixed(2)} ({data.marginIdeal.toFixed(1)}%)
+                          Profit: ₹{(data?.profitIdeal ?? 0).toFixed(2)} ({(data?.marginIdeal ?? 0).toFixed(1)}%)
                         </div>
                       </div>
                       
                       <div className={`rounded-lg p-4 border-2 ${isOverConsuming ? 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-300' : 'bg-gradient-to-br from-green-50 to-green-100 border-green-300'}`}>
                         <div className="text-xs text-gray-600 mb-1">Actual Total Cost</div>
-                        <div className="text-2xl font-bold text-gray-900">₹{data.totalActualCost.toFixed(2)}</div>
+                        <div className="text-2xl font-bold text-gray-900">₹{(data?.totalActualCost ?? 0).toFixed(2)}</div>
                         <div className={`text-xs mt-2 flex items-center gap-1 ${data.profitActual > 0 ? 'text-green-700' : 'text-red-700'}`}>
                           {data.profitActual > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                          Profit: ₹{data.profitActual.toFixed(2)} ({data.marginActual.toFixed(1)}%)
+                          Profit: ₹{(data?.profitActual ?? 0).toFixed(2)} ({(data?.marginActual ?? 0).toFixed(1)}%)
                         </div>
                       </div>
                       
                       <div className={`rounded-lg p-4 border-2 ${isOverConsuming ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-300' : 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300'}`}>
                         <div className="text-xs text-gray-600 mb-1">Cost Variance</div>
                         <div className={`text-2xl font-bold ${isOverConsuming ? 'text-red-600' : 'text-green-600'}`}>
-                          {isOverConsuming ? '+' : ''}₹{data.variance.toFixed(2)}
+                          {isOverConsuming ? '+' : ''}₹{(data?.variance ?? 0).toFixed(2)}
                         </div>
                         <div className={`text-xs mt-2 flex items-center gap-1 ${isOverConsuming ? 'text-red-700' : 'text-green-700'}`}>
                           {isOverConsuming ? <AlertTriangle className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
-                          {isOverConsuming ? '+' : ''}{data.variancePercentage.toFixed(1)}% vs ideal
+                          {isOverConsuming ? '+' : ''}{(data?.variancePercentage ?? 0).toFixed(1)}% vs ideal
                         </div>
                       </div>
                     </div>

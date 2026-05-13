@@ -175,19 +175,19 @@ export function PayslipExplainerDrawer({
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-700">Gross Salary</span>
               <span className="text-lg font-bold text-gray-900">
-                ₹{payslipData.gross.toLocaleString()}
+                ₹{(payslipData?.gross ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-700">Total Deductions</span>
               <span className="text-lg font-bold text-red-600">
-                -₹{payslipData.totalDeductions.toLocaleString()}
+                -₹{(payslipData?.totalDeductions ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="pt-3 border-t border-blue-200 flex items-center justify-between">
               <span className="text-base font-semibold text-gray-900">Net Pay</span>
               <span className="text-2xl font-bold text-green-600">
-                ₹{payslipData.netPay.toLocaleString()}
+                ₹{(payslipData?.netPay ?? 0).toLocaleString()}
               </span>
             </div>
           </div>
@@ -251,7 +251,7 @@ export function PayslipExplainerDrawer({
                     <div className="flex items-start justify-between mb-2">
                       <div className="font-medium text-gray-900">{item.label}</div>
                       <div className="text-lg font-bold text-green-600">
-                        ₹{item.value.toLocaleString()}
+                        ₹{(item?.value ?? 0).toLocaleString()}
                       </div>
                     </div>
                     <p className="text-sm text-gray-600">{item.explanation}</p>
@@ -281,7 +281,7 @@ export function PayslipExplainerDrawer({
                         )}
                       </div>
                       <div className="text-lg font-bold text-red-600">
-                        -₹{item.value.toLocaleString()}
+                        -₹{(item?.value ?? 0).toLocaleString()}
                       </div>
                     </div>
                     <p className="text-sm text-gray-600">{item.explanation}</p>
@@ -304,7 +304,7 @@ export function PayslipExplainerDrawer({
                   <div className="mb-4">
                     <div className="flex items-center justify-between text-sm mb-1">
                       <span className="text-gray-600">Gross Salary</span>
-                      <span className="font-medium">₹{payslipData.gross.toLocaleString()}</span>
+                      <span className="font-medium">₹{(payslipData?.gross ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="h-2 bg-green-200 rounded-full">
                       <div className="h-2 bg-green-500 rounded-full w-full" />
@@ -316,7 +316,7 @@ export function PayslipExplainerDrawer({
                     <div className="flex items-center justify-between text-sm mb-1">
                       <span className="text-gray-600">Deductions</span>
                       <span className="font-medium text-red-600">
-                        -₹{payslipData.totalDeductions.toLocaleString()}
+                        -₹{(payslipData?.totalDeductions ?? 0).toLocaleString()}
                       </span>
                     </div>
                     <div className="h-2 bg-gray-200 rounded-full">
@@ -334,7 +334,7 @@ export function PayslipExplainerDrawer({
                     <div className="flex items-center justify-between text-sm mb-1">
                       <span className="text-gray-900 font-semibold">Net Pay</span>
                       <span className="font-bold text-lg text-green-600">
-                        ₹{payslipData.netPay.toLocaleString()}
+                        ₹{(payslipData?.netPay ?? 0).toLocaleString()}
                       </span>
                     </div>
                     <div className="h-3 bg-gray-200 rounded-full">

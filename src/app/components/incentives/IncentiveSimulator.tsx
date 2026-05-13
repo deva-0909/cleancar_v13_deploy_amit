@@ -543,7 +543,7 @@ export function IncentiveSimulator() {
                         className="flex-1"
                       />
                       <Badge variant="outline" className="whitespace-nowrap">
-                        Current: {simulation.customerRating.current.toFixed(1)}
+                        Current: {(simulation?.customerRating?.current ?? 0).toFixed(1)}
                       </Badge>
                     </div>
                     <Slider

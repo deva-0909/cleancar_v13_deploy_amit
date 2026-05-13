@@ -247,10 +247,10 @@ export function ActualCostInputs() {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-gray-600">
-                          ₹{input.batchCostPerUnit.toFixed(2)}/{input.unit}
+                          ₹{(input?.batchCostPerUnit ?? 0).toFixed(2)}/{input.unit}
                         </TableCell>
                         <TableCell className="font-bold text-blue-600">
-                          ₹{input.totalCost.toFixed(2)}
+                          ₹{(input?.totalCost ?? 0).toFixed(2)}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -347,7 +347,7 @@ export function ActualCostInputs() {
                           </Badge>
                         </TableCell>
                         <TableCell className="font-bold text-orange-600">
-                          ₹{input.actualCostIncurred.toLocaleString()}
+                          ₹{(input?.actualCostIncurred ?? 0).toLocaleString()}
                         </TableCell>
                         <TableCell className="text-sm text-gray-600 max-w-xs">
                           {input.description}
@@ -440,7 +440,7 @@ export function ActualCostInputs() {
                               input.amount >= 0 ? "text-green-600" : "text-red-600"
                             }`}
                           >
-                            {input.amount >= 0 ? "+" : ""}₹{input.amount.toLocaleString()}
+                            {input.amount >= 0 ? "+" : ""}₹{(input?.amount ?? 0).toLocaleString()}
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-gray-600 max-w-xs">
@@ -540,7 +540,7 @@ export function ActualCostInputs() {
                           </Badge>
                         </TableCell>
                         <TableCell className="font-bold text-blue-600">
-                          ₹{input.actualAmount.toLocaleString()}
+                          ₹{(input?.actualAmount ?? 0).toLocaleString()}
                         </TableCell>
                         <TableCell className="text-sm text-gray-600 max-w-xs">
                           {input.description}
@@ -626,7 +626,7 @@ export function ActualCostInputs() {
                             </Badge>
                           </TableCell>
                           <TableCell className="font-bold text-gray-900">
-                            ₹{element.amount.toLocaleString()}
+                            ₹{(element?.amount ?? 0).toLocaleString()}
                           </TableCell>
                           <TableCell className="text-sm">
                             {element.amortizationMethod === "One-Time in this period" ? (

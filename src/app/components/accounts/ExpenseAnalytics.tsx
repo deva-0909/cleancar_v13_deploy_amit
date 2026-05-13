@@ -438,7 +438,7 @@ export function ExpenseAnalytics() {
                   <TableCell>{expense.date}</TableCell>
                   <TableCell className="font-medium">{expense.vendor}</TableCell>
                   <TableCell>{expense.category}</TableCell>
-                  <TableCell>₹{expense.amount.toLocaleString()}</TableCell>
+                  <TableCell>₹{(expense?.amount ?? 0).toLocaleString()}</TableCell>
                   <TableCell>{expense.region}</TableCell>
                   <TableCell>
                     <span className="text-sm">{expense.pinCode} — {expense.areaName}</span>

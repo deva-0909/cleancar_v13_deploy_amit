@@ -319,36 +319,36 @@ export function ExpenseVoucher() {
     const lines: string[] = [];
 
     if (formData.paymentMode === "Cash" || formData.paymentMode === "Bank") {
-      lines.push(`[${expenseLedger.name}]    Dr   ₹${formData.totalAmount.toLocaleString()}`);
-      if (formData.cgst > 0) lines.push(`Input CGST          Dr   ₹${formData.cgst.toLocaleString()}`);
-      if (formData.sgst > 0) lines.push(`Input SGST          Dr   ₹${formData.sgst.toLocaleString()}`);
-      if (formData.igst > 0) lines.push(`Input IGST          Dr   ₹${formData.igst.toLocaleString()}`);
-      lines.push(`    To [${vendor.name}]     Cr   ₹${formData.grandTotal.toLocaleString()}`);
+      lines.push(`[${expenseLedger.name}]    Dr   ₹${(formData?.totalAmount ?? 0).toLocaleString()}`);
+      if (formData.cgst > 0) lines.push(`Input CGST          Dr   ₹${(formData?.cgst ?? 0).toLocaleString()}`);
+      if (formData.sgst > 0) lines.push(`Input SGST          Dr   ₹${(formData?.sgst ?? 0).toLocaleString()}`);
+      if (formData.igst > 0) lines.push(`Input IGST          Dr   ₹${(formData?.igst ?? 0).toLocaleString()}`);
+      lines.push(`    To [${vendor.name}]     Cr   ₹${(formData?.grandTotal ?? 0).toLocaleString()}`);
       lines.push(`── 2nd entry (auto-posted) ──`);
-      lines.push(`[${vendor.name}]            Dr   ₹${formData.grandTotal.toLocaleString()}`);
-      lines.push(`    To Axis Bank    Cr   ₹${formData.grandTotal.toLocaleString()}`);
+      lines.push(`[${vendor.name}]            Dr   ₹${(formData?.grandTotal ?? 0).toLocaleString()}`);
+      lines.push(`    To Axis Bank    Cr   ₹${(formData?.grandTotal ?? 0).toLocaleString()}`);
     } else if (formData.paymentMode === "Credit (Full)") {
-      lines.push(`[${expenseLedger.name}]    Dr   ₹${formData.totalAmount.toLocaleString()}`);
-      if (formData.cgst > 0) lines.push(`Input CGST          Dr   ₹${formData.cgst.toLocaleString()}`);
-      if (formData.sgst > 0) lines.push(`Input SGST          Dr   ₹${formData.sgst.toLocaleString()}`);
-      if (formData.igst > 0) lines.push(`Input IGST          Dr   ₹${formData.igst.toLocaleString()}`);
-      lines.push(`    To [${vendor.name}]     Cr   ₹${formData.grandTotal.toLocaleString()}`);
+      lines.push(`[${expenseLedger.name}]    Dr   ₹${(formData?.totalAmount ?? 0).toLocaleString()}`);
+      if (formData.cgst > 0) lines.push(`Input CGST          Dr   ₹${(formData?.cgst ?? 0).toLocaleString()}`);
+      if (formData.sgst > 0) lines.push(`Input SGST          Dr   ₹${(formData?.sgst ?? 0).toLocaleString()}`);
+      if (formData.igst > 0) lines.push(`Input IGST          Dr   ₹${(formData?.igst ?? 0).toLocaleString()}`);
+      lines.push(`    To [${vendor.name}]     Cr   ₹${(formData?.grandTotal ?? 0).toLocaleString()}`);
       if (formData.dueDate) lines.push(`(Due: ${formData.dueDate} — recorded on creditor ledger)`);
     } else if (formData.paymentMode === "Credit (Partial)") {
       const balance = formData.grandTotal - formData.amountPaidNow;
-      lines.push(`[${expenseLedger.name}]    Dr   ₹${formData.totalAmount.toLocaleString()}`);
-      if (formData.cgst > 0) lines.push(`Input CGST          Dr   ₹${formData.cgst.toLocaleString()}`);
-      if (formData.sgst > 0) lines.push(`Input SGST          Dr   ₹${formData.sgst.toLocaleString()}`);
-      if (formData.igst > 0) lines.push(`Input IGST          Dr   ₹${formData.igst.toLocaleString()}`);
-      lines.push(`    To Axis Bank    Cr   ₹${formData.amountPaidNow.toLocaleString()}`);
+      lines.push(`[${expenseLedger.name}]    Dr   ₹${(formData?.totalAmount ?? 0).toLocaleString()}`);
+      if (formData.cgst > 0) lines.push(`Input CGST          Dr   ₹${(formData?.cgst ?? 0).toLocaleString()}`);
+      if (formData.sgst > 0) lines.push(`Input SGST          Dr   ₹${(formData?.sgst ?? 0).toLocaleString()}`);
+      if (formData.igst > 0) lines.push(`Input IGST          Dr   ₹${(formData?.igst ?? 0).toLocaleString()}`);
+      lines.push(`    To Axis Bank    Cr   ₹${(formData?.amountPaidNow ?? 0).toLocaleString()}`);
       lines.push(`    To [${vendor.name}]     Cr   ₹${balance.toLocaleString()}`);
     }
 
     if (formData.tdsAmount > 0) {
       lines.push(`── TDS Entry ──`);
-      lines.push(`[${expenseLedger.name}]    Dr   ₹${formData.totalAmount.toLocaleString()}`);
+      lines.push(`[${expenseLedger.name}]    Dr   ₹${(formData?.totalAmount ?? 0).toLocaleString()}`);
       lines.push(`    To [${vendor.name}]     Cr   ₹${(formData.totalAmount - formData.tdsAmount).toLocaleString()}`);
-      lines.push(`    To TDS Payable (${formData.tdsSection})  Cr  ₹${formData.tdsAmount.toLocaleString()}`);
+      lines.push(`    To TDS Payable (${formData.tdsSection})  Cr  ₹${(formData?.tdsAmount ?? 0).toLocaleString()}`);
     }
 
     return lines;
@@ -477,7 +477,7 @@ export function ExpenseVoucher() {
               <input
                 type="text"
                 readOnly
-                value={`₹${formData.totalAmount.toLocaleString()}`}
+                value={`₹${(formData?.totalAmount ?? 0).toLocaleString()}`}
                 className="w-full px-3 py-2 border rounded-lg bg-gray-50 font-semibold"
               />
             </div>
@@ -514,19 +514,19 @@ export function ExpenseVoucher() {
             <div className="sm:col-span-2 grid grid-cols-4 gap-3 bg-gray-50 p-4 rounded-lg">
               <div>
                 <label className="block text-xs text-gray-600 mb-1">CGST</label>
-                <p className="font-semibold">₹{formData.cgst.toLocaleString()}</p>
+                <p className="font-semibold">₹{(formData?.cgst ?? 0).toLocaleString()}</p>
               </div>
               <div>
                 <label className="block text-xs text-gray-600 mb-1">SGST</label>
-                <p className="font-semibold">₹{formData.sgst.toLocaleString()}</p>
+                <p className="font-semibold">₹{(formData?.sgst ?? 0).toLocaleString()}</p>
               </div>
               <div>
                 <label className="block text-xs text-gray-600 mb-1">IGST</label>
-                <p className="font-semibold">₹{formData.igst.toLocaleString()}</p>
+                <p className="font-semibold">₹{(formData?.igst ?? 0).toLocaleString()}</p>
               </div>
               <div>
                 <label className="block text-xs text-gray-600 mb-1">Grand Total</label>
-                <p className="font-bold text-lg">₹{formData.grandTotal.toLocaleString()}</p>
+                <p className="font-bold text-lg">₹{(formData?.grandTotal ?? 0).toLocaleString()}</p>
               </div>
             </div>
 
@@ -552,7 +552,7 @@ export function ExpenseVoucher() {
                 <input
                   type="text"
                   readOnly
-                  value={`₹${formData.tdsAmount.toLocaleString()}`}
+                  value={`₹${(formData?.tdsAmount ?? 0).toLocaleString()}`}
                   className="w-full px-3 py-2 border rounded-lg bg-gray-50"
                 />
               </div>

@@ -100,16 +100,16 @@ export function CRMConversionAnalyticsDashboard() {
     const csv = [
       ["Date Range", dateRange],
       ["Total Conversions", metrics.totalConversions],
-      ["Total Revenue", `₹${metrics.totalRevenue.toLocaleString()}`],
-      ["Average Deal Size", `₹${metrics.averageRevenue.toLocaleString()}`],
+      ["Total Revenue", `₹${(metrics?.totalRevenue ?? 0).toLocaleString()}`],
+      ["Average Deal Size", `₹${(metrics?.averageRevenue ?? 0).toLocaleString()}`],
       [""],
       ["TSE Performance"],
       ["TSE Name", "Conversions", "Revenue", "Avg Deal Size"],
       ...tseLeaderboard.map(tse => [
         tse.name,
         tse.conversions,
-        `₹${tse.revenue.toLocaleString()}`,
-        `₹${tse.avgDealSize.toLocaleString()}`,
+        `₹${(tse?.revenue ?? 0).toLocaleString()}`,
+        `₹${(tse?.avgDealSize ?? 0).toLocaleString()}`,
       ]),
     ].map(row => row.join(",")).join("\n");
 
@@ -177,7 +177,7 @@ export function CRMConversionAnalyticsDashboard() {
             <span className="text-xs text-gray-500">Total</span>
           </div>
           <div className="text-3xl font-bold text-gray-900 mb-1">
-            {metrics.totalConversions.toLocaleString()}
+            {(metrics?.totalConversions ?? 0).toLocaleString()}
           </div>
           <div className="text-sm text-gray-600">Conversions</div>
         </div>
@@ -191,7 +191,7 @@ export function CRMConversionAnalyticsDashboard() {
             <span className="text-xs text-gray-500">Revenue</span>
           </div>
           <div className="text-3xl font-bold text-gray-900 mb-1">
-            ₹{metrics.totalRevenue.toLocaleString()}
+            ₹{(metrics?.totalRevenue ?? 0).toLocaleString()}
           </div>
           <div className="text-sm text-gray-600">Total Revenue</div>
         </div>
@@ -321,7 +321,7 @@ export function CRMConversionAnalyticsDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-semibold text-green-600">
-                          ₹{tse.revenue.toLocaleString()}
+                          ₹{(tse?.revenue ?? 0).toLocaleString()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -356,7 +356,7 @@ export function CRMConversionAnalyticsDashboard() {
                         {source.source}
                       </span>
                       <span className="text-sm text-gray-600">
-                        {source.conversions} ({source.percentage.toFixed(1)}%)
+                        {source.conversions} ({(source?.percentage ?? 0).toFixed(1)}%)
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -412,7 +412,7 @@ export function CRMConversionAnalyticsDashboard() {
                         </span>
                       </div>
                       <span className="text-sm text-gray-600">
-                        ₹{day.revenue.toLocaleString()}
+                        ₹{(day?.revenue ?? 0).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -429,19 +429,19 @@ export function CRMConversionAnalyticsDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
-              {auditStats.success.toLocaleString()}
+              {(auditStats?.success ?? 0).toLocaleString()}
             </div>
             <div className="text-sm text-gray-600">Successful</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-red-600">
-              {auditStats.failed.toLocaleString()}
+              {(auditStats?.failed ?? 0).toLocaleString()}
             </div>
             <div className="text-sm text-gray-600">Failed</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-600">
-              {auditStats.errors.toLocaleString()}
+              {(auditStats?.errors ?? 0).toLocaleString()}
             </div>
             <div className="text-sm text-gray-600">Errors</div>
           </div>

@@ -450,7 +450,7 @@ export function EmployeeSelfService() {
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-gray-600">Net Payable</p>
-                  <p className="text-lg font-bold text-blue-600">₹{selectedMonthData.netPayable.toLocaleString()}</p>
+                  <p className="text-lg font-bold text-blue-600">₹{(selectedMonthData?.netPayable ?? 0).toLocaleString()}</p>
                 </div>
               </div>
             </div>
@@ -854,7 +854,7 @@ export function EmployeeSelfService() {
                   <div className="mt-3 pt-3 border-t border-red-200">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-red-700">Net Payable After Deduction:</span>
-                      <span className="font-bold text-red-900">₹{mockPayslip.netPayable.toLocaleString()}</span>
+                      <span className="font-bold text-red-900">₹{(mockPayslip?.netPayable ?? 0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -1034,13 +1034,13 @@ export function EmployeeSelfService() {
                       </td>
                       <td className="p-3 text-sm text-right">
                         {record.hasDeduction ? (
-                          <span className="font-semibold text-red-600">₹{record.deductionAmount.toLocaleString()}</span>
+                          <span className="font-semibold text-red-600">₹{(record?.deductionAmount ?? 0).toLocaleString()}</span>
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
                       </td>
                       <td className="p-3 text-sm text-right">
-                        <span className="font-semibold text-gray-900">₹{record.netPayable.toLocaleString()}</span>
+                        <span className="font-semibold text-gray-900">₹{(record?.netPayable ?? 0).toLocaleString()}</span>
                       </td>
                       <td className="p-3 text-sm text-center">
                         {record.adjustmentRequest ? (

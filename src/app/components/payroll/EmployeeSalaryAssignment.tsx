@@ -363,11 +363,11 @@ export function EmployeeSalaryAssignment() {
                     <div className="flex items-center gap-4 text-sm">
                       <div>
                         <span className="text-gray-500">Basic: </span>
-                        <span className="font-medium">₹{change.basicSalary.toLocaleString()}</span>
+                        <span className="font-medium">₹{(change?.basicSalary ?? 0).toLocaleString()}</span>
                       </div>
                       <div>
                         <span className="text-gray-500">Net: </span>
-                        <span className="font-medium">₹{change.netSalary.toLocaleString()}</span>
+                        <span className="font-medium">₹{(change?.netSalary ?? 0).toLocaleString()}</span>
                       </div>
                       <div>
                         <span className="text-gray-500">By: </span>
@@ -485,17 +485,17 @@ export function EmployeeSalaryAssignment() {
                       </div>
                       <div className="border-t border-blue-200 pt-1 mt-1 flex justify-between font-semibold text-blue-900">
                         <span>Base Incentive</span>
-                        <span>₹{incentiveBreakdown.baseIncentive.toLocaleString()}</span>
+                        <span>₹{(incentiveBreakdown?.baseIncentive ?? 0).toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-gray-700">
                         <span>Add-ons ({incentiveBreakdown.addons})</span>
                         <span className="font-medium">
-                          ₹{incentiveBreakdown.addonIncentive.toLocaleString()}
+                          ₹{(incentiveBreakdown?.addonIncentive ?? 0).toLocaleString()}
                         </span>
                       </div>
                       <div className="border-t border-blue-200 pt-1 mt-1 flex justify-between font-bold text-blue-900">
                         <span>Total Incentive</span>
-                        <span>₹{incentiveBreakdown.totalIncentive.toLocaleString()}</span>
+                        <span>₹{(incentiveBreakdown?.totalIncentive ?? 0).toLocaleString()}</span>
                       </div>
                     </div>
                   </div>

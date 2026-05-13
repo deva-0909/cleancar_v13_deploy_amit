@@ -873,7 +873,7 @@ export function PayrollProcessingAdvanced() {
                           <div key={idx} className="flex justify-between items-start gap-2">
                             <span className="font-medium">{earning.category}:</span>
                             <span className="text-right">
-                              ₹{earning.amount.toLocaleString()}
+                              ₹{(earning?.amount ?? 0).toLocaleString()}
                               <br />
                               <span className="text-xs italic text-gray-400">{earning.reason}</span>
                             </span>
@@ -896,7 +896,7 @@ export function PayrollProcessingAdvanced() {
                           <div key={idx} className="flex justify-between items-start gap-2">
                             <span className="font-medium">{deduction.category}:</span>
                             <span className="text-right">
-                              ₹{deduction.amount.toLocaleString()}
+                              ₹{(deduction?.amount ?? 0).toLocaleString()}
                               <br />
                               <span className="text-xs italic text-gray-400">{deduction.reason}</span>
                             </span>

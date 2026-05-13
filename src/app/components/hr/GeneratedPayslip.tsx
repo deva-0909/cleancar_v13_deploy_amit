@@ -714,7 +714,7 @@ export function GeneratedPayslip({ data, month, year, currentRole: currentRolePr
                             Attendance Deduction
                             <button 
                               className="text-blue-600 hover:text-blue-800"
-                              title={`Derived from:\nLate Coming: ${data.adjustment.lateComingCount}\nAuto Logout: ${data.adjustment.autoLogoutCount}\nAbsent: ${data.summary.absentDays}\nLWP: ${data.summary.leaveWithoutPay}\nTotal Days Deducted: ${data.adjustment.daysDeducted.toFixed(1)}`}
+                              title={`Derived from:\nLate Coming: ${data.adjustment.lateComingCount}\nAuto Logout: ${data.adjustment.autoLogoutCount}\nAbsent: ${data.summary.absentDays}\nLWP: ${data.summary.leaveWithoutPay}\nTotal Days Deducted: ${(data?.adjustment?.daysDeducted ?? 0).toFixed(1)}`}
                             >
                               <Info className="w-3 h-3" />
                             </button>
@@ -826,14 +826,14 @@ export function GeneratedPayslip({ data, month, year, currentRole: currentRolePr
                 <div className="mt-4 pt-4 border-t-2 border-orange-300">
                   <div className="flex justify-between items-center">
                     <p className="font-semibold text-orange-900">Total Days Deducted:</p>
-                    <p className="text-2xl font-bold text-red-800">{data.adjustment.daysDeducted.toFixed(1)} days</p>
+                    <p className="text-2xl font-bold text-red-800">{(data?.adjustment?.daysDeducted ?? 0).toFixed(1)} days</p>
                   </div>
                   <div className="flex justify-between items-center mt-2">
                     <p className="font-semibold text-orange-900">Converted to Amount:</p>
                     <p className="text-2xl font-bold text-red-800">₹{attendanceDeductionAmount.toLocaleString()}</p>
                   </div>
                   <p className="text-xs text-gray-600 mt-2">
-                    Calculation: {data.adjustment.daysDeducted.toFixed(1)} days × ₹{perDayRateForDeduction.toFixed(2)}/day = ₹{attendanceDeductionAmount}
+                    Calculation: {(data?.adjustment?.daysDeducted ?? 0).toFixed(1)} days × ₹{perDayRateForDeduction.toFixed(2)}/day = ₹{attendanceDeductionAmount}
                   </p>
                 </div>
               </CardContent>
@@ -851,7 +851,7 @@ export function GeneratedPayslip({ data, month, year, currentRole: currentRolePr
                   {/* Info Banner */}
                   <div className="bg-white p-4 rounded-lg border-2 border-cyan-300 shadow-sm">
                     <p className="text-sm text-gray-800 mb-2">
-                      <strong className="text-cyan-900">You have ₹{attendanceDeductionAmount.toLocaleString()}</strong> attendance deduction ({data.adjustment.daysDeducted.toFixed(1)} days).
+                      <strong className="text-cyan-900">You have ₹{attendanceDeductionAmount.toLocaleString()}</strong> attendance deduction ({(data?.adjustment?.daysDeducted ?? 0).toFixed(1)} days).
                     </p>
                     <p className="text-sm text-gray-700 mb-3">
                       💼 You can use your <strong>Paid Leave (PL)</strong> to avoid this salary loss.
@@ -940,7 +940,7 @@ export function GeneratedPayslip({ data, month, year, currentRole: currentRolePr
                       </div>
                       <div>
                         <p className="text-gray-600">Deduction Amount:</p>
-                        <p className="text-lg font-bold text-red-700">₹{adjustmentRequest.deductionAmount.toLocaleString()}</p>
+                        <p className="text-lg font-bold text-red-700">₹{(adjustmentRequest?.deductionAmount ?? 0).toLocaleString()}</p>
                       </div>
                     </div>
                     <div className="pt-3 border-t border-amber-200">
@@ -1028,7 +1028,7 @@ export function GeneratedPayslip({ data, month, year, currentRole: currentRolePr
                       </div>
                       <div>
                         <p className="text-gray-600">Salary Saved:</p>
-                        <p className="text-lg font-bold text-green-700">₹{adjustmentRequest.deductionAmount.toLocaleString()}</p>
+                        <p className="text-lg font-bold text-green-700">₹{(adjustmentRequest?.deductionAmount ?? 0).toLocaleString()}</p>
                       </div>
                       <div>
                         <p className="text-gray-600">New PL Balance:</p>
@@ -1070,7 +1070,7 @@ export function GeneratedPayslip({ data, month, year, currentRole: currentRolePr
                       </div>
                       <div>
                         <p className="text-gray-600">Deduction Amount:</p>
-                        <p className="text-lg font-bold text-red-700">₹{adjustmentRequest.deductionAmount.toLocaleString()}</p>
+                        <p className="text-lg font-bold text-red-700">₹{(adjustmentRequest?.deductionAmount ?? 0).toLocaleString()}</p>
                       </div>
                     </div>
                     <div className="pt-3 border-t border-red-200">
@@ -1088,7 +1088,7 @@ export function GeneratedPayslip({ data, month, year, currentRole: currentRolePr
 
                   <div className="bg-yellow-50 p-3 rounded border border-yellow-300">
                     <p className="text-sm text-yellow-900">
-                      ⚠️ Your PL balance remains unchanged ({employeePLBalance} days), and the salary deduction of ₹{adjustmentRequest.deductionAmount.toLocaleString()} will be applied as per attendance records.
+                      ⚠️ Your PL balance remains unchanged ({employeePLBalance} days), and the salary deduction of ₹{(adjustmentRequest?.deductionAmount ?? 0).toLocaleString()} will be applied as per attendance records.
                     </p>
                   </div>
                 </CardContent>
@@ -1339,7 +1339,7 @@ export function GeneratedPayslip({ data, month, year, currentRole: currentRolePr
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <p className="text-xs text-gray-600">Total Days Deducted:</p>
-                    <p className="text-2xl font-bold text-red-700">{data.adjustment.daysDeducted.toFixed(1)} days</p>
+                    <p className="text-2xl font-bold text-red-700">{(data?.adjustment?.daysDeducted ?? 0).toFixed(1)} days</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600">Deduction Amount:</p>
@@ -1408,7 +1408,7 @@ export function GeneratedPayslip({ data, month, year, currentRole: currentRolePr
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
                   Max allowed per request: <strong>{policyConfig.maxPerRequest} day</strong> | 
-                  Your deduction: <strong>{data.adjustment.daysDeducted.toFixed(1)} days</strong>
+                  Your deduction: <strong>{(data?.adjustment?.daysDeducted ?? 0).toFixed(1)} days</strong>
                 </p>
               </div>
 
@@ -1580,7 +1580,7 @@ export function GeneratedPayslip({ data, month, year, currentRole: currentRolePr
                 </div>
                 <div className="mt-2 pt-2 border-t">
                   <span className="text-gray-600">Current Deduction:</span>
-                  <span className="ml-2 font-bold text-red-700">{data.adjustment.daysDeducted.toFixed(1)} days (₹{attendanceDeductionAmount})</span>
+                  <span className="ml-2 font-bold text-red-700">{(data?.adjustment?.daysDeducted ?? 0).toFixed(1)} days (₹{attendanceDeductionAmount})</span>
                 </div>
               </div>
 

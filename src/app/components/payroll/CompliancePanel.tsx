@@ -147,7 +147,7 @@ export function CompliancePanel({
                   )}
                 </div>
                 <div className="text-sm font-semibold text-red-600">
-                  -₹{item.amount.toLocaleString()}
+                  -₹{(item?.amount ?? 0).toLocaleString()}
                 </div>
               </div>
             ))}
@@ -178,7 +178,7 @@ export function CompliancePanel({
               <div className="flex items-center justify-between py-2 px-3 bg-blue-50 rounded-lg text-sm">
                 <span className="text-blue-900">PF (Employer)</span>
                 <span className="font-semibold text-blue-700">
-                  ₹{deductions.pf.employer.toLocaleString()}
+                  ₹{(deductions?.pf?.employer ?? 0).toLocaleString()}
                 </span>
               </div>
             )}
@@ -187,7 +187,7 @@ export function CompliancePanel({
               <div className="flex items-center justify-between py-2 px-3 bg-blue-50 rounded-lg text-sm">
                 <span className="text-blue-900">ESI (Employer)</span>
                 <span className="font-semibold text-blue-700">
-                  ₹{deductions.esi.employer.toLocaleString()}
+                  ₹{(deductions?.esi?.employer ?? 0).toLocaleString()}
                 </span>
               </div>
             )}
@@ -196,7 +196,7 @@ export function CompliancePanel({
               <div className="flex items-center justify-between py-2 px-3 bg-blue-50 rounded-lg text-sm">
                 <span className="text-blue-900">LWF (Employer)</span>
                 <span className="font-semibold text-blue-700">
-                  ₹{deductions.lwf.employer.toLocaleString()}
+                  ₹{(deductions?.lwf?.employer ?? 0).toLocaleString()}
                 </span>
               </div>
             )}

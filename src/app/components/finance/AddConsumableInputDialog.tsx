@@ -272,7 +272,7 @@ export function AddConsumableInputDialog({
               </div>
               <div className="text-xs text-blue-700 mb-3">
                 {quantityConsumed} {selectedMaterial.unitOfMeasure} × ₹
-                {selectedMaterial.costPerUnit.toFixed(2)}/
+                {(selectedMaterial?.costPerUnit ?? 0).toFixed(2)}/
                 {selectedMaterial.unitOfMeasure} ={" "}
                 <strong className="text-lg">₹{estimatedCost.toFixed(2)}</strong>
               </div>

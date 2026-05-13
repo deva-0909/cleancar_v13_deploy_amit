@@ -488,7 +488,7 @@ export function OtherEarningsModule() {
                             <td className="py-3 px-4 text-sm text-gray-700">{earning.employeeId}</td>
                             <td className="py-3 px-4 text-sm text-gray-700">{earning.employeeRole}</td>
                             <td className="py-3 px-4 text-sm text-right font-semibold text-teal-600">
-                              ₹{earning.amount.toLocaleString()}
+                              ₹{(earning?.amount ?? 0).toLocaleString()}
                             </td>
                             <td className="py-3 px-4 text-sm text-gray-700">{earning.category}</td>
                             <td className="py-3 px-4 text-sm text-gray-700">{earning.payrollMonth}</td>
@@ -692,7 +692,7 @@ export function OtherEarningsModule() {
                             <td className="py-3 px-4 text-sm text-gray-900">{earning.employeeName}</td>
                             <td className="py-3 px-4 text-sm text-gray-700">{earning.employeeRole}</td>
                             <td className="py-3 px-4 text-sm text-right font-semibold text-teal-600">
-                              ₹{earning.amount.toLocaleString()}
+                              ₹{(earning?.amount ?? 0).toLocaleString()}
                             </td>
                             <td className="py-3 px-4 text-sm text-gray-700">{earning.category}</td>
                             <td className="py-3 px-4 text-sm text-gray-700">{earning.payrollMonth}</td>

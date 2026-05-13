@@ -311,7 +311,7 @@ export function PricingOverview() {
                             className="bg-green-50 text-green-700"
                           >
                             <TrendingDown className="h-3 w-3 mr-1" />
-                            Save {combo.savingsPercentage.toFixed(1)}%
+                            Save {(combo?.savingsPercentage ?? 0).toFixed(1)}%
                           </Badge>
                         </div>
                         <CardDescription className="text-xs">

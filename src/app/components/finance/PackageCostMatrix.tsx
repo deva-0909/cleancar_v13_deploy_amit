@@ -234,29 +234,29 @@ export function PackageCostMatrix() {
                     <TableRow key={pkg.package}>
                       <TableCell className="font-bold">{pkg.package}</TableCell>
                       <TableCell className="text-right text-blue-600">
-                        ₹{pkg.materialCost.toFixed(2)}
+                        ₹{(pkg?.materialCost ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-cyan-600">
-                        ₹{pkg.consumableCost.toFixed(2)}
+                        ₹{(pkg?.consumableCost ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-green-600">
-                        ₹{pkg.manpowerCost.toFixed(2)}
+                        ₹{(pkg?.manpowerCost ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right text-purple-600">
-                        ₹{pkg.overheadCost.toFixed(2)}
+                        ₹{(pkg?.overheadCost ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right font-bold text-gray-900 bg-gray-50">
-                        ₹{pkg.totalCompanyCost.toFixed(2)}
+                        ₹{(pkg?.totalCompanyCost ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
-                        ₹{pkg.customerMonthlyPrice.toLocaleString()}
+                        ₹{(pkg?.customerMonthlyPrice ?? 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">{pkg.avgWashesPerMonth}</TableCell>
                       <TableCell className="text-right font-semibold">
-                        ₹{pkg.costPerWashToCustomer.toFixed(2)}
+                        ₹{(pkg?.costPerWashToCustomer ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right font-semibold text-green-700">
-                        ₹{pkg.ebitdaPerWash.toFixed(2)}
+                        ₹{(pkg?.ebitdaPerWash ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
                         <span
@@ -268,7 +268,7 @@ export function PackageCostMatrix() {
                               : "text-red-600"
                           }`}
                         >
-                          {pkg.ebitdaPercent.toFixed(1)}%
+                          {(pkg?.ebitdaPercent ?? 0).toFixed(1)}%
                         </span>
                       </TableCell>
                       <TableCell>
@@ -531,12 +531,12 @@ export function PackageCostMatrix() {
                       <TableRow key={combo.id}>
                         <TableCell className="font-bold">{combo.name}</TableCell>
                         <TableCell className="text-sm text-gray-600 max-w-xs">{description}</TableCell>
-                        <TableCell className="text-right">₹{combo.totalIndividualPrice.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">₹{(combo?.totalIndividualPrice ?? 0).toLocaleString()}</TableCell>
                         <TableCell className="text-right font-bold text-blue-600">
-                          ₹{combo.comboPrice.toLocaleString()}
+                          ₹{(combo?.comboPrice ?? 0).toLocaleString()}
                         </TableCell>
                         <TableCell className="text-right font-semibold text-green-600">
-                          ₹{combo.savings.toLocaleString()}
+                          ₹{(combo?.savings ?? 0).toLocaleString()}
                         </TableCell>
                         <TableCell className="text-right">
                           <Badge className="bg-purple-100 text-purple-800 border-purple-300">

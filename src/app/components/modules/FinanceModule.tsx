@@ -476,7 +476,7 @@ export function FinanceModule() {
                 <h4 className="font-semibold text-gray-700 text-sm uppercase tracking-wide border-b pb-2 flex items-center justify-between">
                   <span>Forecast (Month-End)</span>
                   <Badge variant="outline" className="text-xs">
-                    {forecast.confidence.toFixed(0)}% confidence
+                    {(forecast?.confidence ?? 0).toFixed(0)}% confidence
                   </Badge>
                 </h4>
                 <div className="flex justify-between items-center">
@@ -509,7 +509,7 @@ export function FinanceModule() {
                       {variance.revenueVariance >= 0 ? '+' : ''}₹{(variance.revenueVariance / 1000).toFixed(1)}K
                     </p>
                     <p className={`text-xs ${variance.revenueVariance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {variance.revenueVariancePercent >= 0 ? '+' : ''}{variance.revenueVariancePercent.toFixed(1)}%
+                      {variance.revenueVariancePercent >= 0 ? '+' : ''}{(variance?.revenueVariancePercent ?? 0).toFixed(1)}%
                     </p>
                   </div>
                   <div className={`p-3 rounded-lg ${variance.expenseVariance <= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
@@ -518,7 +518,7 @@ export function FinanceModule() {
                       {variance.expenseVariance >= 0 ? '+' : ''}₹{(variance.expenseVariance / 1000).toFixed(1)}K
                     </p>
                     <p className={`text-xs ${variance.expenseVariance <= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {variance.expenseVariancePercent >= 0 ? '+' : ''}{variance.expenseVariancePercent.toFixed(1)}%
+                      {variance.expenseVariancePercent >= 0 ? '+' : ''}{(variance?.expenseVariancePercent ?? 0).toFixed(1)}%
                     </p>
                   </div>
                   <div className={`p-3 rounded-lg ${variance.profitVariance >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
@@ -527,7 +527,7 @@ export function FinanceModule() {
                       {variance.profitVariance >= 0 ? '+' : ''}₹{(variance.profitVariance / 1000).toFixed(1)}K
                     </p>
                     <p className={`text-xs ${variance.profitVariance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {variance.profitVariancePercent >= 0 ? '+' : ''}{variance.profitVariancePercent.toFixed(1)}%
+                      {variance.profitVariancePercent >= 0 ? '+' : ''}{(variance?.profitVariancePercent ?? 0).toFixed(1)}%
                     </p>
                   </div>
                 </div>
@@ -600,7 +600,7 @@ export function FinanceModule() {
                         <TableCell className="hidden md:table-cell">{payable.payrollMonth || "—"}</TableCell>
                         <TableCell>₹{(payable.grossSalary || 0).toLocaleString()}</TableCell>
                         <TableCell className="hidden sm:table-cell text-red-600">-₹{(payable.deductions || 0).toLocaleString()}</TableCell>
-                        <TableCell className="font-bold">₹{payable.amount.toLocaleString()}</TableCell>
+                        <TableCell className="font-bold">₹{(payable?.amount ?? 0).toLocaleString()}</TableCell>
                         <TableCell className="hidden md:table-cell">{payable.dueDate}</TableCell>
                         <TableCell>
                           <Badge variant={payable.status === "Paid" ? "secondary" : "default"}>
@@ -650,7 +650,7 @@ export function FinanceModule() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold">₹{payable.amount.toLocaleString()}</p>
+                        <p className="text-2xl font-bold">₹{(payable?.amount ?? 0).toLocaleString()}</p>
                         {payable.status === "Pending" && (
                           <Button size="sm" className="mt-2">Process Payment</Button>
                         )}
@@ -685,7 +685,7 @@ export function FinanceModule() {
                   {cashCollections.map((cash) => (
                     <TableRow key={cash.id}>
                       <TableCell className="font-medium">{cash.supervisor}</TableCell>
-                      <TableCell className="font-bold">₹{cash.amount.toLocaleString()}</TableCell>
+                      <TableCell className="font-bold">₹{(cash?.amount ?? 0).toLocaleString()}</TableCell>
                       <TableCell className="hidden md:table-cell">{cash.collectionDate}</TableCell>
                       <TableCell className="hidden md:table-cell">{cash.depositDate}</TableCell>
                       <TableCell>
@@ -733,7 +733,7 @@ export function FinanceModule() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-xl font-bold">₹{expense.amount.toLocaleString()}</p>
+                        <p className="text-xl font-bold">₹{(expense?.amount ?? 0).toLocaleString()}</p>
                         {expense.status === "Pending" && (
                           <Button size="sm" className="mt-2">Approve</Button>
                         )}
@@ -771,7 +771,7 @@ export function FinanceModule() {
                     <TableRow key={record.id}>
                       <TableCell className="font-medium">{record.type}</TableCell>
                       <TableCell className="hidden lg:table-cell">{record.month}</TableCell>
-                      <TableCell className="font-bold">₹{record.amount.toLocaleString()}</TableCell>
+                      <TableCell className="font-bold">₹{(record?.amount ?? 0).toLocaleString()}</TableCell>
                       <TableCell>{record.dueDate}</TableCell>
                       <TableCell className="hidden md:table-cell">{record.challanNumber}</TableCell>
                       <TableCell>

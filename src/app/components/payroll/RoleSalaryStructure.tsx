@@ -171,7 +171,7 @@ export function RoleSalaryStructure() {
                 <div>
                   <CardTitle className="text-lg">{template.roleName}</CardTitle>
                   <p className="text-sm text-gray-500 mt-1">
-                    Fixed: ₹{template.fixedSalary.toLocaleString()}
+                    Fixed: ₹{(template?.fixedSalary ?? 0).toLocaleString()}
                   </p>
                 </div>
                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
@@ -526,7 +526,7 @@ export function RoleSalaryStructure() {
                 <Card className="bg-gray-50">
                   <CardContent className="p-4 text-center">
                     <p className="text-sm text-gray-600">Fixed Salary</p>
-                    <p className="text-2xl font-bold">₹{selectedTemplate.fixedSalary.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">₹{(selectedTemplate?.fixedSalary ?? 0).toLocaleString()}</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-green-50">
@@ -559,7 +559,7 @@ export function RoleSalaryStructure() {
                   <div key={comp.id} className="flex justify-between items-center p-3 bg-green-50 rounded">
                     <span>{comp.name}</span>
                     <span className="font-semibold">
-                      ₹{comp.amount.toLocaleString()}
+                      ₹{(comp?.amount ?? 0).toLocaleString()}
                       {comp.isPercentage && <span className="text-xs text-gray-500 ml-2">({comp.percentage}%)</span>}
                     </span>
                   </div>
@@ -570,7 +570,7 @@ export function RoleSalaryStructure() {
                   <div key={comp.id} className="flex justify-between items-center p-3 bg-red-50 rounded">
                     <span>{comp.name}</span>
                     <span className="font-semibold">
-                      ₹{comp.amount.toLocaleString()}
+                      ₹{(comp?.amount ?? 0).toLocaleString()}
                       {comp.isPercentage && <span className="text-xs text-gray-500 ml-2">({comp.percentage}%)</span>}
                     </span>
                   </div>

@@ -207,7 +207,7 @@ export function ExitFFSettlement() {
     setExitRecords(updatedRecords);
     DataService.setAll("EXIT_SETTLEMENTS", updatedRecords);
     setSelectedExit(null);
-    toast.success(`✅ F&F Settlement calculated!\n\nNet Amount: ₹${calculation.netAmount.toLocaleString()}\n\nStatus: Awaiting Super Admin Approval`);
+    toast.success(`✅ F&F Settlement calculated!\n\nNet Amount: ₹${(calculation?.netAmount ?? 0).toLocaleString()}\n\nStatus: Awaiting Super Admin Approval`);
   };
 
   // Super Admin Approval
@@ -616,31 +616,31 @@ export function ExitFFSettlement() {
                   <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Pending Salary:</span>
-                      <span>₹{exit.ffCalculation.pendingSalary.toLocaleString()}</span>
+                      <span>₹{(exit?.ffCalculation?.pendingSalary ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Leave Encashment:</span>
-                      <span>₹{exit.ffCalculation.leaveEncashment.toLocaleString()}</span>
+                      <span>₹{(exit?.ffCalculation?.leaveEncashment ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Bonus/Incentives:</span>
-                      <span>₹{exit.ffCalculation.bonus.toLocaleString()}</span>
+                      <span>₹{(exit?.ffCalculation?.bonus ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Reimbursements:</span>
-                      <span>₹{exit.ffCalculation.reimbursements.toLocaleString()}</span>
+                      <span>₹{(exit?.ffCalculation?.reimbursements ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between font-medium text-green-600 border-t pt-2">
                       <span>Total Earnings:</span>
-                      <span>₹{exit.ffCalculation.totalEarnings.toLocaleString()}</span>
+                      <span>₹{(exit?.ffCalculation?.totalEarnings ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-red-600 mt-2">
                       <span>Deductions:</span>
-                      <span>₹{exit.ffCalculation.totalDeductions.toLocaleString()}</span>
+                      <span>₹{(exit?.ffCalculation?.totalDeductions ?? 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between font-bold text-lg text-purple-600 border-t pt-2">
                       <span>Net F&F Amount:</span>
-                      <span>₹{exit.ffCalculation.netAmount.toLocaleString()}</span>
+                      <span>₹{(exit?.ffCalculation?.netAmount ?? 0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>

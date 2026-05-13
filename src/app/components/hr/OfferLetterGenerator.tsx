@@ -271,7 +271,7 @@ export function OfferLetterGenerator() {
     setSelectedStructureId("");
     setEmployeeSearchTerm("");
 
-    toast.success(`✅ Offer Letter Created!\n\n${offerId} - ${employee.fullName}\nStructure: ${selectedStructure.id} (${selectedStructure.roleName})\nGross: ₹${newOffer.salaryComponents.monthlyGross.toLocaleString()} | Net: ₹${newOffer.salaryComponents.netTakeHome.toLocaleString()}`);
+    toast.success(`✅ Offer Letter Created!\n\n${offerId} - ${employee.fullName}\nStructure: ${selectedStructure.id} (${selectedStructure.roleName})\nGross: ₹${(newOffer?.salaryComponents?.monthlyGross ?? 0).toLocaleString()} | Net: ₹${(newOffer?.salaryComponents?.netTakeHome ?? 0).toLocaleString()}`);
   };
 
   const handleSendOffer = (offer: OfferLetter) => {
@@ -522,14 +522,14 @@ export function OfferLetterGenerator() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div className="font-semibold text-gray-900">
-                        ₹{offer.salaryComponents.monthlyGross.toLocaleString()}
+                        ₹{(offer?.salaryComponents?.monthlyGross ?? 0).toLocaleString()}
                       </div>
                       <div className="text-xs text-gray-500">Gross</div>
                       <div className="text-xs text-green-600 font-medium">
-                        ₹{offer.salaryComponents.netTakeHome.toLocaleString()} net
+                        ₹{(offer?.salaryComponents?.netTakeHome ?? 0).toLocaleString()} net
                       </div>
                       <div className="text-xs text-gray-400 mt-1">
-                        Basic: ₹{offer.salaryComponents.basic.toLocaleString()}
+                        Basic: ₹{(offer?.salaryComponents?.basic ?? 0).toLocaleString()}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -727,7 +727,7 @@ export function OfferLetterGenerator() {
                           if (id) {
                             const structure = availableStructuresForRole.find(s => s.id === id);
                             if (structure) {
-                              toast.success(`✅ Applied salary structure: ${structure.id}\n\nGross: ₹${structure.monthlyGross.toLocaleString()} | Net: ₹${structure.components.netTakeHome.toLocaleString()}`);
+                              toast.success(`✅ Applied salary structure: ${structure.id}\n\nGross: ₹${(structure?.monthlyGross ?? 0).toLocaleString()} | Net: ₹${(structure?.components?.netTakeHome ?? 0).toLocaleString()}`);
                             }
                           }
                         }}
@@ -870,26 +870,26 @@ export function OfferLetterGenerator() {
                         <tr className="border-b">
                           <td className="py-1">Basic Salary</td>
                           <td className="text-right py-1">
-                            ₹{selectedOffer.salaryComponents.basic.toLocaleString()}
+                            ₹{(selectedOffer?.salaryComponents?.basic ?? 0).toLocaleString()}
                           </td>
                         </tr>
                         <tr className="border-b">
                           <td className="py-1">House Rent Allowance (HRA)</td>
                           <td className="text-right py-1">
-                            ₹{selectedOffer.salaryComponents.hra.toLocaleString()}
+                            ₹{(selectedOffer?.salaryComponents?.hra ?? 0).toLocaleString()}
                           </td>
                         </tr>
                         <tr className="border-b">
                           <td className="py-1">Conveyance Allowance</td>
                           <td className="text-right py-1">
-                            ₹{selectedOffer.salaryComponents.conveyance.toLocaleString()}
+                            ₹{(selectedOffer?.salaryComponents?.conveyance ?? 0).toLocaleString()}
                           </td>
                         </tr>
                         {selectedOffer.salaryComponents.medical > 0 && (
                           <tr className="border-b">
                             <td className="py-1">Medical Allowance</td>
                             <td className="text-right py-1">
-                              ₹{selectedOffer.salaryComponents.medical.toLocaleString()}
+                              ₹{(selectedOffer?.salaryComponents?.medical ?? 0).toLocaleString()}
                             </td>
                           </tr>
                         )}
@@ -897,40 +897,40 @@ export function OfferLetterGenerator() {
                           <tr className="border-b">
                             <td className="py-1">Special Allowance</td>
                             <td className="text-right py-1">
-                              ₹{selectedOffer.salaryComponents.specialAllowance.toLocaleString()}
+                              ₹{(selectedOffer?.salaryComponents?.specialAllowance ?? 0).toLocaleString()}
                             </td>
                           </tr>
                         )}
                         <tr className="border-b border-t-2 border-gray-400 font-semibold">
                           <td className="py-1">Gross Salary</td>
                           <td className="text-right py-1">
-                            ₹{selectedOffer.salaryComponents.monthlyGross.toLocaleString()}
+                            ₹{(selectedOffer?.salaryComponents?.monthlyGross ?? 0).toLocaleString()}
                           </td>
                         </tr>
                         <tr className="border-b text-red-600">
                           <td className="py-1">Provident Fund (PF) - 12%</td>
                           <td className="text-right py-1">
-                            -₹{selectedOffer.salaryComponents.employeePF.toLocaleString()}
+                            -₹{(selectedOffer?.salaryComponents?.employeePF ?? 0).toLocaleString()}
                           </td>
                         </tr>
                         {selectedOffer.salaryComponents.employeeESIC > 0 && (
                           <tr className="border-b text-red-600">
                             <td className="py-1">ESIC - 0.75%</td>
                             <td className="text-right py-1">
-                              -₹{selectedOffer.salaryComponents.employeeESIC.toLocaleString()}
+                              -₹{(selectedOffer?.salaryComponents?.employeeESIC ?? 0).toLocaleString()}
                             </td>
                           </tr>
                         )}
                         <tr className="border-b text-red-600">
                           <td className="py-1">Professional Tax</td>
                           <td className="text-right py-1">
-                            -₹{selectedOffer.salaryComponents.professionalTax.toLocaleString()}
+                            -₹{(selectedOffer?.salaryComponents?.professionalTax ?? 0).toLocaleString()}
                           </td>
                         </tr>
                         <tr className="border-t-2 border-gray-400 font-bold text-green-700">
                           <td className="py-2">Net Take Home</td>
                           <td className="text-right py-2">
-                            ₹{selectedOffer.salaryComponents.netTakeHome.toLocaleString()}
+                            ₹{(selectedOffer?.salaryComponents?.netTakeHome ?? 0).toLocaleString()}
                           </td>
                         </tr>
                       </tbody>

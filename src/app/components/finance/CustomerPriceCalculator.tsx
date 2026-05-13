@@ -241,7 +241,7 @@ export function CustomerPriceCalculator() {
                   Total Company Cost per Wash
                 </div>
                 <div className="text-4xl font-bold text-blue-900">
-                  ₹{result.companyCostPerWash.toFixed(2)}
+                  ₹{(result?.companyCostPerWash ?? 0).toFixed(2)}
                 </div>
               </div>
             </CardContent>
@@ -268,7 +268,7 @@ export function CustomerPriceCalculator() {
                     Required Price per Wash
                   </div>
                   <div className="text-3xl font-bold text-teal-600">
-                    ₹{result.requiredPricePerWash.toFixed(2)}
+                    ₹{(result?.requiredPricePerWash ?? 0).toFixed(2)}
                   </div>
                 </div>
                 <div className="text-center">
@@ -276,14 +276,14 @@ export function CustomerPriceCalculator() {
                     Required Monthly Price
                   </div>
                   <div className="text-3xl font-bold text-blue-600">
-                    ₹{result.requiredMonthlyPrice.toFixed(0)}
+                    ₹{(result?.requiredMonthlyPrice ?? 0).toFixed(0)}
                   </div>
                 </div>
               </div>
               <div className="mt-3 p-2 bg-gray-100 rounded text-xs text-gray-600 text-center">
                 Formula: Required Price = Company Cost ÷ (1 - {targetEBITDA / 100}) = ₹
-                {result.companyCostPerWash.toFixed(2)} ÷ {1 - targetEBITDA / 100} = ₹
-                {result.requiredPricePerWash.toFixed(2)}
+                {(result?.companyCostPerWash ?? 0).toFixed(2)} ÷ {1 - targetEBITDA / 100} = ₹
+                {(result?.requiredPricePerWash ?? 0).toFixed(2)}
               </div>
             </CardContent>
           </Card>
@@ -313,10 +313,10 @@ export function CustomerPriceCalculator() {
                     <TableRow key={v.category}>
                       <TableCell className="font-medium">{v.category}</TableCell>
                       <TableCell className="text-right font-semibold">
-                        ₹{v.actualPricePerWash.toFixed(2)}
+                        ₹{(v?.actualPricePerWash ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
-                        ₹{v.requiredPricePerWash.toFixed(2)}
+                        ₹{(v?.requiredPricePerWash ?? 0).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
                         <span
@@ -324,7 +324,7 @@ export function CustomerPriceCalculator() {
                             v.difference > 0 ? "text-green-600" : "text-red-600"
                           }`}
                         >
-                          {v.difference > 0 ? "+" : ""}₹{v.difference.toFixed(2)}
+                          {v.difference > 0 ? "+" : ""}₹{(v?.difference ?? 0).toFixed(2)}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
@@ -337,7 +337,7 @@ export function CustomerPriceCalculator() {
                               : "text-red-600"
                           }`}
                         >
-                          {v.actualEBITDA.toFixed(1)}%
+                          {(v?.actualEBITDA ?? 0).toFixed(1)}%
                         </span>
                       </TableCell>
                       <TableCell className="text-right text-gray-600">

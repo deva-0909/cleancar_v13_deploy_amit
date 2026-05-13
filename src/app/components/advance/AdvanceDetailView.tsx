@@ -158,7 +158,7 @@ export function AdvanceDetailView() {
                   <label className="text-sm font-medium text-gray-500">Requested Amount</label>
                   <div className="flex items-center gap-2 mt-1">
                     <DollarSign className="w-4 h-4 text-gray-400" />
-                    <p className="text-2xl font-bold text-gray-900">₹{advance.amount.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-gray-900">₹{(advance?.amount ?? 0).toLocaleString()}</p>
                   </div>
                 </div>
 
@@ -232,7 +232,7 @@ export function AdvanceDetailView() {
                     <CardContent className="p-4">
                       <p className="text-sm text-gray-600 mb-1">Balance</p>
                       <p className="text-xl font-bold text-yellow-900">
-                        ₹{advance.amount.toLocaleString()}
+                        ₹{(advance?.amount ?? 0).toLocaleString()}
                       </p>
                     </CardContent>
                   </Card>

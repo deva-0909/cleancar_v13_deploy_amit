@@ -137,7 +137,7 @@ export function OptimizeSalaryDrawer({
                     </div>
                     <div className="text-lg font-bold text-green-600 mt-2">
                       Annual Savings: ₹
-                      {regimeComparison.recommendation.savings.toLocaleString()}
+                      {(regimeComparison?.recommendation?.savings ?? 0).toLocaleString()}
                     </div>
                   </div>
                 </div>
@@ -165,10 +165,10 @@ export function OptimizeSalaryDrawer({
                         Taxable Income
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-gray-900">
-                        ₹{regimeComparison.oldRegime.taxableIncome.toLocaleString()}
+                        ₹{(regimeComparison?.oldRegime?.taxableIncome ?? 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-gray-900">
-                        ₹{regimeComparison.newRegime.taxableIncome.toLocaleString()}
+                        ₹{(regimeComparison?.newRegime?.taxableIncome ?? 0).toLocaleString()}
                       </td>
                     </tr>
                     <tr>
@@ -176,10 +176,10 @@ export function OptimizeSalaryDrawer({
                         Total Deductions
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-green-600">
-                        -₹{regimeComparison.oldRegime.deductions.toLocaleString()}
+                        -₹{(regimeComparison?.oldRegime?.deductions ?? 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-gray-400">
-                        -₹{regimeComparison.newRegime.deductions.toLocaleString()}
+                        -₹{(regimeComparison?.newRegime?.deductions ?? 0).toLocaleString()}
                       </td>
                     </tr>
                     <tr>
@@ -187,10 +187,10 @@ export function OptimizeSalaryDrawer({
                         Tax Payable
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-red-600">
-                        ₹{regimeComparison.oldRegime.taxPayable.toLocaleString()}
+                        ₹{(regimeComparison?.oldRegime?.taxPayable ?? 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-red-600">
-                        ₹{regimeComparison.newRegime.taxPayable.toLocaleString()}
+                        ₹{(regimeComparison?.newRegime?.taxPayable ?? 0).toLocaleString()}
                       </td>
                     </tr>
                     <tr className="bg-blue-50 font-semibold">
@@ -198,10 +198,10 @@ export function OptimizeSalaryDrawer({
                         Annual Take-Home
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-blue-900">
-                        ₹{regimeComparison.oldRegime.takeHome.toLocaleString()}
+                        ₹{(regimeComparison?.oldRegime?.takeHome ?? 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-sm text-right text-blue-900">
-                        ₹{regimeComparison.newRegime.takeHome.toLocaleString()}
+                        ₹{(regimeComparison?.newRegime?.takeHome ?? 0).toLocaleString()}
                       </td>
                     </tr>
                   </tbody>
@@ -217,7 +217,7 @@ export function OptimizeSalaryDrawer({
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="text-sm text-blue-700">Current Take-Home</div>
                   <div className="text-2xl font-bold text-blue-900 mt-1">
-                    ₹{optimization.current.netTakeHome.toLocaleString()}
+                    ₹{(optimization?.current?.netTakeHome ?? 0).toLocaleString()}
                   </div>
                   <div className="text-xs text-blue-600 mt-1">per month</div>
                 </div>
@@ -225,10 +225,10 @@ export function OptimizeSalaryDrawer({
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="text-sm text-green-700">Optimized Take-Home</div>
                   <div className="text-2xl font-bold text-green-900 mt-1">
-                    ₹{optimization.optimized.netTakeHome.toLocaleString()}
+                    ₹{(optimization?.optimized?.netTakeHome ?? 0).toLocaleString()}
                   </div>
                   <div className="text-xs text-green-600 mt-1">
-                    +₹{optimization.savings.monthly.toLocaleString()} per month
+                    +₹{(optimization?.savings?.monthly ?? 0).toLocaleString()} per month
                   </div>
                 </div>
               </div>
@@ -260,7 +260,7 @@ export function OptimizeSalaryDrawer({
                         <div className="flex-1">
                           <div className="text-xs text-gray-500">Current</div>
                           <div className="text-sm font-medium text-gray-900">
-                            ₹{suggestion.current.toLocaleString()}
+                            ₹{(suggestion?.current ?? 0).toLocaleString()}
                           </div>
                         </div>
 
@@ -269,7 +269,7 @@ export function OptimizeSalaryDrawer({
                         <div className="flex-1">
                           <div className="text-xs text-gray-500">Suggested</div>
                           <div className="text-sm font-medium text-green-600">
-                            ₹{suggestion.suggested.toLocaleString()}
+                            ₹{(suggestion?.suggested ?? 0).toLocaleString()}
                           </div>
                         </div>
                       </div>
@@ -301,7 +301,7 @@ export function OptimizeSalaryDrawer({
                           </div>
                         </div>
                         <div className="text-sm font-semibold text-green-600">
-                          Save ₹{tip.savings.toLocaleString()}
+                          Save ₹{(tip?.savings ?? 0).toLocaleString()}
                         </div>
                       </div>
                     </div>

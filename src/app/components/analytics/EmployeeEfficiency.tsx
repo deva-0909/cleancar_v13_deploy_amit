@@ -479,7 +479,7 @@ function EmployeeEfficiency() {
                         style={{ width: `${item.value}%` }}
                       />
                     </div>
-                    <span className="font-medium w-12 text-right">{item.value.toFixed(0)}%</span>
+                    <span className="font-medium w-12 text-right">{(item?.value ?? 0).toFixed(0)}%</span>
                   </div>
                 </div>
               ))}

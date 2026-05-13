@@ -524,7 +524,7 @@ export function CreateSalaryStructure() {
     });
 
     const shiftLabel = shiftType === "part_time" ? " (Part-Time, prorated)" : "";
-    toast.success(`✅ Salary structure saved!\n\n${structureName}\n${role.name}\nBasic: ₹${components.basic.toLocaleString()}${shiftLabel} • Gross: ₹${components.monthlyGross.toLocaleString()}`);
+    toast.success(`✅ Salary structure saved!\n\n${structureName}\n${role.name}\nBasic: ₹${(components?.basic ?? 0).toLocaleString()}${shiftLabel} • Gross: ₹${(components?.monthlyGross ?? 0).toLocaleString()}`);
 
     // Reset form
     setSelectedRole("");
@@ -1456,26 +1456,26 @@ export function CreateSalaryStructure() {
                       <div>
                         <span className="text-xs text-gray-600">Basic Salary:</span>
                         <span className="font-bold text-indigo-900 ml-2 block text-lg">
-                          ₹{components.basic.toLocaleString()} <span className="text-xs text-gray-500">({shiftType === "full_time" ? "FT" : "PT"})</span>
+                          ₹{(components?.basic ?? 0).toLocaleString()} <span className="text-xs text-gray-500">({shiftType === "full_time" ? "FT" : "PT"})</span>
                         </span>
                       </div>
                       <div>
                         <span className="text-xs text-gray-600">Monthly Gross:</span>
                         <span className="font-bold text-purple-900 ml-2 block text-lg">
-                          ₹{components.monthlyGross.toLocaleString()}
+                          ₹{(components?.monthlyGross ?? 0).toLocaleString()}
                         </span>
                       </div>
                       <div>
                         <span className="text-xs text-gray-600">Annual CTC:</span>
                         <span className="font-bold text-blue-900 ml-2 block text-lg">
-                          ₹{components.annualCTC.toLocaleString()}
+                          ₹{(components?.annualCTC ?? 0).toLocaleString()}
                         </span>
                       </div>
                     </div>
                     <div className="text-right">
                       <span className="text-xs text-gray-600 block">Net Take Home:</span>
                       <span className="text-2xl font-bold text-green-900 block">
-                        ₹{components.netTakeHome.toLocaleString()}
+                        ₹{(components?.netTakeHome ?? 0).toLocaleString()}
                       </span>
                     </div>
                   </div>

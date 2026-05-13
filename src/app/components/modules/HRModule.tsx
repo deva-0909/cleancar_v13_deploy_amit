@@ -703,7 +703,7 @@ function HRModule() {
                       {canSeeFinancials && (
                         <div>
                           <p className="text-gray-500">Base Salary</p>
-                          <p className="font-medium">₹{selectedEmployee.baseSalary.toLocaleString()}</p>
+                          <p className="font-medium">₹{(selectedEmployee?.baseSalary ?? 0).toLocaleString()}</p>
                         </div>
                       )}
                     </div>
@@ -1027,7 +1027,7 @@ function HRModule() {
                             )}
                           </TableCell>
                           <TableCell className="font-medium text-green-600">
-                            ₹{payroll.grossSalary.toLocaleString()}
+                            ₹{(payroll?.grossSalary ?? 0).toLocaleString()}
                           </TableCell>
                           <TableCell>
                             <div>
@@ -1042,7 +1042,7 @@ function HRModule() {
                             </div>
                           </TableCell>
                           <TableCell className="font-bold text-blue-600">
-                            ₹{payroll.netSalary.toLocaleString()}
+                            ₹{(payroll?.netSalary ?? 0).toLocaleString()}
                           </TableCell>
                           <TableCell>
                             <Badge variant={
@@ -1702,36 +1702,36 @@ function HRModule() {
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="bg-white p-3 rounded">
                           <p className="text-gray-600">Monthly Gross</p>
-                          <p className="text-xl font-bold text-purple-900">₹{components.monthlyGross.toLocaleString()}</p>
+                          <p className="text-xl font-bold text-purple-900">₹{(components?.monthlyGross ?? 0).toLocaleString()}</p>
                         </div>
                         <div className="bg-white p-3 rounded">
                           <p className="text-gray-600">Annual CTC</p>
-                          <p className="text-xl font-bold text-purple-900">₹{components.annualCTC.toLocaleString()}</p>
+                          <p className="text-xl font-bold text-purple-900">₹{(components?.annualCTC ?? 0).toLocaleString()}</p>
                         </div>
                       </div>
                       <div className="mt-3 grid grid-cols-3 gap-3 text-xs">
                         <div>
                           <p className="text-gray-600">Employee PF</p>
-                          <p className="font-semibold">₹{components.employeePF.toLocaleString()}</p>
+                          <p className="font-semibold">₹{(components?.employeePF ?? 0).toLocaleString()}</p>
                         </div>
                         <div>
                           <p className="text-gray-600">Employer PF</p>
-                          <p className="font-semibold">₹{components.employerPF.toLocaleString()}</p>
+                          <p className="font-semibold">₹{(components?.employerPF ?? 0).toLocaleString()}</p>
                         </div>
                         <div>
                           <p className="text-gray-600">Total CTC/Month</p>
-                          <p className="font-semibold text-purple-700">₹{components.totalCTC.toLocaleString()}</p>
+                          <p className="font-semibold text-purple-700">₹{(components?.totalCTC ?? 0).toLocaleString()}</p>
                         </div>
                       </div>
                       {components.employeeESIC > 0 && (
                         <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
                           <div>
                             <p className="text-gray-600">Employee ESIC</p>
-                            <p className="font-semibold">₹{components.employeeESIC.toLocaleString()}</p>
+                            <p className="font-semibold">₹{(components?.employeeESIC ?? 0).toLocaleString()}</p>
                           </div>
                           <div>
                             <p className="text-gray-600">Employer ESIC</p>
-                            <p className="font-semibold">₹{components.employerESIC.toLocaleString()}</p>
+                            <p className="font-semibold">₹{(components?.employerESIC ?? 0).toLocaleString()}</p>
                           </div>
                         </div>
                       )}
@@ -1791,11 +1791,11 @@ function HRModule() {
                           <>
                             <div className="flex justify-between">
                               <span>Medical Allowance</span>
-                              <span className="font-medium">₹{matchingStructure.components.medical.toLocaleString()}</span>
+                              <span className="font-medium">₹{(matchingStructure?.components?.medical ?? 0).toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between">
                               <span>Special Allowance</span>
-                              <span className="font-medium">₹{matchingStructure.components.specialAllowance.toLocaleString()}</span>
+                              <span className="font-medium">₹{(matchingStructure?.components?.specialAllowance ?? 0).toLocaleString()}</span>
                             </div>
                           </>
                         );

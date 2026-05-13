@@ -108,7 +108,7 @@ export function ComparisonMetricCard({
             isDecrease ? "text-red-700" :
             "text-gray-600"
           }`}>
-            {change.value} ({change.percentage > 0 ? "+" : ""}{change.percentage.toFixed(1)}%)
+            {change.value} ({change.percentage > 0 ? "+" : ""}{(change?.percentage ?? 0).toFixed(1)}%)
           </span>
         </div>
       </CardContent>

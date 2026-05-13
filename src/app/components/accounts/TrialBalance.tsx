@@ -151,12 +151,12 @@ export function TrialBalance() {
     const rows = trialBalance.map((b) => [
       b.ledgerName,
       b.accountHeadLabel,
-      b.openingDr.toFixed(2),
-      b.openingCr.toFixed(2),
-      b.periodDr.toFixed(2),
-      b.periodCr.toFixed(2),
-      b.closingDr.toFixed(2),
-      b.closingCr.toFixed(2),
+      (b?.openingDr ?? 0).toFixed(2),
+      (b?.openingCr ?? 0).toFixed(2),
+      (b?.periodDr ?? 0).toFixed(2),
+      (b?.periodCr ?? 0).toFixed(2),
+      (b?.closingDr ?? 0).toFixed(2),
+      (b?.closingCr ?? 0).toFixed(2),
     ]);
     const csv = [headers, ...rows].map((row) => row.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -255,24 +255,24 @@ export function TrialBalance() {
                   {ledgersInHead.map((ledger) => (
                     <tr key={ledger.ledgerId} className="hover:bg-gray-50">
                       <td className="px-4 py-2 text-sm pl-8">{ledger.ledgerName}</td>
-                      <td className="px-4 py-2 text-sm text-right">₹{ledger.openingDr.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-sm text-right">₹{ledger.openingCr.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-sm text-right">₹{ledger.periodDr.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-sm text-right">₹{ledger.periodCr.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-sm text-right font-medium">₹{ledger.closingDr.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-sm text-right font-medium">₹{ledger.closingCr.toFixed(2)}</td>
+                      <td className="px-4 py-2 text-sm text-right">₹{(ledger?.openingDr ?? 0).toFixed(2)}</td>
+                      <td className="px-4 py-2 text-sm text-right">₹{(ledger?.openingCr ?? 0).toFixed(2)}</td>
+                      <td className="px-4 py-2 text-sm text-right">₹{(ledger?.periodDr ?? 0).toFixed(2)}</td>
+                      <td className="px-4 py-2 text-sm text-right">₹{(ledger?.periodCr ?? 0).toFixed(2)}</td>
+                      <td className="px-4 py-2 text-sm text-right font-medium">₹{(ledger?.closingDr ?? 0).toFixed(2)}</td>
+                      <td className="px-4 py-2 text-sm text-right font-medium">₹{(ledger?.closingCr ?? 0).toFixed(2)}</td>
                     </tr>
                   ))}
 
                   {/* Subtotal Row */}
                   <tr className={`${bgColor} border-b border-gray-300 font-semibold`}>
                     <td className="px-4 py-2 text-sm">Subtotal — {head.label}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{subtotal.openingDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{subtotal.openingCr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{subtotal.periodDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{subtotal.periodCr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{subtotal.closingDr.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-sm text-right">₹{subtotal.closingCr.toFixed(2)}</td>
+                    <td className="px-4 py-2 text-sm text-right">₹{(subtotal?.openingDr ?? 0).toFixed(2)}</td>
+                    <td className="px-4 py-2 text-sm text-right">₹{(subtotal?.openingCr ?? 0).toFixed(2)}</td>
+                    <td className="px-4 py-2 text-sm text-right">₹{(subtotal?.periodDr ?? 0).toFixed(2)}</td>
+                    <td className="px-4 py-2 text-sm text-right">₹{(subtotal?.periodCr ?? 0).toFixed(2)}</td>
+                    <td className="px-4 py-2 text-sm text-right">₹{(subtotal?.closingDr ?? 0).toFixed(2)}</td>
+                    <td className="px-4 py-2 text-sm text-right">₹{(subtotal?.closingCr ?? 0).toFixed(2)}</td>
                   </tr>
                 </React.Fragment>
               );
@@ -281,15 +281,15 @@ export function TrialBalance() {
             {/* Grand Total */}
             <tr className="bg-gray-900 text-white font-bold">
               <td className="px-4 py-3">GRAND TOTAL</td>
-              <td className="px-4 py-3 text-right">₹{totals.openingDr.toFixed(2)}</td>
-              <td className="px-4 py-3 text-right">₹{totals.openingCr.toFixed(2)}</td>
-              <td className="px-4 py-3 text-right">₹{totals.periodDr.toFixed(2)}</td>
-              <td className="px-4 py-3 text-right">₹{totals.periodCr.toFixed(2)}</td>
+              <td className="px-4 py-3 text-right">₹{(totals?.openingDr ?? 0).toFixed(2)}</td>
+              <td className="px-4 py-3 text-right">₹{(totals?.openingCr ?? 0).toFixed(2)}</td>
+              <td className="px-4 py-3 text-right">₹{(totals?.periodDr ?? 0).toFixed(2)}</td>
+              <td className="px-4 py-3 text-right">₹{(totals?.periodCr ?? 0).toFixed(2)}</td>
               <td className={`px-4 py-3 text-right ${isBalanced ? "text-green-400" : "text-red-400"}`}>
-                ₹{totals.closingDr.toFixed(2)}
+                ₹{(totals?.closingDr ?? 0).toFixed(2)}
               </td>
               <td className={`px-4 py-3 text-right ${isBalanced ? "text-green-400" : "text-red-400"}`}>
-                ₹{totals.closingCr.toFixed(2)}
+                ₹{(totals?.closingCr ?? 0).toFixed(2)}
               </td>
             </tr>
           </tbody>

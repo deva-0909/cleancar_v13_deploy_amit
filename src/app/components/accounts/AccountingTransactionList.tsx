@@ -270,11 +270,11 @@ export function AccountingTransactionList() {
                 </td>
                 <td className="px-4 py-3 text-sm">{entry.vendorName || "-"}</td>
                 <td className="px-4 py-3 text-sm">{entry.invoiceNumber}</td>
-                <td className="px-4 py-3 text-sm text-right">₹{entry.taxableValue.toFixed(2)}</td>
-                <td className="px-4 py-3 text-sm text-right">₹{entry.cgst.toFixed(2)}</td>
-                <td className="px-4 py-3 text-sm text-right">₹{entry.sgst.toFixed(2)}</td>
-                <td className="px-4 py-3 text-sm text-right">₹{entry.igst.toFixed(2)}</td>
-                <td className="px-4 py-3 text-sm text-right font-medium">₹{entry.totalBillValue.toFixed(2)}</td>
+                <td className="px-4 py-3 text-sm text-right">₹{(entry?.taxableValue ?? 0).toFixed(2)}</td>
+                <td className="px-4 py-3 text-sm text-right">₹{(entry?.cgst ?? 0).toFixed(2)}</td>
+                <td className="px-4 py-3 text-sm text-right">₹{(entry?.sgst ?? 0).toFixed(2)}</td>
+                <td className="px-4 py-3 text-sm text-right">₹{(entry?.igst ?? 0).toFixed(2)}</td>
+                <td className="px-4 py-3 text-sm text-right font-medium">₹{(entry?.totalBillValue ?? 0).toFixed(2)}</td>
                 <td className="px-4 py-3 text-sm">{entry.paymentMode}</td>
                 <td className="px-4 py-3">
                   <span
@@ -358,7 +358,7 @@ export function AccountingTransactionList() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Taxable Value</p>
-                    <p className="font-medium">₹{selectedEntry.taxableValue.toFixed(2)}</p>
+                    <p className="font-medium">₹{(selectedEntry?.taxableValue ?? 0).toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">GST Rate</p>
@@ -366,19 +366,19 @@ export function AccountingTransactionList() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">CGST</p>
-                    <p className="font-medium">₹{selectedEntry.cgst.toFixed(2)}</p>
+                    <p className="font-medium">₹{(selectedEntry?.cgst ?? 0).toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">SGST</p>
-                    <p className="font-medium">₹{selectedEntry.sgst.toFixed(2)}</p>
+                    <p className="font-medium">₹{(selectedEntry?.sgst ?? 0).toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">IGST</p>
-                    <p className="font-medium">₹{selectedEntry.igst.toFixed(2)}</p>
+                    <p className="font-medium">₹{(selectedEntry?.igst ?? 0).toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Total Bill Value</p>
-                    <p className="text-lg font-bold text-blue-600">₹{selectedEntry.totalBillValue.toFixed(2)}</p>
+                    <p className="text-lg font-bold text-blue-600">₹{(selectedEntry?.totalBillValue ?? 0).toFixed(2)}</p>
                   </div>
                 </div>
               </div>

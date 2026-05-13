@@ -168,7 +168,7 @@ export function RecommendationCard({
                 {recommendation.metrics.financialImpact > 0 && (
                   <div className="flex items-center gap-2 mt-2">
                     <Badge className="bg-red-600 text-white font-bold">
-                      Financial Impact: ₹{recommendation.metrics.financialImpact.toLocaleString()}
+                      Financial Impact: ₹{(recommendation?.metrics?.financialImpact ?? 0).toLocaleString()}
                     </Badge>
                   </div>
                 )}
@@ -270,24 +270,24 @@ export function RecommendationCard({
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                   <div className="text-xs text-gray-600 mb-1">Actual Value</div>
                   <div className="font-bold text-lg text-gray-900">
-                    {recommendation.metrics.actualValue.toLocaleString()}
+                    {(recommendation?.metrics?.actualValue ?? 0).toLocaleString()}
                   </div>
                 </div>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <div className="text-xs text-blue-600 mb-1">Ideal/Target Value</div>
                   <div className="font-bold text-lg text-blue-900">
-                    {recommendation.metrics.idealValue.toLocaleString()}
+                    {(recommendation?.metrics?.idealValue ?? 0).toLocaleString()}
                   </div>
                 </div>
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                   <div className="text-xs text-red-600 mb-1">Variance</div>
                   <div className="font-bold text-lg text-red-900">
                     {recommendation.metrics.variance >= 0 ? "+" : ""}
-                    {recommendation.metrics.variance.toLocaleString()}
+                    {(recommendation?.metrics?.variance ?? 0).toLocaleString()}
                     {recommendation.metrics.variancePercent !== 0 && (
                       <span className="text-sm ml-1">
                         ({recommendation.metrics.variancePercent >= 0 ? "+" : ""}
-                        {recommendation.metrics.variancePercent.toFixed(1)}%)
+                        {(recommendation?.metrics?.variancePercent ?? 0).toFixed(1)}%)
                       </span>
                     )}
                   </div>
@@ -296,7 +296,7 @@ export function RecommendationCard({
                   <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
                     <div className="text-xs text-orange-600 mb-1">Financial Impact</div>
                     <div className="font-bold text-lg text-orange-900">
-                      ₹{recommendation.metrics.financialImpact.toLocaleString()}
+                      ₹{(recommendation?.metrics?.financialImpact ?? 0).toLocaleString()}
                     </div>
                   </div>
                 )}

@@ -101,7 +101,7 @@ export default function PayablesDashboard() {
       ],
       city, cityId, createdBy: currentUser?.name || "Accounts",
     }, city);
-    toast.success(`Payment of ₹${payable.amountDue.toLocaleString()} recorded for ${payable.creditorName}`);
+    toast.success(`Payment of ₹${(payable?.amountDue ?? 0).toLocaleString()} recorded for ${payable.creditorName}`);
     setRefresh(r => r + 1);
   };
 

@@ -273,11 +273,11 @@ export function SalesSummaryReport() {
                 <td className="px-4 py-3 text-sm font-mono">{entry.voucherNumber}</td>
                 <td className="px-4 py-3 text-sm">{entry.vendorName || "-"}</td>
                 <td className="px-4 py-3 text-sm">{entry.invoiceNumber}</td>
-                <td className="px-4 py-3 text-sm text-right">₹{entry.taxableValue.toFixed(2)}</td>
-                <td className="px-4 py-3 text-sm text-right">₹{entry.cgst.toFixed(2)}</td>
-                <td className="px-4 py-3 text-sm text-right">₹{entry.sgst.toFixed(2)}</td>
-                <td className="px-4 py-3 text-sm text-right">₹{entry.igst.toFixed(2)}</td>
-                <td className="px-4 py-3 text-sm text-right font-medium">₹{entry.totalBillValue.toFixed(2)}</td>
+                <td className="px-4 py-3 text-sm text-right">₹{(entry?.taxableValue ?? 0).toFixed(2)}</td>
+                <td className="px-4 py-3 text-sm text-right">₹{(entry?.cgst ?? 0).toFixed(2)}</td>
+                <td className="px-4 py-3 text-sm text-right">₹{(entry?.sgst ?? 0).toFixed(2)}</td>
+                <td className="px-4 py-3 text-sm text-right">₹{(entry?.igst ?? 0).toFixed(2)}</td>
+                <td className="px-4 py-3 text-sm text-right font-medium">₹{(entry?.totalBillValue ?? 0).toFixed(2)}</td>
                 <td className="px-4 py-3 text-sm">{entry.entryType}</td>
                 <td className="px-4 py-3 text-sm">{entry.paymentMode}</td>
               </tr>
@@ -287,11 +287,11 @@ export function SalesSummaryReport() {
               <td className="px-4 py-3" colSpan={4}>
                 TOTAL
               </td>
-              <td className="px-4 py-3 text-sm text-right">₹{totals.taxable.toFixed(2)}</td>
-              <td className="px-4 py-3 text-sm text-right">₹{totals.cgst.toFixed(2)}</td>
-              <td className="px-4 py-3 text-sm text-right">₹{totals.sgst.toFixed(2)}</td>
-              <td className="px-4 py-3 text-sm text-right">₹{totals.igst.toFixed(2)}</td>
-              <td className="px-4 py-3 text-sm text-right">₹{totals.total.toFixed(2)}</td>
+              <td className="px-4 py-3 text-sm text-right">₹{(totals?.taxable ?? 0).toFixed(2)}</td>
+              <td className="px-4 py-3 text-sm text-right">₹{(totals?.cgst ?? 0).toFixed(2)}</td>
+              <td className="px-4 py-3 text-sm text-right">₹{(totals?.sgst ?? 0).toFixed(2)}</td>
+              <td className="px-4 py-3 text-sm text-right">₹{(totals?.igst ?? 0).toFixed(2)}</td>
+              <td className="px-4 py-3 text-sm text-right">₹{(totals?.total ?? 0).toFixed(2)}</td>
               <td className="px-4 py-3" colSpan={2}></td>
             </tr>
           </tbody>

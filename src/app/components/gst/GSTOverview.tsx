@@ -138,15 +138,15 @@ export function GSTOverview() {
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="text-sm text-gray-600 mb-1">Output Tax</div>
-          <div className="text-2xl font-semibold text-gray-900">₹{kpis.outputTax.toLocaleString()}</div>
+          <div className="text-2xl font-semibold text-gray-900">₹{(kpis?.outputTax ?? 0).toLocaleString()}</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="text-sm text-gray-600 mb-1">ITC Available</div>
-          <div className="text-2xl font-semibold text-green-600">₹{kpis.itcAvailable.toLocaleString()}</div>
+          <div className="text-2xl font-semibold text-green-600">₹{(kpis?.itcAvailable ?? 0).toLocaleString()}</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="text-sm text-gray-600 mb-1">Net GST Payable</div>
-          <div className="text-2xl font-semibold text-purple-600">₹{kpis.netPayable.toLocaleString()}</div>
+          <div className="text-2xl font-semibold text-purple-600">₹{(kpis?.netPayable ?? 0).toLocaleString()}</div>
         </div>
       </div>
 
@@ -236,8 +236,8 @@ export function GSTOverview() {
                   <td className="py-3 font-medium text-gray-900">{txn.invoiceNumber}</td>
                   <td className="py-3 text-gray-700">{txn.partyName}</td>
                   <td className="py-3 text-gray-700">{txn.transactionType}</td>
-                  <td className="py-3 text-gray-900">₹{txn.taxableValue.toLocaleString()}</td>
-                  <td className="py-3 text-gray-900">₹{txn.totalTax.toLocaleString()}</td>
+                  <td className="py-3 text-gray-900">₹{(txn?.taxableValue ?? 0).toLocaleString()}</td>
+                  <td className="py-3 text-gray-900">₹{(txn?.totalTax ?? 0).toLocaleString()}</td>
                   <td className="py-3">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(txn.status)}`}>
                       {txn.status}

@@ -329,10 +329,10 @@ export function LedgerMaster() {
                             </TableCell>
                             <TableCell className="capitalize">{ledger.type.replace(/_/g, " ")}</TableCell>
                             <TableCell>
-                              ₹{ledger.openingBalance.toLocaleString()} {ledger.openingBalanceType}
+                              ₹{(ledger?.openingBalance ?? 0).toLocaleString()} {ledger.openingBalanceType}
                             </TableCell>
                             <TableCell className={balanceColor}>
-                              ₹{balance.balance.toLocaleString()} {balance.balanceType}
+                              ₹{(balance?.balance ?? 0).toLocaleString()} {balance.balanceType}
                             </TableCell>
                             <TableCell>
                               <Badge variant={ledger.status === "Active" ? "default" : "secondary"}>
@@ -598,7 +598,7 @@ export function LedgerMaster() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-xs text-gray-500">Opening Balance</Label>
-                  <p>₹{viewingLedger.openingBalance.toLocaleString()} {viewingLedger.openingBalanceType}</p>
+                  <p>₹{(viewingLedger?.openingBalance ?? 0).toLocaleString()} {viewingLedger.openingBalanceType}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-gray-500">Status</Label>

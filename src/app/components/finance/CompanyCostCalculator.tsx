@@ -306,7 +306,7 @@ export function CompanyCostCalculator() {
               <CardContent>
                 <div className="text-center">
                   <div className="text-5xl font-bold text-gray-900 mb-2">
-                    ₹{result.totalCostPerWash.toFixed(2)}
+                    ₹{(result?.totalCostPerWash ?? 0).toFixed(2)}
                   </div>
                   <div className="text-sm text-gray-600">
                     Total Cost to Company (per wash)
@@ -337,7 +337,7 @@ export function CompanyCostCalculator() {
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       <div className="text-right">
                         <div className="font-bold text-green-600">
-                          ₹{result.breakdown.labour.total.toFixed(2)}
+                          ₹{(result?.breakdown?.labour?.total ?? 0).toFixed(2)}
                         </div>
                         <div className="text-xs text-gray-500">
                           ₹{(result.breakdown.labour.total * result.monthlyWashes).toLocaleString()}
@@ -360,7 +360,7 @@ export function CompanyCostCalculator() {
                           <span className="text-gray-700">
                             {item.name} {item.note && `(${item.note})`}
                           </span>
-                          <span className="font-medium">₹{item.amount.toFixed(2)}</span>
+                          <span className="font-medium">₹{(item?.amount ?? 0).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -383,7 +383,7 @@ export function CompanyCostCalculator() {
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       <div className="text-right">
                         <div className="font-bold text-cyan-600">
-                          ₹{result.breakdown.consumables.total.toFixed(2)}
+                          ₹{(result?.breakdown?.consumables?.total ?? 0).toFixed(2)}
                         </div>
                         <div className="text-xs text-gray-500">
                           ₹
@@ -407,7 +407,7 @@ export function CompanyCostCalculator() {
                           <span className="text-gray-700">
                             {item.name} {item.note && `(${item.note})`}
                           </span>
-                          <span className="font-medium">₹{item.amount.toFixed(2)}</span>
+                          <span className="font-medium">₹{(item?.amount ?? 0).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -430,7 +430,7 @@ export function CompanyCostCalculator() {
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       <div className="text-right">
                         <div className="font-bold text-blue-600">
-                          ₹{result.breakdown.cloth.total.toFixed(2)}
+                          ₹{(result?.breakdown?.cloth?.total ?? 0).toFixed(2)}
                         </div>
                         <div className="text-xs text-gray-500">
                           ₹
@@ -454,7 +454,7 @@ export function CompanyCostCalculator() {
                           <span className="text-gray-700">
                             {item.name} {item.note && `(${item.note})`}
                           </span>
-                          <span className="font-medium">₹{item.amount.toFixed(2)}</span>
+                          <span className="font-medium">₹{(item?.amount ?? 0).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -477,7 +477,7 @@ export function CompanyCostCalculator() {
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       <div className="text-right">
                         <div className="font-bold text-indigo-600">
-                          ₹{result.breakdown.equipment.total.toFixed(2)}
+                          ₹{(result?.breakdown?.equipment?.total ?? 0).toFixed(2)}
                         </div>
                         <div className="text-xs text-gray-500">
                           ₹
@@ -501,7 +501,7 @@ export function CompanyCostCalculator() {
                           <span className="text-gray-700">
                             {item.name} {item.note && `(${item.note})`}
                           </span>
-                          <span className="font-medium">₹{item.amount.toFixed(2)}</span>
+                          <span className="font-medium">₹{(item?.amount ?? 0).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -524,7 +524,7 @@ export function CompanyCostCalculator() {
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       <div className="text-right">
                         <div className="font-bold text-teal-600">
-                          ₹{result.breakdown.laundry.total.toFixed(2)}
+                          ₹{(result?.breakdown?.laundry?.total ?? 0).toFixed(2)}
                         </div>
                         <div className="text-xs text-gray-500">
                           ₹
@@ -548,7 +548,7 @@ export function CompanyCostCalculator() {
                           <span className="text-gray-700">
                             {item.name} {item.note && `(${item.note})`}
                           </span>
-                          <span className="font-medium">₹{item.amount.toFixed(2)}</span>
+                          <span className="font-medium">₹{(item?.amount ?? 0).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -571,7 +571,7 @@ export function CompanyCostCalculator() {
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       <div className="text-right">
                         <div className="font-bold text-purple-600">
-                          ₹{result.breakdown.overhead.total.toFixed(2)}
+                          ₹{(result?.breakdown?.overhead?.total ?? 0).toFixed(2)}
                         </div>
                         <div className="text-xs text-gray-500">
                           ₹
@@ -595,7 +595,7 @@ export function CompanyCostCalculator() {
                           <span className="text-gray-700">
                             {item.name} {item.note && `(${item.note})`}
                           </span>
-                          <span className="font-medium">₹{item.amount.toFixed(2)}</span>
+                          <span className="font-medium">₹{(item?.amount ?? 0).toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -606,7 +606,7 @@ export function CompanyCostCalculator() {
                 <div className="bg-gray-100 border-2 border-gray-300 rounded-lg p-4 flex items-center justify-between">
                   <span className="font-bold text-lg">Total Cost to Company</span>
                   <span className="text-2xl font-bold text-teal-600">
-                    ₹{result.totalCostPerWash.toFixed(2)}
+                    ₹{(result?.totalCostPerWash ?? 0).toFixed(2)}
                   </span>
                 </div>
               </CardContent>
@@ -618,7 +618,7 @@ export function CompanyCostCalculator() {
                 <CardContent className="p-4">
                   <div className="text-xs text-gray-500">Monthly Washes</div>
                   <div className="text-2xl font-bold text-gray-900">
-                    {result.monthlyWashes.toLocaleString()}
+                    {(result?.monthlyWashes ?? 0).toLocaleString()}
                   </div>
                 </CardContent>
               </Card>
@@ -626,7 +626,7 @@ export function CompanyCostCalculator() {
                 <CardContent className="p-4">
                   <div className="text-xs text-gray-500">Total Cost for Period</div>
                   <div className="text-2xl font-bold text-gray-900">
-                    ₹{result.totalCostForPeriod.toLocaleString()}
+                    ₹{(result?.totalCostForPeriod ?? 0).toLocaleString()}
                   </div>
                 </CardContent>
               </Card>
@@ -699,13 +699,13 @@ export function CompanyCostCalculator() {
                   <div className="text-center">
                     <div className="text-xs text-gray-500 mb-1">Standard Cost</div>
                     <div className="text-xl font-bold text-gray-700">
-                      ₹{result.standardCost.toFixed(2)}
+                      ₹{(result?.standardCost ?? 0).toFixed(2)}
                     </div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-gray-500 mb-1">Actual Cost</div>
                     <div className="text-xl font-bold text-blue-600">
-                      ₹{result.actualCost.toFixed(2)}
+                      ₹{(result?.actualCost ?? 0).toFixed(2)}
                     </div>
                   </div>
                   <div className="text-center">
@@ -721,11 +721,11 @@ export function CompanyCostCalculator() {
                           result.variance > 0 ? "text-red-600" : "text-green-600"
                         }`}
                       >
-                        {result.variance > 0 ? "+" : ""}₹{result.variance.toFixed(2)}
+                        {result.variance > 0 ? "+" : ""}₹{(result?.variance ?? 0).toFixed(2)}
                       </div>
                     </div>
                     <div className="text-xs text-gray-600">
-                      ({result.variancePercent.toFixed(1)}%)
+                      ({(result?.variancePercent ?? 0).toFixed(1)}%)
                     </div>
                   </div>
                 </div>
@@ -733,7 +733,7 @@ export function CompanyCostCalculator() {
                   <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5" />
                     <div className="text-xs text-amber-800">
-                      <strong>Actual cost exceeds standard by {result.variancePercent.toFixed(1)}%.</strong>{" "}
+                      <strong>Actual cost exceeds standard by {(result?.variancePercent ?? 0).toFixed(1)}%.</strong>{" "}
                       Review washer material usage in this zone/package.
                     </div>
                   </div>

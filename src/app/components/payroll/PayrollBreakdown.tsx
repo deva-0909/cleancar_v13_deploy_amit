@@ -62,15 +62,15 @@ export function PayrollBreakdown({ calculation, className = "" }: PayrollBreakdo
           <div className="space-y-2">
             <div className="flex justify-between items-center py-2 border-b border-gray-100">
               <span className="text-sm text-gray-600">Monthly Basic Salary</span>
-              <span className="text-sm font-medium text-gray-900">₹{calculation.basicSalary.toLocaleString()}</span>
+              <span className="text-sm font-medium text-gray-900">₹{(calculation?.basicSalary ?? 0).toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center py-2 border-b border-gray-100">
               <span className="text-sm text-gray-600">Per Day Rate</span>
-              <span className="text-sm font-medium text-gray-900">₹{calculation.perDayRate.toFixed(2)}</span>
+              <span className="text-sm font-medium text-gray-900">₹{(calculation?.perDayRate ?? 0).toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center py-2 bg-blue-50 px-3 rounded">
               <span className="text-sm font-medium text-blue-900">Earned Basic Salary</span>
-              <span className="text-sm font-bold text-blue-900">₹{calculation.earnedBasicSalary.toFixed(2)}</span>
+              <span className="text-sm font-bold text-blue-900">₹{(calculation?.earnedBasicSalary ?? 0).toFixed(2)}</span>
             </div>
           </div>
         </section>
@@ -82,12 +82,12 @@ export function PayrollBreakdown({ calculation, className = "" }: PayrollBreakdo
             {calculation.allowances.map((allowance, idx) => (
               <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-sm text-gray-600">{allowance.name}</span>
-                <span className="text-sm font-medium text-green-600">+₹{allowance.amount.toLocaleString()}</span>
+                <span className="text-sm font-medium text-green-600">+₹{(allowance?.amount ?? 0).toLocaleString()}</span>
               </div>
             ))}
             <div className="flex justify-between items-center py-2 bg-green-50 px-3 rounded">
               <span className="text-sm font-medium text-green-900">Total Allowances</span>
-              <span className="text-sm font-bold text-green-900">+₹{calculation.totalAllowances.toLocaleString()}</span>
+              <span className="text-sm font-bold text-green-900">+₹{(calculation?.totalAllowances ?? 0).toLocaleString()}</span>
             </div>
           </div>
         </section>
@@ -100,12 +100,12 @@ export function PayrollBreakdown({ calculation, className = "" }: PayrollBreakdo
               {calculation.incentives.map((incentive, idx) => (
                 <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">{incentive.type}</span>
-                  <span className="text-sm font-medium text-green-600">+₹{incentive.amount.toLocaleString()}</span>
+                  <span className="text-sm font-medium text-green-600">+₹{(incentive?.amount ?? 0).toLocaleString()}</span>
                 </div>
               ))}
               <div className="flex justify-between items-center py-2 bg-green-50 px-3 rounded">
                 <span className="text-sm font-medium text-green-900">Total Incentives</span>
-                <span className="text-sm font-bold text-green-900">+₹{calculation.totalIncentives.toLocaleString()}</span>
+                <span className="text-sm font-bold text-green-900">+₹{(calculation?.totalIncentives ?? 0).toLocaleString()}</span>
               </div>
             </div>
           </section>
@@ -115,7 +115,7 @@ export function PayrollBreakdown({ calculation, className = "" }: PayrollBreakdo
         <section>
           <div className="flex justify-between items-center py-3 bg-blue-100 px-4 rounded-lg">
             <span className="text-base font-semibold text-blue-900">Gross Pay</span>
-            <span className="text-lg font-bold text-blue-900">₹{calculation.grossPay.toLocaleString()}</span>
+            <span className="text-lg font-bold text-blue-900">₹{(calculation?.grossPay ?? 0).toLocaleString()}</span>
           </div>
         </section>
 
@@ -126,12 +126,12 @@ export function PayrollBreakdown({ calculation, className = "" }: PayrollBreakdo
             {calculation.deductions.map((deduction, idx) => (
               <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-sm text-gray-600">{deduction.name}</span>
-                <span className="text-sm font-medium text-red-600">-₹{deduction.amount.toLocaleString()}</span>
+                <span className="text-sm font-medium text-red-600">-₹{(deduction?.amount ?? 0).toLocaleString()}</span>
               </div>
             ))}
             <div className="flex justify-between items-center py-2 bg-red-50 px-3 rounded">
               <span className="text-sm font-medium text-red-900">Total Deductions</span>
-              <span className="text-sm font-bold text-red-900">-₹{calculation.totalDeductions.toLocaleString()}</span>
+              <span className="text-sm font-bold text-red-900">-₹{(calculation?.totalDeductions ?? 0).toLocaleString()}</span>
             </div>
           </div>
         </section>
@@ -144,12 +144,12 @@ export function PayrollBreakdown({ calculation, className = "" }: PayrollBreakdo
               {calculation.penalties.map((penalty, idx) => (
                 <div key={idx} className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">{penalty.type}</span>
-                  <span className="text-sm font-medium text-red-600">-₹{penalty.amount.toLocaleString()}</span>
+                  <span className="text-sm font-medium text-red-600">-₹{(penalty?.amount ?? 0).toLocaleString()}</span>
                 </div>
               ))}
               <div className="flex justify-between items-center py-2 bg-red-50 px-3 rounded">
                 <span className="text-sm font-medium text-red-900">Total Penalties</span>
-                <span className="text-sm font-bold text-red-900">-₹{calculation.totalPenalties.toLocaleString()}</span>
+                <span className="text-sm font-bold text-red-900">-₹{(calculation?.totalPenalties ?? 0).toLocaleString()}</span>
               </div>
             </div>
           </section>
@@ -160,7 +160,7 @@ export function PayrollBreakdown({ calculation, className = "" }: PayrollBreakdo
           <div className="flex justify-between items-center py-4 bg-green-100 px-6 rounded-lg">
             <div>
               <p className="text-sm text-green-700 mb-1">Net Pay</p>
-              <p className="text-2xl font-bold text-green-900">₹{calculation.netPay.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-green-900">₹{(calculation?.netPay ?? 0).toLocaleString()}</p>
             </div>
             <div className="text-right">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-600 text-white">

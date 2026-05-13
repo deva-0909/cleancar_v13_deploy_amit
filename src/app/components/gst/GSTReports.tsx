@@ -238,11 +238,11 @@ export function GSTReports() {
                     <td className="py-3 text-gray-700">{txn.invoiceDate}</td>
                     <td className="py-3 text-gray-700">{txn.transactionType}</td>
                     <td className="py-3 text-gray-700">{txn.partyName}</td>
-                    <td className="py-3 text-gray-900">₹{txn.taxableValue.toLocaleString()}</td>
-                    <td className="py-3 text-gray-700">₹{txn.cgst.toLocaleString()}</td>
-                    <td className="py-3 text-gray-700">₹{txn.sgst.toLocaleString()}</td>
-                    <td className="py-3 text-gray-700">₹{txn.igst.toLocaleString()}</td>
-                    <td className="py-3 font-medium text-gray-900">₹{txn.invoiceTotal.toLocaleString()}</td>
+                    <td className="py-3 text-gray-900">₹{(txn?.taxableValue ?? 0).toLocaleString()}</td>
+                    <td className="py-3 text-gray-700">₹{(txn?.cgst ?? 0).toLocaleString()}</td>
+                    <td className="py-3 text-gray-700">₹{(txn?.sgst ?? 0).toLocaleString()}</td>
+                    <td className="py-3 text-gray-700">₹{(txn?.igst ?? 0).toLocaleString()}</td>
+                    <td className="py-3 font-medium text-gray-900">₹{(txn?.invoiceTotal ?? 0).toLocaleString()}</td>
                     <td className="py-3">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
                         txn.status === "Filed" ? "bg-purple-100 text-purple-700" :
@@ -301,11 +301,11 @@ export function GSTReports() {
                     <tr key={type} className="border-b border-gray-100 text-sm">
                       <td className="py-3 font-medium text-gray-900">{type}</td>
                       <td className="py-3 text-gray-700">{data.count}</td>
-                      <td className="py-3 text-gray-900">₹{data.taxable.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{data.cgst.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{data.sgst.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{data.igst.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{data.cess.toLocaleString()}</td>
+                      <td className="py-3 text-gray-900">₹{(data?.taxable ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(data?.cgst ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(data?.sgst ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(data?.igst ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(data?.cess ?? 0).toLocaleString()}</td>
                       <td className="py-3 font-medium text-gray-900">₹{(data.cgst + data.sgst + data.igst + data.cess).toLocaleString()}</td>
                     </tr>
                   ))}
@@ -360,8 +360,8 @@ export function GSTReports() {
                     <td className="py-3 font-medium text-gray-900">{txn.partyName}</td>
                     <td className="py-3 text-gray-700 font-mono text-xs">{txn.partyGstin}</td>
                     <td className="py-3 text-gray-700">{txn.invoiceNumber}</td>
-                    <td className="py-3 text-gray-900">₹{txn.taxableValue.toLocaleString()}</td>
-                    <td className="py-3 font-medium text-green-600">₹{txn.itcAmount.toLocaleString()}</td>
+                    <td className="py-3 text-gray-900">₹{(txn?.taxableValue ?? 0).toLocaleString()}</td>
+                    <td className="py-3 font-medium text-green-600">₹{(txn?.itcAmount ?? 0).toLocaleString()}</td>
                     <td className="py-3">
                       <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">
                         {txn.status}
@@ -423,9 +423,9 @@ export function GSTReports() {
                     <td className="py-3 font-medium text-gray-900">{rec.vendorName}</td>
                     <td className="py-3 text-gray-700 font-mono text-xs">{rec.vendorGstin}</td>
                     <td className="py-3 text-gray-700">{rec.invoiceNumber}</td>
-                    <td className="py-3 text-gray-900">₹{rec.inSystemBooks ? rec.taxableValue.toLocaleString() : 0}</td>
-                    <td className="py-3 text-gray-900">₹{rec.inGSTR2B ? rec.taxableValue.toLocaleString() : 0}</td>
-                    <td className="py-3 text-gray-900">₹{rec.differenceAmount.toLocaleString()}</td>
+                    <td className="py-3 text-gray-900">₹{rec.inSystemBooks ? (rec?.taxableValue ?? 0).toLocaleString() : 0}</td>
+                    <td className="py-3 text-gray-900">₹{rec.inGSTR2B ? (rec?.taxableValue ?? 0).toLocaleString() : 0}</td>
+                    <td className="py-3 text-gray-900">₹{(rec?.differenceAmount ?? 0).toLocaleString()}</td>
                     <td className="py-3">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${
                         rec.matchStatus === "Matched" ? "bg-green-100 text-green-700" :
@@ -499,7 +499,7 @@ export function GSTReports() {
                     </td>
                     <td className="py-3 text-gray-700">{txn.validationErrors.length}</td>
                     <td className="py-3 text-gray-700">{txn.status}</td>
-                    <td className="py-3 text-gray-900">₹{txn.invoiceTotal.toLocaleString()}</td>
+                    <td className="py-3 text-gray-900">₹{(txn?.invoiceTotal ?? 0).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

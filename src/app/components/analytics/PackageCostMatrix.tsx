@@ -545,7 +545,7 @@ export function PackageCostMatrix() {
                           onClick={() => setEditingCell({ package: pkg.packageName, field: 'materialCost' })}
                           title="Click to edit"
                         >
-                          ₹{pkg.materialCost.toFixed(2)}
+                          ₹{(pkg?.materialCost ?? 0).toFixed(2)}
                         </div>
                       )}
                     </TableCell>
@@ -568,7 +568,7 @@ export function PackageCostMatrix() {
                           onClick={() => setEditingCell({ package: pkg.packageName, field: 'consumableCost' })}
                           title="Click to edit"
                         >
-                          ₹{pkg.consumableCost.toFixed(2)}
+                          ₹{(pkg?.consumableCost ?? 0).toFixed(2)}
                         </div>
                       )}
                     </TableCell>
@@ -591,7 +591,7 @@ export function PackageCostMatrix() {
                           onClick={() => setEditingCell({ package: pkg.packageName, field: 'manpowerCost' })}
                           title="Click to edit"
                         >
-                          ₹{pkg.manpowerCost.toFixed(2)}
+                          ₹{(pkg?.manpowerCost ?? 0).toFixed(2)}
                         </div>
                       )}
                     </TableCell>
@@ -614,30 +614,30 @@ export function PackageCostMatrix() {
                           onClick={() => setEditingCell({ package: pkg.packageName, field: 'overheadCost' })}
                           title="Click to edit"
                         >
-                          ₹{pkg.overheadCost.toFixed(2)}
+                          ₹{(pkg?.overheadCost ?? 0).toFixed(2)}
                         </div>
                       )}
                     </TableCell>
                     
                     <TableCell className="text-right font-bold text-red-600">
-                      ₹{pkg.totalCostToCompany.toFixed(2)}
+                      ₹{(pkg?.totalCostToCompany ?? 0).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right">
-                      ₹{pkg.customerPricePerMonth.toLocaleString()}
+                      ₹{(pkg?.customerPricePerMonth ?? 0).toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right">
                       {pkg.washesPerMonth}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      ₹{pkg.costPerWashToCustomer.toFixed(2)}
+                      ₹{(pkg?.costPerWashToCustomer ?? 0).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex flex-col items-end">
                         <span className="font-bold text-green-600">
-                          ₹{pkg.ebitdaMargin.toFixed(2)}
+                          ₹{(pkg?.ebitdaMargin ?? 0).toFixed(2)}
                         </span>
                         <span className="text-sm text-gray-600">
-                          ({pkg.ebitdaPercentage.toFixed(1)}%)
+                          ({(pkg?.ebitdaPercentage ?? 0).toFixed(1)}%)
                         </span>
                       </div>
                     </TableCell>
@@ -746,7 +746,7 @@ export function PackageCostMatrix() {
                 <div>
                   <div className="font-medium">{material.name}</div>
                   <div className="text-xs text-gray-500">
-                    ₹{material.costPerUnit.toFixed(2)}/{material.unitOfMeasure}
+                    ₹{(material?.costPerUnit ?? 0).toFixed(2)}/{material.unitOfMeasure}
                   </div>
                 </div>
                 <div>

@@ -105,7 +105,7 @@ export function CostTrackingReports() {
                 </TableCell>
                 <TableCell className="text-right">{washer.avgDurationMinutes} min</TableCell>
                 <TableCell className="text-right">
-                  <Badge className="bg-green-100 text-green-800">{washer.qualityScore.toFixed(1)}</Badge>
+                  <Badge className="bg-green-100 text-green-800">{(washer?.qualityScore ?? 0).toFixed(1)}</Badge>
                 </TableCell>
               </TableRow>
             ))}

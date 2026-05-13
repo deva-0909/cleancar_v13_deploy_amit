@@ -153,7 +153,7 @@ export function GSTCustomerMaster() {
                       {customer.customerType}
                     </span>
                   </td>
-                  <td className="py-3 text-gray-900">₹{customer.creditLimit.toLocaleString()}</td>
+                  <td className="py-3 text-gray-900">₹{(customer?.creditLimit ?? 0).toLocaleString()}</td>
                   <td className="py-3 text-gray-700">{customer.creditDays} days</td>
                   <td className="py-3">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${

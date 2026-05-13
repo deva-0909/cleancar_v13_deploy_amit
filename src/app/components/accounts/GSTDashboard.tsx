@@ -286,7 +286,7 @@ export function GSTDashboard() {
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.vendor}</TableCell>
                     <TableCell>{item.invoice}</TableCell>
-                    <TableCell>₹{item.gst.toLocaleString()}</TableCell>
+                    <TableCell>₹{(item?.gst ?? 0).toLocaleString()}</TableCell>
                     <TableCell>{item.date}</TableCell>
                     <TableCell>
                       <Badge variant={item.status === "Verified" ? "secondary" : "default"}>
@@ -322,8 +322,8 @@ export function GSTDashboard() {
                 {gstPayableLedger.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.subscription}</TableCell>
-                    <TableCell>₹{item.revenue.toLocaleString()}</TableCell>
-                    <TableCell>₹{item.gst.toLocaleString()}</TableCell>
+                    <TableCell>₹{(item?.revenue ?? 0).toLocaleString()}</TableCell>
+                    <TableCell>₹{(item?.gst ?? 0).toLocaleString()}</TableCell>
                     <TableCell>{item.date}</TableCell>
                   </TableRow>
                 ))}

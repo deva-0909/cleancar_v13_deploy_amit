@@ -429,7 +429,7 @@ export function AdjustmentsReport() {
                         <td className={`py-3 px-4 text-sm text-right font-semibold ${
                           record.type === "OtherEarning" ? "text-teal-600" : "text-amber-600"
                         }`}>
-                          {record.type === "OtherEarning" ? "+" : "-"}₹{record.amount.toLocaleString()}
+                          {record.type === "OtherEarning" ? "+" : "-"}₹{(record?.amount ?? 0).toLocaleString()}
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-700">{record.payrollMonth}</td>
                         <td className="py-3 px-4 text-sm">

@@ -554,7 +554,7 @@ export function EmployeeAttendanceDrillDown({
                                 {record.outTime || "-"}
                               </td>
                               <td className="p-3 text-center text-sm font-semibold border-r bg-green-50/30">
-                                {record.workingHours > 0 ? `${record.workingHours.toFixed(2)}h` : "-"}
+                                {record.workingHours > 0 ? `${(record?.workingHours ?? 0).toFixed(2)}h` : "-"}
                               </td>
                               <td className="p-3 text-center border-r bg-green-50/30">
                                 {isLate ? (
@@ -611,7 +611,7 @@ export function EmployeeAttendanceDrillDown({
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-700">Pay Days</span>
-                      <span className="font-bold text-green-700">{data.summary.payDays.toFixed(1)}</span>
+                      <span className="font-bold text-green-700">{(data?.summary?.payDays ?? 0).toFixed(1)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-700">Weekly Off</span>
@@ -671,11 +671,11 @@ export function EmployeeAttendanceDrillDown({
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-700">Attendance Deduction</span>
-                      <span className="font-bold text-orange-700">{data.adjustment.attendanceDeduction.toFixed(1)} days</span>
+                      <span className="font-bold text-orange-700">{(data?.adjustment?.attendanceDeduction ?? 0).toFixed(1)} days</span>
                     </div>
                     <div className="flex justify-between text-sm font-semibold">
                       <span className="text-gray-900">Days Deducted</span>
-                      <span className="font-bold text-red-800">{data.adjustment.daysDeducted.toFixed(1)}</span>
+                      <span className="font-bold text-red-800">{(data?.adjustment?.daysDeducted ?? 0).toFixed(1)}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -721,7 +721,7 @@ export function EmployeeAttendanceDrillDown({
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-300">
                         <p className="text-xs text-gray-700 mb-1 font-semibold">PAID DAYS</p>
-                        <p className="text-lg font-bold text-green-700">{data.summary.payDays.toFixed(1)}</p>
+                        <p className="text-lg font-bold text-green-700">{(data?.summary?.payDays ?? 0).toFixed(1)}</p>
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-300">
                         <p className="text-xs text-gray-700 mb-1 font-semibold">WEEKLY OFF</p>
@@ -737,7 +737,7 @@ export function EmployeeAttendanceDrillDown({
                     <div className="grid grid-cols-5 gap-3">
                       <div className="bg-white p-3 rounded border border-gray-300">
                         <p className="text-xs text-gray-700 mb-1 font-semibold">PRESENT DAYS</p>
-                        <p className="text-lg font-bold text-green-700">{data.summary.presentDays.toFixed(1)}</p>
+                        <p className="text-lg font-bold text-green-700">{(data?.summary?.presentDays ?? 0).toFixed(1)}</p>
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-300">
                         <p className="text-xs text-gray-700 mb-1 font-semibold">ABSENT DAYS</p>
@@ -749,7 +749,7 @@ export function EmployeeAttendanceDrillDown({
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-300">
                         <p className="text-xs text-gray-700 mb-1 font-semibold">LEAVE WITHOU PAY</p>
-                        <p className="text-lg font-bold text-orange-700">{data.summary.leaveWithoutPay.toFixed(1)}</p>
+                        <p className="text-lg font-bold text-orange-700">{(data?.summary?.leaveWithoutPay ?? 0).toFixed(1)}</p>
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-200 opacity-0">
                         <p className="text-xs text-gray-700 mb-1">&nbsp;</p>
@@ -773,7 +773,7 @@ export function EmployeeAttendanceDrillDown({
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-300">
                         <p className="text-xs text-gray-700 mb-1 font-semibold">ATTENDANCE - DAYS TO BE DEDUCT</p>
-                        <p className="text-lg font-bold text-orange-700">{data.adjustment.attendanceDeduction.toFixed(1)}</p>
+                        <p className="text-lg font-bold text-orange-700">{(data?.adjustment?.attendanceDeduction ?? 0).toFixed(1)}</p>
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-300">
                         <p className="text-xs text-gray-700 mb-1 font-semibold">LEAVE ADJUSTED</p>
@@ -797,7 +797,7 @@ export function EmployeeAttendanceDrillDown({
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-300">
                         <p className="text-xs text-gray-700 mb-1 font-semibold">ATTENDANCE - DAYS DEDUCTED</p>
-                        <p className="text-lg font-bold text-red-800">{data.adjustment.attendanceDeduction.toFixed(1)}</p>
+                        <p className="text-lg font-bold text-red-800">{(data?.adjustment?.attendanceDeduction ?? 0).toFixed(1)}</p>
                       </div>
                       <div className="bg-white p-3 rounded border border-gray-200 opacity-0">
                         <p className="text-xs text-gray-700 mb-1">&nbsp;</p>

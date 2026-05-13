@@ -496,8 +496,8 @@ export function GSTR1Module() {
                   </tr>
                   <tr className="border-b border-gray-100 text-sm">
                     <td className="py-3 font-medium text-gray-900">Taxable Value</td>
-                    <td className="py-3 text-gray-700">₹{previousMonthData.taxable.toLocaleString()}</td>
-                    <td className="py-3 text-gray-700">₹{currentMonthData.taxable.toLocaleString()}</td>
+                    <td className="py-3 text-gray-700">₹{(previousMonthData?.taxable ?? 0).toLocaleString()}</td>
+                    <td className="py-3 text-gray-700">₹{(currentMonthData?.taxable ?? 0).toLocaleString()}</td>
                     <td className="py-3">
                       <span className={variance(currentMonthData.taxable, previousMonthData.taxable).startsWith('-') ? "text-red-600" : "text-green-600"}>
                         {variance(currentMonthData.taxable, previousMonthData.taxable)}%
@@ -506,8 +506,8 @@ export function GSTR1Module() {
                   </tr>
                   <tr className="text-sm">
                     <td className="py-3 font-medium text-gray-900">Total Tax</td>
-                    <td className="py-3 text-gray-700">₹{previousMonthData.totalTax.toLocaleString()}</td>
-                    <td className="py-3 text-gray-700">₹{currentMonthData.totalTax.toLocaleString()}</td>
+                    <td className="py-3 text-gray-700">₹{(previousMonthData?.totalTax ?? 0).toLocaleString()}</td>
+                    <td className="py-3 text-gray-700">₹{(currentMonthData?.totalTax ?? 0).toLocaleString()}</td>
                     <td className="py-3">
                       <span className={variance(currentMonthData.totalTax, previousMonthData.totalTax).startsWith('-') ? "text-red-600" : "text-green-600"}>
                         {variance(currentMonthData.totalTax, previousMonthData.totalTax)}%
@@ -551,11 +551,11 @@ export function GSTR1Module() {
                       <td className="py-3 font-mono text-xs">{txn.partyGstin}</td>
                       <td className="py-3 text-gray-900">{txn.invoiceNumber}</td>
                       <td className="py-3 text-gray-700">{txn.invoiceDate}</td>
-                      <td className="py-3 text-gray-900">₹{txn.taxableValue.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{txn.cgst.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{txn.sgst.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{txn.igst.toLocaleString()}</td>
-                      <td className="py-3 font-medium text-gray-900">₹{txn.invoiceTotal.toLocaleString()}</td>
+                      <td className="py-3 text-gray-900">₹{(txn?.taxableValue ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(txn?.cgst ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(txn?.sgst ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(txn?.igst ?? 0).toLocaleString()}</td>
+                      <td className="py-3 font-medium text-gray-900">₹{(txn?.invoiceTotal ?? 0).toLocaleString()}</td>
                       <td className="py-3 text-gray-700">{txn.placeOfSupply}</td>
                     </tr>
                   ))}
@@ -585,9 +585,9 @@ export function GSTR1Module() {
                     <tr key={txn.id} className="border-b border-gray-100 text-sm">
                       <td className="py-3 text-gray-900">{txn.invoiceNumber}</td>
                       <td className="py-3 text-gray-700">{txn.invoiceDate}</td>
-                      <td className="py-3 text-gray-900">₹{txn.taxableValue.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{txn.igst.toLocaleString()}</td>
-                      <td className="py-3 font-medium text-gray-900">₹{txn.invoiceTotal.toLocaleString()}</td>
+                      <td className="py-3 text-gray-900">₹{(txn?.taxableValue ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(txn?.igst ?? 0).toLocaleString()}</td>
+                      <td className="py-3 font-medium text-gray-900">₹{(txn?.invoiceTotal ?? 0).toLocaleString()}</td>
                       <td className="py-3 text-gray-700">{txn.placeOfSupply}</td>
                     </tr>
                   ))}
@@ -622,10 +622,10 @@ export function GSTR1Module() {
                     <tr key={s.state} className="border-b border-gray-100 text-sm">
                       <td className="py-3 font-medium text-gray-900">{s.state}</td>
                       <td className="py-3 text-gray-700">{s.count}</td>
-                      <td className="py-3 text-gray-900">₹{s.taxable.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{s.cgst.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{s.sgst.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{s.igst.toLocaleString()}</td>
+                      <td className="py-3 text-gray-900">₹{(s?.taxable ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(s?.cgst ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(s?.sgst ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(s?.igst ?? 0).toLocaleString()}</td>
                     </tr>
                   ))}
                   {b2cSmallSummary.length === 0 && (
@@ -669,11 +669,11 @@ export function GSTR1Module() {
                       <td className="py-3 font-mono text-gray-900">{h.hsn}</td>
                       <td className="py-3 text-gray-700">{h.description}</td>
                       <td className="py-3 text-gray-700">Nos</td>
-                      <td className="py-3 text-gray-700">{h.quantity.toLocaleString()}</td>
-                      <td className="py-3 text-gray-900">₹{h.taxable.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{h.cgst.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{h.sgst.toLocaleString()}</td>
-                      <td className="py-3 text-gray-700">₹{h.igst.toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">{(h?.quantity ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-900">₹{(h?.taxable ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(h?.cgst ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(h?.sgst ?? 0).toLocaleString()}</td>
+                      <td className="py-3 text-gray-700">₹{(h?.igst ?? 0).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>

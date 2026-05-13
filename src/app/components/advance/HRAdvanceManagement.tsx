@@ -114,7 +114,7 @@ export function HRAdvanceManagement() {
                   <div>
                     <p className="text-xs text-gray-600 mb-1">Total Outstanding</p>
                     <p className="text-2xl font-bold text-red-600">
-                      ₹{analytics.totalOutstanding.toLocaleString()}
+                      ₹{(analytics?.totalOutstanding ?? 0).toLocaleString()}
                     </p>
                   </div>
                   <DollarSign className="w-10 h-10 text-red-300" />
@@ -142,7 +142,7 @@ export function HRAdvanceManagement() {
                   <div>
                     <p className="text-xs text-gray-600 mb-1">Total Disbursed</p>
                     <p className="text-2xl font-bold text-green-600">
-                      ₹{analytics.totalDisbursed.toLocaleString()}
+                      ₹{(analytics?.totalDisbursed ?? 0).toLocaleString()}
                     </p>
                   </div>
                   <TrendingUp className="w-10 h-10 text-green-300" />
@@ -589,7 +589,7 @@ function ApprovalsTab({ pendingApprovals, onRefresh }: { pendingApprovals: any[]
               </div>
               <div className="text-right">
                 <p className="text-3xl font-bold text-blue-600">
-                  ₹{"emiSchedule" in advance ? advance.advanceAmount.toLocaleString() : advance.requestedAmount.toLocaleString()}
+                  ₹{"emiSchedule" in advance ? (advance?.advanceAmount ?? 0).toLocaleString() : (advance?.requestedAmount ?? 0).toLocaleString()}
                 </p>
                 <p className="text-xs text-gray-600 mt-1">
                   Approval Authority: {advance.approvalAuthority}
@@ -607,11 +607,11 @@ function ApprovalsTab({ pendingApprovals, onRefresh }: { pendingApprovals: any[]
                   </div>
                   <div className="p-3 bg-gray-50 rounded">
                     <p className="text-xs text-gray-600">EMI Amount</p>
-                    <p className="text-sm font-semibold">₹{advance.emiAmount.toLocaleString()}</p>
+                    <p className="text-sm font-semibold">₹{(advance?.emiAmount ?? 0).toLocaleString()}</p>
                   </div>
                   <div className="p-3 bg-gray-50 rounded">
                     <p className="text-xs text-gray-600">Cheque Amount</p>
-                    <p className="text-sm font-semibold">₹{advance.securityCheque.chequeAmount.toLocaleString()}</p>
+                    <p className="text-sm font-semibold">₹{(advance?.securityCheque?.chequeAmount ?? 0).toLocaleString()}</p>
                   </div>
                   <div className="p-3 bg-gray-50 rounded">
                     <p className="text-xs text-gray-600">Cheque Number</p>
@@ -627,11 +627,11 @@ function ApprovalsTab({ pendingApprovals, onRefresh }: { pendingApprovals: any[]
                   </div>
                   <div className="p-3 bg-gray-50 rounded">
                     <p className="text-xs text-gray-600">Salary Till Date</p>
-                    <p className="text-sm font-semibold">₹{advance.salaryTillDate.toLocaleString()}</p>
+                    <p className="text-sm font-semibold">₹{(advance?.salaryTillDate ?? 0).toLocaleString()}</p>
                   </div>
                   <div className="p-3 bg-gray-50 rounded">
                     <p className="text-xs text-gray-600">Max Eligible</p>
-                    <p className="text-sm font-semibold">₹{advance.maxEligible.toLocaleString()}</p>
+                    <p className="text-sm font-semibold">₹{(advance?.maxEligible ?? 0).toLocaleString()}</p>
                   </div>
                   <div className="p-3 bg-gray-50 rounded">
                     <p className="text-xs text-gray-600">Over Limit</p>
@@ -776,13 +776,13 @@ function LedgerTab({
                       </Badge>
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold">
-                      ₹{"emiSchedule" in advance ? advance.advanceAmount.toLocaleString() : advance.requestedAmount.toLocaleString()}
+                      ₹{"emiSchedule" in advance ? (advance?.advanceAmount ?? 0).toLocaleString() : (advance?.requestedAmount ?? 0).toLocaleString()}
                     </td>
                     <td className="px-6 py-4">
                       <AdvanceStatusBadge status={advance.status} />
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-red-600">
-                      {"remainingAmount" in advance ? `₹${advance.remainingAmount.toLocaleString()}` : advance.isRecovered ? "₹0" : `₹${advance.requestedAmount.toLocaleString()}`}
+                      {"remainingAmount" in advance ? `₹${(advance?.remainingAmount ?? 0).toLocaleString()}` : advance.isRecovered ? "₹0" : `₹${(advance?.requestedAmount ?? 0).toLocaleString()}`}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {new Date(advance.appliedDate).toLocaleDateString("en-IN")}
@@ -816,7 +816,7 @@ function EMITrackerTab({ advances }: { advances: any[] }) {
               <div>
                 <CardTitle className="text-lg">{advance.employeeName}</CardTitle>
                 <p className="text-sm text-gray-600 mt-1">
-                  ID: {advance.id} • ₹{advance.advanceAmount.toLocaleString()}
+                  ID: {advance.id} • ₹{(advance?.advanceAmount ?? 0).toLocaleString()}
                 </p>
               </div>
               <AdvanceStatusBadge status={advance.status} />
@@ -851,7 +851,7 @@ function EMITrackerTab({ advances }: { advances: any[] }) {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold">₹{emi.emiAmount.toLocaleString()}</p>
+                      <p className="text-sm font-bold">₹{(emi?.emiAmount ?? 0).toLocaleString()}</p>
                       <Badge
                         variant={emi.status === "DEDUCTED" ? "default" : "outline"}
                         className={emi.status === "DEDUCTED" ? "bg-green-600" : ""}

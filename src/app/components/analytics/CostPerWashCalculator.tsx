@@ -441,7 +441,7 @@ export function CostPerWashCalculator() {
                         Monthly Total Cost
                       </div>
                       <div className="text-xl font-semibold text-gray-700 mt-1">
-                        ₹{result.monthlyTotal.toLocaleString()}
+                        ₹{(result?.monthlyTotal ?? 0).toLocaleString()}
                       </div>
                     </div>
                   </div>

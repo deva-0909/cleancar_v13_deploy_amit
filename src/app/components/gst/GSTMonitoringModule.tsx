@@ -276,9 +276,9 @@ export function GSTMonitoringModule() {
                   <td className="py-3 font-mono text-xs">{g.gstin}</td>
                   <td className="py-3 font-medium text-gray-900">{g.city}</td>
                   <td className="py-3 text-gray-700">{g.transactions}</td>
-                  <td className="py-3 text-gray-900">₹{g.outputTax.toLocaleString()}</td>
-                  <td className="py-3 text-green-600">₹{g.itc.toLocaleString()}</td>
-                  <td className="py-3 text-gray-900">₹{g.netPayable.toLocaleString()}</td>
+                  <td className="py-3 text-gray-900">₹{(g?.outputTax ?? 0).toLocaleString()}</td>
+                  <td className="py-3 text-green-600">₹{(g?.itc ?? 0).toLocaleString()}</td>
+                  <td className="py-3 text-gray-900">₹{(g?.netPayable ?? 0).toLocaleString()}</td>
                   <td className="py-3">
                     <span className={`font-semibold ${getRiskColor(g.riskScore)}`}>
                       {g.riskScore}

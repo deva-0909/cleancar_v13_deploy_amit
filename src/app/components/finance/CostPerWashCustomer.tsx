@@ -172,7 +172,7 @@ export function CostPerWashCustomer() {
     if (belowTarget.length > 0) {
       return belowTarget.map((item) => ({
         type: "warning" as const,
-        message: `Consider revising pricing for ${item.category} — current EBITDA ${item.actualEBITDA.toFixed(1)}% is below ${targetEBITDA}% target. Suggested price: ₹${(item.requiredPricePerWash * washesPerMonth).toFixed(0)}/month.`,
+        message: `Consider revising pricing for ${item.category} — current EBITDA ${(item?.actualEBITDA ?? 0).toFixed(1)}% is below ${targetEBITDA}% target. Suggested price: ₹${(item.requiredPricePerWash * washesPerMonth).toFixed(0)}/month.`,
       }));
     }
 
@@ -565,10 +565,10 @@ export function CostPerWashCustomer() {
                             {item.category}
                           </TableCell>
                           <TableCell className="text-right">
-                            ₹{item.actualPricePerWash.toFixed(2)}
+                            ₹{(item?.actualPricePerWash ?? 0).toFixed(2)}
                           </TableCell>
                           <TableCell className="text-right">
-                            ₹{item.requiredPricePerWash.toFixed(2)}
+                            ₹{(item?.requiredPricePerWash ?? 0).toFixed(2)}
                           </TableCell>
                           <TableCell
                             className={`text-right font-medium ${
@@ -578,10 +578,10 @@ export function CostPerWashCustomer() {
                             }`}
                           >
                             {item.difference >= 0 ? "+" : ""}₹
-                            {item.difference.toFixed(2)}
+                            {(item?.difference ?? 0).toFixed(2)}
                           </TableCell>
                           <TableCell className="text-right font-bold">
-                            {item.actualEBITDA.toFixed(1)}%
+                            {(item?.actualEBITDA ?? 0).toFixed(1)}%
                           </TableCell>
                           <TableCell className="text-right">
                             {item.targetEBITDA}%
@@ -707,7 +707,7 @@ export function CostPerWashCustomer() {
                         New EBITDA Margin
                       </div>
                       <div className="text-2xl font-bold text-blue-900">
-                        {simulationData.newEBITDA.toFixed(1)}%
+                        {(simulationData?.newEBITDA ?? 0).toFixed(1)}%
                       </div>
                       <div className="text-xs text-blue-700 mt-1">
                         {simulationData.newEBITDA >= targetEBITDA
@@ -739,7 +739,7 @@ export function CostPerWashCustomer() {
                           Current Revenue/Month
                         </div>
                         <div className="text-lg font-bold text-green-900">
-                          ₹{simulationData.currentRevenue.toLocaleString()}
+                          ₹{(simulationData?.currentRevenue ?? 0).toLocaleString()}
                         </div>
                       </div>
                       <div>
@@ -747,7 +747,7 @@ export function CostPerWashCustomer() {
                           New Revenue/Month
                         </div>
                         <div className="text-lg font-bold text-green-900">
-                          ₹{simulationData.newRevenue.toLocaleString()}
+                          ₹{(simulationData?.newRevenue ?? 0).toLocaleString()}
                         </div>
                       </div>
                       <div>

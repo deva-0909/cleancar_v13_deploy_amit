@@ -280,7 +280,7 @@ export function HRPayrollApproval() {
                           <div className="flex items-center gap-2">
                             <DollarSign className="w-3 h-3 text-gray-500" />
                             <span className="text-sm font-medium">
-                              ₹{activation.monthlyGross.toLocaleString()}/month
+                              ₹{(activation?.monthlyGross ?? 0).toLocaleString()}/month
                             </span>
                           </div>
                           {activation.salaryStructureId && (

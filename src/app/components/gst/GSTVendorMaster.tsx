@@ -568,8 +568,8 @@ function VendorDetail({ vendor, onEdit, onClose, onUpdate }: {
                         <tr key={t.id} className="border-b border-gray-100">
                           <td className="p-2 font-mono">{t.invoiceNumber}</td>
                           <td className="p-2">{t.invoiceDate}</td>
-                          <td className="p-2 text-right">{t.taxableValue.toLocaleString()}</td>
-                          <td className="p-2 text-right">{t.totalTax.toLocaleString()}</td>
+                          <td className="p-2 text-right">{(t?.taxableValue ?? 0).toLocaleString()}</td>
+                          <td className="p-2 text-right">{(t?.totalTax ?? 0).toLocaleString()}</td>
                           <td className="p-2">
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                               t.status === "Filed" ? "bg-purple-100 text-purple-700"

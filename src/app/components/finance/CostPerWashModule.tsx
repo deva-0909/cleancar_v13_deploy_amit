@@ -183,7 +183,7 @@ export function CostPerWashModule() {
         <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
           <p className="font-semibold text-gray-900">{data.name}</p>
           <p className="text-sm text-gray-600">Amount: ₹{data.value}</p>
-          <p className="text-sm text-blue-600">{data.percentage.toFixed(1)}%</p>
+          <p className="text-sm text-blue-600">{(data?.percentage ?? 0).toFixed(1)}%</p>
         </div>
       );
     }
@@ -192,7 +192,7 @@ export function CostPerWashModule() {
 
   // Custom label for pie chart
   const renderCustomLabel = (entry: any) => {
-    return `${entry.percentage.toFixed(1)}%`;
+    return `${(entry?.percentage ?? 0).toFixed(1)}%`;
   };
 
   // Variance Analysis data
@@ -649,7 +649,7 @@ export function CostPerWashModule() {
                     <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                       <span className="text-sm font-semibold text-gray-900">₹{item.value}</span>
                       <span className="text-sm text-gray-500 w-16 text-right">
-                        {item.percentage.toFixed(1)}%
+                        {(item?.percentage ?? 0).toFixed(1)}%
                       </span>
                     </div>
                   </div>

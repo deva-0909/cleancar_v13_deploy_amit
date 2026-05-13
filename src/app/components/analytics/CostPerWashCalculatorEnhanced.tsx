@@ -725,7 +725,7 @@ function CostPerWashCalculatorEnhanced() {
                         Monthly Total Cost
                       </div>
                       <div className="text-2xl font-semibold text-gray-800 mt-1">
-                        ₹{result.monthlyTotal.toLocaleString()}
+                        ₹{(result?.monthlyTotal ?? 0).toLocaleString()}
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
                         Based on {inputs.washesPerMonth} washes/month
@@ -749,7 +749,7 @@ function CostPerWashCalculatorEnhanced() {
                     <div className="text-right">
                       <div className="font-semibold">₹{result.breakdown.materials}</div>
                       <div className="text-xs text-gray-500">
-                        {result.percentages.materials.toFixed(1)}%
+                        {(result?.percentages?.materials ?? 0).toFixed(1)}%
                       </div>
                     </div>
                   </div>
@@ -762,7 +762,7 @@ function CostPerWashCalculatorEnhanced() {
                     <div className="text-right">
                       <div className="font-semibold">₹{result.breakdown.labor}</div>
                       <div className="text-xs text-gray-500">
-                        {result.percentages.labor.toFixed(1)}%
+                        {(result?.percentages?.labor ?? 0).toFixed(1)}%
                       </div>
                     </div>
                   </div>
@@ -775,7 +775,7 @@ function CostPerWashCalculatorEnhanced() {
                     <div className="text-right">
                       <div className="font-semibold">₹{result.breakdown.overhead}</div>
                       <div className="text-xs text-gray-500">
-                        {result.percentages.overhead.toFixed(1)}%
+                        {(result?.percentages?.overhead ?? 0).toFixed(1)}%
                       </div>
                     </div>
                   </div>
@@ -788,7 +788,7 @@ function CostPerWashCalculatorEnhanced() {
                     <div className="text-right">
                       <div className="font-semibold">₹{result.breakdown.equipment}</div>
                       <div className="text-xs text-gray-500">
-                        {result.percentages.equipment.toFixed(1)}%
+                        {(result?.percentages?.equipment ?? 0).toFixed(1)}%
                       </div>
                     </div>
                   </div>
@@ -801,7 +801,7 @@ function CostPerWashCalculatorEnhanced() {
                     <div className="text-right">
                       <div className="font-semibold">₹{result.breakdown.variables}</div>
                       <div className="text-xs text-gray-500">
-                        {result.percentages.variables.toFixed(1)}%
+                        {(result?.percentages?.variables ?? 0).toFixed(1)}%
                       </div>
                     </div>
                   </div>
@@ -866,7 +866,7 @@ function CostPerWashCalculatorEnhanced() {
                             {isProfit ? "+" : ""}₹{item.profit}
                           </div>
                           <div className="text-xs text-gray-600">
-                            {item.margin.toFixed(1)}% margin
+                            {(item?.margin ?? 0).toFixed(1)}% margin
                           </div>
                         </div>
                       </div>

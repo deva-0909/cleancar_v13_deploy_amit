@@ -107,7 +107,7 @@ export function VendorPayment() {
         cityId: city,
         createdBy: "Accounts",
       }, cityInfo.displayName);
-      toast.success(`Payment of ₹${payment.amount.toLocaleString()} posted to ledger. Voucher generated.`);
+      toast.success(`Payment of ₹${(payment?.amount ?? 0).toLocaleString()} posted to ledger. Voucher generated.`);
     } else {
       toast.warning("Payment recorded but ledger entry skipped — creditor or bank ledger not found.");
     }
@@ -332,7 +332,7 @@ export function VendorPayment() {
                 <TableRow key={payment.id}>
                   <TableCell className="font-medium">{payment.vendor}</TableCell>
                   <TableCell>{payment.invoice}</TableCell>
-                  <TableCell>₹{payment.amount.toLocaleString()}</TableCell>
+                  <TableCell>₹{(payment?.amount ?? 0).toLocaleString()}</TableCell>
                   <TableCell>
                     {payment.grn === "Partial" ? (
                       <div className="flex items-center gap-1">

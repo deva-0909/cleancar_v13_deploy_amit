@@ -284,9 +284,9 @@ export function GSTReconciliation() {
                     <td className="py-3 font-medium text-gray-900">{rec.vendorName}</td>
                     <td className="py-3 text-gray-700 font-mono text-xs">{rec.vendorGstin}</td>
                     <td className="py-3 text-gray-700">{rec.invoiceNumber}</td>
-                    <td className="py-3 text-gray-900">₹{rec.inSystemBooks ? rec.taxableValue.toLocaleString() : 0}</td>
-                    <td className="py-3 text-gray-900">₹{rec.inGSTR2B ? rec.taxableValue.toLocaleString() : 0}</td>
-                    <td className="py-3 text-gray-900">₹{rec.differenceAmount.toLocaleString()}</td>
+                    <td className="py-3 text-gray-900">₹{rec.inSystemBooks ? (rec?.taxableValue ?? 0).toLocaleString() : 0}</td>
+                    <td className="py-3 text-gray-900">₹{rec.inGSTR2B ? (rec?.taxableValue ?? 0).toLocaleString() : 0}</td>
+                    <td className="py-3 text-gray-900">₹{(rec?.differenceAmount ?? 0).toLocaleString()}</td>
                     <td className="py-3">
                       <span className={`px-2 py-1 rounded text-xs font-medium ${getMatchColor(rec.matchStatus)}`}>
                         {rec.matchStatus}
@@ -322,23 +322,23 @@ export function GSTReconciliation() {
           <div className="grid grid-cols-5 gap-4">
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">Total ITC Available</div>
-              <div className="text-2xl font-semibold text-gray-900">₹{itcSummary.total.toLocaleString()}</div>
+              <div className="text-2xl font-semibold text-gray-900">₹{(itcSummary?.total ?? 0).toLocaleString()}</div>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">ITC Claimed</div>
-              <div className="text-2xl font-semibold text-green-600">₹{itcSummary.claimed.toLocaleString()}</div>
+              <div className="text-2xl font-semibold text-green-600">₹{(itcSummary?.claimed ?? 0).toLocaleString()}</div>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">Provisional ITC</div>
-              <div className="text-2xl font-semibold text-blue-600">₹{itcSummary.provisional.toLocaleString()}</div>
+              <div className="text-2xl font-semibold text-blue-600">₹{(itcSummary?.provisional ?? 0).toLocaleString()}</div>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">Blocked ITC</div>
-              <div className="text-2xl font-semibold text-red-600">₹{itcSummary.blocked.toLocaleString()}</div>
+              <div className="text-2xl font-semibold text-red-600">₹{(itcSummary?.blocked ?? 0).toLocaleString()}</div>
             </div>
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <div className="text-sm text-gray-600 mb-1">Net ITC Claimable</div>
-              <div className="text-2xl font-semibold text-purple-600">₹{itcSummary.claimable.toLocaleString()}</div>
+              <div className="text-2xl font-semibold text-purple-600">₹{(itcSummary?.claimable ?? 0).toLocaleString()}</div>
             </div>
           </div>
 
@@ -360,7 +360,7 @@ export function GSTReconciliation() {
                     <tr key={txn.id} className="border-b border-gray-100 text-sm">
                       <td className="py-3 font-medium text-gray-900">{txn.partyName}</td>
                       <td className="py-3 text-gray-700 font-mono text-xs">{txn.partyGstin}</td>
-                      <td className="py-3 text-gray-900">₹{txn.itcAmount.toLocaleString()}</td>
+                      <td className="py-3 text-gray-900">₹{(txn?.itcAmount ?? 0).toLocaleString()}</td>
                       <td className="py-3">
                         <span className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">
                           {txn.status === "Filed" ? "Claimed" : txn.status === "Approved" ? "Provisional" : "Not Claimed"}

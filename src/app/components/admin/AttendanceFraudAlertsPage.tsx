@@ -259,7 +259,7 @@ export function AttendanceFraudAlertsPage() {
                           </div>
                           {record.gpsLat && record.gpsLng && (
                             <div>
-                              <span className="font-medium">GPS:</span> {record.gpsLat.toFixed(4)}, {record.gpsLng.toFixed(4)}
+                              <span className="font-medium">GPS:</span> {(record?.gpsLat ?? 0).toFixed(4)}, {(record?.gpsLng ?? 0).toFixed(4)}
                             </div>
                           )}
                           {record.deviceId && (

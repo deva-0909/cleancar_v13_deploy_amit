@@ -77,7 +77,7 @@ export function PayrollProcessingTab() {
                             </Badge>
                             <div className="text-left">
                               <div className="font-semibold text-gray-900">{item.employee}</div>
-                              <div className="text-sm text-gray-600">Incentive: ₹{item.incentive.toLocaleString()}</div>
+                              <div className="text-sm text-gray-600">Incentive: ₹{(item?.incentive ?? 0).toLocaleString()}</div>
                             </div>
                           </div>
                           <div className="text-right">
@@ -317,8 +317,8 @@ function ReviewStep() {
                 {employees.map((emp) => (
                   <TableRow key={emp.id}>
                     <TableCell className="font-medium">{emp.name}</TableCell>
-                    <TableCell className="text-right">₹{emp.salary.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">₹{emp.incentive.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">₹{(emp?.salary ?? 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right">₹{(emp?.incentive ?? 0).toLocaleString()}</TableCell>
                     <TableCell className="text-right">
                       <Input
                         type="number"
@@ -488,7 +488,7 @@ function ApprovalStep() {
                         )}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span>Incentive: <span className="font-semibold text-gray-900">₹{approval.incentive.toLocaleString()}</span></span>
+                        <span>Incentive: <span className="font-semibold text-gray-900">₹{(approval?.incentive ?? 0).toLocaleString()}</span></span>
                         <Badge
                           variant="outline"
                           className={

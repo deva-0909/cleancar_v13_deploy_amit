@@ -302,10 +302,10 @@ export default function TDSPayableModule() {
                     <td className="px-4 py-3 text-sm text-right">{rate.rateIndividual}%</td>
                     <td className="px-4 py-3 text-sm text-right">{rate.rateCompany}%</td>
                     <td className="px-4 py-3 text-sm text-right">
-                      ₹{rate.thresholdSingle.toLocaleString()}
+                      ₹{(rate?.thresholdSingle ?? 0).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-sm text-right">
-                      ₹{rate.thresholdAnnual.toLocaleString()}
+                      ₹{(rate?.thresholdAnnual ?? 0).toLocaleString()}
                     </td>
                   </tr>
                 ))}
