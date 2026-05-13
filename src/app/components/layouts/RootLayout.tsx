@@ -45,10 +45,15 @@ export function RootLayout() {
   const isPreview = import.meta.env.MODE === "development"
     || window.location.hostname === "localhost"
     || window.location.hostname.includes("figma")
-    || window.location.hash.includes("preview-route");
+    || new URLSearchParams(window.location.search).get("preview-route") !== null;
 
-  // Auth redirect removed — HashRouter pathname is always "/"
-  // Route-level auth is handled by ProtectedRoute in routes.tsx
+  if (!isPreview) {
+    const session = localStorage.getItem("cc360_session");
+    if (!session && !window.location.pathname.startsWith("/login")) {
+      window.location.replace("/login");
+      return null;
+    }
+  }
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);

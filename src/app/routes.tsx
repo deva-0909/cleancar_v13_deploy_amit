@@ -1,6 +1,6 @@
 // Router Configuration - FIXED: Removed bad imports (Updated: 2026-03-26)
 import React, { lazy, Suspense } from "react";
-import { createHashRouter, Navigate, Outlet } from "react-router-dom";
+import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { RootLayoutWrapper } from "./components/layouts/RootLayoutWrapper";
 import { ProtectedRoute } from "./components/guards/ProtectedRoute";
 
@@ -241,7 +241,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { MobileChangeRequest } from "./components/hr/MobileChangeRequest";
 import { MyAccountPage } from "./components/hr/MyAccountPage";
 
-export const router = createHashRouter([
+export const router = createBrowserRouter([
   {
     path: "/login",
     element: <LoginPage />,
