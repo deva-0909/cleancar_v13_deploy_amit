@@ -165,8 +165,9 @@ class DataServiceClass {
       localStorage.setItem(key, JSON.stringify(updated));
       import.meta.env.DEV && console.log(`[DataService] Inserted ${newRecords.length} record(s) to ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
-      console.error(`[DataService] Error inserting to ${entityType}:`, error);
-      throw error;
+      const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
+      if (isQuota) { console.warn(`[DataService] Could not insert ${entityType} — localStorage full`); }
+      else { console.error(`[DataService] Error inserting to ${entityType}:`, error); }
     }
   }
 
@@ -195,8 +196,9 @@ class DataServiceClass {
       localStorage.setItem(key, JSON.stringify(updated));
       import.meta.env.DEV && console.log(`[DataService] Updated record ${id} in ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
-      console.error(`[DataService] Error updating ${entityType}:`, error);
-      throw error;
+      const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
+      if (isQuota) { console.warn(`[DataService] Could not update ${entityType} — localStorage full`); }
+      else { console.error(`[DataService] Error updating ${entityType}:`, error); }
     }
   }
 
@@ -221,8 +223,9 @@ class DataServiceClass {
       localStorage.setItem(key, JSON.stringify(filtered));
       import.meta.env.DEV && console.log(`[DataService] Deleted record ${id} from ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
-      console.error(`[DataService] Error deleting from ${entityType}:`, error);
-      throw error;
+      const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
+      if (isQuota) { console.warn(`[DataService] Could not delete ${entityType} — localStorage full`); }
+      else { console.error(`[DataService] Error deleting from ${entityType}:`, error); }
     }
   }
 
@@ -294,8 +297,9 @@ class DataServiceClass {
       }
       import.meta.env.DEV && console.log(`[DataService] Set ${records.length} record(s) for ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
-      console.error(`[DataService] Error setting ${entityType}:`, error);
-      throw error;
+      const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
+      if (isQuota) { console.warn(`[DataService] Could not store ${entityType} — localStorage full`); }
+      else { console.error(`[DataService] Error setting ${entityType}:`, error); }
     }
   }
 
@@ -312,7 +316,6 @@ class DataServiceClass {
       import.meta.env.DEV && console.log(`[DataService] Cleared ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
       console.error(`[DataService] Error clearing ${entityType}:`, error);
-      throw error;
     }
   }
 
@@ -331,7 +334,6 @@ class DataServiceClass {
       import.meta.env.DEV && console.log(`[DataService] Cleared all data for ${city}`);
     } catch (error) {
       console.error("[DataService] Error clearing all data:", error);
-      throw error;
     }
   }
 

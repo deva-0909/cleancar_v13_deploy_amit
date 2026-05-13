@@ -26,7 +26,6 @@ import { NotificationDrawer } from "../shared/NotificationDrawer";
 import { buildNavigation, buildQuickActions, type NavEmployee } from "../../utils/navigationBuilder";
 import { isActiveRoute, hasActiveChild } from "../../utils/isActiveRoute";
 import { RouteGuard } from "../guards/RouteGuard";
-import { ErrorBoundary } from "../ErrorBoundary";
 import { useCity, CITIES } from "../../contexts/CityContext";
 import { useSidebar } from "../../contexts/SidebarContext";
 import { isDenseRoute, shouldForceExpand, detectConflicts } from "../../config/layoutRules";
@@ -46,9 +45,10 @@ export function RootLayout() {
   const isPreview = import.meta.env.MODE === "development"
     || window.location.hostname === "localhost"
     || window.location.hostname.includes("figma")
-    || new URLSearchParams(window.location.search).get("preview-route") !== null;
+    || window.location.hash.includes("preview-route");
 
-  // Auth handled by route structure — /login is separate from / routes
+  // Auth redirect removed — HashRouter pathname is always "/"
+  // Route-level auth is handled by ProtectedRoute in routes.tsx
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
@@ -164,6 +164,21 @@ export function RootLayout() {
     : userNavigation;
 
   // ✅ Smart Auto-Collapse Engine
+  // Startup storage purge
+  useEffect(() => {
+    ['cc360_error_log','SYNC_RETRY_QUEUE','cc360_retry_queue','cc360_audit_trail',
+     'cc360_payroll_approved_event','cc360_mrr_event'].forEach(k => {
+      try { localStorage.removeItem(k); } catch {}
+    });
+    try {
+      const raw = localStorage.getItem('attendance_records');
+      if (raw) {
+        const recs = JSON.parse(raw);
+        if (recs.length > 90) localStorage.setItem('attendance_records', JSON.stringify(recs.slice(-90)));
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     // Skip auto-collapse if user manually toggled
     if (userToggled) return;
@@ -720,9 +735,10 @@ export function RootLayout() {
         {/* Main Content — key forces remount on every route/role change */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 min-w-0">
           <RouteGuard />
-          <ErrorBoundary key={location.pathname}>
+          {/* Use full hash as key — guarantees remount when hash route changes */}
+          <div key={`${location.pathname}${location.search}${location.hash}__${currentRole}`}>
             <Outlet />
-          </ErrorBoundary>
+          </div>
         </main>
       </div>
 

@@ -47,6 +47,13 @@ import {
 import { StableChartContainer, createFilterKey, CHART_COLORS } from "../charts/StableChartContainer";
 import { useRevenueMetrics } from "../../hooks/useRevenueMetrics";
 
+// Safe number formatting — prevents crash when value is undefined/null
+const safeNum = (v: any, decimals = 0): string => {
+  const n = Number(v ?? 0);
+  return isNaN(n) ? "0" : n.toLocaleString("en-IN", decimals > 0 ? { minimumFractionDigits: decimals, maximumFractionDigits: decimals } : {});
+};
+
+
 const COLORS = CHART_COLORS.primary;
 
 interface UnitEconomicsMetrics {
@@ -127,7 +134,7 @@ function UnitEconomicsDashboard() {
   const totalMonthlyRevenue = activeSubscriptions.reduce((sum, sub) => {
     const cycleMultiplier = sub.billingCycle === "Annual" ? 12 :
                             sub.billingCycle === "Quarterly" ? 3 : 1;
-    return sum + (sub.pricing.finalPrice / cycleMultiplier);
+    return sum + ((sub?.pricing?.finalPrice ?? 0) / cycleMultiplier);
   }, 0);
 
   const revenuePerCustomer = totalCustomers > 0 ? Math.round(totalMonthlyRevenue / totalCustomers) : 0;
@@ -214,7 +221,7 @@ function UnitEconomicsDashboard() {
     const totalRevenue = customersInPlan.reduce((sum, sub) => {
       const cycleMultiplier = sub.billingCycle === "Annual" ? 12 :
                               sub.billingCycle === "Quarterly" ? 3 : 1;
-      return sum + (sub.pricing.finalPrice / cycleMultiplier);
+      return sum + ((sub?.pricing?.finalPrice ?? 0) / cycleMultiplier);
     }, 0);
     const avgPrice = totalRevenue / customerCount;
 
@@ -250,7 +257,7 @@ function UnitEconomicsDashboard() {
       const customer = (customers || []).find(c => c.customerId === sub.customerId);
       if (!customer) return;
 
-      const pincode = customer.address.pinCode;
+      const pincode = (customer?.address?.pinCode ?? "Unknown");
       if (!pincodeMap.has(pincode)) {
         pincodeMap.set(pincode, { customers: new Set(), washes: 0, revenue: 0 });
       }
@@ -260,7 +267,7 @@ function UnitEconomicsDashboard() {
 
       const cycleMultiplier = sub.billingCycle === "Annual" ? 12 :
                               sub.billingCycle === "Quarterly" ? 3 : 1;
-      pincodeData.revenue += sub.pricing.finalPrice / cycleMultiplier;
+      pincodeData.revenue += (sub?.pricing?.finalPrice ?? 0) / cycleMultiplier;
     });
 
     completedJobs.forEach(job => {
@@ -369,7 +376,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Revenue per Customer</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  ₹{mockMetrics.revenuePerCustomer.toLocaleString("en-IN")}
+                  ₹{mockMetrics.safeNum(revenuePerCustomer)}
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <ArrowUpRight className="w-3 h-3 text-green-500" />
@@ -389,7 +396,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Revenue per Wash</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  ₹{mockMetrics.revenuePerWash.toLocaleString("en-IN")}
+                  ₹{mockMetrics.safeNum(revenuePerWash)}
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <ArrowUpRight className="w-3 h-3 text-green-500" />
@@ -409,7 +416,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Cost per Wash</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  ₹{mockMetrics.costPerWash.toLocaleString("en-IN")}
+                  ₹{mockMetrics.safeNum(costPerWash)}
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <ArrowDownRight className="w-3 h-3 text-green-500" />
@@ -429,7 +436,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Gross Margin per Wash</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  ₹{mockMetrics.grossMarginPerWash.toLocaleString("en-IN")}
+                  ₹{mockMetrics.safeNum(grossMarginPerWash)}
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <ArrowUpRight className="w-3 h-3 text-green-500" />
@@ -449,7 +456,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Customer LTV</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  ₹{mockMetrics.customerLTV.toLocaleString("en-IN")}
+                  ₹{mockMetrics.safeNum(customerLTV)}
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <span className="text-xs text-gray-600">Avg. 15 months retention</span>
@@ -468,7 +475,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Customer CAC</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  ₹{mockMetrics.customerCAC.toLocaleString("en-IN")}
+                  ₹{mockMetrics.safeNum(customerCAC)}
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <ArrowDownRight className="w-3 h-3 text-green-500" />
@@ -706,10 +713,10 @@ function UnitEconomicsDashboard() {
                     </td>
                     <td className="p-3 font-medium">{store.name}</td>
                     <td className="p-3 text-right">{store.customers}</td>
-                    <td className="p-3 text-right">{store.washes.toLocaleString("en-IN")}</td>
-                    <td className="p-3 text-right font-medium">₹{store.revenue.toLocaleString("en-IN")}</td>
-                    <td className="p-3 text-right text-red-600">₹{store.cost.toLocaleString("en-IN")}</td>
-                    <td className="p-3 text-right font-semibold text-green-600">₹{store.profit.toLocaleString("en-IN")}</td>
+                    <td className="p-3 text-right">{store.safeNum(washes)}</td>
+                    <td className="p-3 text-right font-medium">₹{store.safeNum(revenue)}</td>
+                    <td className="p-3 text-right text-red-600">₹{store.safeNum(cost)}</td>
+                    <td className="p-3 text-right font-semibold text-green-600">₹{store.safeNum(profit)}</td>
                     <td className="p-3 text-right">{store.margin}%</td>
                     <td className="p-3 text-center">
                       <Badge className="bg-green-500">Profitable</Badge>
@@ -747,13 +754,13 @@ function UnitEconomicsDashboard() {
                 {subscriptionProfitability.map((plan) => (
                   <tr key={plan.id} className="border-b hover:bg-gray-50">
                     <td className="p-3 font-medium">{plan.plan}</td>
-                    <td className="p-3 text-right">₹{plan.price.toLocaleString("en-IN")}</td>
+                    <td className="p-3 text-right">₹{plan.safeNum(price)}</td>
                     <td className="p-3 text-right">{plan.avgWashes}</td>
                     <td className="p-3 text-right">{plan.customers}</td>
-                    <td className="p-3 text-right font-medium">₹{plan.revenue.toLocaleString("en-IN")}</td>
-                    <td className="p-3 text-right text-red-600">₹{plan.cost.toLocaleString("en-IN")}</td>
+                    <td className="p-3 text-right font-medium">₹{plan.safeNum(revenue)}</td>
+                    <td className="p-3 text-right text-red-600">₹{plan.safeNum(cost)}</td>
                     <td className={`p-3 text-right font-semibold ${plan.profit > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ₹{plan.profit.toLocaleString("en-IN")}
+                      ₹{plan.safeNum(profit)}
                     </td>
                     <td className="p-3 text-right">{plan.margin}%</td>
                     <td className="p-3 text-center">
