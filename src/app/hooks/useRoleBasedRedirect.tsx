@@ -8,6 +8,7 @@
 import { useEffect, useRef } from "react";
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useRole } from "../contexts/RoleContext";
 import { Role } from "../lib/roleConfig";
 
 interface RoleRedirectConfig {

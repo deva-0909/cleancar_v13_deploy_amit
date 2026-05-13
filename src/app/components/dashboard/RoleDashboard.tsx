@@ -11,6 +11,7 @@ import { HRDashboard } from "./HRDashboard";
 import { OperationsDashboard } from "./OperationsDashboard";
 import { CityDashboard } from "./CityDashboard";
 import { ProcurementDashboard } from "./ProcurementDashboard";
+import { useCity } from "../contexts/CityContext";
 
 export function RoleDashboard() {
   const { roleConfig, currentRole } = useRole();
