@@ -15,6 +15,7 @@ import { WasherIncentiveTracker } from "./WasherIncentiveTracker";
 import { WasherCheckOut, type CheckOutTiming } from "./WasherCheckOut";
 import { DaySummaryScreen } from "./DaySummaryScreen";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -48,7 +49,21 @@ export function WasherCoreScreensConnected() {
   const { pendingJobs, completedJobs } = useWasherJobs();
 
   // Local UI state
-  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "checkin" | "schedule" | "active" | "incentive" | "checkout">("dashboard");
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+
+  // Derive initial screen from URL path or ?screen= param
+  const getScreenFromURL = () => {
+    const screen = searchParams.get("screen");
+    if (screen) return screen as any;
+    const path = location.pathname;
+    if (path.includes("check-in")) return "checkin" as const;
+    if (path.includes("schedule")) return "schedule" as const;
+    if (path.includes("earnings") || path.includes("incentive")) return "incentive" as const;
+    return "dashboard" as const;
+  };
+
+  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "checkin" | "schedule" | "active" | "incentive" | "checkout">(getScreenFromURL);
   const [showDaySummary, setShowDaySummary] = useState(false);
   
   // Check-in state
