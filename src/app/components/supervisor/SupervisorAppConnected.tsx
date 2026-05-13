@@ -78,7 +78,8 @@ export function SupervisorAppConnected() {
     isLoading,
   } = useSupervisor();
 
-  const [currentScreen, setCurrentScreen] = useState("dashboard");
+  // URL is source of truth — derived via useMemo, not useState
+  // SCREEN_TO_PATH and PATH_TO_SCREEN defined below
   // Offline detection for field supervisors
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   useEffect(() => {
@@ -89,50 +90,59 @@ export function SupervisorAppConnected() {
     return () => { window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
   }, []);
 
-  // Detect URL path and auto-switch to corresponding tab
-  useEffect(() => {
-    const path = location.pathname;
 
-    // Map URL paths to screen names
-    const pathToScreen: Record<string, string> = {
-      "/supervisor-app/dashboard": "dashboard",
-      "/supervisor-app/team": "team",
-      "/supervisor-app/audit": "audit",
-      "/supervisor-app/cloth": "cloth",
-      "/supervisor-app/leads": "leads",
-      "/supervisor-app/incentive": "incentive",
-      "/supervisor-app/issues": "issues",
-      "/supervisor-app/alerts": "alerts",
-      "/supervisor-app/cover": "cover",
-      "/supervisor-app/visibility": "visibility",
-      "/supervisor-app/audit-trail": "audit-trail",
-      "/supervisor-app/kpi-dashboard": "kpi-dashboard",
-      "/supervisor-app": "dashboard", // Default
-    };
 
-    const screenName = pathToScreen[path] || "dashboard";
-    setCurrentScreen(screenName);
-  }, [location.pathname]);
+  const PATH_TO_SCREEN: Record<string, string> = {
+    "/supervisor-app/dashboard":    "dashboard",
+    "/supervisor-app/team":         "team",
+    "/supervisor-app/audit":        "audit",
+    "/supervisor-app/cloth":        "cloth",
+    "/supervisor-app/leads":        "leads",
+    "/supervisor-app/incentive":    "incentive",
+    "/supervisor-app/issues":       "issues",
+    "/supervisor-app/alerts":       "alerts",
+    "/supervisor-app/cover":        "cover",
+    "/supervisor-app/visibility":   "visibility",
+    "/supervisor-app/audit-trail":  "audit-trail",
+    "/supervisor-app/kpi-dashboard":"kpi-dashboard",
+  };
+  const SCREEN_TO_PATH: Record<string, string> = {
+    "dashboard":    "/supervisor-app",
+    "team":         "/supervisor-app/team",
+    "audit":        "/supervisor-app/audit",
+    "cloth":        "/supervisor-app/cloth",
+    "leads":        "/supervisor-app/leads",
+    "incentive":    "/supervisor-app/incentive",
+    "issues":       "/supervisor-app/issues",
+    "alerts":       "/supervisor-app/alerts",
+    "cover":        "/supervisor-app/cover",
+    "visibility":   "/supervisor-app/visibility",
+    "audit-trail":  "/supervisor-app/audit-trail",
+    "audit-flow":   "/supervisor-app/audit",
+    "audit-result": "/supervisor-app/audit",
+    "kpi-dashboard":"/supervisor-app/kpi-dashboard",
+  };
+  const currentScreen = useMemo(
+    () => PATH_TO_SCREEN[location.pathname] ?? "dashboard",
+    [location.pathname]
+  );
 
-  // Handlers
+    // Handlers
   const handleAlertClick = (alert: any) => {
     markAlertRead(alert.id);
     if (alert.actionUrl) {
-      // Navigate to relevant screen
-      const screen = alert.actionUrl.split("/").pop();
-      setCurrentScreen(screen || "dashboard");
+      const screen = alert.actionUrl.split("/").pop() || "dashboard";
+      navigate(SCREEN_TO_PATH[screen] ?? "/supervisor-app");
     }
   };
 
   const handleNavigate = (screen: string) => {
-    setCurrentScreen(screen);
+    navigate(SCREEN_TO_PATH[screen] ?? "/supervisor-app");
   };
 
   const handleTabChange = (value: string) => {
-    setCurrentScreen(value);
-    // Update URL to match tab
-    const urlPath = value === "dashboard" ? "/supervisor-app" : `/supervisor-app/${value}`;
-    navigate(urlPath, { replace: true });
+    // URL is source of truth — just navigate, useMemo derives currentScreen
+    navigate(SCREEN_TO_PATH[value] ?? "/supervisor-app", { replace: true });
   };
 
   const handleViewWasherDetails = (washerId: string) => {
@@ -444,7 +454,7 @@ export function SupervisorAppConnected() {
       gpsValid: gpsValidation.isValid,
       gpsDistance: gpsValidation.distanceMeters,
     });
-    setCurrentScreen("audit-flow");
+    navigate(SCREEN_TO_PATH["audit-flow"] ?? "/supervisor-app");
   };
 
   const handleToggleChecklistItem = (itemId: string) => {
@@ -476,13 +486,13 @@ export function SupervisorAppConnected() {
       score,
       ...action,
     });
-    setCurrentScreen("audit-result");
+    navigate(SCREEN_TO_PATH["audit-result"] ?? "/supervisor-app");
   };
 
   const handleCloseAuditResult = () => {
     setAuditFlow(null);
     setAuditResult(null);
-    setCurrentScreen("audit");
+    navigate(SCREEN_TO_PATH["audit"] ?? "/supervisor-app");
     // Refresh audit list
     setAuditWashers(fieldAuditService.getAuditWashers("SUP-001"));
     setAuditSummary(fieldAuditService.getAuditSummary("SUP-001"));
@@ -592,7 +602,7 @@ export function SupervisorAppConnected() {
 
   const handleReassignCoverFromEscalation = () => {
     escalationService.navigateToCoverReassignment();
-    setCurrentScreen("cover");
+    navigate(SCREEN_TO_PATH["cover"] ?? "/supervisor-app");
   };
 
   const handlePauseWasherSchedule = (washerId: string) => {
@@ -673,7 +683,7 @@ export function SupervisorAppConnected() {
   const [alertSummary] = useState(() => alertService.getAlertSummary("SUP-001"));
 
   const handleReassignFromAlert = () => {
-    setCurrentScreen("cover");
+    navigate(SCREEN_TO_PATH["cover"] ?? "/supervisor-app");
   };
 
   const handleViewDetailsFromAlert = () => {
@@ -897,7 +907,7 @@ export function SupervisorAppConnected() {
                               e.stopPropagation();
                               handleNotificationClick(notification.id);
                               setShowNotifications(false);
-                              setCurrentScreen("leads");
+                              navigate(SCREEN_TO_PATH["leads"] ?? "/supervisor-app");
                             }}
                           >
                             {notification.actionLabel || "View Details"}
@@ -1010,7 +1020,7 @@ export function SupervisorAppConnected() {
                 onTakePhoto={handleTakePhoto}
                 onReportPreDamage={handleReportPreDamage}
                 onSubmit={handleSubmitAudit}
-                onCancel={() => setCurrentScreen("audit")}
+                onCancel={() => navigate(SCREEN_TO_PATH["audit"] ?? "/supervisor-app")}
               />
             )}
           </TabsContent>

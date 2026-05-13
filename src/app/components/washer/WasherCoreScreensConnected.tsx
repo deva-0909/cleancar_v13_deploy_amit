@@ -4,8 +4,8 @@
  * All buttons functional and connected to services
  */
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useWasher, useWasherJobs } from "../../contexts/WasherContext";
 import { WasherHomeDashboard, type DayStatus } from "./WasherHomeDashboard";
 import { WasherCheckIn, type CheckInWindow, type ValidationState } from "./WasherCheckIn";
@@ -15,7 +15,7 @@ import { WasherIncentiveTracker } from "./WasherIncentiveTracker";
 import { WasherCheckOut, type CheckOutTiming } from "./WasherCheckOut";
 import { DaySummaryScreen } from "./DaySummaryScreen";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { useSearchParams, useLocation } from "react-router-dom";
+
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -49,21 +49,21 @@ export function WasherCoreScreensConnected() {
   const { pendingJobs, completedJobs } = useWasherJobs();
 
   // Local UI state
-  const [searchParams] = useSearchParams();
   const location = useLocation();
 
-  // Derive initial screen from URL path or ?screen= param
-  const getScreenFromURL = () => {
-    const screen = searchParams.get("screen");
-    if (screen) return screen as any;
+  // URL is the single source of truth for screen selection
+  // No useState for page navigation — derived from pathname only
+  const currentScreen = useMemo(() => {
     const path = location.pathname;
-    if (path.includes("check-in")) return "checkin" as const;
-    if (path.includes("schedule")) return "schedule" as const;
-    if (path.includes("earnings") || path.includes("incentive")) return "incentive" as const;
+    if (path.includes("/check-in") || path.includes("/checkin")) return "checkin" as const;
+    if (path.includes("/schedule"))  return "schedule"  as const;
+    if (path.includes("/active"))    return "active"    as const;
+    if (path.includes("/incentive") || path.includes("/earnings")) return "incentive" as const;
+    if (path.includes("/checkout"))  return "checkout"  as const;
     return "dashboard" as const;
-  };
+  }, [location.pathname]);
 
-  const [currentScreen, setCurrentScreen] = useState<"dashboard" | "checkin" | "schedule" | "active" | "incentive" | "checkout">(getScreenFromURL);
+  // Keep activeJob and isCheckedIn state (these are valid non-navigation state)
   const [showDaySummary, setShowDaySummary] = useState(false);
   
   // Check-in state
@@ -84,9 +84,9 @@ export function WasherCoreScreensConnected() {
   // ========== HANDLERS ==========
 
   // Dashboard handlers
-  const handleCheckIn = () => setCurrentScreen("checkin");
-  const handleViewSchedule = () => setCurrentScreen("schedule");
-  const handleViewIncentive = () => setCurrentScreen("incentive");
+  const handleCheckIn = () => navigate("/washer-core-screens/checkin");
+  const handleViewSchedule = () => navigate("/washer-core-screens/schedule");
+  const handleViewIncentive = () => navigate("/washer-core-screens/incentive");
   const handleRaiseIssue = () => logger.log("Raise issue"); // Navigate to issue form
 
   // Check-in handlers
@@ -115,7 +115,7 @@ export function WasherCoreScreensConnected() {
     });
 
     if (result.success) {
-      setCurrentScreen("dashboard");
+      navigate("/washer-core-screens");
       refreshData();
     }
   };
@@ -127,7 +127,7 @@ export function WasherCoreScreensConnected() {
   
   const handleStartJob = (jobId: string) => {
     startJob(jobId);
-    setCurrentScreen("active");
+    navigate("/washer-core-screens/active");
   };
 
   // Active wash handlers
@@ -148,7 +148,7 @@ export function WasherCoreScreensConnected() {
 
   const handleMarkJobDone = () => {
     completeJob();
-    setCurrentScreen("schedule");
+    navigate("/washer-core-screens/schedule");
   };
 
   // Check-out handlers
@@ -257,7 +257,7 @@ export function WasherCoreScreensConnected() {
         }}
         onClose={() => {
           setShowDaySummary(false);
-          setCurrentScreen("dashboard");
+          navigate("/washer-core-screens");
         }}
       />
     );
@@ -323,7 +323,17 @@ export function WasherCoreScreensConnected() {
       </div>
 
       <div className="max-w-4xl mx-auto p-4 pb-24 lg:pb-4">
-        <Tabs value={currentScreen} onValueChange={(v) => setCurrentScreen(v as any)} className="w-full">
+        <Tabs value={currentScreen} onValueChange={(v) => {
+            const paths: Record<string, string> = {
+              dashboard: "/washer-core-screens",
+              checkin: "/washer-core-screens/checkin",
+              schedule: "/washer-core-screens/schedule",
+              active: "/washer-core-screens/active",
+              incentive: "/washer-core-screens/incentive",
+              checkout: "/washer-core-screens/checkout",
+            };
+            navigate(paths[v] || "/washer-core-screens");
+          }} className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="dashboard">1. Dashboard</TabsTrigger>
             <TabsTrigger value="checkin">2. Check-In</TabsTrigger>
