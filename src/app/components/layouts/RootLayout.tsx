@@ -48,13 +48,7 @@ export function RootLayout() {
     || window.location.hostname.includes("figma")
     || new URLSearchParams(window.location.search).get("preview-route") !== null;
 
-  if (!isPreview) {
-    const session = localStorage.getItem("cc360_session");
-    if (!session && !window.location.pathname.startsWith("/login")) {
-      window.location.replace("/login");
-      return null;
-    }
-  }
+  // Auth handled by route structure — /login is separate from / routes
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
