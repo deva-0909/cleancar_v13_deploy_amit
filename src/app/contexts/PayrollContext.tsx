@@ -177,14 +177,16 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
   // This guard prevents crashes if provider order is ever changed again.
   // useFinance removed — salary payable fires via cc360_payroll_approved event
 
-  const [payrollRuns, setPayrollRuns] = useState<PayrollRun[]>(() => {
+  const _dbSalaryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  <PayrollRun[]>(() => {
     const stored = DataService.get<PayrollRun>("PAYROLL_RUNS");
     logger.debug("PayrollContext loaded", { count: stored.length });
     // Apply city fallback for old data
     return stored.map(run => withCityFallback(run, currentCityId));
   });
 
-  const [salaryStructures, setSalaryStructures] = useState<SalaryStructure[]>(() => {
+  const _dbPayrolTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  <SalaryStructure[]>(() => {
     const stored = DataService.get<SalaryStructure>("SALARY_STRUCTURES");
     // Apply city fallback for old data
     return stored.map(structure => withCityFallback(structure, currentCityId));

@@ -15,7 +15,8 @@ const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 SidebarContext.displayName = "SidebarContext";
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
+  const _dbGroupsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  <boolean>(() => {
     try { return localStorage.getItem("sidebarCollapsed") === "true"; }
     catch { return false; }
   });

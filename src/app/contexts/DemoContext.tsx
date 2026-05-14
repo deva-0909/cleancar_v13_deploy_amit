@@ -131,7 +131,8 @@ const DemoContext = createContext<DemoContextType | undefined>(undefined);
 
 // Ensure the provider is exported and used correctly
 export function DemoProvider({ children }: { children: ReactNode }) {
-  const [demos, setDemos] = useState<DemoWash[]>(() => {
+  const _dbDemosTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  <DemoWash[]>(() => {
     const stored = DataService.get<DemoWash>("DEMOS");
     return stored.length > 0 ? stored : [];
   });

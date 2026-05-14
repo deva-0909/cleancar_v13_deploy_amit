@@ -129,15 +129,18 @@ const DEFAULT_HOLIDAYS: PublicHoliday[] = [
 
 export function OrgProvider({ children }: { children: ReactNode }) {
   const [roles] = useState<EmployeeRole[]>(DEFAULT_ROLES);
-  const [departments, setDepartments] = useState<Department[]>(() => {
+  const _dbDepartTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  <Department[]>(() => {
     const stored = DataService.get<Department>("DEPARTMENTS");
     return stored.length > 0 ? stored : DEFAULT_DEPARTMENTS;
   });
-  const [designations, setDesignations] = useState<Designation[]>(() => {
+  const _dbPublicTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  <Designation[]>(() => {
     const stored = DataService.get<Designation>("DESIGNATIONS");
     return stored.length > 0 ? stored : DEFAULT_DESIGNATIONS;
   });
-  const [publicHolidays, setPublicHolidays] = useState<PublicHoliday[]>(() => {
+  const _dbDesignTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  <PublicHoliday[]>(() => {
     const stored = DataService.get<PublicHoliday>("PUBLIC_HOLIDAYS");
     return stored.length > 0 ? stored : DEFAULT_HOLIDAYS;
   });

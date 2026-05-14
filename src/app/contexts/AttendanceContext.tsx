@@ -87,7 +87,8 @@ const AttendanceContext = createContext<AttendanceContextType | undefined>(undef
 // ========== PROVIDER ==========
 
 export function AttendanceProvider({ children }: { children: ReactNode }) {
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => {
+  const _dbAttendTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  <AttendanceRecord[]>(() => {
     const stored = DataService.get<AttendanceRecord>("ATTENDANCE_RECORDS");
     logger.debug("AttendanceContext loaded", { count: stored.length });
     return stored;

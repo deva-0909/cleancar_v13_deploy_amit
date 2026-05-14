@@ -63,7 +63,8 @@ interface CustomerContextType {
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
 
 export function CustomerProvider({ children }: { children: ReactNode }) {
-  const [customers, setCustomers] = useState<Customer[]>(() => {
+  const _dbCustTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  <Customer[]>(() => {
     const stored = DataService.get<Customer>("CUSTOMERS");
     logger.debug("CustomerContext loaded", { count: stored.length });
     return stored;

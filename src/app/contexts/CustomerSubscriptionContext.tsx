@@ -83,7 +83,8 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
   // useFinance removed — MRR fires via cc360_mrr_add event
   const { city } = useCity();
 
-  const [subscriptions, setSubscriptions] = useState<CustomerSubscription[]>(() => {
+  const _dbSubscrTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  <CustomerSubscription[]>(() => {
     const stored = DataService.get<CustomerSubscription>("SUBSCRIPTIONS");
     logger.debug("CustomerSubscriptionContext loaded", { count: stored.length });
     return stored;
