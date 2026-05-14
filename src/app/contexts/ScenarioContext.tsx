@@ -22,6 +22,14 @@ export function ScenarioProvider({ children }: { children: ReactNode }) {
 
   const isScenarioActive = (scenarioName: Scenario) => scenario === scenarioName;
 
+  const scenarioValue = useMemo(() => ({
+    scenario,
+    setScenario,
+    scenarioData,
+    isScenarioActive,
+  }),
+  [scenario, setScenario, scenarioData, isScenarioActive]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <ScenarioContext.Provider
       value={scenarioValue}
@@ -52,14 +60,5 @@ export function useScenarioData<T>(
 ): T {
   const { scenarioData } = useScenario();
   const override = scenarioData[dataKey];
-  const scenarioValue = useMemo(() => ({
-
-        scenario,
-        setScenario,
-        scenarioData,
-        isScenarioActive,
-      }),
-  [scenario, setScenario, scenarioData, isScenarioActive]); // eslint-disable-line react-hooks/exhaustive-deps
-
   return (override ?? existingData) as T;
 }
