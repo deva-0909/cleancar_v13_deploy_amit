@@ -9,7 +9,7 @@
  * Single source of truth for shift data
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef} from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 import { DataService } from "../services/DataService";
 import { Shift } from "../types/hr-types";
 import { logger } from "../services/logger";
@@ -55,7 +55,6 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
   const [shifts, setShifts] = useState<Shift[]>(() => {
     // Try to load from storage
     const stored = localStorage.getItem("cleancar_shifts");
-  const _dbShiftsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
@@ -73,14 +72,15 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 
   // Persist to storage — wrapped in try/catch to prevent quota crash
   useEffect(() => {
-    if (_dbShiftsTimer.current) clearTimeout(_dbShiftsTimer.current);
-    _dbShiftsTimer.current = setTimeout(() => {
+    try {
       try {
-        localStorage.setItem("cleancar_shifts", JSON.stringify(shifts));
-      } catch {
-        console.warn("[ShiftContext] localStorage full — shifts not persisted");
-      }
-    }, 500);
+      localStorage.setItem("cleancar_shifts", JSON.stringify(shifts));
+    } catch (e) {
+      console.warn("[ShiftContext] localStorage full — shifts not persisted");
+    }
+    } catch (e) {
+      console.warn("[ShiftContext] localStorage full — shifts not persisted");
+    }
   }, [shifts]);
 
   // ========== ACTIONS ==========
@@ -150,7 +150,7 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
 
   // ========== CONTEXT VALUE ==========
 
-  const contextValue = useMemo((): ShiftContextType => ({
+  const value: ShiftContextType = {
     shifts,
     addShift,
     updateShift,
@@ -159,11 +159,8 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     getShiftsByCity,
     getActiveShiftsByCity,
   };
-  // eslint-disable-line react-hooks/exhaustive-deps
-  // deps: state vars and stable callbacks
-  [shifts, addShift, updateShift, deleteShift, getShiftById, getShiftsByCity, getActiveShiftsByCity]);
 
-    return <ShiftContext.Provider value={contextValue}>{children}</ShiftContext.Provider>;
+  return <ShiftContext.Provider value={value}>{children}</ShiftContext.Provider>;
 }
 
 // ========== HOOK ==========

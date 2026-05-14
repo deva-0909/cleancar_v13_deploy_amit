@@ -13,7 +13,7 @@
  * Data Flow: UI → useEmployeeData → HRDataContext → DataService → localStorage
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect, useMemo} from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { DataService } from "../services/DataService";
 import { seedEmployeesIfEmpty } from "../data/seedEmployees";
 import { eventBus } from "../utils/eventBus";
@@ -293,8 +293,8 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
       }
     };
     const t1 = setTimeout(rehydrate, 1000);
-    // Removed duplicate rehydration timeout — single 1s fetch is sufficient
-    return () => { clearTimeout(t1); };
+    const t2 = setTimeout(rehydrate, 3500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ============================================
@@ -561,33 +561,7 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
 
   return (
     <HRDataContext.Provider
-      value={contextValue}
-    >
-      {children}
-    </HRDataContext.Provider>
-  );
-}
-
-/**
- * ⚠️ DEPRECATED - DO NOT USE DIRECTLY
- *
- * This hook is for INTERNAL use only by useEmployeeData.
- * Components should import useEmployeeData instead.
- *
- * @deprecated Use useEmployeeData from "../hooks/useEmployeeData" instead
- * @internal
- */
-export function useHRData() {
-  const context = useContext(HRDataContext);
-  if (!context) {
-    throw new Error("useHRData must be used within HRDataProvider");
-  }
-
-  // PHASE 3: No console warning - only useEmployeeData calls this internally
-  // JSDoc @deprecated tag still warns in IDE if someone tries to import directly
-
-  const contextValue = useMemo(() => ({
-
+      value={{
         // Employees
         employees,
         addEmployee,
@@ -623,8 +597,30 @@ export function useHRData() {
         getPayrollByEmployeeId,
         getPayrollForMonth,
         getPendingPayrolls,
-      }),
-  [employees, addEmployee, updateEmployee, deleteEmployee, getEmployeeById, getEmployeesByRole, getEmployeesByStatus, getEmployeesByCity, getEmployeesByPincode, getEmployeesByCluster]); // eslint-disable-line react-hooks/exhaustive-deps
+      }}
+    >
+      {children}
+    </HRDataContext.Provider>
+  );
+}
+
+/**
+ * ⚠️ DEPRECATED - DO NOT USE DIRECTLY
+ *
+ * This hook is for INTERNAL use only by useEmployeeData.
+ * Components should import useEmployeeData instead.
+ *
+ * @deprecated Use useEmployeeData from "../hooks/useEmployeeData" instead
+ * @internal
+ */
+export function useHRData() {
+  const context = useContext(HRDataContext);
+  if (!context) {
+    throw new Error("useHRData must be used within HRDataProvider");
+  }
+
+  // PHASE 3: No console warning - only useEmployeeData calls this internally
+  // JSDoc @deprecated tag still warns in IDE if someone tries to import directly
 
   return context;
 }

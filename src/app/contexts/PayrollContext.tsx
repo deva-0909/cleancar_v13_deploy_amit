@@ -10,7 +10,7 @@
  * Single source of truth for payroll
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef} from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 import { useRole } from "./RoleContext";
@@ -196,13 +196,11 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (_dbPayrolTimer.current) clearTimeout(_dbPayrolTimer.current);
-    _dbPayrolTimer.current = setTimeout(() => DataService.setAll("PAYROLL_RUNS", payrollRuns), 500);
+    if (payrollRuns.length > 0) DataService.setAll("PAYROLL_RUNS", payrollRuns);
   }, [payrollRuns]);
 
   useEffect(() => {
-    if (_dbSalaryTimer.current) clearTimeout(_dbSalaryTimer.current);
-    _dbSalaryTimer.current = setTimeout(() => DataService.setAll("SALARY_STRUCTURES", salaryStructures), 500);
+    if (salaryStructures.length > 0) DataService.setAll("SALARY_STRUCTURES", salaryStructures);
   }, [salaryStructures]);
 
   // ========== PAYROLL ACTIONS ==========
@@ -564,7 +562,7 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
 
   // ========== CONTEXT VALUE ==========
 
-  const contextValue = useMemo((): PayrollContextType => ({
+  const value: PayrollContextType = {
     payrollRuns,
     processPayroll,
 
@@ -598,11 +596,8 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
     // ✅ NEW: Auto Compliance Engine
     calculateStatutoryDeductions: calculateStatutoryDeductionsWrapper,
   };
-  // eslint-disable-line react-hooks/exhaustive-deps
-  // deps: state vars and stable callbacks
-  [payrollRuns, processPayroll, transitionPayroll, sendToReview, approvePayroll, disbursePayroll, rejectToDraft, updatePayrollStatus, approvePayrollByHR, approvePayrollByFinance]);
 
-    return <PayrollContext.Provider value={contextValue}>{children}</PayrollContext.Provider>;
+  return <PayrollContext.Provider value={value}>{children}</PayrollContext.Provider>;
 }
 
 // ========== HOOK ==========
