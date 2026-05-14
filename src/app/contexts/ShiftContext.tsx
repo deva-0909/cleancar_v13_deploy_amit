@@ -158,10 +158,7 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     getShiftById,
     getShiftsByCity,
     getActiveShiftsByCity,
-  })
-  // eslint-disable-line react-hooks/exhaustive-deps
-  // deps: state vars and stable callbacks
-  [shifts, addShift, updateShift, deleteShift, getShiftById, getShiftsByCity, getActiveShiftsByCity]);
+  }), [shifts, addShift, updateShift, deleteShift, getShiftById, getShiftsByCity, getActiveShiftsByCity]);
 
     return <ShiftContext.Provider value={contextValue}>{children}</ShiftContext.Provider>;
 }
