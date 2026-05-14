@@ -11,7 +11,7 @@
  * Single source of truth for organizational structure
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect, useMemo, useRef} from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { DataService } from "../services/DataService";
 
 // ========== TYPES ==========
@@ -144,18 +144,15 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 
   // Persist to storage
   useEffect(() => {
-    if (_dbDepartTimer.current) clearTimeout(_dbDepartTimer.current);
-    _dbDepartTimer.current = setTimeout(() => DataService.setAll("DEPARTMENTS", departments), 500);
+    if (departments.length > 0) DataService.setAll("DEPARTMENTS", departments);
   }, [departments]);
 
   useEffect(() => {
-    if (_dbDesignTimer.current) clearTimeout(_dbDesignTimer.current);
-    _dbDesignTimer.current = setTimeout(() => DataService.setAll("DESIGNATIONS", designations), 500);
+    if (designations.length > 0) DataService.setAll("DESIGNATIONS", designations);
   }, [designations]);
 
   useEffect(() => {
-    if (_dbPublicTimer.current) clearTimeout(_dbPublicTimer.current);
-    _dbPublicTimer.current = setTimeout(() => DataService.setAll("PUBLIC_HOLIDAYS", publicHolidays), 500);
+    if (publicHolidays.length > 0) DataService.setAll("PUBLIC_HOLIDAYS", publicHolidays);
   }, [publicHolidays]);
 
   // ========== ACTIONS ==========
@@ -206,7 +203,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 
   // ========== CONTEXT VALUE ==========
 
-  const contextValue = useMemo((): OrgContextType => ({
+  const value: OrgContextType = {
     roles,
     departments,
     addDepartment,
@@ -219,12 +216,9 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     publicHolidays,
     addPublicHoliday,
     removePublicHoliday,
-  };)),
-  // eslint-disable-line react-hooks/exhaustive-deps
-  // deps: state vars and stable callbacks
-  [roles, departments, addDepartment, updateDepartment, deleteDepartment, designations, addDesignation, updateDesignation, deleteDesignation, publicHolidays]);
+  };
 
-    return <OrgContext.Provider value={contextValue}>{children}</OrgContext.Provider>;
+  return <OrgContext.Provider value={value}>{children}</OrgContext.Provider>;
 }
 
 // ========== HOOK ==========
