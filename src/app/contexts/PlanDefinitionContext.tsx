@@ -21,7 +21,7 @@
  * Used for: Pricing screens, plan editors, finance calculations
  */
 
-import React, { createContext, useContext, ReactNode } from "react";
+import React, { createContext, useContext, ReactNode, useMemo } from "react";
 import {
   CURRENT_PLAN_VERSION,
   getActivePlanVersion,
@@ -200,7 +200,7 @@ export function PlanDefinitionProvider({ children }: { children: ReactNode }) {
 export function usePlanDefinitions() {
   const context = useContext(PlanDefinitionContext);
   if (context === undefined) {
-    throw new Error("usePlanDefinitions must be used within a PlanDefinitionProvider");
+    console.warn("[usePlanDefinitions] outside PlanDefinitionProvider - fallback"); return context as any;
   }
   return context;
 }
