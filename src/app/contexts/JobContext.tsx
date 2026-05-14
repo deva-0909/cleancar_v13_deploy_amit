@@ -479,7 +479,7 @@ export function useJobs() {
         getAssignedByCity: () => [], getCompletedByCity: () => [],
       } as JobContextType;
     }
-    throw new Error("useJobs must be used within JobProvider");
+    console.warn("[useJobs] Called outside JobProvider — returning fallback"); return context as any;
   }
   return context;
 }

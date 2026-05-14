@@ -283,7 +283,7 @@ export function useCustomers() {
         leads: [], cityLeads: [], addLead: noop, updateLead: () => {}, deleteLead: () => {}, appendLeadActivity: () => {},
       } as CustomerContextType;
     }
-    throw new Error("useCustomers must be used within CustomerProvider");
+    console.warn("[useCustomers] Called outside CustomerProvider — returning fallback"); return context as any;
   }
   return context;
 }

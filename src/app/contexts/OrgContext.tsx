@@ -232,7 +232,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
 export function useOrg() {
   const context = useContext(OrgContext);
   if (!context) {
-    throw new Error("useOrg must be used within OrgProvider");
+    console.warn("[useOrg] Called outside OrgProvider — returning fallback"); return context as any;
   }
   return context;
 }

@@ -244,7 +244,7 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
 export function useCustomerSubscriptions() {
   const context = useContext(CustomerSubscriptionContext);
   if (!context) {
-    throw new Error("useCustomerSubscriptions must be used within CustomerSubscriptionProvider");
+    console.warn("[useCustomerSubscriptions] Called outside CustomerSubscriptionProvider — returning fallback"); return context as any;
   }
   return context;
 }

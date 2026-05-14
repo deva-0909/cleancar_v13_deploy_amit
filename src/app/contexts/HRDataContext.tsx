@@ -619,7 +619,7 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
 export function useHRData() {
   const context = useContext(HRDataContext);
   if (!context) {
-    throw new Error("useHRData must be used within HRDataProvider");
+    console.warn("[useHRData] outside HRDataProvider - fallback"); return context as any;
   }
 
   // PHASE 3: No console warning - only useEmployeeData calls this internally

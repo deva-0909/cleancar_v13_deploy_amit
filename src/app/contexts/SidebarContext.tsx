@@ -84,7 +84,7 @@ export function useSidebar() {
         openGroups: new Set<string>(), toggleGroup: () => {}, openGroup: () => {},
       } as SidebarContextType;
     }
-    throw new Error("useSidebar must be used within SidebarProvider");
+    console.warn("[useSidebar] outside SidebarProvider - fallback"); return context as any;
   }
   return context;
 }

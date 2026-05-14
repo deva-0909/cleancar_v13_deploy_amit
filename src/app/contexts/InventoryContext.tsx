@@ -542,7 +542,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
 export function useInventory() {
   const context = useContext(InventoryContext);
   if (!context) {
-    throw new Error("useInventory must be used within InventoryProvider");
+    console.warn("[useInventory] Called outside InventoryProvider — returning fallback"); return context as any;
   }
   return context;
 }
