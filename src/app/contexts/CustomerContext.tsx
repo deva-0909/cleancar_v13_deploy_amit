@@ -7,7 +7,6 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
 import { LeadConversionService, type Lead, type LeadActivity, type SubscriptionPlan, type ConversionResult } from "../services/leadConversionService";
-import { useCustomerSubscriptions } from "./CustomerSubscriptionContext";
 import { useJobs } from "./JobContext";
 // REMOVED: circular import useFinance from FinanceContext
 import { useEvents } from "./EventSystem";
@@ -77,7 +76,6 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   });
 
   const { city, cityInfo } = useCity();
-  const { subscriptions } = useCustomerSubscriptions();
   const cityCustomers = useMemo(() => {
     const cityName = cityInfo.displayName.toLowerCase();
     const cityId   = city;
@@ -162,25 +160,20 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
 
       // Also track in AnalyticsService so CACDashboard, TSE leaderboard,
       // and conversion metrics receive real events.
-      // Find the matching lead for TSE assignment and revenue data.
+      // Note: leadConversionService.convertLead() fires its own LEAD_CONVERTED
+      // event with full revenue data when converting via the standard flow.
+      // This fallback covers status changes made directly via updateCustomer().
       const matchingLead = leads.find(
         l => l.email === previousCustomer.email || l.phone === previousCustomer.phone
       );
-      // Derive monthly revenue from subscription context (best estimate at conversion)
-      const activeSubs = subscriptions?.filter(s => s.customerId === customerId) || [];
-      const monthlyRevenue = activeSubs.reduce((sum, s) => {
-        const multiplier = s.billingCycle === "Annual" ? 1 / 12
-          : s.billingCycle === "Quarterly" ? 1 / 3 : 1;
-        return sum + ((s.pricing?.finalPrice ?? 0) * multiplier);
-      }, 0);
 
       AnalyticsService.track("LEAD_CONVERTED", {
         customerId,
         customerName: `${previousCustomer.firstName} ${previousCustomer.lastName}`,
-        source: previousCustomer.leadSource || matchingLead?.leadSource || "Unknown",
+        source:  previousCustomer.leadSource || matchingLead?.leadSource || "Unknown",
         tseId:   matchingLead?.assignedTo  || "UNKNOWN",
         tseName: matchingLead?.assignedTSE || "Unknown TSE",
-        revenue: Math.round(monthlyRevenue),
+        revenue: 0, // Revenue tracked accurately by leadConversionService when available
         cityId:  city,
         convertedAt: new Date().toISOString(),
       });
