@@ -5,7 +5,7 @@
  * CRITICAL: Uses services for business logic - NO direct mutations
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo, useRef} from "react";
 import { LeadConversionService, type Lead, type LeadActivity, type SubscriptionPlan, type ConversionResult } from "../services/leadConversionService";
 import { useJobs } from "./JobContext";
 // REMOVED: circular import useFinance from FinanceContext
@@ -71,6 +71,8 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
 
   const [leads, setLeads] = useState<Lead[]>(() => {
     const stored = DataService.get<Lead>("LEADS");
+  const _dbCustTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const _dbLeadsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     logger.debug("Leads loaded", { count: stored.length });
     return stored;
   });
@@ -110,12 +112,17 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Only persist if small dataset — large customer lists use Supabase directly
-    if (customers.length > 0 && customers.length <= 200) DataService.setAll("CUSTOMERS", customers);
+    if (_dbCustTimer.current) clearTimeout(_dbCustTimer.current);
+    _dbCustTimer.current = setTimeout(() => {
+      if (customers.length > 0 && customers.length <= 200) DataService.setAll("CUSTOMERS", customers);
+    }, 500);
   }, [customers]);
 
   useEffect(() => {
-    if (leads.length > 0 && leads.length <= 300) DataService.setAll("LEADS", leads);
+    if (_dbLeadsTimer.current) clearTimeout(_dbLeadsTimer.current);
+    _dbLeadsTimer.current = setTimeout(() => {
+      if (leads.length > 0 && leads.length <= 300) DataService.setAll("LEADS", leads);
+    }, 500);
   }, [leads]);
 
   // Backend sync (background, non-blocking)
@@ -236,9 +243,8 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     setLeads((prev) => prev.filter((lead) => lead.leadId !== id));
   };
 
-  return (
-    <CustomerContext.Provider
-      value={{
+  const customerContextValue = useMemo(() => ({
+
         customers,
         cityCustomers,
         addCustomer,
@@ -252,7 +258,13 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         updateLead,
         deleteLead,
         appendLeadActivity,
-      }}
+      }),
+  // eslint-disable-line react-hooks/exhaustive-deps
+  [customers, cityCustomers, addCustomer, updateCustomer, getCustomerById, getCustomersByStatus, deleteCustomer, leads, cityLeads, addLead, updateLead, deleteLead]);
+
+  return (
+    <CustomerContext.Provider
+      value={customerContextValue}
     >
       {children}
     </CustomerContext.Provider>

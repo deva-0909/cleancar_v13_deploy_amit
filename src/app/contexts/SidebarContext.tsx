@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useRef} from "react";
 
 interface SidebarContextType {
   collapsed: boolean;
@@ -23,6 +23,8 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem("sidebarOpenGroups");
+  const _dbCollapsedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const _dbGroupsTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
       return stored ? new Set(JSON.parse(stored)) : new Set<string>();
     } catch { return new Set<string>(); }
   });
@@ -47,20 +49,29 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    try { localStorage.setItem("sidebarCollapsed", String(collapsed)); } catch {}
+    if (_dbCollapsedTimer.current) clearTimeout(_dbCollapsedTimer.current);
+    _dbCollapsedTimer.current = setTimeout(() => {
+      try { localStorage.setItem("sidebarCollapsed", String(collapsed)); } catch {}
+    }, 300);
   }, [collapsed]);
 
   useEffect(() => {
-    try { localStorage.setItem("sidebarOpenGroups", JSON.stringify([...openGroups])); } catch {}
+    if (_dbGroupsTimer.current) clearTimeout(_dbGroupsTimer.current);
+    _dbGroupsTimer.current = setTimeout(() => {
+      try { localStorage.setItem("sidebarOpenGroups", JSON.stringify([...openGroups])); } catch {}
+    }, 300);
   }, [openGroups]);
 
-  const value: SidebarContextType = {
+  const contextValue = useMemo((): SidebarContextType => ({
     collapsed, setCollapsed, toggleSidebar,
     userToggled, setUserToggled,
     openGroups, toggleGroup, openGroup,
-  };
+  };)),
+  // eslint-disable-line react-hooks/exhaustive-deps
+  // deps: state vars and stable callbacks
+  [collapsed, userToggled, openGroups]);
 
-  return <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>;
+    return <SidebarContext.Provider value={contextValue}>{children}</SidebarContext.Provider>;
 }
 
 export function useSidebar() {

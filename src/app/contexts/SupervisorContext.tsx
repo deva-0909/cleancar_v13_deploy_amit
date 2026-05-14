@@ -6,7 +6,7 @@
  * PHASE 3: Uses useEmployeeData (single source of truth) for employee and attendance data
  */
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo} from "react";
 import { useRole } from "./RoleContext";
 import { useEmployeeData } from "../hooks/useEmployeeData";
 import { useEvents, useEventListener } from "./EventSystem";
@@ -229,7 +229,11 @@ export function SupervisorProvider({ children }: SupervisorProviderProps) {
     if (hasValidSetup) {
       loadData();
     }
-  }, [hasValidSetup, employees, attendanceRecords]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasValidSetup, supervisorId]);
+  // Removed `employees` and `attendanceRecords` from deps — those are full arrays
+  // that change on every employee edit anywhere in the app. supervisorId is stable
+  // and hasValidSetup covers the meaningful initialization condition.
 
   // Auto-refresh every 30 seconds for real-time feel
   useEffect(() => {
@@ -339,7 +343,7 @@ export function SupervisorProvider({ children }: SupervisorProviderProps) {
 
   // ========== CONTEXT VALUE ==========
 
-  const value: SupervisorContextType = {
+  const contextValue: SupervisorContextType = useMemo(() => ({
     summary,
     team,
     alerts,
@@ -364,10 +368,11 @@ export function SupervisorProvider({ children }: SupervisorProviderProps) {
     shiftFocusAreas,
     isLoading,
     error,
-  };
+  }),
+  [summary, team, alerts, unreadAlertsCount, auditTasks, clothBatches, schedule, leads, incentive, issues]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <SupervisorContext.Provider value={value}>
+    <SupervisorContext.Provider value={contextValue}>
       {children}
     </SupervisorContext.Provider>
   );

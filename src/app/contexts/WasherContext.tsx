@@ -7,7 +7,7 @@
  * CRITICAL: Delegates attendance to washerAttendanceService for proper HR integration
  */
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useMemo} from "react";
 import { useRole } from "./RoleContext";
 import { useEmployeeData } from "../hooks/useEmployeeData";
 import { useEvents } from "./EventSystem";
@@ -428,7 +428,7 @@ export function WasherProvider({ children }: WasherProviderProps) {
 
   // ========== PROVIDER VALUE ==========
 
-  const value: WasherContextType = {
+  const contextValue: WasherContextType = useMemo(() => ({
     profile,
     dayStatus,
     isCheckedIn,
@@ -449,10 +449,11 @@ export function WasherProvider({ children }: WasherProviderProps) {
     refreshData,
     isLoading,
     error,
-  };
+  }),
+  [profile, dayStatus, isCheckedIn, isCheckedOut, checkInTime, checkOutTime, jobs, activeJob, jobExecution, stats]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <WasherContext.Provider value={value}>
+    <WasherContext.Provider value={contextValue}>
       {children}
     </WasherContext.Provider>
   );

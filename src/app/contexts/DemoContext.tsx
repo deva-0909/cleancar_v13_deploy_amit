@@ -6,7 +6,7 @@
  * Version: 2.0
  */
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useRef} from "react";
 import { DataService } from "../services/DataService";
 // mockData removed — DemoContext now uses DataService
 
@@ -138,7 +138,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
   // Persist demos to DataService on every change
   useEffect(() => {
-    if (demos.length > 0) DataService.setAll("DEMOS", demos);
+    if (_dbDemosTimer.current) clearTimeout(_dbDemosTimer.current);
+    _dbDemosTimer.current = setTimeout(() => DataService.setAll("DEMOS", demos), 500);
   }, [demos]);
 
   // Log to verify provider is mounting
@@ -376,7 +377,20 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <DemoContext.Provider value={{ 
+    <DemoContext.Provider value={contextValue}>
+      {children}
+    </DemoContext.Provider>
+  );
+}
+
+export function useDemos() {
+  const context = useContext(DemoContext);
+  if (context === undefined) {
+    console.error("useDemos hook called outside DemoProvider. Make sure the component is wrapped in DemoProvider.");
+    throw new Error("useDemos must be used within a DemoProvider");
+  }
+  const contextValue = useMemo(() => ({
+ 
       demos, 
       addDemo, 
       updateDemo, 
@@ -390,17 +404,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       rescheduleDemo,
       cancelDemo,
       cancelWasherAssignment
-    }}>
-      {children}
-    </DemoContext.Provider>
-  );
-}
+    }),
+  [demos, addDemo, updateDemo, assignWasher, acknowledgeDemo, startDemo, completeDemo, checkPreviousDemos, requestTLApproval, approveTLRequest]); // eslint-disable-line react-hooks/exhaustive-deps
 
-export function useDemos() {
-  const context = useContext(DemoContext);
-  if (context === undefined) {
-    console.error("useDemos hook called outside DemoProvider. Make sure the component is wrapped in DemoProvider.");
-    throw new Error("useDemos must be used within a DemoProvider");
-  }
   return context;
 }

@@ -151,15 +151,15 @@ export function CityProvider({ children }: CityProviderProps) {
     setCityState(newCity);
   };
 
-  const value: CityContextValue = {
+  const cityValue = useMemo((): CityContextValue => ({
     city,
     cityInfo: CITIES[city],
     setCity,
     availableCities,
     isLocked,
-  };
+  }), [city, availableCities, isLocked]); // setCity is stable
 
-  return <CityContext.Provider value={value}>{children}</CityContext.Provider>;
+  return <CityContext.Provider value={cityValue}>{children}</CityContext.Provider>;
 }
 
 export function useCity() {

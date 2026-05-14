@@ -26,7 +26,7 @@
  * ============================================================================
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef} from "react";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 
@@ -299,11 +299,14 @@ export function BusinessRulesProvider({ children }: BusinessRulesProviderProps) 
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const _dbRulesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Persist to storage whenever rules change
   useEffect(() => {
-    if (rules) DataService.setAll("BUSINESS_RULES", [rules]);
-    logger.debug("BusinessRulesContext: Rules persisted", { version: rules.version });
+    if (_dbRulesTimer.current) clearTimeout(_dbRulesTimer.current);
+    _dbRulesTimer.current = setTimeout(() => {
+      if (rules) DataService.setAll("BUSINESS_RULES", [rules]);
+    }, 500);
   }, [rules]);
 
   // ========== ACTIONS ==========
@@ -484,7 +487,7 @@ export function BusinessRulesProvider({ children }: BusinessRulesProviderProps) 
 
   // ========== CONTEXT VALUE ==========
 
-  const value: BusinessRulesContextType = {
+  const contextValue: BusinessRulesContextType = useMemo(() => ({
     rules,
     updateRules,
     updateClusterManager,
@@ -500,10 +503,11 @@ export function BusinessRulesProvider({ children }: BusinessRulesProviderProps) 
     setIncentiveMultiplier,
     resetToDefaults,
     isLoading,
-  };
+  }),
+  [rules, updateRules, updateClusterManager, updateOperationsManager, updateCustomerCare, getRevenueTarget, setRevenueTargetByCity, getCostPerJob, setCostPerJob, getTargetMargin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <BusinessRulesContext.Provider value={value}>
+    <BusinessRulesContext.Provider value={contextValue}>
       {children}
     </BusinessRulesContext.Provider>
   );

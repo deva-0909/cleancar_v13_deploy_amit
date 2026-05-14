@@ -225,8 +225,12 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     };
   }, [currentRole]);
 
+  const roleValue = useMemo(() => ({
+    currentRole, setCurrentRole, roleConfig, currentUser,
+  }), [currentRole, roleConfig, currentUser]); // setCurrentRole is stable
+
   return (
-    <RoleContext.Provider value={{ currentRole, setCurrentRole, roleConfig, currentUser }}>
+    <RoleContext.Provider value={roleValue}>
       {children}
     </RoleContext.Provider>
   );

@@ -6,7 +6,7 @@
  * called, custom roles and overrides are automatically respected.
  */
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo} from "react";
 import { rolePermissionService, CustomRole, RolePermissionOverride } from "../services/rolePermissionService";
 import { useCity } from "./CityContext";
 import type { Role } from "../lib/roleConfig";
@@ -78,11 +78,7 @@ export function CustomRoleProvider({ children }: { children: ReactNode }) {
     !!rolePermissionService.getRoleOverride(role, city);
 
   return (
-    <CustomRoleContext.Provider value={{
-      customRoles, getCustomRolesForParent, createCustomRole,
-      updateCustomRole, deactivateCustomRole, getRoleEffectivePermissions,
-      saveRolePermissions, resetRoleToDefault, hasRoleOverride, refresh: loadData,
-    }}>
+    <CustomRoleContext.Provider value={contextValue}>
       {children}
     </CustomRoleContext.Provider>
   );
@@ -91,5 +87,13 @@ export function CustomRoleProvider({ children }: { children: ReactNode }) {
 export function useCustomRoles() {
   const ctx = useContext(CustomRoleContext);
   if (!ctx) throw new Error("useCustomRoles must be used within CustomRoleProvider");
+  const contextValue = useMemo(() => ({
+
+      customRoles, getCustomRolesForParent, createCustomRole,
+      updateCustomRole, deactivateCustomRole, getRoleEffectivePermissions,
+      saveRolePermissions, resetRoleToDefault, hasRoleOverride, refresh: loadData,
+    }),
+  [customRoles, updateCustomRole, saveRolePermissions]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return ctx;
 }

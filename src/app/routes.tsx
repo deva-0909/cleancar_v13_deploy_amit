@@ -17,7 +17,7 @@ const HRModule = lazy(() => import("./components/modules/HRModule"));
 const ProfessionalLeaveManagement = lazy(() => import("./components/hr/ProfessionalLeaveManagement"));
 const StatutoryFormsOnboarding = lazy(() => import("./components/hr/StatutoryFormsOnboarding"));
 const TravelReimbursementModule = lazy(() => import("./components/travel/TravelReimbursementModule"));
-import CreateSalaryStructure from "./components/payroll/CreateSalaryStructure";
+const CreateSalaryStructure = lazy(() => import("./components/payroll/CreateSalaryStructure"));
 const ChartOfAccounts = lazy(() => import("./components/finance/ChartOfAccounts"));
 const AdminPlanManagement = lazy(() => import("./components/subscription/AdminPlanManagement"));
 const IncentiveConfiguration = lazy(() => import("./components/incentives/IncentiveConfiguration"));
@@ -46,10 +46,10 @@ import { OnboardingRedirect } from "./components/onboarding/OnboardingRedirect";
 import { DevOnlyRoute } from "./components/guards/DevOnlyRoute";
 import { Dashboard } from "./components/Dashboard";
 import { UserManagement } from "./components/modules/UserManagement";
-import { CRMLeadManagementWithFilters } from "./components/modules/CRMLeadManagementWithFilters";
+const CRMLeadManagementWithFilters = lazy(() => import("./components/modules/CRMLeadManagementWithFilters").then(m => ({ default: m.CRMLeadManagementWithFilters })));
 import { CRMConversionAnalyticsDashboard } from "./components/modules/CRMConversionAnalyticsDashboard";
 import { CustomerSubscription } from "./components/modules/CustomerSubscription";
-import { SupervisorModuleUpdated } from "./components/modules/SupervisorModuleUpdated";
+const SupervisorModuleUpdated = lazy(() => import("./components/modules/SupervisorModuleUpdated").then(m => ({ default: m.SupervisorModuleUpdated })));
 import { OperationsManagerApp } from "./components/om/OperationsManagerApp";
 import { ComplaintManagement } from "./components/modules/ComplaintManagement";
 import { InventoryStore } from "./components/modules/InventoryStore";
@@ -76,19 +76,19 @@ import PaymentManagement from "./components/finance/PaymentManagement";
 // import { HRModule } from "./components/modules/HRModule"; // NOW LAZY
 // import { ProfessionalLeaveManagement } from "./components/hr/ProfessionalLeaveManagement"; // NOW LAZY
 import { LeavePolicyEngine } from "./components/hr/LeavePolicyEngine";
-import { EmployeeOnboarding } from "./components/hr/EmployeeOnboarding";
+const EmployeeOnboarding = lazy(() => import("./components/hr/EmployeeOnboarding").then(m => ({ default: m.EmployeeOnboarding })));
 import { ExitFFSettlement } from "./components/hr/ExitFFSettlement";
 import { EmployeeLifecycleManagement } from "./components/hr/EmployeeLifecycleManagement";
 import { LettersDocuments } from "./components/hr/LettersDocuments";
 import { IDCardGenerator } from "./components/hr/IDCardGenerator";
 import { HolidayManagement } from "./components/hr/HolidayManagement";
 import { LifeCycleReports } from "./components/hr/LifeCycleReports";
-import { EmployeeLedger } from "./components/hr/EmployeeLedger";
+const EmployeeLedger = lazy(() => import("./components/hr/EmployeeLedger").then(m => ({ default: m.EmployeeLedger })));
 // import { StatutoryFormsOnboarding } from "./components/hr/StatutoryFormsOnboarding"; // NOW LAZY
-import { StatutoryFormsVerification } from "./components/hr/StatutoryFormsVerification";
+const StatutoryFormsVerification = lazy(() => import("./components/hr/StatutoryFormsVerification").then(m => ({ default: m.StatutoryFormsVerification })));
 import { OnboardingAutomation } from "./components/hr/OnboardingAutomation";
 import { EmployeeSalaryAssignment } from "./components/payroll/EmployeeSalaryAssignment";
-import { EmployeeSelfService } from "./components/hr/EmployeeSelfService";
+const EmployeeSelfService = lazy(() => import("./components/hr/EmployeeSelfService").then(m => ({ default: m.EmployeeSelfService })));
 import { AttendanceDataManager } from "./components/admin/AttendanceDataManager";
 import { ApprovalCenter as ApprovalCenterHR } from "./components/hr/ApprovalCenter";
 import { TestStatutoryRoutes } from "./components/TestStatutoryRoutes";
@@ -103,7 +103,7 @@ import { ExpenseAnalytics } from "./components/accounts/ExpenseAnalytics";
 import { VendorPayment } from "./components/accounts/VendorPayment";
 import { GSTDashboard } from "./components/accounts/GSTDashboard";
 // Phase 1 Accounting Entry System
-import { AccountingEntry } from "./components/accounts/AccountingEntry";
+const AccountingEntry = lazy(() => import("./components/accounts/AccountingEntry").then(m => ({ default: m.AccountingEntry })));
 import { JournalEntry } from "./components/accounts/JournalEntry";
 import { AccountsDashboard } from "./components/accounts/AccountsDashboard";
 import { AccountingTransactionList } from "./components/accounts/AccountingTransactionList";
@@ -111,7 +111,7 @@ import { AccountsLedger } from "./components/accounts/AccountsLedger";
 import { TrialBalance } from "./components/accounts/TrialBalance";
 import { BalanceSheet } from "./components/accounts/BalanceSheet";
 import { LedgerMaster } from "./components/accounts/LedgerMaster";
-import { RazorpayFlow } from "./components/accounts/RazorpayFlow";
+const RazorpayFlow = lazy(() => import("./components/accounts/RazorpayFlow").then(m => ({ default: m.RazorpayFlow })));
 import { ExpenseVoucher } from "./components/accounts/ExpenseVoucher";
 import { ItemMaster } from "./components/accounts/ItemMaster";
 const TDSPayableModule = lazy(() => import("./components/accounts/TDSPayableModule"));
@@ -141,7 +141,7 @@ import { AnalyticsDashboardWithDrillDown } from "./components/dashboards/Analyti
 // import { EmployeeEfficiency } from "./components/analytics/EmployeeEfficiency"; // NOW LAZY
 // import { CityComparison } from "./components/analytics/CityComparison"; // NOW LAZY
 import { RoleBasedAnalyticsDashboard } from "./components/examples/RoleBasedAnalyticsDashboard";
-import { CostPerWashReport } from "./components/reports/CostPerWashReport";
+const CostPerWashReport = lazy(() => import("./components/reports/CostPerWashReport").then(m => ({ default: m.CostPerWashReport })));
 // Founder module imports - NOW LAZY
 // import { FounderControlTower } from "./components/founder/FounderControlTower"; // NOW LAZY
 // import { DetailedFinancialView } from "./components/founder/DetailedFinancialView"; // NOW LAZY
@@ -154,14 +154,14 @@ import { PayrollConfigTest } from "./components/payroll/PayrollConfigTest";
 // import { CreateSalaryStructure } from "./components/payroll/CreateSalaryStructure"; // NOW LAZY
 import { PayrollRun } from "./components/payroll/PayrollRun";
 import { PayrollProcessing } from "./components/payroll/PayrollProcessing";
-import { PayrollProcessingAdvanced } from "./components/payroll/PayrollProcessingAdvanced";
+const PayrollProcessingAdvanced = lazy(() => import("./components/payroll/PayrollProcessingAdvanced").then(m => ({ default: m.PayrollProcessingAdvanced })));
 import { PayrollReviewApproval } from "./components/payroll/PayrollReviewApproval";
 import { SalaryPayableView } from "./components/payroll/SalaryPayableView";
 import { SalaryPaymentScreen } from "./components/payroll/SalaryPaymentScreen";
 import { StatutoryPayablesScreen } from "./components/payroll/StatutoryPayablesScreen";
 import { PlanEditor } from "./components/subscription/PlanEditor";
 import { CommunicationTemplates } from "./components/settings/CommunicationTemplates";
-import { CostConfiguration } from "./components/settings/CostConfiguration";
+const CostConfiguration = lazy(() => import("./components/settings/CostConfiguration").then(m => ({ default: m.CostConfiguration })));
 import { ServiceZonesManagement } from "./components/modules/ServiceZonesManagement";
 import { WasherJobExecution } from "./components/modules/WasherJobExecution";
 import { ExpansionOpportunities } from "./components/modules/ExpansionOpportunities";
@@ -175,7 +175,7 @@ import { LongTermAdvanceForm } from "./components/advance/LongTermAdvanceForm";
 import { ShortTermAdvanceForm } from "./components/advance/ShortTermAdvanceForm";
 import { EmployeeAdvanceDashboard } from "./components/advance/EmployeeAdvanceDashboard";
 import { AdvanceDetailView } from "./components/advance/AdvanceDetailView";
-import { HRAdvanceManagement } from "./components/advance/HRAdvanceManagement";
+const HRAdvanceManagement = lazy(() => import("./components/advance/HRAdvanceManagement").then(m => ({ default: m.HRAdvanceManagement })));
 import { OtherEarningsModule } from "./components/advance/OtherEarningsModule";
 import { OtherDeductionsModule } from "./components/advance/OtherDeductionsModule";
 import { AdjustmentsReport } from "./components/advance/AdjustmentsReport";
@@ -185,14 +185,14 @@ import { WeekOffCoverDemo } from "./components/washer/WeekOffCoverDemo";
 import { SystemIntegrationDemo } from "./components/washer/SystemIntegrationDemo";
 import { WasherCoreScreensDemo } from "./components/washer/WasherCoreScreensDemo";
 import { WasherCoreScreensConnected } from "./components/washer/WasherCoreScreensConnected";
-import { SupervisorAppConnected } from "./components/supervisor/SupervisorAppConnected";
+const SupervisorAppConnected = lazy(() => import("./components/supervisor/SupervisorAppConnected").then(m => ({ default: m.SupervisorAppConnected })));
 import { SupervisorLayout } from "./components/supervisor/SupervisorLayout";
 import { ClusterManagerApp } from "./components/cm/ClusterManagerApp";
-import { CityManagerApp } from "./components/city/CityManagerApp";
+const CityManagerApp = lazy(() => import("./components/city/CityManagerApp").then(m => ({ default: m.CityManagerApp })));
 import { TeleSalesManagerApp } from "./components/tsm/TeleSalesManagerApp";
 import { TeleSalesExecutiveApp } from "./components/tse/TeleSalesExecutiveApp";
 import { TSEDiagnostics } from "./components/tse/TSEDiagnostics";
-import { CustomerCareExecutiveApp } from "./components/cce/CustomerCareExecutiveApp";
+const CustomerCareExecutiveApp = lazy(() => import("./components/cce/CustomerCareExecutiveApp").then(m => ({ default: m.CustomerCareExecutiveApp })));
 import TestBTLService from "./test-btl-service";
 import { SubscriptionApp } from "./components/subscription/SubscriptionApp";
 import { PlanSelectionScreen } from "./components/subscription/PlanSelectionScreen";
@@ -209,7 +209,7 @@ import { WorkingHoursTest } from "./components/workforce/WorkingHoursTest";
 import { WorkingHoursSimple } from "./components/workforce/WorkingHoursSimple";
 import { WorkforceDiagnostic } from "./components/workforce/WorkforceDiagnostic";
 // import { IncentiveConfiguration } from "./components/incentives/IncentiveConfiguration"; // NOW LAZY
-import { IncentiveSimulator } from "./components/incentives/IncentiveSimulator";
+const IncentiveSimulator = lazy(() => import("./components/incentives/IncentiveSimulator").then(m => ({ default: m.IncentiveSimulator })));
 import { IncentiveDashboard } from "./components/incentives/IncentiveDashboard";
 import { HRPayrollApproval } from "./components/hr/HRPayrollApproval";
 import { SuperAdminPayrollApproval } from "./components/admin/SuperAdminPayrollApproval";
@@ -225,7 +225,7 @@ import { AccountsPayrollProcessing } from "./components/accounts/AccountsPayroll
 import { GSTOverview } from "./components/gst/GSTOverview";
 import { GSTVendorMaster } from "./components/gst/GSTVendorMaster";
 import { GSTCustomerMaster } from "./components/gst/GSTCustomerMaster";
-import { GSTTransactionEntry } from "./components/gst/GSTTransactionEntry";
+const GSTTransactionEntry = lazy(() => import("./components/gst/GSTTransactionEntry").then(m => ({ default: m.GSTTransactionEntry })));
 import { GSTValidationCentre } from "./components/gst/GSTValidationCentre";
 import { GSTManagerReview } from "./components/gst/GSTManagerReview";
 import { GSTReconciliation } from "./components/gst/GSTReconciliation";

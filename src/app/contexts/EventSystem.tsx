@@ -5,7 +5,7 @@
  * NOTE: This handles SYSTEM events only, not UI-only actions
  */
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo} from "react";
 
 // System Event Types (NO UI-only actions)
 export type SystemEventType =
@@ -123,11 +123,7 @@ export function EventSystemProvider({ children }: { children: ReactNode }) {
 
   return (
     <EventSystemContext.Provider
-      value={{
-        emit,
-        subscribe,
-        getEventHistory,
-      }}
+      value={contextValue}
     >
       {children}
     </EventSystemContext.Provider>
@@ -139,6 +135,14 @@ export function useEvents() {
   if (!context) {
     throw new Error("useEvents must be used within EventSystemProvider");
   }
+  const contextValue = useMemo(() => ({
+
+        emit,
+        subscribe,
+        getEventHistory,
+      }),
+  [emit, subscribe, getEventHistory]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return context;
 }
 

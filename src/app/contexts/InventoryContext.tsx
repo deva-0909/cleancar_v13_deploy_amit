@@ -3,7 +3,7 @@
  * Used across: Inventory Module, Requisitions, Issuances, Procurement
  */
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useRef} from "react";
 import { useEvents } from "./EventSystem";
 import { DataService } from "../services/DataService";
 
@@ -114,14 +114,18 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const [stockTransactions, setStockTransactions] = useState<StockTransaction[]>(() =>
     DataService.get<StockTransaction>("STOCK_TRANSACTIONS")
   );
+  const _dbInvTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const _dbTxnTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { emit } = useEvents();
 
   useEffect(() => {
-    DataService.setAll("INVENTORY_ITEMS", inventory);
+    if (_dbInvTimer.current) clearTimeout(_dbInvTimer.current);
+    _dbInvTimer.current = setTimeout(() => DataService.setAll("INVENTORY_ITEMS", inventory), 500);
   }, [inventory]);
 
   useEffect(() => {
-    DataService.setAll("STOCK_TRANSACTIONS", stockTransactions);
+    if (_dbTxnTimer.current) clearTimeout(_dbTxnTimer.current);
+    _dbTxnTimer.current = setTimeout(() => DataService.setAll("STOCK_TRANSACTIONS", stockTransactions), 500);
   }, [stockTransactions]);
 
   // Inventory Item CRUD
@@ -507,7 +511,20 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
 
   return (
     <InventoryContext.Provider
-      value={{
+      value={contextValue}
+    >
+      {children}
+    </InventoryContext.Provider>
+  );
+}
+
+export function useInventory() {
+  const context = useContext(InventoryContext);
+  if (!context) {
+    throw new Error("useInventory must be used within InventoryProvider");
+  }
+  const contextValue = useMemo(() => ({
+
         inventory,
         addInventoryItem,
         updateInventoryItem,
@@ -525,17 +542,8 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
         getSupervisorStock,
         getWasherStock,
         getPendingTransactions,
-      }}
-    >
-      {children}
-    </InventoryContext.Provider>
-  );
-}
+      }),
+  [inventory, addInventoryItem, updateInventoryItem, getItemById, getLowStockItems, stockTransactions, createTransaction, approveTransaction, completeTransaction, issueInventory]); // eslint-disable-line react-hooks/exhaustive-deps
 
-export function useInventory() {
-  const context = useContext(InventoryContext);
-  if (!context) {
-    throw new Error("useInventory must be used within InventoryProvider");
-  }
   return context;
 }

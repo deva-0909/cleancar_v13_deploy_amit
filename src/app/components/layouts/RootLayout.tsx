@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import {
   Users, BarChart3, UserCircle, Car, ClipboardList,
@@ -120,34 +120,40 @@ export function RootLayout() {
   useRoleBasedRedirect(currentRole);
 
   // Safe role setter - prevents invalid roles from entering state
-  const setSafeRole = (role: string) => {
+  const setSafeRole = useCallback((role: string) => {
     if (roleConfigurations[role as Role]) {
       setCurrentRole(role as Role);
     } else {
       console.error(`❌ Invalid role selected: "${role}". Falling back to Super Admin.`);
       setCurrentRole("Super Admin");
     }
-  };
+  }, [setCurrentRole]);
 
   // Get valid roles from roleConfigurations (single source of truth)
   const validRoles = Object.keys(roleConfigurations) as Role[];
 
   // Notification handlers
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(notifications.map(n =>
+  const handleMarkAsRead = useCallback((id: string) => {
+    setNotifications(prev => prev.map(n =>
       n.id === id ? { ...n, isRead: true } : n
     ));
-  };
+  }, []);
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, isRead: true })));
-  };
+  const handleMarkAllAsRead = useCallback(() => {
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  }, []);
 
   // Build dynamic navigation based on user permissions with city context
-  const userNavigation = buildNavigation(currentEmployee, city);
-  const userQuickActions = buildQuickActions(currentEmployee, city);
+  const userNavigation = useMemo(
+    () => buildNavigation(currentEmployee, city),
+    [currentRole, city] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const userQuickActions = useMemo(
+    () => buildQuickActions(currentEmployee, city),
+    [currentRole, city] // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
-  const filteredNavigation = sidebarSearch.trim()
+  const filteredNavigation = useMemo(() => sidebarSearch.trim()
     ? userNavigation.flatMap(section => {
         const q = sidebarSearch.toLowerCase();
         // Check if section label matches
@@ -161,7 +167,7 @@ export function RootLayout() {
         }
         return [];
       })
-    : userNavigation;
+    : userNavigation, [userNavigation, sidebarSearch]);
 
   // ✅ Smart Auto-Collapse Engine
   // Startup storage purge

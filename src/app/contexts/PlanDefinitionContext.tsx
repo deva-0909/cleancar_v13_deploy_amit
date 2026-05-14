@@ -156,7 +156,7 @@ export function PlanDefinitionProvider({ children }: { children: ReactNode }) {
   // Filter plan types for subscription-only (exclude One-Time)
   const subscriptionPlanTypes = PLAN_TYPES.filter((plan) => !plan.includes("One-Time"));
 
-  const value: PlanDefinitionContextType = {
+  const contextValue: PlanDefinitionContextType = useMemo(() => ({
     // Core Plan Data
     activePlan,
     CURRENT_PLAN_VERSION,
@@ -187,10 +187,11 @@ export function PlanDefinitionProvider({ children }: { children: ReactNode }) {
     // One-Time Wash Pricing
     ONE_TIME_WASH_PRICING,
     getOneTimeWashPrice,
-  };
+  }),
+  [activePlan, getPlanPrice, getPlanDeliverables, getVehicleCategoryPlans, formatPrice, getAddOnById, getAddOnsByCategory, getAddOnsForPlan, getAddOnPrice, getComboById]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <PlanDefinitionContext.Provider value={value}>
+    <PlanDefinitionContext.Provider value={contextValue}>
       {children}
     </PlanDefinitionContext.Provider>
   );
