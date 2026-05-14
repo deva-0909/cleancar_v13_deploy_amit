@@ -70,14 +70,14 @@ interface UnitEconomicsMetrics {
 
 // NOTE: Trend data requires historical tracking
 // Representative data shown until time-series tracking is implemented
-const costPerWashTrend = [
+// Fallback seed data — used only when no real records exist yet
+const SEED_COST_TREND = [
   { id: "week-1", week: "Week 1", cost: 265, target: 250 },
   { id: "week-2", week: "Week 2", cost: 258, target: 250 },
   { id: "week-3", week: "Week 3", cost: 252, target: 250 },
   { id: "week-4", week: "Week 4", cost: 245, target: 250 },
 ];
-
-const revenueVsCostTrend = [
+const SEED_REVENUE_COST_TREND = [
   { id: "jan", month: "Jan", revenue: 485000, cost: 245000 },
   { id: "feb", month: "Feb", revenue: 520000, cost: 265000 },
   { id: "mar", month: "Mar", revenue: 565000, cost: 275000 },
@@ -85,16 +85,13 @@ const revenueVsCostTrend = [
   { id: "may", month: "May", revenue: 685000, cost: 310000 },
   { id: "jun", month: "Jun", revenue: 745000, cost: 325000 },
 ];
-
-// NOTE: Cost breakdown requires integration with payroll and inventory tracking
-// Representative percentage distribution shown
-const costBreakdown = [
-  { id: "cost-1", name: "Manpower", value: 42, amount: 102900 },
-  { id: "cost-2", name: "Chemicals", value: 18, amount: 44100 },
-  { id: "cost-3", name: "Water & Utilities", value: 12, amount: 29400 },
-  { id: "cost-4", name: "Equipment", value: 15, amount: 36750 },
-  { id: "cost-5", name: "Rent", value: 10, amount: 24500 },
-  { id: "cost-6", name: "Fuel", value: 3, amount: 7350 },
+const SEED_COST_BREAKDOWN = [
+  { id: "cost-1", name: "Manpower",           value: 42, amount: 102900 },
+  { id: "cost-2", name: "Chemicals",          value: 18, amount: 44100  },
+  { id: "cost-3", name: "Water & Utilities",  value: 12, amount: 29400  },
+  { id: "cost-4", name: "Equipment",          value: 15, amount: 36750  },
+  { id: "cost-5", name: "Rent",               value: 10, amount: 24500  },
+  { id: "cost-6", name: "Fuel",               value:  3, amount: 7350   },
 ];
 
 function UnitEconomicsDashboard() {
@@ -202,13 +199,79 @@ function UnitEconomicsDashboard() {
   const ltvCacRatio = customerCAC > 0 ? Number((customerLTV / customerCAC).toFixed(1)) : 0;
   const contributionMargin = revenuePerWash > 0 ? Number(((grossMarginPerWash / revenuePerWash) * 100).toFixed(1)) : 0;
 
-  // ✅ TODO: metrics come from FinanceContext + JobContext aggregation
-    const mockMetrics: UnitEconomicsMetrics = { revenuePerWash: 0, revenuePerCustomer: 0, costPerWash: 0, grossMarginPerWash: 0, contributionMargin: 0, customerLTV: 0, customerCAC: 0, ltvCacRatio: 0 }; // empty until live
+  // ── Live cost breakdown from real payables ───────────────────────────────
+  const liveCostBreakdown = useMemo(() => {
+    const paidPayables = getPayablesByCity(city).filter(p => p.status === "Paid");
+    if (paidPayables.length === 0) return SEED_COST_BREAKDOWN;
+    const totalCostAll = paidPayables.reduce((s, p) => s + p.amount, 0);
+    if (totalCostAll === 0) return SEED_COST_BREAKDOWN;
+    const buckets: Record<string, number> = {
+      Manpower: 0, Chemicals: 0, "Water & Utilities": 0,
+      Equipment: 0, Rent: 0, Statutory: 0, Other: 0,
+    };
+    paidPayables.forEach(p => {
+      if (p.type === "Salary") {
+        buckets["Manpower"] += p.amount;
+      } else if (p.type === "Statutory") {
+        buckets["Statutory"] += p.amount;
+      } else {
+        // Vendor payables — bucket by description keyword
+        const desc = (p.description || p.vendorName || "").toLowerCase();
+        if (desc.includes("chemical") || desc.includes("soap") || desc.includes("consumable")) {
+          buckets["Chemicals"] += p.amount;
+        } else if (desc.includes("water") || desc.includes("electric") || desc.includes("utility")) {
+          buckets["Water & Utilities"] += p.amount;
+        } else if (desc.includes("equip") || desc.includes("machine") || desc.includes("tool")) {
+          buckets["Equipment"] += p.amount;
+        } else if (desc.includes("rent") || desc.includes("lease")) {
+          buckets["Rent"] += p.amount;
+        } else {
+          buckets["Other"] += p.amount;
+        }
+      }
+    });
+    return Object.entries(buckets)
+      .filter(([, amount]) => amount > 0)
+      .map(([name, amount], i) => ({
+        id: `cost-live-${i}`,
+        name,
+        amount: Math.round(amount),
+        value: Math.round((amount / totalCostAll) * 100),
+      }));
+  }, [city, getPayablesByCity]);
 
-  // Memoize static chart data to prevent re-renders
-  const memoizedCostTrend = useMemo(() => costPerWashTrend, []);
+  // ── Live cost-per-wash trend by month ────────────────────────────────────
+  const liveCostTrend = useMemo(() => {
+    const paidPayables = getPayablesByCity(city).filter(p => p.status === "Paid" && p.paidAt);
+    const byMonth = new Map<string, number>();
+    paidPayables.forEach(p => {
+      const m = p.paidAt!.slice(0, 7);
+      byMonth.set(m, (byMonth.get(m) || 0) + p.amount);
+    });
+    const jobsByMonth = new Map<string, number>();
+    (jobs || []).filter(j => j.status === "Completed" || j.status === "Verified").forEach(j => {
+      const m = (j.completedAt || j.createdAt || "").slice(0, 7);
+      if (m) jobsByMonth.set(m, (jobsByMonth.get(m) || 0) + 1);
+    });
+    const trend = Array.from(byMonth.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-8)
+      .map(([month, cost], i) => {
+        const jobCount = jobsByMonth.get(month) || 1;
+        return {
+          id: `cpw-${i}`,
+          week: new Date(month + "-01").toLocaleString("en-IN", { month: "short" }),
+          cost: Math.round(cost / jobCount),
+          target: 250,
+        };
+      });
+    return trend.length > 0 ? trend : SEED_COST_TREND;
+  }, [city, getPayablesByCity, jobs]);
+
+  // Memoize chart data
+  const memoizedCostTrend = liveCostTrend;
   const memoizedRevenueCostTrend = realRevenueCostTrend;
-  const memoizedCostBreakdown = useMemo(() => costBreakdown, []);
+  const memoizedCostBreakdown = liveCostBreakdown;
 
   // Calculate subscription profitability from real data
   const packageTypes = Array.from(new Set(activeSubscriptions.map(sub => sub.packageType)));
@@ -376,7 +439,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Revenue per Customer</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  ₹{mockMetrics.safeNum(revenuePerCustomer)}
+                  ₹{safeNum(revenuePerCustomer)}
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <ArrowUpRight className="w-3 h-3 text-green-500" />
@@ -396,7 +459,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Revenue per Wash</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  ₹{mockMetrics.safeNum(revenuePerWash)}
+                  ₹{safeNum(revenuePerWash)}
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <ArrowUpRight className="w-3 h-3 text-green-500" />
@@ -416,7 +479,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Cost per Wash</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  ₹{mockMetrics.safeNum(costPerWash)}
+                  ₹{safeNum(costPerWash)}
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <ArrowDownRight className="w-3 h-3 text-green-500" />
@@ -436,7 +499,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Gross Margin per Wash</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  ₹{mockMetrics.safeNum(grossMarginPerWash)}
+                  ₹{safeNum(grossMarginPerWash)}
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <ArrowUpRight className="w-3 h-3 text-green-500" />
@@ -456,7 +519,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Customer LTV</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  ₹{mockMetrics.safeNum(customerLTV)}
+                  ₹{safeNum(customerLTV)}
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <span className="text-xs text-gray-600">Avg. 15 months retention</span>
@@ -475,7 +538,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Customer CAC</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  ₹{mockMetrics.safeNum(customerCAC)}
+                  ₹{safeNum(customerCAC)}
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <ArrowDownRight className="w-3 h-3 text-green-500" />
@@ -495,10 +558,15 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">LTV:CAC Ratio</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  {(mockMetrics?.ltvCacRatio ?? 0).toFixed(1)}x
+                  {ltvCacRatio.toFixed(1)}x
                 </div>
                 <div className="flex items-center gap-1 mt-2">
-                  <Badge className="bg-green-500 text-xs">Excellent</Badge>
+                  <Badge className={
+                    ltvCacRatio >= 3 ? "bg-green-500 text-xs" :
+                    ltvCacRatio >= 1.5 ? "bg-yellow-500 text-xs" :
+                    "bg-red-500 text-xs"
+                  }>
+                    {ltvCacRatio >= 3 ? "Excellent" : ltvCacRatio >= 1.5 ? "Fair" : "Poor"}</Badge>
                 </div>
               </div>
               <div className="p-2 bg-purple-50 rounded">
@@ -514,7 +582,7 @@ function UnitEconomicsDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Contribution Margin</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  {mockMetrics.contributionMargin}%
+                  {contributionMargin}%
                 </div>
                 <div className="flex items-center gap-1 mt-2">
                   <ArrowUpRight className="w-3 h-3 text-green-500" />
@@ -713,10 +781,10 @@ function UnitEconomicsDashboard() {
                     </td>
                     <td className="p-3 font-medium">{store.name}</td>
                     <td className="p-3 text-right">{store.customers}</td>
-                    <td className="p-3 text-right">{store.safeNum(washes)}</td>
-                    <td className="p-3 text-right font-medium">₹{store.safeNum(revenue)}</td>
-                    <td className="p-3 text-right text-red-600">₹{store.safeNum(cost)}</td>
-                    <td className="p-3 text-right font-semibold text-green-600">₹{store.safeNum(profit)}</td>
+                    <td className="p-3 text-right">{safeNum(store.washes)}</td>
+                    <td className="p-3 text-right font-medium">₹{safeNum(store.revenue)}</td>
+                    <td className="p-3 text-right text-red-600">₹{safeNum(store.cost)}</td>
+                    <td className="p-3 text-right font-semibold text-green-600">₹{safeNum(store.profit)}</td>
                     <td className="p-3 text-right">{store.margin}%</td>
                     <td className="p-3 text-center">
                       <Badge className="bg-green-500">Profitable</Badge>
@@ -754,13 +822,13 @@ function UnitEconomicsDashboard() {
                 {subscriptionProfitability.map((plan) => (
                   <tr key={plan.id} className="border-b hover:bg-gray-50">
                     <td className="p-3 font-medium">{plan.plan}</td>
-                    <td className="p-3 text-right">₹{plan.safeNum(price)}</td>
+                    <td className="p-3 text-right">₹{safeNum(plan.price)}</td>
                     <td className="p-3 text-right">{plan.avgWashes}</td>
                     <td className="p-3 text-right">{plan.customers}</td>
-                    <td className="p-3 text-right font-medium">₹{plan.safeNum(revenue)}</td>
-                    <td className="p-3 text-right text-red-600">₹{plan.safeNum(cost)}</td>
+                    <td className="p-3 text-right font-medium">₹{safeNum(plan.revenue)}</td>
+                    <td className="p-3 text-right text-red-600">₹{safeNum(plan.cost)}</td>
                     <td className={`p-3 text-right font-semibold ${plan.profit > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ₹{plan.safeNum(profit)}
+                      ₹{safeNum(plan.profit)}
                     </td>
                     <td className="p-3 text-right">{plan.margin}%</td>
                     <td className="p-3 text-center">

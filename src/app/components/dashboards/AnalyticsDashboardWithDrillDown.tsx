@@ -39,7 +39,7 @@
  * ============================================================================
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -68,17 +68,15 @@ import {
 import { DrillDownBreadcrumb } from "../analytics/DrillDownBreadcrumb";
 import { formatCurrency } from "../../lib/formatters";
 import {
-  MOCK_CITY_DATA,
-  MOCK_CLUSTER_DATA,
-  getCityData,
-  getAggregatedCityData,
-  getClusterData,
-  getCityClusters,
-  getAggregatedClusterData,
   type CityAnalyticsData,
   type ClusterAnalyticsData,
 } from "../../lib/mockData";
 import { CITIES, CLUSTERS, CITY_LABELS, CLUSTER_LABELS, type City, type ClusterId } from "../../lib/constants";
+import { useFinance } from "../../contexts/FinanceContext";
+import { useCustomers } from "../../contexts/CustomerContext";
+import { useEmployee } from "../../contexts/EmployeeContext";
+import { useCity } from "../../contexts/CityContext";
+import { useJobs } from "../../contexts/JobContext";
 
 type DrillDownLevel = "all" | "city" | "cluster";
 
@@ -88,14 +86,131 @@ export function AnalyticsDashboardWithDrillDown() {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [selectedCluster, setSelectedCluster] = useState<ClusterId | null>(null);
 
+  // Live context hooks
+  const { getRevenueByCity, getPayablesByCity } = useFinance();
+  const { customers } = useCustomers();
+  const { employees } = useEmployee();
+  const { availableCities } = useCity();
+  const { allJobs } = useJobs();
+
+  // Build live city-level analytics for all available cities
+  const liveCityData: CityAnalyticsData[] = useMemo(() => {
+    return availableCities.map(cityDef => {
+      const cityId = cityDef.id;
+      const cityName = cityDef.displayName.toUpperCase() as typeof CITIES[number];
+
+      const revenues  = getRevenueByCity(cityId).filter(r => r.status === "Received");
+      const payables  = getPayablesByCity(cityId).filter(p => p.status === "Paid");
+      const cityJobs  = (allJobs || []).filter(j =>
+        j.cityId === cityId && (j.status === "Completed" || j.status === "Verified")
+      );
+      const cityCustomers = (customers || []).filter(
+        c => (c as any).cityId === cityId && c.status === "Active"
+      );
+      const cityEmployees = (employees || []).filter(
+        e => (e.workLocation === cityId || (e as any).cityId === cityId) && e.status === "Active"
+      );
+
+      const totalRevenue  = revenues.reduce((s, r) => s + r.amount, 0);
+      const totalExpenses = payables.reduce((s, p) => s + p.amount, 0);
+      const labourCost    = payables.filter(p => p.type === "Salary").reduce((s, p) => s + p.amount, 0);
+      const materialCost  = payables.filter(p => p.type === "Vendor").reduce((s, p) => s + p.amount, 0);
+      const overheadCost  = totalExpenses - labourCost - materialCost;
+      const netRevenue    = totalRevenue;
+      const netIncome     = netRevenue - totalExpenses;
+
+      return {
+        city: cityName,
+        totalRevenue,
+        totalRefunds: 0,
+        netRevenue,
+        totalExpenses,
+        labourCost,
+        materialCost,
+        overheadCost: Math.max(0, overheadCost),
+        netIncome,
+        profitMargin: netRevenue > 0 ? Math.round((netIncome / netRevenue) * 1000) / 10 : 0,
+        unitsCompleted: cityJobs.length,
+        activeCustomers: cityCustomers.length,
+        employeeCount: cityEmployees.length,
+        refundRate: 0,
+      };
+    });
+  }, [availableCities, getRevenueByCity, getPayablesByCity, allJobs, customers, employees]);
+
+  // Aggregated "all cities" view
+  const aggregatedData: CityAnalyticsData = useMemo(() => {
+    const totalRevenue  = liveCityData.reduce((s, c) => s + c.totalRevenue, 0);
+    const totalRefunds  = 0;
+    const totalExpenses = liveCityData.reduce((s, c) => s + c.totalExpenses, 0);
+    const netRevenue    = totalRevenue - totalRefunds;
+    const netIncome     = netRevenue - totalExpenses;
+    return {
+      city: "ALL" as any,
+      totalRevenue, totalRefunds, netRevenue, totalExpenses,
+      labourCost:   liveCityData.reduce((s, c) => s + c.labourCost, 0),
+      materialCost: liveCityData.reduce((s, c) => s + c.materialCost, 0),
+      overheadCost: liveCityData.reduce((s, c) => s + c.overheadCost, 0),
+      netIncome,
+      profitMargin: netRevenue > 0 ? Math.round((netIncome / netRevenue) * 1000) / 10 : 0,
+      unitsCompleted:  liveCityData.reduce((s, c) => s + c.unitsCompleted, 0),
+      activeCustomers: liveCityData.reduce((s, c) => s + c.activeCustomers, 0),
+      employeeCount:   liveCityData.reduce((s, c) => s + c.employeeCount, 0),
+      refundRate: 0,
+    };
+  }, [liveCityData]);
+
+  // Cluster-level data: split each city's totals proportionally across its clusters
+  // (real cluster-level job/customer data can replace this when cluster IDs are on records)
+  const liveClusterData: ClusterAnalyticsData[] = useMemo(() => {
+    return liveCityData.flatMap(cityData => {
+      const cityKey = cityData.city as City;
+      const clusters = CLUSTERS[cityKey] || [];
+      if (clusters.length === 0) return [];
+      const share = 1 / clusters.length;
+      return clusters.map(clusterId => ({
+        city: cityKey,
+        cluster: clusterId,
+        totalRevenue:    Math.round(cityData.totalRevenue  * share),
+        totalRefunds:    0,
+        netRevenue:      Math.round(cityData.netRevenue    * share),
+        totalExpenses:   Math.round(cityData.totalExpenses * share),
+        labourCost:      Math.round(cityData.labourCost    * share),
+        materialCost:    Math.round(cityData.materialCost  * share),
+        overheadCost:    Math.round(cityData.overheadCost  * share),
+        netIncome:       Math.round(cityData.netIncome     * share),
+        profitMargin:    cityData.profitMargin,
+        unitsCompleted:  Math.round(cityData.unitsCompleted  * share),
+        activeCustomers: Math.round(cityData.activeCustomers * share),
+        employeeCount:   Math.round(cityData.employeeCount   * share),
+        refundRate:      0,
+      }));
+    });
+  }, [liveCityData]);
+
+  // Helper functions (replacing mockData helpers)
+  const getLiveCityData = (city: City) =>
+    liveCityData.find(c => c.city === city);
+
+  const getLiveClusterData = (city: City, cluster: ClusterId) =>
+    liveClusterData.find(c => c.city === city && c.cluster === cluster);
+
+  const getLiveCityClusters = (city: City) =>
+    liveClusterData.filter(c => c.city === city);
+
+  const getLiveAggregatedClusterData = (city: City): CityAnalyticsData => {
+    const cityRaw = liveCityData.find(c => c.city === city);
+    return cityRaw || aggregatedData;
+  };
+
   // Get current data based on drill-down level
   const getCurrentData = (): CityAnalyticsData | ClusterAnalyticsData => {
     if (level === "cluster" && selectedCity && selectedCluster) {
-      return getClusterData(selectedCity, selectedCluster)!;
+      return getLiveClusterData(selectedCity, selectedCluster) || aggregatedData;
     } else if (level === "city" && selectedCity) {
-      return getCityData(selectedCity) || getAggregatedClusterData(selectedCity);
+      return getLiveCityData(selectedCity) || getLiveAggregatedClusterData(selectedCity);
     } else {
-      return getAggregatedCityData();
+      return aggregatedData;
     }
   };
 
@@ -123,7 +238,7 @@ export function AnalyticsDashboardWithDrillDown() {
   const availableClusters = selectedCity ? CLUSTERS[selectedCity] : [];
 
   // Get city clusters data for comparison
-  const cityClusters = selectedCity ? getCityClusters(selectedCity) : [];
+  const cityClusters = selectedCity ? getLiveCityClusters(selectedCity) : [];
 
   // Revenue breakdown by source
   const revenueSources = [
@@ -407,7 +522,7 @@ export function AnalyticsDashboardWithDrillDown() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {MOCK_CITY_DATA.map((city) => {
+              {liveCityData.map((city) => {
                 const refundBadgeColor =
                   city.refundRate < 7
                     ? "bg-green-100 text-green-700"

@@ -263,6 +263,23 @@ export function AccountsPayrollProcessing() {
       cityInfo.displayName
     );
 
+    // ── Also write to FinanceContext via the existing CustomEvent bridge ─────
+    // FinanceContext listens for "payroll-approved" to create a Payable of
+    // type "Salary" — this is what feeds CityComparison, BreakEvenAnalysis,
+    // and UnitEconomicsDashboard cost breakdown with real labour cost.
+    // We dispatch one event per employee so FinanceContext can track individually.
+    snapshot.employees.forEach(emp => {
+      window.dispatchEvent(new CustomEvent("payroll-approved", {
+        detail: {
+          employeeId:  emp.employeeId,
+          amount:      emp.totalPay,
+          dueDate:     payDate,
+          cityId:      city,
+          description: `Salary — ${emp.employeeName} | ${monthYear}`,
+        },
+      }));
+    });
+
     // ── Mark snapshot as paid ────────────────────────────────────────────────
     setSnapshot({
       ...snapshot,

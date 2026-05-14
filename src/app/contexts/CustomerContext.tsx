@@ -77,7 +77,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   });
 
   const { city, cityInfo } = useCity();
-
+  const { subscriptions } = useCustomerSubscriptions();
   const cityCustomers = useMemo(() => {
     const cityName = cityInfo.displayName.toLowerCase();
     const cityId   = city;
@@ -159,6 +159,31 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         leadSource: previousCustomer.leadSource,
         convertedAt: new Date().toISOString(),
       }, "CustomerContext");
+
+      // Also track in AnalyticsService so CACDashboard, TSE leaderboard,
+      // and conversion metrics receive real events.
+      // Find the matching lead for TSE assignment and revenue data.
+      const matchingLead = leads.find(
+        l => l.email === previousCustomer.email || l.phone === previousCustomer.phone
+      );
+      // Derive monthly revenue from subscription context (best estimate at conversion)
+      const activeSubs = subscriptions?.filter(s => s.customerId === customerId) || [];
+      const monthlyRevenue = activeSubs.reduce((sum, s) => {
+        const multiplier = s.billingCycle === "Annual" ? 1 / 12
+          : s.billingCycle === "Quarterly" ? 1 / 3 : 1;
+        return sum + ((s.pricing?.finalPrice ?? 0) * multiplier);
+      }, 0);
+
+      AnalyticsService.track("LEAD_CONVERTED", {
+        customerId,
+        customerName: `${previousCustomer.firstName} ${previousCustomer.lastName}`,
+        source: previousCustomer.leadSource || matchingLead?.leadSource || "Unknown",
+        tseId:   matchingLead?.assignedTo  || "UNKNOWN",
+        tseName: matchingLead?.assignedTSE || "Unknown TSE",
+        revenue: Math.round(monthlyRevenue),
+        cityId:  city,
+        convertedAt: new Date().toISOString(),
+      });
     }
   };
 
