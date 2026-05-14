@@ -1,12 +1,8 @@
 import { RouterProvider } from "react-router-dom";
 import { router } from "./routes";
-import { Toaster } from "sonner";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { Toaster } from "sonner";
 import { useState, useEffect } from "react";
-import { initializeHRData } from "./utils/hr-data-initializer";
-import { EventMonitor } from "./components/crm/EventMonitor";
-import { useGlobalEventHandlers } from "./hooks/useGlobalEventHandlers";
-import { AppProvider } from "./contexts/AppProvider";
 import { employeeDatabaseService } from "./services/employeeDatabaseService";
 import { loadAllDataFromSupabase } from "./services/supabaseDataLoader";
 import { startupStorageCleanup } from "./services/DataService";
@@ -14,22 +10,17 @@ import { seedHistoricData } from "./utils/seedHistoricData";
 import { seedDummyLogins } from "./utils/seedDummyLogins";
 import { initializeAttendanceData } from "./services/seedAttendanceData";
 
-function AppContent() {
-  useGlobalEventHandlers();
-  useEffect(() => {
-    try { initializeHRData(); } catch (e) {
-      console.error("Failed to initialize HR data:", e);
-    }
-  }, []);
-
-  return (
-    <>
-      <RouterProvider router={router} />
-      <Toaster position="top-right" richColors />
-      <EventMonitor />
-    </>
-  );
-}
+/**
+ * ARCHITECTURE NOTE — why AppProvider is NOT here:
+ *
+ * createBrowserRouter + RouterProvider creates its own React context tree that
+ * is ISOLATED from any context provided by wrappers in this file. Wrapping
+ * AppProvider around RouterProvider does NOT make those contexts available to
+ * route components rendered via <Outlet />.
+ *
+ * AppProvider is placed inside RootLayoutWrapper (the root route element) so
+ * it lives INSIDE the router tree and every page component can access it.
+ */
 
 function LoadingScreen({ message }: { message: string }) {
   return (
@@ -49,7 +40,7 @@ function LoadingScreen({ message }: { message: string }) {
   );
 }
 
-// Production error monitoring — captures all uncaught errors
+// Production error monitoring
 if (import.meta.env.PROD) {
   window.addEventListener("error", (e) => {
     console.error("[CC360] Error:", e.message, e.filename, e.lineno);
@@ -66,16 +57,14 @@ export default function App() {
   useEffect(() => {
     async function bootstrap() {
       try {
-        // Free up localStorage space before loading data
         startupStorageCleanup();
 
-        // Seed local data BEFORE Supabase load.
-        // Each function has its own guard flag and only runs once on a fresh install.
-        // If Supabase is configured, its data loaded below will overwrite the seeds.
+        // Seed local data first — each function has a guard flag and runs only once.
+        // Supabase data loaded below will overwrite seeds if Supabase is configured.
         setLoadingMsg("Initialising data...");
-        try { seedHistoricData(); } catch (e) { console.error("[Bootstrap] seedHistoricData failed:", e); }
-        try { seedDummyLogins(); } catch (e) { console.error("[Bootstrap] seedDummyLogins failed:", e); }
-        try { initializeAttendanceData(); } catch (e) { console.error("[Bootstrap] initializeAttendanceData failed:", e); }
+        try { seedHistoricData(); } catch (e) { console.error("[Bootstrap] seedHistoricData:", e); }
+        try { seedDummyLogins(); } catch (e) { console.error("[Bootstrap] seedDummyLogins:", e); }
+        try { initializeAttendanceData(); } catch (e) { console.error("[Bootstrap] initializeAttendanceData:", e); }
 
         setLoadingMsg("Loading employees...");
         await employeeDatabaseService.loadFromSupabase();
@@ -83,12 +72,8 @@ export default function App() {
         setLoadingMsg("Loading data from database...");
         await loadAllDataFromSupabase();
 
-        // Note: removed the 1500ms artificial delay — localStorage writes are
-        // synchronous so there is nothing to "settle". Saves 1.5s on every startup.
-
       } catch (err) {
         console.error("Bootstrap error:", err);
-        // Still show app even if Supabase fails
       } finally {
         setAppReady(true);
       }
@@ -102,9 +87,8 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
+      <RouterProvider router={router} />
+      <Toaster position="top-right" richColors />
     </ErrorBoundary>
   );
 }
