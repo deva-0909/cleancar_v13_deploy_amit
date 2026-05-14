@@ -4,7 +4,7 @@ import { employeeDatabaseService } from "../services/employeeDatabaseService";
  * Handles approvals across all modules: HR, Finance, Operations, Inventory
  */
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo} from "react";
 import { useEvents } from "./EventSystem";
 import { useEmployeeData } from "../hooks/useEmployeeData";
 // REMOVED: circular import useFinance from FinanceContext
@@ -209,16 +209,7 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
 
   return (
     <ApprovalContext.Provider
-      value={{
-        approvals,
-        addApproval,
-        approveApproval,
-        rejectApproval,
-        getApprovalsByType,
-        getApprovalsByStatus,
-        getPendingCount,
-        canApprove,
-      }}
+      value={contextValue}
     >
       {children}
     </ApprovalContext.Provider>
@@ -230,5 +221,18 @@ export function useApprovals() {
   if (!context) {
     throw new Error("useApprovals must be used within ApprovalProvider");
   }
+  const contextValue = useMemo(() => ({
+
+        approvals,
+        addApproval,
+        approveApproval,
+        rejectApproval,
+        getApprovalsByType,
+        getApprovalsByStatus,
+        getPendingCount,
+        canApprove,
+      }),
+  [approvals, addApproval, approveApproval, rejectApproval, getApprovalsByType, getApprovalsByStatus, getPendingCount, canApprove]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return context;
 }

@@ -3,7 +3,7 @@
  * Used across: Operations, Washer App, Supervisor Dashboard, Finance
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect, useMemo, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo, useCallback, useRef} from "react";
 import { useEvents } from "./EventSystem";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
@@ -137,6 +137,7 @@ const JobContext = createContext<JobContextType | undefined>(undefined);
 export function JobProvider({ children }: { children: ReactNode }) {
   const [allJobs, setAllJobs] = useState<Job[]>(() => {
     const stored = DataService.get<Job>("JOBS");
+  const _dbJobsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     logger.debug("JobContext loaded", { count: stored.length });
     return stored;
   });
@@ -153,8 +154,10 @@ export function JobProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Jobs are real-time operational data — only cache last 50 to avoid quota issues
-    if (allJobs.length > 0) DataService.setAll("JOBS", allJobs.slice(-50));
+    if (_dbJobsTimer.current) clearTimeout(_dbJobsTimer.current);
+    _dbJobsTimer.current = setTimeout(() => {
+      if (allJobs.length > 0) DataService.setAll("JOBS", allJobs.slice(-50));
+    }, 500);
   }, [allJobs]);
 
   // Backend sync (background, non-blocking)

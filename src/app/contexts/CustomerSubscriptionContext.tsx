@@ -21,7 +21,7 @@
  * Used across: CRM, Jobs, Finance, Revenue
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo, useRef} from "react";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 import { useSync } from "../hooks/useSync";
@@ -91,7 +91,8 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
 
   // Persist to storage (local cache - instant)
   useEffect(() => {
-    if (subscriptions.length > 0) DataService.setAll("SUBSCRIPTIONS", subscriptions);
+    if (_dbSubscrTimer.current) clearTimeout(_dbSubscrTimer.current);
+    _dbSubscrTimer.current = setTimeout(() => DataService.setAll("SUBSCRIPTIONS", subscriptions), 500);
   }, [subscriptions]);
 
   // Backend sync (background, non-blocking)
@@ -218,19 +219,7 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
 
   return (
     <CustomerSubscriptionContext.Provider
-      value={{
-        subscriptions,
-        createSubscription,
-        updateSubscription,
-        updateSubscriptionStatus,
-        deleteSubscription,
-        getSubscriptionById,
-        getSubscriptionsByCustomerId,
-        getActiveSubscriptions,
-        pauseSubscription,
-        resumeSubscription,
-        cancelSubscription,
-      }}
+      value={contextValue}
     >
       {children}
     </CustomerSubscriptionContext.Provider>
@@ -242,5 +231,21 @@ export function useCustomerSubscriptions() {
   if (!context) {
     throw new Error("useCustomerSubscriptions must be used within CustomerSubscriptionProvider");
   }
+  const contextValue = useMemo(() => ({
+
+        subscriptions,
+        createSubscription,
+        updateSubscription,
+        updateSubscriptionStatus,
+        deleteSubscription,
+        getSubscriptionById,
+        getSubscriptionsByCustomerId,
+        getActiveSubscriptions,
+        pauseSubscription,
+        resumeSubscription,
+        cancelSubscription,
+      }),
+  [subscriptions, createSubscription, updateSubscription, updateSubscriptionStatus, deleteSubscription, getSubscriptionById, getSubscriptionsByCustomerId, getActiveSubscriptions, pauseSubscription, resumeSubscription]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return context;
 }

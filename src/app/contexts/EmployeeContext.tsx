@@ -263,7 +263,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 
   // ========== CONTEXT VALUE (READ-ONLY) ==========
 
-  const value: EmployeeContextType = {
+  const contextValue: EmployeeContextType = useMemo(() => ({
     employees,
     cityEmployees,
     getEmployeeById,
@@ -275,9 +275,11 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
     getActiveEmployees,
     getEmployeeCount,
     getEmployeeCountByRole,
-  };
+  }),
+  // eslint-disable-line react-hooks/exhaustive-deps
+  [employees, cityEmployees, getEmployeeById, getEmployeesByRole, getEmployeesByStatus, getEmployeesByCity, getEmployeesByPincode, getEmployeesByCluster, getActiveEmployees, getEmployeeCount]);
 
-  return <EmployeeContext.Provider value={value}>{children}</EmployeeContext.Provider>;
+  return <EmployeeContext.Provider value={contextValue}>{children}</EmployeeContext.Provider>;
 }
 
 // ========== HOOK ==========
