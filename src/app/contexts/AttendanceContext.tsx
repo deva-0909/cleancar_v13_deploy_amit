@@ -10,7 +10,7 @@
  * Single source of truth for attendance
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef} from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 
@@ -95,8 +95,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
   // Persist to storage
   useEffect(() => {
-    if (_dbAttendTimer.current) clearTimeout(_dbAttendTimer.current);
-    _dbAttendTimer.current = setTimeout(() => DataService.setAll("ATTENDANCE_RECORDS", attendanceRecords), 500);
+    DataService.setAll("ATTENDANCE_RECORDS", attendanceRecords);
   }, [attendanceRecords]);
 
   // ========== ACTIONS ==========
@@ -226,7 +225,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
   // ========== CONTEXT VALUE ==========
 
-  const contextValue = useMemo((): AttendanceContextType => ({
+  const value: AttendanceContextType = {
     attendanceRecords,
     addAttendanceRecord,
     updateAttendance,
@@ -240,12 +239,9 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     computeDaysPresent,
     getAbsentCount,
     getLateCount,
-  };)),
-  // eslint-disable-line react-hooks/exhaustive-deps
-  // deps: state vars and stable callbacks
-  [attendanceRecords, addAttendanceRecord, updateAttendance, deleteAttendance, getAttendanceByEmployee, getAttendanceForDate, getAttendanceForMonth, getAttendanceByDateRange, getMonthlyAttendanceSummary, getPresentCount]);
+  };
 
-    return <AttendanceContext.Provider value={contextValue}>{children}</AttendanceContext.Provider>;
+  return <AttendanceContext.Provider value={value}>{children}</AttendanceContext.Provider>;
 }
 
 // ========== HOOK ==========

@@ -66,7 +66,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     collapsed, setCollapsed, toggleSidebar,
     userToggled, setUserToggled,
     openGroups, toggleGroup, openGroup,
-  };)),
+  };,
   // eslint-disable-line react-hooks/exhaustive-deps
   // deps: state vars and stable callbacks
   [collapsed, userToggled, openGroups]);
