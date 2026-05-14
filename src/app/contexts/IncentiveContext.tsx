@@ -10,7 +10,7 @@
  * Single source of truth for incentives
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef} from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
 import { DataService } from "../services/DataService";
 import { incentiveLedgerService } from "../services/incentiveLedger";
 import { useEvents } from "./EventSystem";
@@ -145,13 +145,11 @@ export function IncentiveProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (_dbIncentTimer.current) clearTimeout(_dbIncentTimer.current);
-    _dbIncentTimer.current = setTimeout(() => DataService.setAll("INCENTIVE_PLANS", incentivePlans), 500);
+    if (incentivePlans.length > 0) DataService.setAll("INCENTIVE_PLANS", incentivePlans);
   }, [incentivePlans]);
 
   useEffect(() => {
-    if (_dbEmployTimer.current) clearTimeout(_dbEmployTimer.current);
-    _dbEmployTimer.current = setTimeout(() => DataService.setAll("EMPLOYEE_INCENTIVES", employeeIncentives), 500);
+    if (employeeIncentives.length > 0) DataService.setAll("EMPLOYEE_INCENTIVES", employeeIncentives);
   }, [employeeIncentives]);
 
   // ========== INCENTIVE PLAN ACTIONS ==========
@@ -376,7 +374,7 @@ export function IncentiveProvider({ children }: { children: ReactNode }) {
 
   // ========== CONTEXT VALUE ==========
 
-  const contextValue = useMemo((): IncentiveContextType => ({
+  const value: IncentiveContextType = {
     incentivePlans,
     addIncentivePlan,
     updateIncentivePlan,
@@ -392,12 +390,9 @@ export function IncentiveProvider({ children }: { children: ReactNode }) {
     updateAchievement,
     approveIncentive,
     markIncentiveAsPaid,
-  };)),
-  // eslint-disable-line react-hooks/exhaustive-deps
-  // deps: state vars and stable callbacks
-  [incentivePlans, addIncentivePlan, updateIncentivePlan, deleteIncentivePlan, getIncentivePlan, getActivePlans, getConfigForRole, employeeIncentives, assignIncentivePlan, updateEmployeeIncentive]);
+  };
 
-    return <IncentiveContext.Provider value={contextValue}>{children}</IncentiveContext.Provider>;
+  return <IncentiveContext.Provider value={value}>{children}</IncentiveContext.Provider>;
 }
 
 // ========== HOOK ==========
