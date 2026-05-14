@@ -559,6 +559,45 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
   // PROVIDER
   // ============================================
 
+  const contextValue = useMemo(() => ({
+    // Employees
+    employees,
+    addEmployee,
+    updateEmployee,
+    deleteEmployee,
+    getEmployeeById,
+    getEmployeesByRole,
+    getEmployeesByStatus,
+    getEmployeesByCity,
+    getEmployeesByPincode,
+    getEmployeesByCluster,
+    getWashers,
+    getSupervisors,
+    getManagers,
+    getActiveEmployees,
+    getEmployeeCount,
+    getEmployeeCountByRole,
+    // Attendance
+    attendanceRecords,
+    addAttendanceRecord,
+    updateAttendanceRecord,
+    getAttendanceByEmployeeId,
+    getAttendanceForDate,
+    getAttendanceForMonth,
+    // Payroll
+    payrollRuns,
+    processPayroll,
+    updatePayrollStatus,
+    approvePayrollByHR,
+    approvePayrollByFinance,
+    markPayrollAsPaid,
+    applyHROverride,
+    getPayrollByEmployeeId,
+    getPayrollForMonth,
+    getPendingPayrolls,
+  }),
+  [employees, addEmployee, updateEmployee, deleteEmployee, getEmployeeById, getEmployeesByRole, getEmployeesByStatus, getEmployeesByCity, getEmployeesByPincode, getEmployeesByCluster]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <HRDataContext.Provider
       value={contextValue}
@@ -585,46 +624,6 @@ export function useHRData() {
 
   // PHASE 3: No console warning - only useEmployeeData calls this internally
   // JSDoc @deprecated tag still warns in IDE if someone tries to import directly
-
-  const contextValue = useMemo(() => ({
-
-        // Employees
-        employees,
-        addEmployee,
-        updateEmployee,
-        deleteEmployee,
-        getEmployeeById,
-        getEmployeesByRole,
-        getEmployeesByStatus,
-        getEmployeesByCity,
-        getEmployeesByPincode,
-        getEmployeesByCluster,
-        getWashers,
-        getSupervisors,
-        getManagers,
-        getActiveEmployees,
-        getEmployeeCount,
-        getEmployeeCountByRole,
-        // Attendance
-        attendanceRecords,
-        addAttendanceRecord,
-        updateAttendanceRecord,
-        getAttendanceByEmployeeId,
-        getAttendanceForDate,
-        getAttendanceForMonth,
-        // Payroll
-        payrollRuns,
-        processPayroll,
-        updatePayrollStatus,
-        approvePayrollByHR,
-        approvePayrollByFinance,
-        markPayrollAsPaid,
-        applyHROverride,
-        getPayrollByEmployeeId,
-        getPayrollForMonth,
-        getPendingPayrolls,
-      }),
-  [employees, addEmployee, updateEmployee, deleteEmployee, getEmployeeById, getEmployeesByRole, getEmployeesByStatus, getEmployeesByCity, getEmployeesByPincode, getEmployeesByCluster]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return context;
 }
