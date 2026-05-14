@@ -77,6 +77,13 @@ export function CustomRoleProvider({ children }: { children: ReactNode }) {
   const hasRoleOverride = (role: Role) =>
     !!rolePermissionService.getRoleOverride(role, city);
 
+  const contextValue = useMemo(() => ({
+      customRoles, getCustomRolesForParent, createCustomRole,
+      updateCustomRole, deactivateCustomRole, getRoleEffectivePermissions,
+      saveRolePermissions, resetRoleToDefault, hasRoleOverride, refresh: loadData,
+    }),
+  [customRoles, updateCustomRole, saveRolePermissions]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <CustomRoleContext.Provider value={contextValue}>
       {children}
@@ -87,13 +94,5 @@ export function CustomRoleProvider({ children }: { children: ReactNode }) {
 export function useCustomRoles() {
   const ctx = useContext(CustomRoleContext);
   if (!ctx) throw new Error("useCustomRoles must be used within CustomRoleProvider");
-  const contextValue = useMemo(() => ({
-
-      customRoles, getCustomRolesForParent, createCustomRole,
-      updateCustomRole, deactivateCustomRole, getRoleEffectivePermissions,
-      saveRolePermissions, resetRoleToDefault, hasRoleOverride, refresh: loadData,
-    }),
-  [customRoles, updateCustomRole, saveRolePermissions]); // eslint-disable-line react-hooks/exhaustive-deps
-
   return ctx;
 }

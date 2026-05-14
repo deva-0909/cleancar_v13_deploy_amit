@@ -121,6 +121,13 @@ export function EventSystemProvider({ children }: { children: ReactNode }) {
     return filtered.slice(0, limit);
   };
 
+  const contextValue = useMemo(() => ({
+        emit,
+        subscribe,
+        getEventHistory,
+      }),
+  [emit, subscribe, getEventHistory]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <EventSystemContext.Provider
       value={contextValue}
@@ -135,14 +142,6 @@ export function useEvents() {
   if (!context) {
     throw new Error("useEvents must be used within EventSystemProvider");
   }
-  const contextValue = useMemo(() => ({
-
-        emit,
-        subscribe,
-        getEventHistory,
-      }),
-  [emit, subscribe, getEventHistory]); // eslint-disable-line react-hooks/exhaustive-deps
-
   return context;
 }
 

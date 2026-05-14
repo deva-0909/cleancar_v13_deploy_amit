@@ -376,6 +376,23 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     ));
   };
 
+  const contextValue = useMemo(() => ({
+      demos,
+      addDemo,
+      updateDemo,
+      assignWasher,
+      acknowledgeDemo,
+      startDemo,
+      completeDemo,
+      checkPreviousDemos,
+      requestTLApproval,
+      approveTLRequest,
+      rescheduleDemo,
+      cancelDemo,
+      cancelWasherAssignment
+    }),
+  [demos, addDemo, updateDemo, assignWasher, acknowledgeDemo, startDemo, completeDemo, checkPreviousDemos, requestTLApproval, approveTLRequest]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <DemoContext.Provider value={contextValue}>
       {children}
@@ -389,23 +406,5 @@ export function useDemos() {
     console.error("useDemos hook called outside DemoProvider. Make sure the component is wrapped in DemoProvider.");
     throw new Error("useDemos must be used within a DemoProvider");
   }
-  const contextValue = useMemo(() => ({
- 
-      demos, 
-      addDemo, 
-      updateDemo, 
-      assignWasher, 
-      acknowledgeDemo,
-      startDemo,
-      completeDemo,
-      checkPreviousDemos,
-      requestTLApproval,
-      approveTLRequest,
-      rescheduleDemo,
-      cancelDemo,
-      cancelWasherAssignment
-    }),
-  [demos, addDemo, updateDemo, assignWasher, acknowledgeDemo, startDemo, completeDemo, checkPreviousDemos, requestTLApproval, approveTLRequest]); // eslint-disable-line react-hooks/exhaustive-deps
-
   return context;
 }

@@ -217,22 +217,7 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
     setSubscriptions((prev) => prev.filter((s) => s.subscriptionId !== subscriptionId));
   };
 
-  return (
-    <CustomerSubscriptionContext.Provider
-      value={contextValue}
-    >
-      {children}
-    </CustomerSubscriptionContext.Provider>
-  );
-}
-
-export function useCustomerSubscriptions() {
-  const context = useContext(CustomerSubscriptionContext);
-  if (!context) {
-    throw new Error("useCustomerSubscriptions must be used within CustomerSubscriptionProvider");
-  }
   const contextValue = useMemo(() => ({
-
         subscriptions,
         createSubscription,
         updateSubscription,
@@ -247,5 +232,19 @@ export function useCustomerSubscriptions() {
       }),
   [subscriptions, createSubscription, updateSubscription, updateSubscriptionStatus, deleteSubscription, getSubscriptionById, getSubscriptionsByCustomerId, getActiveSubscriptions, pauseSubscription, resumeSubscription]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  return (
+    <CustomerSubscriptionContext.Provider
+      value={contextValue}
+    >
+      {children}
+    </CustomerSubscriptionContext.Provider>
+  );
+}
+
+export function useCustomerSubscriptions() {
+  const context = useContext(CustomerSubscriptionContext);
+  if (!context) {
+    throw new Error("useCustomerSubscriptions must be used within CustomerSubscriptionProvider");
+  }
   return context;
 }

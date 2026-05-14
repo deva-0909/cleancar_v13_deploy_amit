@@ -207,6 +207,18 @@ export function ApprovalProvider({ children }: { children: ReactNode }) {
     return allowedRoles.includes(userRole);
   }, []);
 
+  const contextValue = useMemo(() => ({
+        approvals,
+        addApproval,
+        approveApproval,
+        rejectApproval,
+        getApprovalsByType,
+        getApprovalsByStatus,
+        getPendingCount,
+        canApprove,
+      }),
+  [approvals, addApproval, approveApproval, rejectApproval, getApprovalsByType, getApprovalsByStatus, getPendingCount, canApprove]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <ApprovalContext.Provider
       value={contextValue}
@@ -221,18 +233,5 @@ export function useApprovals() {
   if (!context) {
     throw new Error("useApprovals must be used within ApprovalProvider");
   }
-  const contextValue = useMemo(() => ({
-
-        approvals,
-        addApproval,
-        approveApproval,
-        rejectApproval,
-        getApprovalsByType,
-        getApprovalsByStatus,
-        getPendingCount,
-        canApprove,
-      }),
-  [approvals, addApproval, approveApproval, rejectApproval, getApprovalsByType, getApprovalsByStatus, getPendingCount, canApprove]); // eslint-disable-line react-hooks/exhaustive-deps
-
   return context;
 }

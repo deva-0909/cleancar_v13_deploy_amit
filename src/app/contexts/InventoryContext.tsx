@@ -509,22 +509,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  return (
-    <InventoryContext.Provider
-      value={contextValue}
-    >
-      {children}
-    </InventoryContext.Provider>
-  );
-}
-
-export function useInventory() {
-  const context = useContext(InventoryContext);
-  if (!context) {
-    throw new Error("useInventory must be used within InventoryProvider");
-  }
   const contextValue = useMemo(() => ({
-
         inventory,
         addInventoryItem,
         updateInventoryItem,
@@ -545,5 +530,19 @@ export function useInventory() {
       }),
   [inventory, addInventoryItem, updateInventoryItem, getItemById, getLowStockItems, stockTransactions, createTransaction, approveTransaction, completeTransaction, issueInventory]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  return (
+    <InventoryContext.Provider
+      value={contextValue}
+    >
+      {children}
+    </InventoryContext.Provider>
+  );
+}
+
+export function useInventory() {
+  const context = useContext(InventoryContext);
+  if (!context) {
+    throw new Error("useInventory must be used within InventoryProvider");
+  }
   return context;
 }
