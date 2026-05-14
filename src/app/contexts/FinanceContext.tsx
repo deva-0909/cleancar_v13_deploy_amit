@@ -6,7 +6,7 @@
  * RULE: Finance displays subscription data via subscriptionId lookup
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef } from "react";
 import { useEventListener } from "./EventSystem";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
@@ -272,34 +272,54 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   });
 
   // Persist to storage — only when data is non-empty to avoid overwriting Supabase data with []
+  // ── Debounced localStorage persistence (500 ms) ──────────────────────────
+  // Writing synchronously on every state change blocks the main thread.
+  // We debounce so rapid sequential updates only write once.
+  const mrrTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const payTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ledgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const budgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const altTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    if (mrrData.length > 0) DataService.setAll("FINANCE_MRR", mrrData);
+    if (!mrrData.length) return;
+    if (mrrTimerRef.current) clearTimeout(mrrTimerRef.current);
+    mrrTimerRef.current = setTimeout(() => DataService.setAll("FINANCE_MRR", mrrData), 500);
   }, [mrrData]);
 
   useEffect(() => {
-    if (payables.length > 0) DataService.setAll("FINANCE_PAYABLES", payables);
+    if (!payables.length) return;
+    if (payTimerRef.current) clearTimeout(payTimerRef.current);
+    payTimerRef.current = setTimeout(() => DataService.setAll("FINANCE_PAYABLES", payables), 500);
   }, [payables]);
 
   useEffect(() => {
     // Never write revenues back to localStorage — Supabase is source of truth
-    // Writing back causes quota issues and overwrites good data with []
-    // DataService.get() fallback handles reading from cleancar_revenues legacy key
   }, [revenues]);
 
   useEffect(() => {
-    if (ledgerEntries.length > 0) DataService.setAll("FINANCE_LEDGER", ledgerEntries);
+    if (!ledgerEntries.length) return;
+    if (ledgTimerRef.current) clearTimeout(ledgTimerRef.current);
+    ledgTimerRef.current = setTimeout(() => DataService.setAll("FINANCE_LEDGER", ledgerEntries), 500);
   }, [ledgerEntries]);
 
   useEffect(() => {
-    if (budgets.length > 0) DataService.setAll("FINANCE_BUDGETS", budgets);
+    if (!budgets.length) return;
+    if (budgTimerRef.current) clearTimeout(budgTimerRef.current);
+    budgTimerRef.current = setTimeout(() => DataService.setAll("FINANCE_BUDGETS", budgets), 500);
   }, [budgets]);
 
   useEffect(() => {
-    if (alerts.length > 0) DataService.setAll("FINANCE_ALERTS", alerts);
+    if (!alerts.length) return;
+    if (altTimerRef.current) clearTimeout(altTimerRef.current);
+    altTimerRef.current = setTimeout(() => DataService.setAll("FINANCE_ALERTS", alerts), 500);
   }, [alerts]);
 
   useEffect(() => {
-    if (recommendations.length > 0) DataService.setAll("FINANCE_RECOMMENDATIONS", recommendations);
+    if (!recommendations.length) return;
+    if (recTimerRef.current) clearTimeout(recTimerRef.current);
+    recTimerRef.current = setTimeout(() => DataService.setAll("FINANCE_RECOMMENDATIONS", recommendations), 500);
   }, [recommendations]);
 
   // Backend sync (background, non-blocking)
@@ -385,18 +405,21 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         setMRRData(storedMRR);
       }
     };
+    // Single rehydration at 1s — removed the 3s duplicate which caused a second re-render cascade
     const t1 = setTimeout(rehydrate, 1000);
-    const t2 = setTimeout(rehydrate, 3000); // Second attempt for slow connections
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    return () => { clearTimeout(t1); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-run alert engine when financial data changes
+  // Auto-run alert engine when financial data changes — debounced to max once per 30s
+  const alertEngineTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    const cities = [...new Set([...revenues.map(r => r.cityId), ...payables.map(p => p.cityId)])];
-    cities.forEach(cityId => {
-      if (cityId) runAlertEngine(cityId);
-    });
-  }, [revenues.length, payables.length, budgets.length]);
+    if (alertEngineTimerRef.current) clearTimeout(alertEngineTimerRef.current);
+    alertEngineTimerRef.current = setTimeout(() => {
+      const cities = [...new Set([...revenues.map(r => r.cityId), ...payables.map(p => p.cityId)])];
+      cities.forEach(cityId => { if (cityId) runAlertEngine(cityId); });
+    }, 30000); // 30 second debounce — alerts don't need to be instant
+    return () => { if (alertEngineTimerRef.current) clearTimeout(alertEngineTimerRef.current); };
+  }, [revenues.length, payables.length, budgets.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // MRR Operations
   const addMRREntry = (mrrEntryData: Omit<MRRData, "mrrId" | "createdAt" | "updatedAt">): MRRData => {
@@ -631,17 +654,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return mrrData.filter(item => item.cityId === cityId);
   };
 
-  const getRevenueByCity = (cityId: string): Revenue[] => {
+  const getRevenueByCity = useCallback((cityId: string): Revenue[] => {
     return revenues.filter(item => item.cityId === cityId);
-  };
+  }, [revenues]);
 
-  const getPayablesByCity = (cityId: string): Payable[] => {
+  const getPayablesByCity = useCallback((cityId: string): Payable[] => {
     return payables.filter(item => item.cityId === cityId);
-  };
+  }, [payables]);
 
-  const getLedgerEntriesByCity = (cityId: string): LedgerEntry[] => {
+  const getLedgerEntriesByCity = useCallback((cityId: string): LedgerEntry[] => {
     return ledgerEntries.filter(item => item.cityId === cityId);
-  };
+  }, [ledgerEntries]);
 
   // ✅ EBITDA + MARGIN ANALYTICS (MC-06)
   const calculateEBITDA = (cityId: string, month?: string): number => {
@@ -1134,66 +1157,64 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const contextValue = useMemo(() => ({
+    mrrData,
+    addMRREntry,
+    updateMRR,
+    removeMRREntry,
+    getMRRForMonth,
+    getTotalMRR,
+    payables,
+    createPayable,
+    updatePayable,
+    markAsPaid,
+    approvePayable,
+    getSalaryPayables,
+    getVendorPayables,
+    getStatutoryPayables,
+    getPendingPayables,
+    getOverduePayables,
+    revenues,
+    recordRevenue,
+    getRevenueForMonth,
+    getTotalRevenue,
+    ledgerEntries,
+    createLedgerEntry,
+    getLedgerEntriesByAccount,
+    getLedgerEntriesForPeriod,
+    getRevenueFromLedger,
+    getExpensesFromLedger,
+    getMRRByCity,
+    getRevenueByCity,
+    getPayablesByCity,
+    getLedgerEntriesByCity,
+    calculateEBITDA,
+    calculateMargin,
+    getCityFinancialSnapshot,
+    getMultiCityDashboard,
+    getRevenueBreakdown,
+    getExpenseBreakdown,
+    getMonthlyTrend,
+    budgets,
+    setBudget,
+    updateBudget,
+    getBudget,
+    getForecast,
+    getVariance,
+    alerts,
+    runAlertEngine,
+    acknowledgeAlert,
+    getActiveAlerts,
+    recommendations,
+    runDecisionEngine,
+    getRecommendations,
+  }), [
+    mrrData, payables, revenues, ledgerEntries, budgets, alerts, recommendations,
+    getRevenueByCity, getPayablesByCity, getLedgerEntriesByCity,
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <FinanceContext.Provider
-      value={{
-        mrrData,
-        addMRREntry,
-        updateMRR,
-        removeMRREntry,
-        getMRRForMonth,
-        getTotalMRR,
-        payables,
-        createPayable,
-        updatePayable,
-        markAsPaid,
-        approvePayable,
-        getSalaryPayables,
-        getVendorPayables,
-        getStatutoryPayables,
-        getPendingPayables,
-        getOverduePayables,
-        revenues,
-        recordRevenue,
-        getRevenueForMonth,
-        getTotalRevenue,
-        ledgerEntries,
-        createLedgerEntry,
-        getLedgerEntriesByAccount,
-        getLedgerEntriesForPeriod,
-        getRevenueFromLedger,
-        getExpensesFromLedger,
-        // ✅ NEW: City filter methods
-        getMRRByCity,
-        getRevenueByCity,
-        getPayablesByCity,
-        getLedgerEntriesByCity,
-        // ✅ NEW: EBITDA + Margin Analytics (MC-06)
-        calculateEBITDA,
-        calculateMargin,
-        getCityFinancialSnapshot,
-        getMultiCityDashboard,
-        getRevenueBreakdown,
-        getExpenseBreakdown,
-        getMonthlyTrend,
-        // ✅ NEW: Budget, Forecast, Variance (MC-07)
-        budgets,
-        setBudget,
-        updateBudget,
-        getBudget,
-        getForecast,
-        getVariance,
-        // ✅ NEW: Automated Alert System (MC-08)
-        alerts,
-        runAlertEngine,
-        acknowledgeAlert,
-        getActiveAlerts,
-        // ✅ NEW: Decision Engine / AI Recommendations (MC-09)
-        recommendations,
-        runDecisionEngine,
-        getRecommendations,
-      }}
-    >
+    <FinanceContext.Provider value={contextValue}>
       {children}
     </FinanceContext.Provider>
   );

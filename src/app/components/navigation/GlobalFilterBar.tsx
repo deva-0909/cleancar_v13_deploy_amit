@@ -7,7 +7,7 @@
  * @component
  */
 
-import { useState, createContext, useContext, ReactNode } from "react";
+import { useState, createContext, useContext, ReactNode, useMemo, useCallback } from "react";
 import {
   Select,
   SelectContent,
@@ -91,20 +91,23 @@ export function GlobalFiltersProvider({ children }: GlobalFiltersProviderProps) 
     return defaultFilters;
   });
 
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setFilters(defaultFilters);
-  };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const hasActiveFilters =
+  const hasActiveFilters = useMemo(() =>
     filters.city !== "ALL" ||
     (filters.startDate !== "" && filters.startDate !== "2026-01-01") ||
     (filters.endDate !== "" && filters.endDate !== "2026-04-30") ||
-    filters.businessUnit !== "ALL";
+    filters.businessUnit !== "ALL",
+  [filters]);
+
+  const filterContextValue = useMemo(() => ({
+    filters, setFilters, resetFilters, hasActiveFilters,
+  }), [filters, resetFilters, hasActiveFilters]);
 
   return (
-    <GlobalFiltersContext.Provider
-      value={{ filters, setFilters, resetFilters, hasActiveFilters }}
-    >
+    <GlobalFiltersContext.Provider value={filterContextValue}>
       {children}
     </GlobalFiltersContext.Provider>
   );

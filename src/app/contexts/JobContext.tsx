@@ -3,7 +3,7 @@
  * Used across: Operations, Washer App, Supervisor Dashboard, Finance
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo, useCallback } from "react";
 import { useEvents } from "./EventSystem";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
@@ -160,25 +160,27 @@ export function JobProvider({ children }: { children: ReactNode }) {
   // Backend sync (background, non-blocking)
   useSync("JOBS", allJobs);
 
-  // Derived state - filtered views
-  // City filter applied to all derived views — pass cityId when using these
-  const unassignedJobs = allJobs.filter((j) => j.status === "Unassigned");
-  const assignedJobs   = allJobs.filter((j) =>
-    j.status === "Assigned" || j.status === "Acknowledged" || j.status === "In Progress"
-  );
-  const completedJobs  = allJobs.filter((j) =>
-    j.status === "Completed" || j.status === "Verified"
-  );
+  // Derived state — memoized so consumers only re-render when allJobs actually changes
+  const unassignedJobs = useMemo(() =>
+    allJobs.filter((j) => j.status === "Unassigned"), [allJobs]);
 
-  // City-scoped helpers
-  const getJobsByCityId = (cityId: string): Job[] =>
-    allJobs.filter(j => j.cityId === cityId);
-  const getUnassignedByCity = (cityId: string): Job[] =>
-    allJobs.filter(j => j.status === "Unassigned" && j.cityId === cityId);
-  const getAssignedByCity = (cityId: string): Job[] =>
-    allJobs.filter(j => ["Assigned","Acknowledged","In Progress"].includes(j.status) && j.cityId === cityId);
-  const getCompletedByCity = (cityId: string): Job[] =>
-    allJobs.filter(j => ["Completed","Verified"].includes(j.status) && j.cityId === cityId);
+  const assignedJobs = useMemo(() =>
+    allJobs.filter((j) =>
+      j.status === "Assigned" || j.status === "Acknowledged" || j.status === "In Progress"
+    ), [allJobs]);
+
+  const completedJobs = useMemo(() =>
+    allJobs.filter((j) => j.status === "Completed" || j.status === "Verified"), [allJobs]);
+
+  // City-scoped helpers — useCallback for stable references
+  const getJobsByCityId    = useCallback((cityId: string): Job[] =>
+    allJobs.filter(j => j.cityId === cityId), [allJobs]);
+  const getUnassignedByCity = useCallback((cityId: string): Job[] =>
+    allJobs.filter(j => j.status === "Unassigned" && j.cityId === cityId), [allJobs]);
+  const getAssignedByCity   = useCallback((cityId: string): Job[] =>
+    allJobs.filter(j => ["Assigned","Acknowledged","In Progress"].includes(j.status) && j.cityId === cityId), [allJobs]);
+  const getCompletedByCity  = useCallback((cityId: string): Job[] =>
+    allJobs.filter(j => ["Completed","Verified"].includes(j.status) && j.cityId === cityId), [allJobs]);
 
   const createJob = (jobData: Omit<Job, "jobId" | "createdAt" | "updatedAt">): Job => {
     // ✅ BUSINESS RULE: No jobs on Sunday (absolute rest day)
@@ -420,35 +422,36 @@ export function JobProvider({ children }: { children: ReactNode }) {
     return allJobs.filter((j) => j.scheduledDate === date);
   };
 
+  const jobContextValue = useMemo(() => ({
+    allJobs,
+    unassignedJobs,
+    assignedJobs,
+    completedJobs,
+    createJob,
+    updateJob,
+    deleteJob,
+    assignJobToWasher,
+    unassignJob,
+    acknowledgeJob,
+    startJob,
+    completeJob,
+    markJobAsVerified,
+    markJobAsFailed,
+    generateJobsFromSubscription,
+    getJobById,
+    getJobsByCustomerId,
+    getJobsByWasherId,
+    getJobsByStatus,
+    getJobsForDate,
+    getJobsByCityId,
+    getUnassignedByCity,
+    getAssignedByCity,
+    getCompletedByCity,
+  }), [allJobs, unassignedJobs, assignedJobs, completedJobs,
+       getJobsByCityId, getUnassignedByCity, getAssignedByCity, getCompletedByCity]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <JobContext.Provider
-      value={{
-        allJobs,
-        unassignedJobs,
-        assignedJobs,
-        completedJobs,
-        createJob,
-        updateJob,
-        deleteJob,
-        assignJobToWasher,
-        unassignJob,
-        acknowledgeJob,
-        startJob,
-        completeJob,
-        markJobAsVerified,
-        markJobAsFailed,
-        generateJobsFromSubscription,
-        getJobById,
-        getJobsByCustomerId,
-        getJobsByWasherId,
-        getJobsByStatus,
-        getJobsForDate,
-        getJobsByCityId,
-        getUnassignedByCity,
-        getAssignedByCity,
-        getCompletedByCity,
-      }}
-    >
+    <JobContext.Provider value={jobContextValue}>
       {children}
     </JobContext.Provider>
   );
