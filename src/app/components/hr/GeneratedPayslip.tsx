@@ -23,6 +23,7 @@ import { Badge } from "../ui/badge";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
+import { DataService } from "../../services/DataService";
 
 interface AttendanceSummary {
   totalDays: number;
@@ -196,15 +197,36 @@ export function GeneratedPayslip({ data, month, year, currentRole: currentRolePr
     };
   })();
 
-  // Salary lookup from employeeDatabaseService (service-first, no hardcoded fallback)
+  // ✅ FIXED: Salary lookup from DataService("EMPLOYEES") — canonical key for all employee data
+  // Falls back to EMPLOYEE_DATABASE_RECORDS (employeeDatabaseService writes here on Supabase load)
+  // Legacy keys cc360_hrdata_employees / cleancar_employees are dead on fresh installs
   const empRecord = (() => {
     try {
-      // Try the service namespace first
-      const key1 = localStorage.getItem("cc360_hrdata_employees");
-      const key2 = localStorage.getItem("cleancar_employees");
-      const raw = key1 || key2;
-      const all: any[] = raw ? JSON.parse(raw) : [];
-      return all.find((e: any) => e.employeeId === data.employeeCode || e.id === data.employeeCode || e.empCode === data.employeeCode);
+      const matchId = (e: any) =>
+        e.employeeId === data.employeeCode ||
+        e.employeeId === data.employeeId ||
+        e.empCode    === data.employeeCode ||
+        e.id         === data.employeeCode;
+
+      // Source 1: EmployeeContext / HRDataContext canonical key
+      const fromMain: any[] = DataService.get("EMPLOYEES");
+      const foundMain = fromMain.find(matchId);
+      if (foundMain) return foundMain;
+
+      // Source 2: employeeDatabaseService (Supabase-loaded slim records)
+      const fromDb: any[] = DataService.get("EMPLOYEE_DATABASE_RECORDS");
+      const foundDb = fromDb.find(matchId);
+      if (foundDb) return foundDb;
+
+      // Source 3: Legacy keys — for users who haven't refreshed since migration
+      const legacy1 = localStorage.getItem("cc360_hrdata_employees");
+      const legacy2 = localStorage.getItem("cleancar_employees");
+      const raw = legacy1 || legacy2;
+      if (raw) {
+        const all: any[] = JSON.parse(raw);
+        return all.find(matchId) || null;
+      }
+      return null;
     } catch { return null; }
   })();
 

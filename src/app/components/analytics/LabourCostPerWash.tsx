@@ -116,25 +116,25 @@ function LabourCostPerWash() {
       const cityJobs    = allJobs.filter(j => j.cityId === cityId && (j.status === "Completed" || j.status === "Verified"));
 
       const washerPay     = cityPayroll.filter(r => {
-        const emp = employees.find(e => e.id === r.employeeId);
-        return emp?.designation === "Car Washer";
+        const emp = employees.find(e => e.employeeId === r.employeeId);
+        return emp?.role === "Car Washer Full Time" || emp?.role === "Car Washer Part Time";
       }).reduce((s, r) => s + (r.grossSalary || 0), 0);
 
       const supervisorPay = cityPayroll.filter(r => {
-        const emp = employees.find(e => e.id === r.employeeId);
-        return emp?.designation === "Supervisor";
+        const emp = employees.find(e => e.employeeId === r.employeeId);
+        return emp?.role === "Supervisor";
       }).reduce((s, r) => s + (r.grossSalary || 0), 0);
 
       const managerPay    = cityPayroll.filter(r => {
-        const emp = employees.find(e => e.id === r.employeeId);
-        return emp?.designation?.includes("Manager") || emp?.designation?.includes("Admin");
+        const emp = employees.find(e => e.employeeId === r.employeeId);
+        return emp?.role?.includes("Manager") || emp?.role?.includes("Admin") || emp?.role === "City Manager" || emp?.role === "Cluster Manager";
       }).reduce((s, r) => s + (r.grossSalary || 0), 0);
 
       const incentivePay  = cityPayroll.reduce((s, r) => s + (r.incentiveAmount || 0), 0);
       const totalLabour   = washerPay + supervisorPay + managerPay + incentivePay;
       const units         = cityJobs.length;
 
-      const cityWashers = cityEmps.filter(e => e.designation === "Car Washer");
+      const cityWashers = cityEmps.filter(e => e.role === "Car Washer Full Time" || e.role === "Car Washer Part Time");
       const washerJobCounts = cityWashers.map(w =>
         cityJobs.filter(j => j.washerId === w.id).length
       );

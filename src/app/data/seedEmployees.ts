@@ -309,6 +309,24 @@ export const SEED_EMPLOYEES: Omit<Employee, "employeeId" | "createdAt" | "update
     baseSalary: 35000,
     incentiveEligible: false,
   },
+  // ============================================
+  // MARKETING AGENCY
+  // ============================================
+  {
+    firstName: "Priya",
+    lastName: "Nair",
+    email: "priya.nair@marketingpartner.com",
+    phone: "+91 98765 00020",
+    role: "Marketing Agency" as any,
+    department: "Marketing",
+    city: "Surat",
+    cityId: "CITY-SURAT",
+    status: "Active",
+    joiningDate: "2025-01-01",
+    baseSalary: 0, // Agency partner — no payroll processing
+    incentiveEligible: false,
+    assignedPincodes: [],
+  },
 ];
 
 /**

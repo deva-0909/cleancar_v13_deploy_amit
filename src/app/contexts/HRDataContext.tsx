@@ -13,7 +13,7 @@
  * Data Flow: UI → useEmployeeData → HRDataContext → DataService → localStorage
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo} from "react";
 import { DataService } from "../services/DataService";
 import { seedEmployeesIfEmpty } from "../data/seedEmployees";
 import { eventBus } from "../utils/eventBus";
@@ -264,7 +264,7 @@ function initializeAttendance(): AttendanceRecord[] {
  * Initialize payroll from DataService
  */
 function initializePayroll(): PayrollRun[] {
-  const loaded = DataService.get<PayrollRun>("PAYROLL");
+  const loaded = DataService.get<PayrollRun>("PAYROLL_RUNS");
   console.log(`[HRDataContext] Loaded ${loaded.length} payroll runs`);
   return loaded;
 }
@@ -293,8 +293,8 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
       }
     };
     const t1 = setTimeout(rehydrate, 1000);
-    const t2 = setTimeout(rehydrate, 3500);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    // Removed duplicate rehydration timeout — single 1s fetch is sufficient
+    return () => { clearTimeout(t1); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ============================================
@@ -460,8 +460,8 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
       updatedAt: new Date().toISOString(),
     };
 
-    DataService.insert("PAYROLL", newPayroll);
-    const updated = DataService.get<PayrollRun>("PAYROLL");
+    DataService.insert("PAYROLL_RUNS", newPayroll);
+    const updated = DataService.get<PayrollRun>("PAYROLL_RUNS");
     setPayrollRuns(updated);
 
     console.log(`[HRDataContext] Processed payroll: ${newPayroll.payrollId}`);
@@ -469,8 +469,8 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
   };
 
   const updatePayrollStatus = (payrollId: string, status: PayrollRun["status"]): void => {
-    DataService.update("PAYROLL", payrollId, { status, updatedAt: new Date().toISOString() }, "payrollId");
-    const updated = DataService.get<PayrollRun>("PAYROLL");
+    DataService.update("PAYROLL_RUNS", payrollId, { status, updatedAt: new Date().toISOString() }, "payrollId");
+    const updated = DataService.get<PayrollRun>("PAYROLL_RUNS");
     setPayrollRuns(updated);
     console.log(`[HRDataContext] Updated payroll status: ${payrollId} → ${status}`);
   };
@@ -482,8 +482,8 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
       hrApprovedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    DataService.update("PAYROLL", payrollId, updates, "payrollId");
-    const updated = DataService.get<PayrollRun>("PAYROLL");
+    DataService.update("PAYROLL_RUNS", payrollId, updates, "payrollId");
+    const updated = DataService.get<PayrollRun>("PAYROLL_RUNS");
     setPayrollRuns(updated);
     console.log(`[HRDataContext] HR approved payroll: ${payrollId} by ${approvedBy}`);
   };
@@ -495,8 +495,8 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
       financeApprovedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    DataService.update("PAYROLL", payrollId, updates, "payrollId");
-    const updated = DataService.get<PayrollRun>("PAYROLL");
+    DataService.update("PAYROLL_RUNS", payrollId, updates, "payrollId");
+    const updated = DataService.get<PayrollRun>("PAYROLL_RUNS");
     setPayrollRuns(updated);
     console.log(`[HRDataContext] Finance approved payroll: ${payrollId} by ${approvedBy}`);
   };
@@ -508,8 +508,8 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
       paymentReference,
       updatedAt: new Date().toISOString(),
     };
-    DataService.update("PAYROLL", payrollId, updates, "payrollId");
-    const updated = DataService.get<PayrollRun>("PAYROLL");
+    DataService.update("PAYROLL_RUNS", payrollId, updates, "payrollId");
+    const updated = DataService.get<PayrollRun>("PAYROLL_RUNS");
     setPayrollRuns(updated);
     console.log(`[HRDataContext] Marked payroll as paid: ${payrollId} (${paymentReference})`);
   };
@@ -537,8 +537,8 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
       updatedAt: new Date().toISOString(),
     };
 
-    DataService.update("PAYROLL", payrollId, updates, "payrollId");
-    const updated = DataService.get<PayrollRun>("PAYROLL");
+    DataService.update("PAYROLL_RUNS", payrollId, updates, "payrollId");
+    const updated = DataService.get<PayrollRun>("PAYROLL_RUNS");
     setPayrollRuns(updated);
     console.log(`[HRDataContext] Applied HR override: ${payrollId} (${overrideAmount})`);
   };
@@ -561,7 +561,33 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
 
   return (
     <HRDataContext.Provider
-      value={{
+      value={contextValue}
+    >
+      {children}
+    </HRDataContext.Provider>
+  );
+}
+
+/**
+ * ⚠️ DEPRECATED - DO NOT USE DIRECTLY
+ *
+ * This hook is for INTERNAL use only by useEmployeeData.
+ * Components should import useEmployeeData instead.
+ *
+ * @deprecated Use useEmployeeData from "../hooks/useEmployeeData" instead
+ * @internal
+ */
+export function useHRData() {
+  const context = useContext(HRDataContext);
+  if (!context) {
+    throw new Error("useHRData must be used within HRDataProvider");
+  }
+
+  // PHASE 3: No console warning - only useEmployeeData calls this internally
+  // JSDoc @deprecated tag still warns in IDE if someone tries to import directly
+
+  const contextValue = useMemo(() => ({
+
         // Employees
         employees,
         addEmployee,
@@ -597,30 +623,8 @@ export function HRDataProvider({ children }: { children: ReactNode }) {
         getPayrollByEmployeeId,
         getPayrollForMonth,
         getPendingPayrolls,
-      }}
-    >
-      {children}
-    </HRDataContext.Provider>
-  );
-}
-
-/**
- * ⚠️ DEPRECATED - DO NOT USE DIRECTLY
- *
- * This hook is for INTERNAL use only by useEmployeeData.
- * Components should import useEmployeeData instead.
- *
- * @deprecated Use useEmployeeData from "../hooks/useEmployeeData" instead
- * @internal
- */
-export function useHRData() {
-  const context = useContext(HRDataContext);
-  if (!context) {
-    throw new Error("useHRData must be used within HRDataProvider");
-  }
-
-  // PHASE 3: No console warning - only useEmployeeData calls this internally
-  // JSDoc @deprecated tag still warns in IDE if someone tries to import directly
+      }),
+  [employees, addEmployee, updateEmployee, deleteEmployee, getEmployeeById, getEmployeesByRole, getEmployeesByStatus, getEmployeesByCity, getEmployeesByPincode, getEmployeesByCluster]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return context;
 }

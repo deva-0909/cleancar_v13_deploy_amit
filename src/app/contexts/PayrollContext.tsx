@@ -10,11 +10,12 @@
  * Single source of truth for payroll
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef} from "react";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 import { useRole } from "./RoleContext";
 // REMOVED: circular import useFinance from FinanceContext
+import { useAttendance } from "./AttendanceContext"; // ✅ Attendance-aware payroll
 import { calculateStatutoryDeductions, type ComplianceStatus } from "../services/payroll/complianceEngine";
 import { type PayrollStatus, canTransition, canEdit } from "../utils/payrollWorkflow";
 
@@ -167,6 +168,7 @@ const withCityFallback = <T extends { cityId?: string }>(item: T, defaultCityId:
 
 export function PayrollProvider({ children }: { children: ReactNode }) {
   const { currentUser } = useRole();
+  const { computeDaysPresent } = useAttendance(); // ✅ Attendance-aware payroll
   const currentCityId = currentUser.cityId || DEFAULT_CITY;
   // Defensive: FinanceProvider must be above PayrollProvider in AppProvider (now fixed).
   // This guard prevents crashes if provider order is ever changed again.
@@ -196,11 +198,13 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (payrollRuns.length > 0) DataService.setAll("PAYROLL_RUNS", payrollRuns);
+    if (_dbPayrolTimer.current) clearTimeout(_dbPayrolTimer.current);
+    _dbPayrolTimer.current = setTimeout(() => DataService.setAll("PAYROLL_RUNS", payrollRuns), 500);
   }, [payrollRuns]);
 
   useEffect(() => {
-    if (salaryStructures.length > 0) DataService.setAll("SALARY_STRUCTURES", salaryStructures);
+    if (_dbSalaryTimer.current) clearTimeout(_dbSalaryTimer.current);
+    _dbSalaryTimer.current = setTimeout(() => DataService.setAll("SALARY_STRUCTURES", salaryStructures), 500);
   }, [salaryStructures]);
 
   // ========== PAYROLL ACTIONS ==========
@@ -209,23 +213,59 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
     payroll: Omit<PayrollRun, "payrollId" | "createdAt" | "updatedAt">
   ): PayrollRun => {
     const now = new Date().toISOString();
+
+    // ── Attendance-aware salary computation ───────────────────────────────────
+    // If daysWorked was not explicitly provided by the caller, compute it from
+    // AttendanceContext (computeDaysPresent handles Present=1, Late=1, Half Day=0.5)
+    const computedDaysWorked = (payroll.daysWorked != null)
+      ? payroll.daysWorked
+      : computeDaysPresent(payroll.employeeId, payroll.month);
+
+    // Standard working days for the month (26 = industry standard, excluding Sundays)
+    const totalWorkingDays = payroll.totalDays ?? 26;
+
+    // Prorate gross salary if daysWorked < totalWorkingDays (LOP / attendance deduction)
+    // Guard: if no attendance data exists (computedDaysWorked = 0) keep full salary
+    //        to avoid accidentally zeroing pay on first use before attendance is recorded
+    const hasAttendanceData = computedDaysWorked > 0;
+    const attendanceFactor = (hasAttendanceData && computedDaysWorked < totalWorkingDays)
+      ? computedDaysWorked / totalWorkingDays
+      : 1;
+
+    const adjustedGross = hasAttendanceData
+      ? Math.round(payroll.grossSalary * attendanceFactor)
+      : payroll.grossSalary;
+
+    const lopDeduction = payroll.grossSalary - adjustedGross;
+
     const newPayroll: PayrollRun = {
       ...payroll,
-      cityId: payroll.cityId || currentCityId, // ✅ AUTO ATTACH current city if not provided
-      status: payroll.status || "draft", // ✅ Default to draft status
-      payrollId: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: now,
-      updatedAt: now,
+      cityId:       payroll.cityId || currentCityId,
+      status:       payroll.status || "draft",
+      payrollId:    `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      createdAt:    now,
+      updatedAt:    now,
+      daysWorked:   computedDaysWorked,
+      totalDays:    totalWorkingDays,
+      grossSalary:  adjustedGross,
+      // Carry forward any existing penalties + add LOP on top
+      penalties:    (payroll.penalties || 0) + lopDeduction,
     };
+
     setPayrollRuns((prev) => [...prev, newPayroll]);
     logger.log("Payroll processed", {
       payrollId: newPayroll.payrollId,
+      employeeId: newPayroll.employeeId,
+      month: newPayroll.month,
       cityId: newPayroll.cityId,
+      daysWorked: computedDaysWorked,
+      totalDays: totalWorkingDays,
+      lopDeduction,
+      adjustedGross,
       status: newPayroll.status,
-      createdBy: newPayroll.createdBy
     });
     return newPayroll;
-  }, [currentCityId]);
+  }, [currentCityId, computeDaysPresent]);
 
   // ✅ MC-22: Workflow Engine Actions
 
@@ -562,7 +602,7 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
 
   // ========== CONTEXT VALUE ==========
 
-  const value: PayrollContextType = {
+  const contextValue = useMemo((): PayrollContextType => ({
     payrollRuns,
     processPayroll,
 
@@ -595,9 +635,12 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
     getSalaryStructuresByCity,
     // ✅ NEW: Auto Compliance Engine
     calculateStatutoryDeductions: calculateStatutoryDeductionsWrapper,
-  };
+  };)),
+  // eslint-disable-line react-hooks/exhaustive-deps
+  // deps: state vars and stable callbacks
+  [payrollRuns, processPayroll, transitionPayroll, sendToReview, approvePayroll, disbursePayroll, rejectToDraft, updatePayrollStatus, approvePayrollByHR, approvePayrollByFinance]);
 
-  return <PayrollContext.Provider value={value}>{children}</PayrollContext.Provider>;
+    return <PayrollContext.Provider value={contextValue}>{children}</PayrollContext.Provider>;
 }
 
 // ========== HOOK ==========
