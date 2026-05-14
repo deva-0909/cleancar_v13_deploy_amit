@@ -598,7 +598,7 @@ export function LeadPipelineKanban() {
                               <div className="flex items-center gap-2">
                                 <Car className="w-3 h-3" />
                                 <span>
-                                  {lead.numCars} car{lead.numCars > 1 ? "s" : ""} ({lead.carTypes.join(", ")})
+                                  {lead.numCars} car{lead.numCars > 1 ? "s" : ""} ({(lead.carTypes ?? []).join(", ")})
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">

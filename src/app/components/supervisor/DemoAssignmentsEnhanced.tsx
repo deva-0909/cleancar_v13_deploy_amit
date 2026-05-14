@@ -561,7 +561,7 @@ export function DemoAssignmentsEnhanced() {
                   )}
                   {demo.declinedBy && demo.declinedBy.length > 0 && (
                     <div className="text-red-800 bg-red-50 p-2 rounded border border-red-200 mt-2">
-                      <strong>Previously Declined By:</strong> {demo.declinedBy.join(", ")}
+                      <strong>Previously Declined By:</strong> {(demo.declinedBy ?? []).join(", ")}
                     </div>
                   )}
                 </div>

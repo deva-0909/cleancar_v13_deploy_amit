@@ -85,7 +85,7 @@ export function CostTrackingReports() {
             {WASHER_PERFORMANCE_DATA.map((washer) => (
               <TableRow key={washer.id}>
                 <TableCell className="font-medium">{washer.washerName}</TableCell>
-                <TableCell>{washer.pinCodes.join(", ")}</TableCell>
+                <TableCell>{(washer.pinCodes ?? []).join(", ")}</TableCell>
                 <TableCell className="text-right">{washer.totalWashes}</TableCell>
                 <TableCell className="text-right">{formatCurrency(washer.actualMaterialCost)}</TableCell>
                 <TableCell className="text-right">{formatCurrency(washer.actualCostPerWash)}</TableCell>

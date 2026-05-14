@@ -1091,7 +1091,7 @@ export function EmployeeDatabase({ openAddModal }: { openAddModal?: boolean } = 
                       <div>
                         <div className="text-sm font-medium text-gray-900">{emp.designation}</div>
                         <div className="text-xs text-gray-500">
-                          {emp.pinCodes.length > 1 ? `${emp.pinCodes.join(", ")} (Multi)` : emp.pinCodes[0]}
+                          {(emp.pinCodes?.length ?? 0) > 1 ? `${emp.pinCodes!.join(", ")} (Multi)` : (emp.pinCodes?.[0] ?? "—")}
                         </div>
                       </div>
                     </td>
@@ -1920,7 +1920,7 @@ export function EmployeeDatabase({ openAddModal }: { openAddModal?: boolean } = 
                     <div><span className="text-gray-600">Name:</span> <span className="ml-2 font-medium">{selectedEmployee.fullName}</span></div>
                     <div><span className="text-gray-600">Temp ID:</span> <span className="ml-2 font-mono text-amber-700">{selectedEmployee.tempId}</span></div>
                     <div><span className="text-gray-600">Designation:</span> <span className="ml-2">{selectedEmployee.designation}</span></div>
-                    <div><span className="text-gray-600">Pincodes:</span> <span className="ml-2 font-mono">{selectedEmployee.pinCodes.join(", ")}</span></div>
+                    <div><span className="text-gray-600">Pincodes:</span> <span className="ml-2 font-mono">{(selectedEmployee.pinCodes ?? []).join(", ")}</span></div>
                     <div><span className="text-gray-600">Days in Temp:</span> <span className="ml-2">{selectedEmployee.daysInTempStatus} days</span></div>
                   </div>
                 </div>
@@ -1931,7 +1931,7 @@ export function EmployeeDatabase({ openAddModal }: { openAddModal?: boolean } = 
                     {generatePermanentId(selectedEmployee.designation, selectedEmployee.pinCodes, employees)}
                   </p>
                   <p className="text-xs text-gray-600 mt-2">
-                    Structure: {roleCodeMap[selectedEmployee.designation]}-{selectedEmployee.pinCodes.length > 1 ? `${selectedEmployee.pinCodes[0]}-M` : selectedEmployee.pinCodes[0]}-XXX
+                    Structure: {roleCodeMap[selectedEmployee.designation]}-{(selectedEmployee.pinCodes?.length ?? 0) > 1 ? `${(selectedEmployee.pinCodes?.[0] ?? "—")}-M` : (selectedEmployee.pinCodes?.[0] ?? "—")}-XXX
                   </p>
                 </div>
                 
@@ -2136,7 +2136,7 @@ export function EmployeeDatabase({ openAddModal }: { openAddModal?: boolean } = 
                         {selectedEmployee.pinCodes.map(pin => (
                           <Badge key={pin} variant="outline" className="font-mono">{pin}</Badge>
                         ))}
-                        {selectedEmployee.pinCodes.length > 1 && (
+                        {(selectedEmployee.pinCodes?.length ?? 0) > 1 && (
                           <Badge className="bg-purple-100 text-purple-800">Multi-Zone</Badge>
                         )}
                       </div>

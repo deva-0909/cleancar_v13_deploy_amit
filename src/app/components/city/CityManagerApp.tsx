@@ -891,7 +891,7 @@ function AlertsEscalations() {
           </div>
           
           <div className="flex items-center gap-4 text-xs text-gray-600 mb-3">
-            <span>Affected: {alert.affectedClusters.join(", ")}</span>
+            <span>Affected: {(alert.affectedClusters ?? []).join(", ")}</span>
             <span>Time elapsed: {Math.floor(alert.timeElapsed / 60)} hours</span>
             {alert.autoEscalateIn && (
               <span className="text-red-600">Auto-escalates in: {Math.floor(alert.autoEscalateIn / 60)} hours</span>
