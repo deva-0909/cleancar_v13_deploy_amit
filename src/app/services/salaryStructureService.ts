@@ -90,9 +90,18 @@ class SalaryStructureStore {
     };
   }
 
+  // ✅ PERF FIX: Cache validity check date so we don't run it on every call
+  private lastValidityCheckDate: string = "";
+
   // Get all structures
   getAll(): SalaryStructure[] {
     const today = new Date().toISOString().split('T')[0];
+    
+    // Skip validity check if already done today — avoids saveToStorage() on every render
+    if (this.lastValidityCheckDate === today) {
+      return this.structures;
+    }
+    
     let changed = false;
     this.structures = this.structures.map(s => {
       if (s.validTill && s.validTill < today && s.isActive) {

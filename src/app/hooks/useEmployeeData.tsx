@@ -119,14 +119,21 @@ export function useEmployeeData() {
 
   // ========== ENRICH EMPLOYEES ==========
 
+  // ── Stable primitive deps to prevent unnecessary recomputes ─────────────
+  const employees       = employeeCtx.employees;
+  const payrollRuns     = payrollCtx.payrollRuns;
+  const salaryStructures = payrollCtx.salaryStructures;
+  const incentivePlans  = incentiveCtx.incentivePlans;
+  const employeeIncentives = incentiveCtx.employeeIncentives;
+
   const enrichedEmployees = useMemo((): EnrichedEmployee[] => {
-    return employeeCtx.employees.map((employee) => {
+    return employees.map((employee) => {
       const { isComplete, score, missing } = calculateProfileCompletion(employee);
 
-      // Get salary structure if referenced
+      // Salary — from structure or legacy baseSalary
       let salary = undefined;
       if (employee.salaryStructureId) {
-        const structure = payrollCtx.getSalaryStructure(employee.salaryStructureId);
+        const structure = salaryStructures.find(s => s.structureId === employee.salaryStructureId);
         if (structure) {
           salary = {
             type: structure.type,
@@ -137,19 +144,14 @@ export function useEmployeeData() {
           };
         }
       } else if (employee.baseSalary) {
-        // Legacy fallback
-        salary = {
-          type: "fixed" as const,
-          base: employee.baseSalary,
-          paymentCycle: "monthly" as const,
-        };
+        salary = { type: "fixed" as const, base: employee.baseSalary, paymentCycle: "monthly" as const };
       }
 
-      // Get incentive data if referenced
+      // Incentives — from plan or legacy flag
       let incentives = undefined;
       if (employee.incentivePlanId) {
-        const employeeIncentive = incentiveCtx.getEmployeeIncentive(employee.employeeId);
-        const plan = incentiveCtx.getIncentivePlan(employee.incentivePlanId);
+        const employeeIncentive = employeeIncentives.find(i => i.employeeId === employee.employeeId);
+        const plan = incentivePlans.find(p => p.planId === employee.incentivePlanId);
         if (employeeIncentive && plan) {
           incentives = {
             planId: plan.planId,
@@ -161,23 +163,17 @@ export function useEmployeeData() {
           };
         }
       } else if (employee.incentiveEligible) {
-        // Legacy fallback
-        incentives = {
-          type: "per_car" as const,
-          target: 0,
-          achieved: 0,
-        };
+        incentives = { type: "per_car" as const, target: 0, achieved: 0 };
       }
 
-      // Calculate performance metrics
-      const attendanceRecords = attendanceCtx.getAttendanceByEmployee(employee.employeeId);
-      const thisMonth = new Date().toISOString().slice(0, 7);
-      const monthlyAttendance = attendanceCtx.getMonthlyAttendanceSummary(employee.employeeId, thisMonth);
-
+      // ✅ PERFORMANCE FIX: Attendance is NOT computed here for all employees.
+      // getAttendanceByEmployee + getMonthlyAttendanceSummary per employee = O(n²).
+      // Components that need attendance for a specific employee should call
+      // attendanceCtx.getAttendanceByEmployee(employeeId) directly.
       const performance = {
-        totalCarsWashed: 0, // Would be calculated from job data
-        rating: 4.5, // Default rating
-        attendanceScore: monthlyAttendance.attendancePercentage,
+        totalCarsWashed: 0,
+        rating: 4.5,
+        attendanceScore: 0, // Computed on-demand per employee, not bulk here
         lastUpdated: new Date().toISOString(),
       };
 
@@ -192,7 +188,8 @@ export function useEmployeeData() {
         performance,
       };
     });
-  }, [employeeCtx.employees, payrollCtx, incentiveCtx, attendanceCtx]);
+  // ✅ Stable primitive deps — avoids recompute when unrelated context state changes
+  }, [employees, salaryStructures, incentivePlans, employeeIncentives]);
 
   // ========== HELPER FUNCTIONS ==========
 

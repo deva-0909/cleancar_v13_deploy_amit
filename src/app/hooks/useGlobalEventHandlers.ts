@@ -32,8 +32,10 @@ import { useCustomers } from "../contexts/CustomerContext";
 import { useCustomerSubscriptions } from "../contexts/CustomerSubscriptionContext";
 import { useFinance } from "../contexts/FinanceContext";
 import { useJobs } from "../contexts/JobContext";
-import { useEmployeeData } from "./useEmployeeData";
-import { useIncentive } from "../contexts/IncentiveContext";
+// ✅ PERF FIX: Use direct context hooks instead of useEmployeeData
+// useEmployeeData runs enrichedEmployees useMemo (O(n) employee scans) on every render.
+// useGlobalEventHandlers only needs 3 specific functions — no enrichment needed.
+import { useAttendance } from "../contexts/AttendanceContext";
 import { accountingEntryService } from "../services/accountingEntryService";
 
 export function useGlobalEventHandlers() {
@@ -42,7 +44,9 @@ export function useGlobalEventHandlers() {
   const subscriptionContext = useCustomerSubscriptions();
   const financeContext = useFinance();
   const jobContext = useJobs();
-  const employeeContext = useEmployeeData();
+  // ✅ Direct context hooks — no enrichment overhead
+  const attendanceCtx  = useAttendance();
+  const incentiveCtx   = useIncentive();
   const incentiveContext = useIncentive();
 
   // ==================== LEAD_CONVERTED ====================
@@ -131,9 +135,9 @@ export function useGlobalEventHandlers() {
       // ✅ 3. Update washer's incentive achievement
       const washerId = event.data.washerId;
       if (washerId) {
-        const currentIncentive = incentiveContext.getEmployeeIncentive(washerId);
+        const currentIncentive = incentiveCtx.getEmployeeIncentive(washerId);
         if (currentIncentive) {
-          incentiveContext.updateAchievement(washerId, currentIncentive.achieved + 1);
+          incentiveCtx.updateAchievement(washerId, currentIncentive.achieved + 1);
           logger.debug("Incentive achievement updated", { washerId, achieved: currentIncentive.achieved + 1 });
         }
       }
@@ -253,7 +257,7 @@ export function useGlobalEventHandlers() {
 
       // ✅ Add attendance record
       const today = new Date().toISOString().split('T')[0];
-      employeeContext.addAttendanceRecord({
+      attendanceCtx.addAttendanceRecord({
         employeeId,
         date: today,
         checkIn: checkInTime,

@@ -38,18 +38,10 @@ import { EmployeeAttendanceDrillDown } from "../hr/EmployeeAttendanceDrillDown";
 import { offerLetterService } from "../../services/offerLetterService";
 import { employeeDatabaseService } from "../../services/employeeDatabaseService";
 
-// NOTE: mockEmployees computed at module load — see reactive liveEmployeeList inside component
-// Do NOT use mockEmployees directly — use liveEmployeeList state instead
-const _initialDbEmployees = employeeDatabaseService.getAll();
-const mockEmployees = _initialDbEmployees.length > 0
-  ? _initialDbEmployees.map(e => ({
-      ...e,
-      name: e.fullName || (e.firstName + " " + e.lastName),
-      empCode: e.empCode || e.employeeId || e.id || e.tempId,
-      role: e.designation || (e as any).role || "Employee", // FIX: EmployeeDatabaseRecord uses .designation not .role
-      status: e.status || "Active"
-    }))
-  : MASTER_EMPLOYEES;
+// ✅ PERF FIX: Removed module-level getAll() call.
+// getAll() was executing at JS parse time AND inside useState, causing two synchronous
+// localStorage JSON.parse calls before the component even mounted.
+// liveEmployeeList inside the component now handles the single initialisation.
 
 // Payroll Interface
 interface PayrollRecord {
@@ -294,7 +286,10 @@ function HRModule() {
       });
     };
 
-    calculateBadgeCounts();
+    // ✅ PERF FIX: Defer badge count — let the page paint first
+    // Badge counts are non-critical UI enhancements; blocking the render for them
+    // is what causes the spinner on every HR page visit.
+    setTimeout(calculateBadgeCounts, 0);
 
     // Subscribe to employee database changes — update badge counts AND employee list
     const unsubscribe = employeeDatabaseService.subscribe((updatedEmployees) => {
