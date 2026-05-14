@@ -10,6 +10,9 @@ import { AppProvider } from "./contexts/AppProvider";
 import { employeeDatabaseService } from "./services/employeeDatabaseService";
 import { loadAllDataFromSupabase } from "./services/supabaseDataLoader";
 import { startupStorageCleanup } from "./services/DataService";
+import { seedHistoricData } from "./utils/seedHistoricData";
+import { seedDummyLogins } from "./utils/seedDummyLogins";
+import { initializeAttendanceData } from "./services/seedAttendanceData";
 
 function AppContent() {
   useGlobalEventHandlers();
@@ -66,16 +69,22 @@ export default function App() {
         // Free up localStorage space before loading data
         startupStorageCleanup();
 
+        // Seed local data BEFORE Supabase load.
+        // Each function has its own guard flag and only runs once on a fresh install.
+        // If Supabase is configured, its data loaded below will overwrite the seeds.
+        setLoadingMsg("Initialising data...");
+        try { seedHistoricData(); } catch (e) { console.error("[Bootstrap] seedHistoricData failed:", e); }
+        try { seedDummyLogins(); } catch (e) { console.error("[Bootstrap] seedDummyLogins failed:", e); }
+        try { initializeAttendanceData(); } catch (e) { console.error("[Bootstrap] initializeAttendanceData failed:", e); }
+
         setLoadingMsg("Loading employees...");
         await employeeDatabaseService.loadFromSupabase();
 
-        setLoadingMsg("Loading data from database (may take 20-30s)...");
+        setLoadingMsg("Loading data from database...");
         await loadAllDataFromSupabase();
 
-        setLoadingMsg("Almost ready...");
-        // Wait for localStorage writes to settle before mounting contexts
-        // Data takes ~25s to load from Supabase - wait for it
-        await new Promise(r => setTimeout(r, 1500));
+        // Note: removed the 1500ms artificial delay — localStorage writes are
+        // synchronous so there is nothing to "settle". Saves 1.5s on every startup.
 
       } catch (err) {
         console.error("Bootstrap error:", err);

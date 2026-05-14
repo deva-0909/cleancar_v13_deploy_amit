@@ -21,7 +21,11 @@ export type EntityKey =
   | "FINANCE_MRR"
   | "FINANCE_PAYABLES"
   | "FINANCE_REVENUES"
-  | "FINANCE_LEDGER";
+  | "FINANCE_LEDGER"
+  // Added: used by FinanceContext useSync() calls
+  | "FINANCE_BUDGETS"
+  | "FINANCE_ALERTS"
+  | "FINANCE_RECOMMENDATIONS";
 
 interface APIResponse<T> {
   success: boolean;

@@ -29,7 +29,6 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo } from "react";
 import { DataService } from "../services/DataService";
-import { seedEmployeesIfEmpty } from "../data/seedEmployees";
 import { logger } from "../services/logger";
 import { eventBus } from "../utils/eventBus";
 import { EVENTS } from "../constants/events";
@@ -110,6 +109,10 @@ interface EmployeeContextType {
   employees: Employee[];
   cityEmployees: Employee[];  // Auto-filtered to current city — use this in components
 
+  // isLoaded: true once the initial localStorage read is complete.
+  // Use this in RouteGuard / any guard that must not run before employees are available.
+  isLoaded: boolean;
+
   // Queries
   getEmployeeById: (employeeId: string) => Employee | undefined;
   getEmployeesByRole: (role: EmployeeRole | EmployeeRole[]) => Employee[];
@@ -129,31 +132,20 @@ const EmployeeContext = createContext<EmployeeContextType | undefined>(undefined
 // ========== PROVIDER ==========
 
 export function EmployeeProvider({ children }: { children: ReactNode }) {
+  // READ-ONLY: EmployeeContext only reads from DataService.
+  // All writes (including initial seeding) are handled exclusively by HRDataContext.
+  // Removing the seedEmployeesIfEmpty() call here prevents a race condition where
+  // both EmployeeContext and HRDataContext seed simultaneously (both see count=0
+  // before either write completes), resulting in duplicate employee records.
   const [employees, setEmployees] = useState<Employee[]>(() => {
-    let stored = DataService.get<Employee>("EMPLOYEES");
+    const stored = DataService.get<Employee>("EMPLOYEES");
     logger.debug("EmployeeContext loaded", { count: stored.length });
-
-    if (stored.length === 0) {
-      logger.debug("EmployeeContext: No employees found, seeding initial data");
-      seedEmployeesIfEmpty(
-        () => DataService.count("EMPLOYEES"),
-        (emp) => {
-          const newEmployee: Employee = {
-            ...emp,
-            employeeId: `EMP-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          DataService.insert("EMPLOYEES", newEmployee);
-          return newEmployee;
-        }
-      );
-      stored = DataService.get<Employee>("EMPLOYEES");
-      logger.debug("EmployeeContext seeded", { count: stored.length });
-    }
-
     return stored;
   });
+
+  // isLoaded is true immediately — employees initialise synchronously from localStorage.
+  // Exposed on the context so guards (e.g. RouteGuard) can wait for initial load.
+  const [isLoaded] = useState(true);
 
   const { city, cityInfo } = useCity();
 
@@ -266,6 +258,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
   const contextValue: EmployeeContextType = useMemo(() => ({
     employees,
     cityEmployees,
+    isLoaded,
     getEmployeeById,
     getEmployeesByRole,
     getEmployeesByStatus,
@@ -277,7 +270,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
     getEmployeeCountByRole,
   }),
   // eslint-disable-line react-hooks/exhaustive-deps
-  [employees, cityEmployees, getEmployeeById, getEmployeesByRole, getEmployeesByStatus, getEmployeesByCity, getEmployeesByPincode, getEmployeesByCluster, getActiveEmployees, getEmployeeCount]);
+  [employees, cityEmployees, isLoaded, getEmployeeById, getEmployeesByRole, getEmployeesByStatus, getEmployeesByCity, getEmployeesByPincode, getEmployeesByCluster, getActiveEmployees, getEmployeeCount]);
 
   return <EmployeeContext.Provider value={contextValue}>{children}</EmployeeContext.Provider>;
 }
@@ -289,9 +282,9 @@ export function useEmployee() {
 
   if (!context) {
     // PREVIEW MODE FALLBACK: Detect if running in preview/standalone mode
-    const isPreviewMode = typeof window !== 'undefined' && (
-      window.location.href.includes('figma.com') ||
-      window.location.href.includes('preview') ||
+    const isPreviewMode = typeof window !== "undefined" && (
+      window.location.href.includes("figma.com") ||
+      window.location.href.includes("preview") ||
       !import.meta.env?.PROD
     );
 
@@ -300,6 +293,7 @@ export function useEmployee() {
       return {
         employees: [],
         cityEmployees: [],
+        isLoaded: true,
         getEmployeeById: () => undefined,
         getEmployeesByRole: () => [],
         addEmployee: () => {},

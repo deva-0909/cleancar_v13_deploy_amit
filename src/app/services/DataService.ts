@@ -65,6 +65,14 @@ const STORAGE_KEYS = {
   ROLE_PERMISSION_OVERRIDES: "role_permission_overrides",
   CUSTOM_TRANSACTION_SUB_TYPES: "custom_transaction_sub_types", // GST transaction categorization
   MOBILE_CHANGE_REQUESTS: "mobile_change_requests",
+  // ── Added: keys used by contexts but previously missing from this map ──
+  INVENTORY_ITEMS:         "inventory_items",         // InventoryContext
+  STOCK_TRANSACTIONS:      "stock_transactions",      // InventoryContext
+  FINANCE_BUDGETS:         "finance_budgets",         // FinanceContext
+  FINANCE_ALERTS:          "finance_alerts",          // FinanceContext
+  FINANCE_RECOMMENDATIONS: "finance_recommendations", // FinanceContext
+  BUSINESS_RULES:          "business_rules",          // BusinessRulesContext
+  DEMOS:                   "demos",                   // DemoContext
 } as const;
 
 type EntityType = keyof typeof STORAGE_KEYS;

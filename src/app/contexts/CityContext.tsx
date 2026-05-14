@@ -13,7 +13,7 @@
  * ```
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
 import { useRole } from "./RoleContext";
 
 export type CityId = "CITY-SURAT" | "CITY-MUMBAI" | "CITY-AHMEDABAD";
@@ -56,14 +56,11 @@ interface CityProviderProps {
   children: ReactNode;
 }
 
-// Helper: read ?city= from the current hash URL
-// HashRouter uses /#/path?city=surat — query string is after the hash
+// Helper: read ?city= from the URL query string
+// BrowserRouter uses /path?city=surat — city is in window.location.search
 function getCityFromURL(): CityId | null {
   try {
-    const hash = window.location.hash; // e.g. "#/analytics/cac?city=surat"
-    const queryIndex = hash.indexOf("?");
-    if (queryIndex === -1) return null;
-    const params = new URLSearchParams(hash.slice(queryIndex + 1));
+    const params = new URLSearchParams(window.location.search);
     const cityName = params.get("city")?.toLowerCase();
     if (!cityName) return null;
     const found = Object.values(CITIES).find(c => c.name === cityName);
@@ -73,27 +70,14 @@ function getCityFromURL(): CityId | null {
   }
 }
 
-// Helper: update ?city= in the current hash URL without a full navigation
+// Helper: update ?city= in the URL query string without a full navigation
+// BrowserRouter: city lives in window.location.search, not the hash
 function updateCityInURL(cityId: CityId) {
   try {
-    const hash = window.location.hash; // e.g. "#/analytics/cac?city=surat"
-    const queryIndex = hash.indexOf("?");
-    const cityParam = `city=${CITIES[cityId].name}`;
-
-    let newHash: string;
-    if (queryIndex === -1) {
-      newHash = `${hash}?${cityParam}`;
-    } else {
-      const params = new URLSearchParams(hash.slice(queryIndex + 1));
-      params.set("city", CITIES[cityId].name);
-      newHash = `${hash.slice(0, queryIndex)}?${params.toString()}`;
-    }
-
-    // CRITICAL: replaceState 3rd arg must be the FULL URL, not just the hash.
-    // Using just the hash string causes it to be treated as a path,
-    // resulting in /?city=surat#/route — breaking HashRouter entirely.
-    const fullURL = window.location.pathname + window.location.search.replace(/[?&]city=[^&]*/g, "").replace(/^&/, "?").replace(/^\?$/, "") + newHash;
-    window.history.replaceState(null, "", fullURL);
+    const params = new URLSearchParams(window.location.search);
+    params.set("city", CITIES[cityId].name);
+    const newURL = window.location.pathname + "?" + params.toString();
+    window.history.replaceState(null, "", newURL);
   } catch {
     // Non-critical — silently ignore
   }
@@ -116,16 +100,27 @@ export function CityProvider({ children }: CityProviderProps) {
     localStorage.setItem("cleancar_selected_city", city);
   }, [city]);
 
-  // When the URL hash changes (user clicks a nav link), sync city from URL -> context
+  // Sync city from URL on every render (catches React Router Link navigations).
+  // BrowserRouter's Link/navigate() do not fire popstate, but they cause
+  // re-renders in parent components which re-run this effect.
+  // Only calls setCityState when the city value actually changes — no render loop.
   useEffect(() => {
-    const handleHashChange = () => {
+    const urlCityId = getCityFromURL();
+    if (urlCityId && urlCityId !== city) {
+      setCityState(urlCityId);
+    }
+  }); // intentionally no dep array — must re-run on every render
+
+  // Also handle browser back/forward navigation (fires popstate)
+  useEffect(() => {
+    const handlePopState = () => {
       const urlCityId = getCityFromURL();
       if (urlCityId && urlCityId !== city) {
         setCityState(urlCityId);
       }
     };
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, [city]);
 
   // Determine if city is locked based on role

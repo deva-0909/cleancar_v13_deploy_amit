@@ -57,6 +57,12 @@ export function RoleDashboard() {
     case "admin":
     case "super-admin":
       return <ExecutiveDashboard key={dashKey} />;
+    // Added: "Manager" role uses dashboardType "operational"
+    case "operational":
+      return <OperationsDashboard key={dashKey} />;
+    // Added: "Marketing Agency" role uses dashboardType "marketing"
+    case "marketing":
+      return <SalesDashboard key={dashKey} />;
     default:
       return <ExecutiveDashboard key={dashKey} />;
   }

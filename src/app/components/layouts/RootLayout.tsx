@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
 import {
   Users, BarChart3, UserCircle, Car, ClipboardList,
   AlertCircle, Package, DollarSign, UserCog, Menu, X,
@@ -46,6 +46,24 @@ export function RootLayout() {
     || window.location.hostname === "localhost"
     || window.location.hostname.includes("figma")
     || window.location.hash.includes("preview-route");
+
+  // ── Session guard ────────────────────────────────────────────────────────
+  // Skipped in dev/preview mode so localhost and Figma Make still work without login.
+  // In production, a valid cc360_session with an employeeId is required to render
+  // any authenticated page. Unauthenticated requests are sent to /login.
+  const _isDevMode = import.meta.env.MODE === "development"
+    || window.location.hostname === "localhost"
+    || window.location.hostname.includes("figma");
+  if (!_isDevMode) {
+    const _session = (() => {
+      try { return JSON.parse(localStorage.getItem("cc360_session") || "null"); }
+      catch { return null; }
+    })();
+    if (!_session?.employeeId) {
+      return <Navigate to="/login" replace />;
+    }
+  }
+  // ── End session guard ────────────────────────────────────────────────────
 
   // Auth redirect removed — HashRouter pathname is always "/"
   // Route-level auth is handled by ProtectedRoute in routes.tsx

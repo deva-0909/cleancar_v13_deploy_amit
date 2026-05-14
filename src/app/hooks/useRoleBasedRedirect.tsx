@@ -51,8 +51,9 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
     allowedPaths: ["/", "/operations", "/washer-jobs", "/service-zones", "/supervisor", "/complaints", "/car-washer", "/hr/professional-leave", "/hr/self-service", "/approvals", "/performance", "/analytics", "/my-account"],
   },
   "Cluster Manager": {
-    defaultPath: "/cluster",
-    allowedPaths: ["/", "/cluster", "/operations", "/washer-jobs", "/service-zones", "/complaints", "/users", "/leads", "/customers", "/finance", "/hr/professional-leave", "/hr/self-service", "/performance", "/analytics", "/my-account"],
+    // FIX: was "/cluster" which has no route — correct destination is "/cm-app"
+    defaultPath: "/cm-app",
+    allowedPaths: ["/", "/cm-app", "/operations", "/washer-jobs", "/service-zones", "/complaints", "/users", "/leads", "/customers", "/finance", "/hr/professional-leave", "/hr/self-service", "/performance", "/analytics", "/my-account"],
   },
   "City Manager": {
     defaultPath: "/city-app",

@@ -228,6 +228,10 @@ export function SupervisorProvider({ children }: SupervisorProviderProps) {
   useEffect(() => {
     if (hasValidSetup) {
       loadData();
+    } else {
+      // No valid supervisor session — resolve loading immediately so the UI
+      // shows an empty/role-check state instead of an infinite spinner.
+      setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasValidSetup, supervisorId]);

@@ -73,6 +73,12 @@ export const ROUTES: AppRoute[] = [
   { path: "/hierarchy-dashboard", module: "operations" },
   { path: "/onboard/:empId", module: "public" },
   { path: "/onboarding/:empId", module: "public" },
+  // ── Added: routes present in routes.tsx but missing from this map ──
+  // Without these, RouteGuard skips permission checks for these paths,
+  // allowing any role to access them regardless of permissions.
+  { path: "/cloth-tracking/exchange",  module: "cloth-tracking" },
+  { path: "/workforce/working-hours",  module: "admin" },
+  { path: "/advance/hr-management",    module: "hr" },
 ];
 
 export function getRouteConfig(path: string): AppRoute | undefined {

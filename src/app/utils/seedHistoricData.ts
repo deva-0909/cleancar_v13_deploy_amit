@@ -868,7 +868,7 @@ export function seedHistoricData(): void {
     localStorage.setItem("cleancar_revenues",  JSON.stringify(HISTORIC_REVENUES));
 
     // Advances
-    localStorage.setItem("cleancar_advances", JSON.stringify(HISTORIC_ADVANCES));
+    localStorage.setItem("cleancar_advance_management", JSON.stringify(HISTORIC_ADVANCES));
 
     // Incentives
     localStorage.setItem("cleancar_incentives", JSON.stringify(HISTORIC_INCENTIVES));
