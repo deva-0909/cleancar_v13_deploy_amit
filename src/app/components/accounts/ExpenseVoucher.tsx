@@ -127,7 +127,7 @@ export function ExpenseVoucher() {
     e.preventDefault();
 
     if (!formData.vendorId || !formData.itemId || !formData.expenseLedgerId) {
-      toast.error("Please fill all required fields"); return;
+      toast.error("Please fill all required fields");
       return;
     }
 
@@ -261,21 +261,27 @@ export function ExpenseVoucher() {
     }
 
     // TDS entry if applicable
+    // This adjusts the vendor payable: vendor owes net-of-TDS, remainder goes to TDS Payable.
+    // NOTE: The expense debit was already posted in the purchase journal above — do NOT debit it again here.
     if (formData.tdsAmount > 0 && formData.tdsSection) {
       const tdsLedger = accountingEntryService.getLedgers(cityId).find(l => l.name === "TDS Payable");
       if (tdsLedger) {
+        // Reverse the full vendor credit from purchase journal, then re-credit net + TDS split
         accountingEntryService.createJournal({
           date: formData.date,
-          narration: `TDS ${formData.tdsSection} on payment to ${vendor.name}`,
+          narration: `TDS u/s ${formData.tdsSection} on invoice to ${vendor.name} — TDS ₹${formData.tdsAmount.toFixed(2)} deducted at source`,
           lines: [
-            { accountHead: expenseLedger.id, accountLabel: expenseLedger.name, debit: formData.totalAmount, credit: 0 },
-            { accountHead: vendor.id, accountLabel: vendor.name, debit: 0, credit: formData.totalAmount - formData.tdsAmount },
+            // DR Vendor Payable for TDS amount (reduces what we owe them — they'll collect TDS from govt)
+            { accountHead: vendor.id, accountLabel: vendor.name, debit: formData.tdsAmount, credit: 0 },
+            // CR TDS Payable (our liability to deposit with income tax dept)
             { accountHead: tdsLedger.id, accountLabel: "TDS Payable", debit: 0, credit: formData.tdsAmount },
           ],
           city,
           cityId,
           createdBy: currentUser.name,
         }, city);
+      } else {
+        toast.warning("TDS Payable ledger not found — TDS adjustment skipped. Please initialize system ledgers.");
       }
     }
 

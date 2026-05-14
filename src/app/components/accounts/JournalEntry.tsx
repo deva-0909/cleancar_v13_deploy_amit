@@ -26,15 +26,18 @@ export function JournalEntry() {
   const difference = Math.abs(totalDebit - totalCredit);
   const isBalanced = totalDebit > 0 && totalCredit > 0 && totalDebit === totalCredit;
 
-  // Generate voucher preview
+  // Generate voucher preview — mirrors generateJournalVoucherNumber() in accountingEntryService
   useEffect(() => {
     const allJournals = accountingEntryService.getAllJournals(city);
     const fy = new Date().getMonth() >= 3 ? new Date().getFullYear() : new Date().getFullYear() - 1;
     const fyStr = `${String(fy).slice(-2)}-${String(fy + 1).slice(-2)}`;
     const cityName = cityInfo.displayName.toUpperCase();
     const prefix = `JV/${cityName}/${fyStr}`;
-    const count = allJournals.filter((j) => j.voucherNumber.startsWith(prefix)).length;
-    setVoucherPreview(`${prefix}/${String(count + 1).padStart(4, "0")}`);
+    const maxSeq = allJournals
+      .filter(j => j.voucherNumber.startsWith(prefix))
+      .map(j => parseInt(j.voucherNumber.split("/").pop() || "0", 10))
+      .reduce((max, n) => Math.max(max, n), 0);
+    setVoucherPreview(`${prefix}/${String(maxSeq + 1).padStart(4, "0")}`);
   }, [city, cityInfo]);
 
   const addLine = () => {

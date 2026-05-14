@@ -4,7 +4,6 @@ import { useRole } from "../../contexts/RoleContext";
 import { useCity } from "../../contexts/CityContext";
 import {
   accountingEntryService,
-  calculateGST,
   validateGSTIN,
   GST_STATE_OPTIONS,
   CHART_OF_ACCOUNTS_HEADS,
@@ -12,7 +11,7 @@ import {
   type GSTEntryType,
   type PaymentMode,
 } from "../../services/accountingEntryService";
-import { gstComplianceService } from "../../services/gstComplianceService";
+import { gstComplianceService, COMPANY_GST_CONFIG } from "../../services/gstComplianceService";
 import { toast } from "sonner";
 
 const ENTRY_TYPES: EntryType[] = ["Expense", "Purchase", "PurchaseReturn", "Sales", "SalesReturn", "AssetPurchase"];
@@ -68,13 +67,19 @@ export function AccountingEntry() {
   const [creditSearch, setCreditSearch] = useState("");
 
   // Auto-calculate GST when taxable value, rate, or vendor state changes
+  // Uses gstComplianceService (single GST engine for whole app — component-level rounding)
   useEffect(() => {
-    if (taxableValue > 0 && vendorStateCode) {
-      const result = calculateGST(taxableValue, gstRate, vendorStateCode, gstEntryType, city);
+    if (taxableValue > 0 && vendorStateCode && gstEntryType !== "NonGST") {
+      const companyStateCode = COMPANY_GST_CONFIG.stateCode; // "24" Gujarat
+      const isIntra = vendorStateCode === companyStateCode;
+      const supplyType = gstEntryType === "RCM"
+        ? (isIntra ? "RCM_INTRA" : "RCM_INTER")
+        : (isIntra ? "INTRA_STATE" : "INTER_STATE");
+      const result = gstComplianceService.calculateGST(taxableValue, gstRate, supplyType);
       setCgst(result.cgst);
       setSgst(result.sgst);
       setIgst(result.igst);
-      setTotalBillValue(result.totalBillValue);
+      setTotalBillValue(result.invoiceTotal);
     } else {
       setCgst(0);
       setSgst(0);
@@ -137,7 +142,7 @@ export function AccountingEntry() {
       const bankLedger = allLedgers.find(l => l.name === "Axis Bank" && l.type === "bank");
       if (bankLedger) setCreditAccount(bankLedger.id);
     } else if (paymentMode === "Cash") {
-      const cashLedger = allLedgers.find(l => l.name === "Petty Cash");
+      const cashLedger = allLedgers.find(l => l.name === "Cash in Hand");
       if (cashLedger) setCreditAccount(cashLedger.id);
     } else if (paymentMode === "PettyCash") {
       const cashLedger = allLedgers.find(l => l.name === "Petty Cash");
@@ -145,7 +150,8 @@ export function AccountingEntry() {
     }
   }, [paymentMode, city]);
 
-  // Generate voucher preview
+  // Generate voucher preview — mirrors generateVoucherNumber() in accountingEntryService
+  // Uses maxSeq + 1 (not count + 1) so it stays correct after deletions
   useEffect(() => {
     const allEntries = accountingEntryService.getAllEntries(city);
     const fy = new Date().getMonth() >= 3 ? new Date().getFullYear() : new Date().getFullYear() - 1;
@@ -153,8 +159,11 @@ export function AccountingEntry() {
     const cityName = cityInfo.displayName.toUpperCase();
     const typeCode = activeTab === "Expense" ? "EXP" : activeTab === "Purchase" ? "PUR" : activeTab === "PurchaseReturn" ? "PRN" : activeTab === "Sales" ? "SAL" : activeTab === "SalesReturn" ? "SRN" : "AST";
     const prefix = `${typeCode}/${cityName}/${fyStr}`;
-    const count = allEntries.filter(e => e.voucherNumber.startsWith(prefix)).length;
-    setVoucherPreview(`${prefix}/${String(count + 1).padStart(4, "0")}`);
+    const maxSeq = allEntries
+      .filter(e => e.voucherNumber.startsWith(prefix))
+      .map(e => parseInt(e.voucherNumber.split("/").pop() || "0", 10))
+      .reduce((max, n) => Math.max(max, n), 0);
+    setVoucherPreview(`${prefix}/${String(maxSeq + 1).padStart(4, "0")}`);
   }, [activeTab, city, cityInfo]);
 
   const handleGstinBlur = () => {
@@ -306,6 +315,16 @@ export function AccountingEntry() {
                 onChange={(e) => setVendorName(e.target.value)}
                 className="w-full border rounded px-3 py-2"
                 placeholder="Enter vendor name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Invoice / Ref No. *</label>
+              <input
+                type="text"
+                value={invoiceNumber}
+                onChange={(e) => setInvoiceNumber(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+                placeholder="INV-001"
               />
             </div>
             <div>

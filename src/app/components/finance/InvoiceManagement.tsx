@@ -52,6 +52,7 @@ import { useFinance } from "../../contexts/FinanceContext";
 import { useCustomers } from "../../contexts/AppProvider";
 import { useCustomerSubscriptions } from "../../contexts/AppProvider";
 import { logger } from "../../services/logger";
+import { accountingEntryService } from "../../services/accountingEntryService";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -193,6 +194,36 @@ async function recordPayment(
     status: "Received",
     cityId: cityId,
   });
+
+  // ── Post double-entry to accounting ledger ────────────────────────────────
+  // On payment receipt: DR Bank/Cash, CR Accounts Receivable
+  try {
+    const allLedgers = accountingEntryService.getLedgers(cityId);
+    const bankLedger = allLedgers.find(l => l.name === "Axis Bank" && l.type === "bank");
+    const cashLedger = allLedgers.find(l => l.name === "Petty Cash");
+    const arLedger   = allLedgers.find(l => l.name === "Accounts Receivable");
+
+    const debitLedger =
+      paymentData.paymentMode === "CASH" ? cashLedger : bankLedger;
+
+    if (debitLedger && arLedger) {
+      const payAmt = parseFloat(paymentData.amount);
+      accountingEntryService.createJournal({
+        date: paymentData.paymentDate,
+        narration: `Payment received from ${invoice.customerName} — Invoice ${invoice.invoiceNumber}${paymentData.paymentReference ? " | Ref: " + paymentData.paymentReference : ""}`,
+        lines: [
+          { accountHead: debitLedger.id, accountLabel: debitLedger.name, debit: payAmt, credit: 0 },
+          { accountHead: arLedger.id,    accountLabel: arLedger.name,    debit: 0, credit: payAmt },
+        ],
+        city: cityId,
+        cityId,
+        createdBy: "Finance",
+      }, cityId);
+    }
+  } catch (err) {
+    // Non-blocking: log but don't fail the payment recording
+    logger.log("Accounting ledger post failed for invoice payment:", err);
+  }
 
   logger.log("Payment recorded and revenue created:", { invoiceId, paymentData });
 }

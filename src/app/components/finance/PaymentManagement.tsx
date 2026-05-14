@@ -34,6 +34,8 @@ import { Skeleton } from "../ui/skeleton";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Badge } from "../ui/badge";
+import { useCity } from "../../contexts/CityContext";
+import { accountingEntryService } from "../../services/accountingEntryService";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -104,48 +106,71 @@ const mockSummary: PaymentSummary = {
 // ============================================================================
 
 async function fetchPayments(
-  filters: PaymentFilters
+  filters: PaymentFilters,
+  cityId: string
 ): Promise<PaymentListResponse> {
-  // In production: Replace with real API call
-  // const response = await fetch('/api/payments?' + new URLSearchParams({
-  //   city: filters.city,
-  //   paymentMode: filters.paymentMode,
-  //   dateRange: filters.dateRange,
-  //   search: filters.searchQuery,
-  // }));
-  // return await response.json();
+  await new Promise((resolve) => setTimeout(resolve, 200));
 
-  await new Promise((resolve) => setTimeout(resolve, 600));
+  // Pull real payment journals: receipts posted as DR Bank/Cash, CR Accounts Receivable
+  const allJournals = accountingEntryService.getAllJournals(cityId);
+  const allLedgers  = accountingEntryService.getLedgers(cityId);
 
-  let filtered = [...livePayments];
+  const arLedger   = allLedgers.find(l => l.name === "Accounts Receivable");
+  const bankLedger = allLedgers.find(l => l.name === "Axis Bank" && l.type === "bank");
+  const cashLedger = allLedgers.find(l => l.name === "Petty Cash");
+
+  const paymentJournals = allJournals.filter(jv => {
+    if (jv.status !== "Posted") return false;
+    const hasARCredit = jv.lines.some(
+      l => arLedger && l.accountHead === arLedger.id && l.credit > 0
+    );
+    return hasARCredit;
+  });
+
+  let livePayments: Payment[] = paymentJournals.map((jv, idx) => {
+    const bankLine = jv.lines.find(
+      l => (bankLedger && l.accountHead === bankLedger.id) ||
+           (cashLedger && l.accountHead === cashLedger.id)
+    );
+    const mode = bankLine && cashLedger && bankLine.accountHead === cashLedger.id
+      ? "CASH" : "BANK_TRANSFER";
+    const amount = Math.max(...jv.lines.map(l => l.debit));
+    const invoiceMatch = jv.narration.match(/Invoice (INV-[\w-]+)/i);
+    const customerMatch = jv.narration.match(/from (.+?) —/i);
+
+    return {
+      id: jv.id,
+      paymentNumber: `PAY-${String(idx + 1).padStart(4, "0")}`,
+      invoiceId: invoiceMatch?.[1] || "",
+      invoiceNumber: invoiceMatch?.[1] || "—",
+      customerName: customerMatch?.[1] || "—",
+      paymentDate: jv.date,
+      paymentMode: mode,
+      paymentReference: jv.voucherNumber,
+      amount,
+      status: "COMPLETED" as const,
+      city: jv.cityId,
+      createdAt: jv.createdAt,
+    };
+  });
 
   if (filters.city !== "all") {
-    filtered = filtered.filter((pay) => pay.city === filters.city);
+    livePayments = livePayments.filter(p => p.city === filters.city);
   }
-
   if (filters.paymentMode !== "all") {
-    filtered = filtered.filter((pay) => pay.paymentMode === filters.paymentMode);
+    livePayments = livePayments.filter(p => p.paymentMode === filters.paymentMode);
   }
-
   if (filters.searchQuery) {
-    const query = filters.searchQuery.toLowerCase();
-    filtered = filtered.filter(
-      (pay) =>
-        pay.paymentNumber.toLowerCase().includes(query) ||
-        pay.invoiceNumber.toLowerCase().includes(query) ||
-        pay.customerName.toLowerCase().includes(query)
+    const q = filters.searchQuery.toLowerCase();
+    livePayments = livePayments.filter(
+      p => p.paymentNumber.toLowerCase().includes(q) ||
+           p.invoiceNumber.toLowerCase().includes(q) ||
+           p.customerName.toLowerCase().includes(q)
     );
   }
 
-  const totalAmount = filtered.reduce((sum, pay) => sum + pay.amount, 0);
-
-  return {
-    payments: filtered,
-    totalCount: filtered.length,
-    totalAmount,
-    page: 1,
-    pageSize: 20,
-  };
+  const totalAmount = livePayments.reduce((s, p) => s + p.amount, 0);
+  return { payments: livePayments, totalCount: livePayments.length, totalAmount, page: 1, pageSize: 100 };
 }
 
 async function fetchPaymentSummary(
@@ -202,6 +227,7 @@ function getPaymentModeBadge(mode: string) {
 // ============================================================================
 
 export default function PaymentManagement() {
+  const { city } = useCity();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [summary, setSummary] = useState<PaymentSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -216,7 +242,7 @@ export default function PaymentManagement() {
 
   useEffect(() => {
     loadPayments();
-  }, [filters]);
+  }, [filters, city]);
 
   async function loadPayments() {
     setIsLoading(true);
@@ -224,7 +250,7 @@ export default function PaymentManagement() {
 
     try {
       const [paymentsData, summaryData] = await Promise.all([
-        fetchPayments(filters),
+        fetchPayments(filters, city),
         fetchPaymentSummary(filters),
       ]);
       setPayments(paymentsData.payments);

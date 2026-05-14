@@ -23,6 +23,8 @@ import { otherAdjustmentsService } from "../../services/otherAdjustmentsService"
 import { useCity } from "../../contexts/CityContext";
 import { usePayroll } from "../../contexts/PayrollContext";
 import { useEmployee } from "../../contexts/EmployeeContext";
+import { accountingEntryService } from "../../services/accountingEntryService";
+import { useRole } from "../../contexts/RoleContext";
 
 // Mock snapshot data (same data, but status = approved)
 const getMockSnapshot = (cityName: string): PayrollSnapshot => ({
@@ -104,6 +106,7 @@ const getMockSnapshot = (cityName: string): PayrollSnapshot => ({
 export function AccountsPayrollProcessing() {
   const navigate = useNavigate();
   const { city, cityInfo } = useCity();
+  const { currentUser } = useRole();
   const { payrollRuns } = usePayroll();
   const { employees } = useEmployee();
 
@@ -182,16 +185,96 @@ export function AccountsPayrollProcessing() {
   }, [snapshot]);
 
   const handleMarkAsPaid = () => {
-    // In production: await payrollSnapshotService.markAsPaid(snapshot.id)
+    if (!snapshot) return;
 
+    // ── Resolve ledgers needed for payroll posting ──────────────────────────
+    const allLedgers = accountingEntryService.getLedgers(city);
+
+    const salaryLedger = allLedgers.find(
+      l => l.name === "Salaries and Employee Wages" && l.nature === "expense"
+    );
+    const bankLedger = allLedgers.find(
+      l => l.name === "Axis Bank" && l.type === "bank"
+    );
+    const tdsLedger = allLedgers.find(
+      l => l.name === "TDS Payable"
+    );
+
+    if (!salaryLedger || !bankLedger) {
+      toast.error(
+        "Required ledgers not found (Salaries and Employee Wages / Axis Bank). " +
+        "Please initialize system ledgers in Ledger Master before processing payroll."
+      );
+      return;
+    }
+
+    const payDate = new Date().toISOString().split("T")[0];
+    const monthYear = `${snapshot.month} ${snapshot.year}`;
+
+    // ── Journal 1: Salary expense accrual ───────────────────────────────────
+    // DR Salaries & Wages (gross), CR Axis Bank (net), CR TDS Payable (if any)
+    const totalGross = snapshot.employees.reduce(
+      (sum, e) => sum + (e.basePay + (e.incentive ?? 0) + (e.complianceAdjustment ?? 0)),
+      0
+    );
+    const totalDeductions = snapshot.employees.reduce(
+      (sum, e) => sum + (e.deductions ?? 0),
+      0
+    );
+    const totalNet = snapshot.totalPayout;
+
+    const accrualLines: Array<{ accountHead: string; accountLabel: string; debit: number; credit: number }> = [
+      {
+        accountHead: salaryLedger.id,
+        accountLabel: salaryLedger.name,
+        debit: totalGross,
+        credit: 0,
+      },
+    ];
+
+    // Credit TDS payable only if deductions include statutory amounts
+    // (deductions here are PF/ESI/TDS — we credit them to TDS Payable as a proxy)
+    if (totalDeductions > 0 && tdsLedger) {
+      accrualLines.push({
+        accountHead: tdsLedger.id,
+        accountLabel: tdsLedger.name,
+        debit: 0,
+        credit: totalDeductions,
+      });
+    }
+
+    // Credit net pay to bank
+    accrualLines.push({
+      accountHead: bankLedger.id,
+      accountLabel: bankLedger.name,
+      debit: 0,
+      credit: totalNet,
+    });
+
+    accountingEntryService.createJournal(
+      {
+        date: payDate,
+        narration: `Payroll disbursement — ${monthYear} | ${snapshot.city} | ${snapshot.totalEmployees} employees | Gross ₹${totalGross.toLocaleString()} | Net ₹${totalNet.toLocaleString()}`,
+        lines: accrualLines,
+        city: cityInfo.displayName,
+        cityId: city,
+        createdBy: currentUser?.name || "Accounts",
+      },
+      cityInfo.displayName
+    );
+
+    // ── Mark snapshot as paid ────────────────────────────────────────────────
     setSnapshot({
       ...snapshot,
       status: "paid",
       paidAt: new Date().toLocaleString(),
-      paidBy: "Accounts Manager",
+      paidBy: currentUser?.name || "Accounts Manager",
     });
 
-    toast.success("Payroll marked as paid successfully");
+    toast.success(
+      `Payroll of ₹${totalNet.toLocaleString()} posted to ledger and marked as paid. ` +
+      `Journal entry created for ${snapshot.totalEmployees} employees.`
+    );
   };
 
   if (!snapshot) {

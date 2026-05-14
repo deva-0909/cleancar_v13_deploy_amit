@@ -303,7 +303,7 @@ class AccountingEntryService {
   }
 
   deleteItem(id: string): void {
-    localStorage.setItem(this.ITEM_KEY, JSON.stringify(this.getItems().filter(i => i.id !== id)));
+    DataService.setAll("INVENTORY_ITEMS", this.getItems().filter(i => i.id !== id));
   }
 
   private getEntries(): AccountingEntry[] {
@@ -442,6 +442,7 @@ class AccountingEntryService {
       : "Surat"; // default
     const systemLedgers: Omit<LedgerMaster, "id">[] = [
       // ASSETS - Cash & Bank
+      { name: "Cash in Hand", accountHead: "cash_bank", accountHeadLabel: "Cash & Bank", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
       { name: "Petty Cash", accountHead: "cash_bank", accountHeadLabel: "Cash & Bank", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
       { name: "Undeposited Funds", accountHead: "cash_bank", accountHeadLabel: "Cash & Bank", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
       { name: "Axis Bank", accountHead: "cash_bank", accountHeadLabel: "Cash & Bank", nature: "asset", type: "bank", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
@@ -569,17 +570,38 @@ class AccountingEntryService {
 
   getLedgerBalance(ledgerId: string): LedgerBalance {
     const ledger = this.getLedgers().find(l => l.id === ledgerId);
-    const entries = this.getEntries().filter(e =>
+
+    // --- Accounting entries (direct debit/credit account IDs) ---
+    const accEntries = this.getEntries().filter(e =>
       e.debitAccount === ledgerId || e.creditAccount === ledgerId
     );
-    const totalDebit  = entries.reduce((s,e) => s + (e.debitAccount  === ledgerId ? e.totalBillValue : 0), 0);
-    const totalCredit = entries.reduce((s,e) => s + (e.creditAccount === ledgerId ? e.totalBillValue : 0), 0);
+    const accDebit  = accEntries.reduce((s, e) => s + (e.debitAccount  === ledgerId ? e.totalBillValue : 0), 0);
+    const accCredit = accEntries.reduce((s, e) => s + (e.creditAccount === ledgerId ? e.totalBillValue : 0), 0);
+
+    // --- Journal entry lines (accountHead stores the ledger ID on each line) ---
+    const journals = this.getJournals();
+    let jvDebit = 0;
+    let jvCredit = 0;
+    for (const jv of journals) {
+      if (jv.status !== "Posted") continue;
+      for (const line of jv.lines) {
+        if (line.accountHead === ledgerId) {
+          jvDebit  += line.debit  || 0;
+          jvCredit += line.credit || 0;
+        }
+      }
+    }
+
+    const totalDebit  = accDebit  + jvDebit;
+    const totalCredit = accCredit + jvCredit;
     const balance     = totalDebit - totalCredit;
+
     return {
       ledgerId,
       ledgerName:  ledger?.name || ledgerId,
       accountHead: ledger?.accountHead || "",
-      totalDebit, totalCredit,
+      totalDebit,
+      totalCredit,
       balance:     Math.abs(balance),
       balanceType: balance >= 0 ? "Dr" : "Cr",
     };
@@ -593,8 +615,8 @@ class AccountingEntryService {
     const ledger: LedgerMaster = {
       id: `CUST-LEDGER-${customerId}`,
       name: customerName,
-      accountHead: "debtors",
-      accountHeadLabel: "Debtors (Customers)",
+      accountHead: "accounts_receivable",
+      accountHeadLabel: "Accounts Receivable",
       nature: "asset", type: "customer",
       openingBalance: 0, openingBalanceType: "Dr",
       city, cityId, isSystem: false,
