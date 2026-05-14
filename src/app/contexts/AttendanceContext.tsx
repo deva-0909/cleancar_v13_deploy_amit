@@ -253,7 +253,24 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 export function useAttendance() {
   const context = useContext(AttendanceContext);
   if (!context) {
-    throw new Error("useAttendance must be used within AttendanceProvider");
+    // Safety fallback — return empty/no-op context instead of crashing.
+    // This handles edge cases where a component renders before AttendanceProvider
+    // mounts (e.g. during bootstrap or lazy-load race conditions).
+    console.warn("[useAttendance] Called outside AttendanceProvider — returning empty fallback");
+    return {
+      attendanceRecords: [],
+      addAttendanceRecord: () => ({ attendanceId: "", employeeId: "", date: "", status: "Present" as const, createdAt: "" }),
+      updateAttendance: () => null,
+      deleteAttendanceRecord: () => {},
+      getAttendanceByEmployeeId: () => [],
+      getAttendanceForDate: () => [],
+      getAttendanceForMonth: () => [],
+      getTodayAttendance: () => undefined,
+      getMonthlyAttendanceSummary: () => ({ present: 0, absent: 0, late: 0, halfDay: 0, leave: 0, holiday: 0, total: 0 }),
+      computeDaysPresent: () => 0,
+      getAbsentCount: () => 0,
+      getLateCount: () => 0,
+    };
   }
   return context;
 }

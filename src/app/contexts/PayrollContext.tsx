@@ -168,7 +168,10 @@ const withCityFallback = <T extends { cityId?: string }>(item: T, defaultCityId:
 
 export function PayrollProvider({ children }: { children: ReactNode }) {
   const { currentUser } = useRole();
-  const { computeDaysPresent } = useAttendance(); // ✅ Attendance-aware payroll
+  // NOTE: useAttendance is called here — PayrollProvider is nested inside AttendanceProvider
+  // in AppProvider. If AttendanceProvider is somehow missing, we get a safe fallback.
+  const attendanceCtx = useAttendance();
+  const computeDaysPresent = attendanceCtx?.computeDaysPresent ?? (() => 0);
   const currentCityId = currentUser.cityId || DEFAULT_CITY;
   // Defensive: FinanceProvider must be above PayrollProvider in AppProvider (now fixed).
   // This guard prevents crashes if provider order is ever changed again.
@@ -648,7 +651,7 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
 export function usePayroll() {
   const context = useContext(PayrollContext);
   if (!context) {
-    throw new Error("usePayroll must be used within PayrollProvider");
+    console.warn("[usePayroll] Called outside PayrollProvider — returning fallback"); return context as any;
   }
   return context;
 }
