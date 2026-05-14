@@ -392,10 +392,7 @@ export function IncentiveProvider({ children }: { children: ReactNode }) {
     updateAchievement,
     approveIncentive,
     markIncentiveAsPaid,
-  })
-  // eslint-disable-line react-hooks/exhaustive-deps
-  // deps: state vars and stable callbacks
-  [incentivePlans, addIncentivePlan, updateIncentivePlan, deleteIncentivePlan, getIncentivePlan, getActivePlans, getConfigForRole, employeeIncentives, assignIncentivePlan, updateEmployeeIncentive]);
+  }), [incentivePlans, addIncentivePlan, updateIncentivePlan, deleteIncentivePlan, getIncentivePlan, getActivePlans, getConfigForRole, employeeIncentives, assignIncentivePlan, updateEmployeeIncentive]);
 
     return <IncentiveContext.Provider value={contextValue}>{children}</IncentiveContext.Provider>;
 }

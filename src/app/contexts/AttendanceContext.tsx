@@ -240,10 +240,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     computeDaysPresent,
     getAbsentCount,
     getLateCount,
-  })
-  // eslint-disable-line react-hooks/exhaustive-deps
-  // deps: state vars and stable callbacks
-  [attendanceRecords, addAttendanceRecord, updateAttendance, deleteAttendance, getAttendanceByEmployee, getAttendanceForDate, getAttendanceForMonth, getAttendanceByDateRange, getMonthlyAttendanceSummary, getPresentCount]);
+  }), [attendanceRecords, addAttendanceRecord, updateAttendance, deleteAttendance, getAttendanceByEmployee, getAttendanceForDate, getAttendanceForMonth, getAttendanceByDateRange, getMonthlyAttendanceSummary, getPresentCount]);
 
     return <AttendanceContext.Provider value={contextValue}>{children}</AttendanceContext.Provider>;
 }

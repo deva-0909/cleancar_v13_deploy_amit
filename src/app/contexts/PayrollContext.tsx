@@ -638,10 +638,7 @@ export function PayrollProvider({ children }: { children: ReactNode }) {
     getSalaryStructuresByCity,
     // ✅ NEW: Auto Compliance Engine
     calculateStatutoryDeductions: calculateStatutoryDeductionsWrapper,
-  })
-  // eslint-disable-line react-hooks/exhaustive-deps
-  // deps: state vars and stable callbacks
-  [payrollRuns, processPayroll, transitionPayroll, sendToReview, approvePayroll, disbursePayroll, rejectToDraft, updatePayrollStatus, approvePayrollByHR, approvePayrollByFinance]);
+  }), [payrollRuns, processPayroll, transitionPayroll, sendToReview, approvePayroll, disbursePayroll, rejectToDraft, updatePayrollStatus, approvePayrollByHR, approvePayrollByFinance]);
 
     return <PayrollContext.Provider value={contextValue}>{children}</PayrollContext.Provider>;
 }

@@ -219,10 +219,7 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     publicHolidays,
     addPublicHoliday,
     removePublicHoliday,
-  })
-  // eslint-disable-line react-hooks/exhaustive-deps
-  // deps: state vars and stable callbacks
-  [roles, departments, addDepartment, updateDepartment, deleteDepartment, designations, addDesignation, updateDesignation, deleteDesignation, publicHolidays]);
+  }), [roles, departments, addDepartment, updateDepartment, deleteDepartment, designations, addDesignation, updateDesignation, deleteDesignation, publicHolidays]);
 
     return <OrgContext.Provider value={contextValue}>{children}</OrgContext.Provider>;
 }
