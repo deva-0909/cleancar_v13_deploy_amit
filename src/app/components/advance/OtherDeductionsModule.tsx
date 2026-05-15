@@ -168,7 +168,7 @@ export function OtherDeductionsModule() {
     a.download = `other-deductions-report-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Report exported successfully");
+    toast.info("Export feature coming in Phase 2.");
   };
 
   const getFilteredRecords = () => {

@@ -23,9 +23,39 @@ export interface AuthResult {
   remainingAttempts?: number;
 }
 
-// Simple hash for demo — in production replace with bcrypt via API call
-function hashPassword(password: string): string {
+// Password hashing — SHA-256 via Web Crypto API (sync wrapper for backward compat)
+// Prefix "sha256:" identifies new-style hashes; plain base64 = old btoa hash (still verified)
+const HASH_SALT = "CC360_SHA256_SALT_v2";
+
+// Synchronous fallback hash (used for login comparison with old btoa hashes)
+function legacyHash(password: string): string {
   return btoa(password + "CC360SALT");
+}
+
+// Async SHA-256 hash — used when setting new passwords
+export async function hashPasswordAsync(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + HASH_SALT);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hex = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+  return "sha256:" + hex;
+}
+
+// Verify password against stored hash (supports both old btoa and new SHA-256 hashes)
+export async function verifyPassword(input: string, stored: string): Promise<boolean> {
+  if (!stored) return false;
+  if (stored.startsWith("sha256:")) {
+    const inputHash = await hashPasswordAsync(input);
+    return inputHash === stored;
+  }
+  // Legacy btoa hash
+  return legacyHash(input) === stored;
+}
+
+// Sync hash kept ONLY for backward compat — do not use for new passwords
+function hashPassword(password: string): string {
+  return legacyHash(password);
 }
 
 function generateOTP(): string {
@@ -95,12 +125,18 @@ class AuthServiceClass {
       };
     }
 
-    // Success
+    // Success — upgrade legacy btoa hash to SHA-256 on next login (async, non-blocking)
     employeeDatabaseService.update(employee.id, {
       failedLoginAttempts: 0,
       lastLogin: new Date().toISOString(),
       accountStatus: "active",
     });
+    // Upgrade hash in background if still using legacy btoa
+    if (employee.passwordHash && !employee.passwordHash.startsWith("sha256:")) {
+      hashPasswordAsync(credentials.password).then(newHash => {
+        employeeDatabaseService.update(employee.id, { passwordHash: newHash });
+      }).catch(() => { /* non-critical — will retry next login */ });
+    }
 
     return {
       success: true,

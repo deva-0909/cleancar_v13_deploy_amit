@@ -63,7 +63,7 @@ export function LeavePolicyEngine() {
     a.href = url;
     a.download = `CleanCar_Leave_Policy_v${LEAVE_POLICY_HISTORY[0].version}.txt`;
     a.click();
-    toast.success("📄 Policy document downloaded!");
+    toast.info("Policy document export coming in Phase 2.");
   };
 
   const handleNotifyAll = () => {

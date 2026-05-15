@@ -343,11 +343,11 @@ export function EmployeeAttendanceDrillDown({
   if (!isOpen) return null;
 
   const handleExportExcel = () => {
-    toast.success("Exporting to Excel...");
+    toast.info("Excel export — coming in Phase 2.");
   };
 
   const handleExportPDF = () => {
-    toast.success("Exporting to PDF...");
+    toast.info("PDF export — coming in Phase 2.");
   };
 
   const monthNames = ["January", "February", "March", "April", "May", "June", 

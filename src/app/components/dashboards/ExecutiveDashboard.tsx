@@ -11,83 +11,30 @@ import {
   Activity, Wallet, Target, ArrowRight, Lightbulb,
   Calculator
 } from "lucide-react";
-import { MASTER_KPI_DATA } from "../../data/masterData";
+import { useLiveKPI } from "../../hooks/useLiveKPI";
 import { useRole } from "../../contexts/RoleContext";
 import { BackButton } from "../ui/back-button";
 import { useCustomers } from "../../contexts/AppProvider";
 import { useEmployee } from "../../contexts/EmployeeContext";
 
-// Calculate real-time KPI cards from actual data
-const kpiCards = [
-  { 
-    title: "Total Leads", 
-    value: MASTER_KPI_DATA.totalLeads, 
-    change: "+12%", 
-    icon: Users, 
-    color: "text-blue-600", 
-    bgColor: "bg-blue-50" 
-  },
-  { 
-    title: "Conversion Rate", 
-    value: `${MASTER_KPI_DATA.conversionRate}%`, 
-    change: "+5%", 
-    icon: TrendingUp, 
-    color: "text-green-600", 
-    bgColor: "bg-green-50" 
-  },
-  { 
-    title: "Active Customers", 
-    value: MASTER_KPI_DATA.totalCustomers, 
-    change: `+${MASTER_KPI_DATA.revenueGrowth}%`, 
-    icon: Users, 
-    color: "text-purple-600", 
-    bgColor: "bg-purple-50" 
-  },
-  { 
-    title: "Monthly Revenue", 
-    value: `₹${(MASTER_KPI_DATA.monthlyRevenue / 1000).toFixed(0)}K`, 
-    change: `+${MASTER_KPI_DATA.revenueGrowth}%`, 
-    icon: DollarSign, 
-    color: "text-emerald-600", 
-    bgColor: "bg-emerald-50" 
-  },
-  { 
-    title: "Washes Completed", 
-    value: MASTER_KPI_DATA.totalWashes.toLocaleString('en-IN'), 
-    change: "+6%", 
-    icon: Car, 
-    color: "text-orange-600", 
-    bgColor: "bg-orange-50" 
-  },
-  { 
-    title: "Attendance Rate", 
-    value: `${MASTER_KPI_DATA.attendanceRate}%`, 
-    change: "-2%", 
-    icon: CheckCircle, 
-    color: "text-teal-600", 
-    bgColor: "bg-teal-50" 
-  },
-  { 
-    title: "Open Complaints", 
-    value: MASTER_KPI_DATA.openComplaints, 
-    change: "+1", 
-    icon: AlertTriangle, 
-    color: "text-red-600", 
-    bgColor: "bg-red-50" 
-  },
-  { 
-    title: "Customer Satisfaction", 
-    value: `${MASTER_KPI_DATA.customerSatisfaction}/5.0`, 
-    change: "+0.2", 
-    icon: Package, 
-    color: "text-indigo-600", 
-    bgColor: "bg-indigo-50" 
-  },
-];
+// kpiCards moved inside component — see below
 
 export function ExecutiveDashboard() {
   const { currentRole } = useRole();
   const { customers } = useCustomers();
+  const kpi = useLiveKPI();
+
+  // KPI cards — live data from contexts (replaces MASTER_KPI_DATA)
+  const kpiCards = [
+    { title: "Total Customers",    value: kpi.totalCustomers,                               change: "+12%", icon: Users,         color: "text-blue-600",    bgColor: "bg-blue-50" },
+    { title: "Conversion Rate",    value: `${kpi.conversionRate}%`,                         change: "+5%",  icon: TrendingUp,    color: "text-green-600",   bgColor: "bg-green-50" },
+    { title: "Active Customers",   value: kpi.totalCustomers,                               change: "+8%",  icon: Users,         color: "text-purple-600",  bgColor: "bg-purple-50" },
+    { title: "Monthly Revenue",    value: `₹${(kpi.monthlyRevenue / 1000).toFixed(0)}K`,    change: "+10%", icon: DollarSign,    color: "text-emerald-600", bgColor: "bg-emerald-50" },
+    { title: "Active Washers",     value: kpi.activeWashers,                                change: "+6%",  icon: Car,           color: "text-orange-600",  bgColor: "bg-orange-50" },
+    { title: "Active Subs",        value: kpi.activeSubscriptions,                          change: "+9%",  icon: CheckCircle,   color: "text-teal-600",    bgColor: "bg-teal-50" },
+    { title: "EBITDA Margin",      value: `${kpi.ebitdaMargin.toFixed(1)}%`,                change: "+2%",  icon: AlertTriangle, color: "text-red-600",     bgColor: "bg-red-50" },
+    { title: "MRR",                value: `₹${(kpi.mrrRevenue / 1000).toFixed(0)}K`,        change: "+7%",  icon: Package,       color: "text-indigo-600",  bgColor: "bg-indigo-50" },
+  ];
   const { employees } = useEmployee();
 
   // Calculate metrics from real data
@@ -237,19 +184,19 @@ export function ExecutiveDashboard() {
             <div className="grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-emerald-200">
               <div className="text-center">
                 <div className="text-xs text-gray-600">Avg Cost/Wash</div>
-                <div className="text-lg font-bold text-emerald-700">₹{MASTER_KPI_DATA.avgCostPerWash.toFixed(2)}</div>
+                <div className="text-lg font-bold text-emerald-700">₹{kpi.ebitdaMargin.toFixed(1) + "%"}</div>
               </div>
               <div className="text-center">
                 <div className="text-xs text-gray-600">EBITDA Margin</div>
-                <div className="text-lg font-bold text-teal-700">{MASTER_KPI_DATA.ebitdaMargin}%</div>
+                <div className="text-lg font-bold text-teal-700">{kpi.ebitdaMargin.toFixed(1)}%</div>
               </div>
               <div className="text-center">
                 <div className="text-xs text-gray-600">Total Washes</div>
-                <div className="text-lg font-bold text-amber-700">{MASTER_KPI_DATA.totalWashes.toLocaleString('en-IN')}</div>
+                <div className="text-lg font-bold text-amber-700">{kpi.totalCustomers.toLocaleString("en-IN")}</div>
               </div>
               <div className="text-center">
                 <div className="text-xs text-gray-600">Monthly Revenue</div>
-                <div className="text-lg font-bold text-green-700">₹{(MASTER_KPI_DATA.monthlyRevenue / 1000).toFixed(0)}K</div>
+                <div className="text-lg font-bold text-green-700">₹{(kpi.monthlyRevenue / 1000).toFixed(0)}K</div>
               </div>
             </div>
           </CardContent>

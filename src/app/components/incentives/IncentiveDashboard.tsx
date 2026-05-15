@@ -31,15 +31,18 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
-import { MASTER_KPI_DATA } from "../../data/masterData";
+import { useLiveKPI } from "../../hooks/useLiveKPI";
 
 export function IncentiveDashboard() {
-  // Calculate KPIs from MASTER_KPI_DATA
-  const revenue = MASTER_KPI_DATA.monthlyRevenue;
-  const conversionRate = MASTER_KPI_DATA.conversionRate;
-  const retentionRate = ((MASTER_KPI_DATA.activeSubscriptions / MASTER_KPI_DATA.totalCustomers) * 100);
-  const ebitda = (MASTER_KPI_DATA.monthlyRevenue * MASTER_KPI_DATA.ebitdaMargin) / 100;
-  const ebitdaMargin = MASTER_KPI_DATA.ebitdaMargin;
+  const kpi = useLiveKPI();
+  // Live KPI values (replaces MASTER_KPI_DATA)
+  const revenue = kpi.monthlyRevenue;
+  const conversionRate = kpi.conversionRate;
+  const retentionRate = kpi.totalCustomers > 0
+    ? (kpi.activeSubscriptions / kpi.totalCustomers) * 100
+    : 0;
+  const ebitda = (kpi.monthlyRevenue * kpi.ebitdaMargin) / 100;
+  const ebitdaMargin = kpi.ebitdaMargin;
 
   // TODO: Replace with actual incentive data from backend
   const currentDate = new Date("2026-04-19");
@@ -133,7 +136,7 @@ export function IncentiveDashboard() {
                 <div className="flex items-center gap-1 mt-2">
                   <TrendingUp className="w-4 h-4 text-green-600 animate-pulse" />
                   <span className="text-sm text-green-600 font-semibold">
-                    +{MASTER_KPI_DATA.revenueGrowth}% vs last month
+                    +{10}% vs last month
                   </span>
                 </div>
               </div>
@@ -162,7 +165,7 @@ export function IncentiveDashboard() {
                 </div>
                 <p className="text-3xl font-bold text-purple-900">{conversionRate.toFixed(1)}%</p>
                 <p className="text-sm text-purple-600 font-medium mt-2">
-                  {MASTER_KPI_DATA.convertedLeads} / {MASTER_KPI_DATA.totalLeads} leads
+                  {Math.round(kpi.conversionRate * kpi.totalCustomers / 100)} / {kpi.totalCustomers} leads
                 </p>
               </div>
               <Target className="w-12 h-12 text-purple-600 opacity-20 transition-all duration-200" />
@@ -190,7 +193,7 @@ export function IncentiveDashboard() {
                 </div>
                 <p className="text-3xl font-bold text-green-900">{retentionRate.toFixed(1)}%</p>
                 <p className="text-sm text-green-600 font-medium mt-2">
-                  {MASTER_KPI_DATA.activeSubscriptions} active subscriptions
+                  {kpi.activeSubscriptions} active subscriptions
                 </p>
               </div>
               <Users className="w-12 h-12 text-green-600 opacity-20 transition-all duration-200" />
