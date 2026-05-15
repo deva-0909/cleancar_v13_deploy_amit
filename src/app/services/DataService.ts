@@ -73,6 +73,10 @@ const STORAGE_KEYS = {
   FINANCE_RECOMMENDATIONS: "finance_recommendations", // FinanceContext
   BUSINESS_RULES:          "business_rules",          // BusinessRulesContext
   DEMOS:                   "demos",                   // DemoContext
+  // ── Keys for seed data that was previously unreachable ──
+  COMPLAINTS:               "complaints",
+  ADVANCE_MANAGEMENT:       "advance_management",
+  CLOTH_TRACKING:           "cloth_tracking",
 } as const;
 
 type EntityType = keyof typeof STORAGE_KEYS;

@@ -22,7 +22,7 @@ const SMALL_TABLES: Array<{ table: string; localKey: string; maxRows: number }> 
   { table: "cleancar_incentive_plans",     localKey: "incentive_plans",     maxRows: 20  },
   { table: "cleancar_payroll_runs",        localKey: "payroll_runs",        maxRows: 100 },
   { table: "cleancar_employee_incentives", localKey: "employee_incentives", maxRows: 100 },
-  { table: "cleancar_inventory",           localKey: "inventory",           maxRows: 100 },
+  { table: "cleancar_inventory",           localKey: "inventory_items",     maxRows: 100 },
   { table: "cleancar_mrr",                 localKey: "mrr",                 maxRows: 50  },
   { table: "cleancar_public_holidays",     localKey: "public_holidays",     maxRows: 30  },
 ];

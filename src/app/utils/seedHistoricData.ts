@@ -11,7 +11,7 @@
  * Run once on first load via seedHistoricData()
  */
 
-const SEED_FLAG = "HISTORIC_DATA_SEEDED_V3";
+const SEED_FLAG = "HISTORIC_DATA_SEEDED_V4"; // V4: fixed key mismatches, added jobs/subs
 
 // ── Password hash (Demo@1234) ──────────────────────────────────────────────
 const PWD = "RGVtb0AxMjM0Q0MzNjBTQUxU";
@@ -833,6 +833,126 @@ for (const emp of HISTORIC_EMPLOYEE_DB.filter(e => e.designation === "Car Washer
 // ─────────────────────────────────────────────────────────────────────────
 // SEEDER FUNCTION
 // ─────────────────────────────────────────────────────────────────────────
+
+// ── HISTORIC SUBSCRIPTIONS ────────────────────────────────────────────────
+// ~150 active subscriptions linking to HISTORIC_CUSTOMERS
+const PLAN_TYPES = ["Basic", "Standard", "Premium", "Deluxe"] as const;
+const FREQUENCIES = ["Daily", "Alternate Days", "Weekly", "Bi-Weekly", "Monthly"] as const;
+const BILLING_CYCLES = ["Monthly", "Quarterly", "Annual"] as const;
+const PLAN_BASE_PRICES: Record<string, number> = {
+  Basic: 599, Standard: 999, Premium: 1499, Deluxe: 2199
+};
+const VEHICLE_TYPES = ["Hatchback", "Sedan", "SUV", "MUV", "Luxury"];
+
+export const HISTORIC_SUBSCRIPTIONS: any[] = [];
+(function() {
+  let subIdx = 1;
+  // Create ~120 subscriptions from first 120 customers across 3 months
+  const custSample = HISTORIC_CUSTOMERS.slice(0, 120);
+  for (const cust of custSample) {
+    const plan = PLAN_TYPES[subIdx % PLAN_TYPES.length];
+    const basePrice = PLAN_BASE_PRICES[plan];
+    const discount = subIdx % 5 === 0 ? 100 : subIdx % 3 === 0 ? 50 : 0;
+    const startMonth = 2 + (subIdx % 3); // Feb, Mar, Apr
+    const startDay = 1 + (subIdx % 28);
+    const startDate = `2026-0${startMonth}-${String(startDay).padStart(2,"0")}`;
+    const billingCycle = BILLING_CYCLES[subIdx % BILLING_CYCLES.length];
+    HISTORIC_SUBSCRIPTIONS.push({
+      subscriptionId: `SUB-${cust.cityId === "CITY-SURAT" ? "SUR" : "MUM"}-${String(subIdx).padStart(4,"0")}`,
+      customerId: cust.customerId || cust.id,
+      packageType: plan,
+      packageName: `${plan} Car Wash`,
+      frequency: FREQUENCIES[subIdx % FREQUENCIES.length],
+      status: subIdx % 10 === 0 ? "Paused" : subIdx % 15 === 0 ? "Cancelled" : "Active",
+      startDate,
+      endDate: billingCycle === "Annual" ? `2027-0${startMonth}-${String(startDay).padStart(2,"0")}` : undefined,
+      renewalDate: `2026-0${Math.min(startMonth + 1, 12)}-${String(startDay).padStart(2,"0")}`,
+      pricing: {
+        basePrice,
+        discount,
+        finalPrice: basePrice - discount,
+        currency: "INR"
+      },
+      priceLocked: basePrice - discount,
+      serviceDetails: {
+        vehicleType: VEHICLE_TYPES[subIdx % VEHICLE_TYPES.length],
+        addOns: subIdx % 4 === 0 ? ["Interior Cleaning"] : subIdx % 7 === 0 ? ["Tyre Shine"] : [],
+        preferredTimeSlot: subIdx % 3 === 0 ? "Morning" : subIdx % 3 === 1 ? "Afternoon" : "Evening"
+      },
+      billingCycle,
+      paymentStatus: subIdx % 8 === 0 ? "Pending" : subIdx % 12 === 0 ? "Overdue" : "Paid",
+      createdAt: `${startDate}T08:00:00.000Z`,
+      updatedAt: `${startDate}T08:00:00.000Z`,
+      cityId: cust.cityId || "CITY-SURAT",
+    });
+    subIdx++;
+  }
+})();
+
+// ── HISTORIC JOBS ─────────────────────────────────────────────────────────
+// ~300 completed jobs linking subscriptions → customers → washers
+const TIME_SLOTS = ["07:00 AM", "09:00 AM", "11:00 AM", "02:00 PM", "04:00 PM", "06:00 PM"];
+const WASHER_IDS_SUR = HISTORIC_EMPLOYEE_DB
+  .filter((e: any) => e.designation === "Car Washer" && e.workLocation === "CITY-SURAT")
+  .map((e: any) => e.id);
+const WASHER_IDS_MUM = HISTORIC_EMPLOYEE_DB
+  .filter((e: any) => e.designation === "Car Washer" && e.workLocation === "CITY-MUMBAI")
+  .map((e: any) => e.id);
+
+export const HISTORIC_JOBS: any[] = [];
+(function() {
+  let jobIdx = 1;
+  for (const sub of HISTORIC_SUBSCRIPTIONS.filter((s: any) => s.status !== "Cancelled").slice(0, 100)) {
+    const issSur = sub.cityId === "CITY-SURAT";
+    const washers = issSur ? WASHER_IDS_SUR : WASHER_IDS_MUM;
+    const washer = washers.length > 0 ? washers[jobIdx % washers.length] : "EDB-WA-SUR1";
+    // 3 completed jobs per subscription (one per month)
+    for (let m = 2; m <= 4; m++) {
+      const day = 1 + (jobIdx % 25);
+      const scheduledDate = `2026-0${m}-${String(day).padStart(2,"0")}`;
+      const cust = HISTORIC_CUSTOMERS.find((c: any) =>
+        (c.customerId || c.id) === sub.customerId
+      ) || HISTORIC_CUSTOMERS[0];
+      HISTORIC_JOBS.push({
+        jobId: `JOB-${issSur ? "SUR" : "MUM"}-${String(jobIdx * 3 + m - 2).padStart(5,"0")}`,
+        customerId: sub.customerId,
+        subscriptionId: sub.subscriptionId,
+        washerId: washer,
+        scheduledDate,
+        timeSlot: TIME_SLOTS[jobIdx % TIME_SLOTS.length],
+        status: "Completed",
+        jobType: "Regular",
+        packageName: sub.packageName,
+        vehicleDetails: {
+          category: sub.serviceDetails.vehicleType || "Sedan",
+          color: "White",
+          brand: "Maruti",
+          registration: `GJ05${String(jobIdx).padStart(4,"0")}`,
+        },
+        location: {
+          addressLine1: cust.address || "123 Main Street",
+          area: cust.area || "Adajan",
+          city: issSur ? "Surat" : "Mumbai",
+          pinCode: cust.pinCode || (issSur ? "395009" : "400001"),
+        },
+        serviceDetails: {
+          addOns: sub.serviceDetails.addOns || [],
+          specialInstructions: "",
+        },
+        verificationStatus: "verified",
+        qualityScore: 80 + (jobIdx % 20),
+        complianceScore: 85 + (jobIdx % 15),
+        cityId: sub.cityId || "CITY-SURAT",
+        city: issSur ? "Surat" : "Mumbai",
+        completedAt: `${scheduledDate}T${String(10 + (jobIdx % 8)).padStart(2,"0")}:30:00.000Z`,
+        createdAt: `${scheduledDate}T07:00:00.000Z`,
+        updatedAt: `${scheduledDate}T12:00:00.000Z`,
+      });
+    }
+    jobIdx++;
+  }
+})();
+
 export function seedHistoricData(): void {
   try {
     if (localStorage.getItem(SEED_FLAG)) return;
@@ -857,10 +977,18 @@ export function seedHistoricData(): void {
     localStorage.setItem("cleancar_complaints", JSON.stringify(HISTORIC_COMPLAINTS));
 
     // Attendance
-    localStorage.setItem("cleancar_attendance", JSON.stringify(HISTORIC_ATTENDANCE));
+    localStorage.setItem("cleancar_attendance_records", JSON.stringify(HISTORIC_ATTENDANCE));
 
     // Inventory
-    localStorage.setItem("cleancar_inventory", JSON.stringify(HISTORIC_INVENTORY));
+    localStorage.setItem("cleancar_inventory_items", JSON.stringify(
+      HISTORIC_INVENTORY.map((item: any) => ({
+        ...item,
+        itemId: item.itemId || item.id,
+        itemName: item.itemName || item.name,
+        supervisorStock: item.supervisorStock || {},
+        washerStock: item.washerStock || {},
+      }))
+    ));
 
     // Finance
     localStorage.setItem("cleancar_mrr",      JSON.stringify(HISTORIC_MRR));
@@ -871,10 +999,16 @@ export function seedHistoricData(): void {
     localStorage.setItem("cleancar_advance_management", JSON.stringify(HISTORIC_ADVANCES));
 
     // Incentives
-    localStorage.setItem("cleancar_incentives", JSON.stringify(HISTORIC_INCENTIVES));
+    localStorage.setItem("cleancar_employee_incentives", JSON.stringify(HISTORIC_INCENTIVES));
 
     // Cloth tracking
     localStorage.setItem("cleancar_cloth_tracking", JSON.stringify(HISTORIC_CLOTH));
+
+    // Jobs (C2 fix)
+    localStorage.setItem("cleancar_jobs", JSON.stringify(HISTORIC_JOBS));
+
+    // Subscriptions (C3 fix)
+    localStorage.setItem("cleancar_subscriptions", JSON.stringify(HISTORIC_SUBSCRIPTIONS));
 
     localStorage.setItem(SEED_FLAG, "true");
     console.log(`[HistoricData] ✅ Seeded: ${HISTORIC_EMPLOYEE_DB.length} employees, `+
