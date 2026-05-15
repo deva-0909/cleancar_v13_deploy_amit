@@ -92,7 +92,7 @@ export function ZoneCostChart({ period }: ZoneCostChartProps) {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={zoneData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" label={{ value: "₹ per wash", position: "bottom" } tick={{ fontSize: 11 }}} />
+              <XAxis type="number" label={{ value: "₹ per wash", position: "bottom" }} tick={{ fontSize: 11 }} />
               <YAxis type="category" dataKey="zone" width={150} tick={{ fontSize: 11 }} />
               <Tooltip
                 formatter={(value: number) => `₹${value.toFixed(2)}`}

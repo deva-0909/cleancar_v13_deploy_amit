@@ -357,7 +357,7 @@ function CustomerLTVAnalysis() {
                       <th scope="row" className="p-3 font-medium text-left">
                         {plan.plan}
                       </th>
-                      <td className="p-3 text-right">{plan.customers.toLocaleString("en-IN")}</td>
+                      <td className="p-3 text-right">{(plan?.customers ?? 0).toLocaleString("en-IN")}</td>
                       <td className="p-3 text-right font-semibold" style={{ color: CHART_COLORS[0] }}>
                         {formatINR(plan.avgLTV)}
                       </td>
@@ -424,7 +424,7 @@ function CustomerLTVAnalysis() {
                       <th scope="row" className="p-3 font-medium text-left">
                         {city.city}
                       </th>
-                      <td className="p-3 text-right">{city.customers.toLocaleString("en-IN")}</td>
+                      <td className="p-3 text-right">{(city?.customers ?? 0).toLocaleString("en-IN")}</td>
                       <td className="p-3 text-right font-semibold" style={{ color: CHART_COLORS[1] }}>
                         {formatINR(city.avgLTV)}
                       </td>

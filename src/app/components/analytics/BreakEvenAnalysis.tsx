@@ -452,9 +452,9 @@ function BreakEvenAnalysis() {
                     <tr key={store.id} className="border-b hover:bg-gray-50">
                       <td className="p-3 font-medium">{store.store}</td>
                       <td className="p-3 text-right">₹{(store.totalInvestment / 100000).toFixed(1)}L</td>
-                      <td className="p-3 text-right">₹{store.monthlyRevenue.toLocaleString("en-IN")}</td>
-                      <td className="p-3 text-right text-red-600">₹{store.monthlyExpenses.toLocaleString("en-IN")}</td>
-                      <td className="p-3 text-right font-semibold text-green-600">₹{store.monthlyProfit.toLocaleString("en-IN")}</td>
+                      <td className="p-3 text-right">₹{(store?.monthlyRevenue ?? 0).toLocaleString("en-IN")}</td>
+                      <td className="p-3 text-right text-red-600">₹{(store?.monthlyExpenses ?? 0).toLocaleString("en-IN")}</td>
+                      <td className="p-3 text-right font-semibold text-green-600">₹{(store?.monthlyProfit ?? 0).toLocaleString("en-IN")}</td>
                       <td className="p-3 text-right font-bold">{store.breakEvenMonths} months</td>
                       <td className="p-3 text-right">{store.currentMonth} months</td>
                       <td className="p-3 text-center">

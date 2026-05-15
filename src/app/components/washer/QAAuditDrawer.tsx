@@ -185,6 +185,7 @@ export function QAAuditDrawer({ job, open, onOpenChange, onSubmit }: QAAuditDraw
   };
 
   return (
+    <>
     <Sheet open={open} onOpenChange={handleClose}>
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
@@ -383,5 +384,6 @@ export function QAAuditDrawer({ job, open, onOpenChange, onSubmit }: QAAuditDraw
       onConfirm={confirmState.onConfirm}
       onCancel={() => setConfirmState(s => ({ ...s, open: false }))}
     />
+    </>
   );
 }

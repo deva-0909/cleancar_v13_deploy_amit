@@ -344,9 +344,9 @@ function CACDashboard() {
                 {displayCACByChannel.map((channel) => (
                   <tr key={channel.id} className="border-b hover:bg-gray-50">
                     <td className="p-3 font-medium">{channel.channel}</td>
-                    <td className="p-3 text-right">₹{channel.spend.toLocaleString("en-IN")}</td>
-                    <td className="p-3 text-right">{channel.customers.toLocaleString("en-IN")}</td>
-                    <td className="p-3 text-right font-semibold">₹{channel.cac.toLocaleString("en-IN")}</td>
+                    <td className="p-3 text-right">₹{(channel?.spend ?? 0).toLocaleString("en-IN")}</td>
+                    <td className="p-3 text-right">{(channel?.customers ?? 0).toLocaleString("en-IN")}</td>
+                    <td className="p-3 text-right font-semibold">₹{(channel?.cac ?? 0).toLocaleString("en-IN")}</td>
                     <td className="p-3 text-right">{channel.conversion}%</td>
                     <td className="p-3 text-center">
                       {channel.cac < 600 ? (

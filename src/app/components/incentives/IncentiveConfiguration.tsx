@@ -1186,7 +1186,7 @@ function IncentiveConfiguration() {
                 <div className="p-3 bg-blue-50 rounded-md border border-blue-200">
                   <p className="text-xs text-blue-700 mb-1">Reference Base Salary</p>
                   <p className="text-lg font-semibold text-blue-900">
-                    ₹{selectedRole.baseValues.basic.toLocaleString('en-IN')}/month
+                    ₹{(selectedRole?.baseValues?.basic ?? 0).toLocaleString('en-IN')}/month
                   </p>
                   <p className="text-xs text-blue-600">From salary structure</p>
                 </div>

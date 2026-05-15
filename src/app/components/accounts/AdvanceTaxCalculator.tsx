@@ -281,7 +281,7 @@ export default function AdvanceTaxCalculator() {
                   <td className="px-4 py-3 text-sm">{instalment.dueDate}</td>
                   <td className="px-4 py-3 text-sm text-right">{instalment.cumulativePct}%</td>
                   <td className="px-4 py-3 text-sm text-right font-medium">
-                    ₹{instalment.amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ₹{(instalment?.amount ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <span
@@ -319,7 +319,7 @@ export default function AdvanceTaxCalculator() {
             <p className="font-semibold text-orange-900">Next Advance Tax Due</p>
             <p className="text-sm text-orange-700">
               {nextInstalment.no} instalment of ₹
-              {nextInstalment.amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} is due on {nextInstalment.dueDate}
+              {(nextInstalment?.amount ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} is due on {nextInstalment.dueDate}
             </p>
           </div>
           <button

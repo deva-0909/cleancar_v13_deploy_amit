@@ -152,7 +152,7 @@ export default function PayablesDashboard() {
                       <span className={p.isOverdue ? "text-red-600 font-medium" : ""}>{p.dueDate}</span>
                     ) : <span className="text-gray-400">—</span>}
                   </td>
-                  <td className="p-3 text-right font-semibold">₹{p.amountDue.toLocaleString("en-IN")}</td>
+                  <td className="p-3 text-right font-semibold">₹{(p?.amountDue ?? 0).toLocaleString("en-IN")}</td>
                   <td className="p-3">
                     {p.daysOverdue > 0 ? (
                       <Badge className="bg-red-100 text-red-700">{p.daysOverdue}d overdue</Badge>

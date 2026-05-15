@@ -1566,7 +1566,7 @@ export function CreateSalaryStructure() {
                         <tbody>
                           <tr>
                             <td className="p-2">Basic Salary {shiftType === "part_time" ? "(Part-Time)" : "(Full-Time)"}</td>
-                            <td className="text-right">₹{components.basic.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                            <td className="text-right">₹{(components?.basic ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                             <td className="text-right">₹{(components.basic * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                           </tr>
                           {customEarnings.map((comp, idx) => {
@@ -1584,7 +1584,7 @@ export function CreateSalaryStructure() {
                           })}
                           <tr className="bg-blue-50 font-semibold border-t-2">
                             <td className="p-2">Gross Salary</td>
-                            <td className="text-right">₹{components.monthlyGross.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                            <td className="text-right">₹{(components?.monthlyGross ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                             <td className="text-right">₹{(components.monthlyGross * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                           </tr>
                         </tbody>
@@ -1655,12 +1655,12 @@ export function CreateSalaryStructure() {
                           })()}
                           <tr className="bg-red-50 font-semibold border-t">
                             <td className="p-2">Total Deductions</td>
-                            <td className="text-right text-red-600">₹{components.totalDeductions.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                            <td className="text-right text-red-600">₹{(components?.totalDeductions ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                             <td className="text-right text-red-600">₹{(components.totalDeductions * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                           </tr>
                           <tr className="bg-teal-50 font-bold border-t-2 text-base">
                             <td className="p-2 text-teal-800">NET TAKE HOME</td>
-                            <td className="text-right text-teal-800">₹{components.netTakeHome.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                            <td className="text-right text-teal-800">₹{(components?.netTakeHome ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                             <td className="text-right text-teal-800">₹{(components.netTakeHome * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                           </tr>
                         </tbody>
@@ -1723,12 +1723,12 @@ export function CreateSalaryStructure() {
                           })}
                           <tr className="bg-purple-50 font-semibold border-t">
                             <td className="p-2">Total Employer Cost</td>
-                            <td className="text-right">₹{components.totalEmployerCost.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                            <td className="text-right">₹{(components?.totalEmployerCost ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                             <td className="text-right">₹{(components.totalEmployerCost * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                           </tr>
                           <tr className="bg-blue-900 text-white font-bold border-t-2 text-base">
                             <td className="p-2">TOTAL CTC</td>
-                            <td className="text-right">₹{components.totalCTC.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
+                            <td className="text-right">₹{(components?.totalCTC ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                             <td className="text-right">₹{(components.totalCTC * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td>
                           </tr>
                         </tbody>
@@ -1882,11 +1882,11 @@ export function CreateSalaryStructure() {
                           </Badge>
                         </TableCell>
                         <TableCell className="font-semibold">₹{structure.basicSalary?.toLocaleString("en-IN") || calc.basic.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</TableCell>
-                        <TableCell>₹{structure.monthlyGross.toLocaleString("en-IN")}</TableCell>
-                        <TableCell>₹{calc.hra.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</TableCell>
-                        <TableCell>₹{calc.specialAllowance.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</TableCell>
-                        <TableCell className="font-semibold text-green-600">₹{calc.netTakeHome.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</TableCell>
-                        <TableCell className="font-semibold text-blue-600">₹{calc.totalCTC.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</TableCell>
+                        <TableCell>₹{(structure?.monthlyGross ?? 0).toLocaleString("en-IN")}</TableCell>
+                        <TableCell>₹{(calc?.hra ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</TableCell>
+                        <TableCell>₹{(calc?.specialAllowance ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</TableCell>
+                        <TableCell className="font-semibold text-green-600">₹{(calc?.netTakeHome ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</TableCell>
+                        <TableCell className="font-semibold text-blue-600">₹{(calc?.totalCTC ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</TableCell>
                         <TableCell>
                           <Badge variant={structure.isMetro ? "default" : "secondary"}>
                             {structure.isMetro ? "Metro" : "Non-Metro"}
@@ -2045,23 +2045,23 @@ export function CreateSalaryStructure() {
                         </thead>
                         <tbody>
                           <tr><td colSpan={3} className="p-2 font-semibold bg-gray-50">EARNINGS</td></tr>
-                          <tr><td className="p-2 pl-4">Basic</td><td className="text-right p-2">₹{calc.basic.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.basic * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
-                          <tr><td className="p-2 pl-4">HRA</td><td className="text-right p-2">₹{calc.hra.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.hra * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
-                          <tr><td className="p-2 pl-4">Conveyance</td><td className="text-right p-2">₹{calc.conveyance.toLocaleString("en-IN")}</td><td className="text-right p-2">₹{(calc.conveyance * 12).toLocaleString("en-IN")}</td></tr>
-                          <tr><td className="p-2 pl-4">Medical</td><td className="text-right p-2">₹{calc.medical.toLocaleString("en-IN")}</td><td className="text-right p-2">₹{(calc.medical * 12).toLocaleString("en-IN")}</td></tr>
-                          <tr><td className="p-2 pl-4">Special Allowance</td><td className="text-right p-2">₹{calc.specialAllowance.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.specialAllowance * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
-                          <tr className="bg-blue-50 font-semibold"><td className="p-2">Gross Salary</td><td className="text-right p-2">₹{calc.monthlyGross.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.monthlyGross * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
+                          <tr><td className="p-2 pl-4">Basic</td><td className="text-right p-2">₹{(calc?.basic ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.basic * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
+                          <tr><td className="p-2 pl-4">HRA</td><td className="text-right p-2">₹{(calc?.hra ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.hra * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
+                          <tr><td className="p-2 pl-4">Conveyance</td><td className="text-right p-2">₹{(calc?.conveyance ?? 0).toLocaleString("en-IN")}</td><td className="text-right p-2">₹{(calc.conveyance * 12).toLocaleString("en-IN")}</td></tr>
+                          <tr><td className="p-2 pl-4">Medical</td><td className="text-right p-2">₹{(calc?.medical ?? 0).toLocaleString("en-IN")}</td><td className="text-right p-2">₹{(calc.medical * 12).toLocaleString("en-IN")}</td></tr>
+                          <tr><td className="p-2 pl-4">Special Allowance</td><td className="text-right p-2">₹{(calc?.specialAllowance ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.specialAllowance * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
+                          <tr className="bg-blue-50 font-semibold"><td className="p-2">Gross Salary</td><td className="text-right p-2">₹{(calc?.monthlyGross ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.monthlyGross * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
                           
                           <tr><td colSpan={3} className="p-2 font-semibold bg-gray-50">DEDUCTIONS</td></tr>
-                          <tr><td className="p-2 pl-4">Employee PF</td><td className="text-right p-2">₹{calc.employeePF.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.employeePF * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
-                          <tr><td className="p-2 pl-4">Employee ESIC</td><td className="text-right p-2">{calc.employeeESIC > 0 ? `₹${calc.employeeESIC.toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "N/A"}</td><td className="text-right p-2">{calc.employeeESIC > 0 ? `₹${(calc.employeeESIC * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "-"}</td></tr>
-                          <tr><td className="p-2 pl-4">Professional Tax</td><td className="text-right p-2">₹{calc.professionalTax.toLocaleString("en-IN")}</td><td className="text-right p-2">₹{(calc.professionalTax * 12).toLocaleString("en-IN")}</td></tr>
-                          <tr className="bg-teal-50 font-bold"><td className="p-2 text-teal-800">Net Take Home</td><td className="text-right p-2 text-teal-800">₹{calc.netTakeHome.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2 text-teal-800">₹{(calc.netTakeHome * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
+                          <tr><td className="p-2 pl-4">Employee PF</td><td className="text-right p-2">₹{(calc?.employeePF ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.employeePF * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
+                          <tr><td className="p-2 pl-4">Employee ESIC</td><td className="text-right p-2">{calc.employeeESIC > 0 ? `₹${(calc?.employeeESIC ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "N/A"}</td><td className="text-right p-2">{calc.employeeESIC > 0 ? `₹${(calc.employeeESIC * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "-"}</td></tr>
+                          <tr><td className="p-2 pl-4">Professional Tax</td><td className="text-right p-2">₹{(calc?.professionalTax ?? 0).toLocaleString("en-IN")}</td><td className="text-right p-2">₹{(calc.professionalTax * 12).toLocaleString("en-IN")}</td></tr>
+                          <tr className="bg-teal-50 font-bold"><td className="p-2 text-teal-800">Net Take Home</td><td className="text-right p-2 text-teal-800">₹{(calc?.netTakeHome ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2 text-teal-800">₹{(calc.netTakeHome * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
                           
                           <tr><td colSpan={3} className="p-2 font-semibold bg-gray-50">EMPLOYER CONTRIBUTIONS</td></tr>
-                          <tr><td className="p-2 pl-4">Employer PF</td><td className="text-right p-2">₹{calc.employerPF.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.employerPF * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
-                          <tr><td className="p-2 pl-4">Employer ESIC</td><td className="text-right p-2">{calc.employerESIC > 0 ? `₹${calc.employerESIC.toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "N/A"}</td><td className="text-right p-2">{calc.employerESIC > 0 ? `₹${(calc.employerESIC * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "-"}</td></tr>
-                          <tr className="bg-blue-900 text-white font-bold"><td className="p-2">TOTAL CTC</td><td className="text-right p-2">₹{calc.totalCTC.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.totalCTC * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
+                          <tr><td className="p-2 pl-4">Employer PF</td><td className="text-right p-2">₹{(calc?.employerPF ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.employerPF * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
+                          <tr><td className="p-2 pl-4">Employer ESIC</td><td className="text-right p-2">{calc.employerESIC > 0 ? `₹${(calc?.employerESIC ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "N/A"}</td><td className="text-right p-2">{calc.employerESIC > 0 ? `₹${(calc.employerESIC * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "-"}</td></tr>
+                          <tr className="bg-blue-900 text-white font-bold"><td className="p-2">TOTAL CTC</td><td className="text-right p-2">₹{(calc?.totalCTC ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td><td className="text-right p-2">₹{(calc.totalCTC * 12).toLocaleString("en-IN", { maximumFractionDigits: 0 })}</td></tr>
                         </tbody>
                       </table>
                     </>

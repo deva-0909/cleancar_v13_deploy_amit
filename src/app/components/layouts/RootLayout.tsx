@@ -759,10 +759,7 @@ export function RootLayout() {
         {/* Main Content — key forces remount on every route/role change */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 min-w-0">
           <RouteGuard />
-          {/* Use full hash as key — guarantees remount when hash route changes */}
-          <div key={`${location.pathname}${location.search}${location.hash}__${currentRole}`}>
-            <Outlet />
-          </div>
+          <Outlet />
         </main>
       </div>
 

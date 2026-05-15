@@ -325,7 +325,7 @@ export default function TDSPayableModule() {
                   Section {section} — {data.nature}
                 </h3>
                 <span className="text-xl font-bold text-gray-900">
-                  Total: ₹{data.totalTDS.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  Total: ₹{(data?.totalTDS ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="space-y-1 font-mono text-sm mb-3">
@@ -335,8 +335,8 @@ export default function TDSPayableModule() {
                     <span>{entry.deducteeName}</span>
                     <span>{entry.invoiceRef}</span>
                     <span>
-                      ₹{entry.taxableAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (TDS: ₹
-                      {entry.tdsAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                      ₹{(entry?.taxableAmount ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (TDS: ₹
+                      {(entry?.tdsAmount ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                     </span>
                   </div>
                 ))}
@@ -426,10 +426,10 @@ export default function TDSPayableModule() {
                       <td className="px-4 py-3 text-sm">{report.nature}</td>
                       <td className="px-4 py-3 text-sm text-right">{report.deducteeCount}</td>
                       <td className="px-4 py-3 text-sm text-right">
-                        ₹{report.taxableAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ₹{(report?.taxableAmount ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-3 text-sm text-right font-medium">
-                        ₹{report.tdsAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        ₹{(report?.tdsAmount ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <span

@@ -1090,7 +1090,7 @@ function ChartOfAccounts() {
             )}
           </TableCell>
           <TableCell className="text-right font-medium">
-            {account.type === "Ledger" ? `₹${account.balance.toLocaleString("en-IN")}` : "—"}
+            {account.type === "Ledger" ? `₹${(account?.balance ?? 0).toLocaleString("en-IN")}` : "—"}
           </TableCell>
           <TableCell>
             <div className="flex gap-1">
@@ -1326,15 +1326,15 @@ function ChartOfAccounts() {
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
                           <span className="text-gray-600">Assets:</span>
-                          <span className="font-semibold ml-2">₹{totals.assets.toLocaleString("en-IN")}</span>
+                          <span className="font-semibold ml-2">₹{(totals?.assets ?? 0).toLocaleString("en-IN")}</span>
                         </div>
                         <div>
                           <span className="text-gray-600">Liabilities:</span>
-                          <span className="font-semibold ml-2">₹{totals.liabilities.toLocaleString("en-IN")}</span>
+                          <span className="font-semibold ml-2">₹{(totals?.liabilities ?? 0).toLocaleString("en-IN")}</span>
                         </div>
                         <div>
                           <span className="text-gray-600">Equity:</span>
-                          <span className="font-semibold ml-2">₹{totals.equity.toLocaleString("en-IN")}</span>
+                          <span className="font-semibold ml-2">₹{(totals?.equity ?? 0).toLocaleString("en-IN")}</span>
                         </div>
                         <div>
                           <span className="text-gray-600">Balance Status:</span>
@@ -1531,7 +1531,7 @@ function ChartOfAccounts() {
           <CardContent className="p-4">
             <div className="text-sm text-gray-500">Total Assets</div>
             <div className="text-2xl font-bold text-green-600">
-              ₹{totals.assets.toLocaleString("en-IN")}
+              ₹{(totals?.assets ?? 0).toLocaleString("en-IN")}
             </div>
           </CardContent>
         </Card>
@@ -1539,7 +1539,7 @@ function ChartOfAccounts() {
           <CardContent className="p-4">
             <div className="text-sm text-gray-500">Total Liabilities</div>
             <div className="text-2xl font-bold text-red-600">
-              ₹{totals.liabilities.toLocaleString("en-IN")}
+              ₹{(totals?.liabilities ?? 0).toLocaleString("en-IN")}
             </div>
           </CardContent>
         </Card>
@@ -1547,7 +1547,7 @@ function ChartOfAccounts() {
           <CardContent className="p-4">
             <div className="text-sm text-gray-500">Total Equity</div>
             <div className="text-2xl font-bold text-blue-600">
-              ₹{totals.equity.toLocaleString("en-IN")}
+              ₹{(totals?.equity ?? 0).toLocaleString("en-IN")}
             </div>
           </CardContent>
         </Card>
@@ -1555,7 +1555,7 @@ function ChartOfAccounts() {
           <CardContent className="p-4">
             <div className="text-sm text-gray-500">Total Income</div>
             <div className="text-2xl font-bold text-green-600">
-              ₹{totals.income.toLocaleString("en-IN")}
+              ₹{(totals?.income ?? 0).toLocaleString("en-IN")}
             </div>
           </CardContent>
         </Card>
@@ -1563,7 +1563,7 @@ function ChartOfAccounts() {
           <CardContent className="p-4">
             <div className="text-sm text-gray-500">Total Expenses</div>
             <div className="text-2xl font-bold text-orange-600">
-              ₹{totals.expenses.toLocaleString("en-IN")}
+              ₹{(totals?.expenses ?? 0).toLocaleString("en-IN")}
             </div>
           </CardContent>
         </Card>
@@ -1663,13 +1663,13 @@ function ChartOfAccounts() {
               <div className="space-y-1">
                 <div className="flex justify-between">
                   <span>Assets</span>
-                  <span className="font-medium">₹{totals.assets.toLocaleString("en-IN")}</span>
+                  <span className="font-medium">₹{(totals?.assets ?? 0).toLocaleString("en-IN")}</span>
                 </div>
               </div>
               <div className="border-t mt-2 pt-2">
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
-                  <span>₹{totals.assets.toLocaleString("en-IN")}</span>
+                  <span>₹{(totals?.assets ?? 0).toLocaleString("en-IN")}</span>
                 </div>
               </div>
             </div>
@@ -1678,11 +1678,11 @@ function ChartOfAccounts() {
               <div className="space-y-1">
                 <div className="flex justify-between">
                   <span>Liabilities</span>
-                  <span className="font-medium">₹{totals.liabilities.toLocaleString("en-IN")}</span>
+                  <span className="font-medium">₹{(totals?.liabilities ?? 0).toLocaleString("en-IN")}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Equity</span>
-                  <span className="font-medium">₹{totals.equity.toLocaleString("en-IN")}</span>
+                  <span className="font-medium">₹{(totals?.equity ?? 0).toLocaleString("en-IN")}</span>
                 </div>
               </div>
               <div className="border-t mt-2 pt-2">
@@ -1857,31 +1857,31 @@ function ChartOfAccounts() {
                         <div className="bg-green-50 border border-green-200 rounded p-3">
                           <div className="text-xs text-gray-600 mb-1">Assets</div>
                           <div className="font-semibold text-green-700">
-                            ₹{audit.totals.assets.toLocaleString("en-IN")}
+                            ₹{(audit?.totals?.assets ?? 0).toLocaleString("en-IN")}
                           </div>
                         </div>
                         <div className="bg-red-50 border border-red-200 rounded p-3">
                           <div className="text-xs text-gray-600 mb-1">Liabilities</div>
                           <div className="font-semibold text-red-700">
-                            ₹{audit.totals.liabilities.toLocaleString("en-IN")}
+                            ₹{(audit?.totals?.liabilities ?? 0).toLocaleString("en-IN")}
                           </div>
                         </div>
                         <div className="bg-blue-50 border border-blue-200 rounded p-3">
                           <div className="text-xs text-gray-600 mb-1">Equity</div>
                           <div className="font-semibold text-blue-700">
-                            ₹{audit.totals.equity.toLocaleString("en-IN")}
+                            ₹{(audit?.totals?.equity ?? 0).toLocaleString("en-IN")}
                           </div>
                         </div>
                         <div className="bg-purple-50 border border-purple-200 rounded p-3">
                           <div className="text-xs text-gray-600 mb-1">Income</div>
                           <div className="font-semibold text-purple-700">
-                            ₹{audit.totals.income.toLocaleString("en-IN")}
+                            ₹{(audit?.totals?.income ?? 0).toLocaleString("en-IN")}
                           </div>
                         </div>
                         <div className="bg-orange-50 border border-orange-200 rounded p-3">
                           <div className="text-xs text-gray-600 mb-1">Expenses</div>
                           <div className="font-semibold text-orange-700">
-                            ₹{audit.totals.expenses.toLocaleString("en-IN")}
+                            ₹{(audit?.totals?.expenses ?? 0).toLocaleString("en-IN")}
                           </div>
                         </div>
                       </div>
@@ -1926,7 +1926,7 @@ function ChartOfAccounts() {
                                       <Badge variant="outline">{account.category}</Badge>
                                     </TableCell>
                                     <TableCell className="text-right font-medium">
-                                      ₹{account.balance.toLocaleString("en-IN")}
+                                      ₹{(account?.balance ?? 0).toLocaleString("en-IN")}
                                     </TableCell>
                                   </TableRow>
                                 ))}

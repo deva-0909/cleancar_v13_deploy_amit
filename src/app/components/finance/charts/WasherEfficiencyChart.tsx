@@ -95,7 +95,7 @@ export function WasherEfficiencyChart({ period }: WasherEfficiencyChartProps) {
           <ResponsiveContainer width="100%" height={350}>
             <BarChart data={washerData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" label={{ value: "₹ per wash", position: "bottom" } tick={{ fontSize: 11 }}} />
+              <XAxis type="number" label={{ value: "₹ per wash", position: "bottom" }} tick={{ fontSize: 11 }} />
               <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 11 }} />
               <Tooltip
                 formatter={(value: number) => `₹${value.toFixed(2)}`}
