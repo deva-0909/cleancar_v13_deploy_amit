@@ -24,16 +24,16 @@ const AdminPlanManagement = lazy(() => import("./components/subscription/AdminPl
 const IncentiveConfiguration = lazy(() => import("./components/incentives/IncentiveConfiguration"));
 
 // Analytics module - all lazy loaded
-const UnitEconomicsDashboard = lazy(() => import("./components/analytics/UnitEconomicsDashboard"));
-const CustomerLTVAnalysis = lazy(() => import("./components/analytics/CustomerLTVAnalysis"));
-const CACDashboard = lazy(() => import("./components/analytics/CACDashboard"));
-const BreakEvenAnalysis = lazy(() => import("./components/analytics/BreakEvenAnalysis"));
-const CostPerWashCalculatorEnhanced = lazy(() => import("./components/analytics/CostPerWashCalculatorEnhanced"));
-const CostPerWashByPlan = lazy(() => import("./components/analytics/CostPerWashByPlan"));
-const CostPerWashByConsumption = lazy(() => import("./components/analytics/CostPerWashByConsumption"));
-const LabourCostPerWash = lazy(() => import("./components/analytics/LabourCostPerWash"));
-const EmployeeEfficiency = lazy(() => import("./components/analytics/EmployeeEfficiency"));
-const CityComparison = lazy(() => import("./components/analytics/CityComparison"));
+
+
+
+
+
+
+
+
+
+
 
 // Founder module - converted to regular imports due to fetch errors
 import FounderControlTower from "./components/founder/FounderControlTower";
@@ -241,6 +241,16 @@ import { UnauthorizedPage } from "./components/pages/UnauthorizedPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MobileChangeRequest } from "./components/hr/MobileChangeRequest";
 import { MyAccountPage } from "./components/hr/MyAccountPage";
+import UnitEconomicsDashboard from "./components/analytics/UnitEconomicsDashboard";
+import CustomerLTVAnalysis from "./components/analytics/CustomerLTVAnalysis";
+import CACDashboard from "./components/analytics/CACDashboard";
+import BreakEvenAnalysis from "./components/analytics/BreakEvenAnalysis";
+import CostPerWashCalculatorEnhanced from "./components/analytics/CostPerWashCalculatorEnhanced";
+import CostPerWashByPlan from "./components/analytics/CostPerWashByPlan";
+import CostPerWashByConsumption from "./components/analytics/CostPerWashByConsumption";
+import LabourCostPerWash from "./components/analytics/LabourCostPerWash";
+import EmployeeEfficiency from "./components/analytics/EmployeeEfficiency";
+import CityComparison from "./components/analytics/CityComparison";
 
 export const router = createHashRouter([
   {
@@ -416,18 +426,18 @@ export const router = createHashRouter([
         children: [
           { index: true, element: <Navigate to="/analytics/dashboard" replace /> },
           { path: "dashboard", element: <AnalyticsDashboardWithDrillDown /> },
-          { path: "unit-economics", element: <Suspense fallback={<PageLoader />}><ErrorBoundary key="unit-economics"><UnitEconomicsDashboard /></ErrorBoundary></Suspense> },
-          { path: "customer-ltv", element: <Suspense fallback={<PageLoader />}><ErrorBoundary key="CustomerLTVAnalysis"><CustomerLTVAnalysis /></ErrorBoundary></Suspense> },
-          { path: "cac", element: <Suspense fallback={<PageLoader />}><ErrorBoundary key="CACDashboard"><CACDashboard /></ErrorBoundary></Suspense> },
-          { path: "break-even", element: <Suspense fallback={<PageLoader />}><ErrorBoundary key="BreakEvenAnalysis"><BreakEvenAnalysis /></ErrorBoundary></Suspense> },
+          { path: "unit-economics", element: <ErrorBoundary><UnitEconomicsDashboard /></ErrorBoundary> },
+          { path: "customer-ltv", element: <ErrorBoundary><CustomerLTVAnalysis /></ErrorBoundary> },
+          { path: "cac", element: <ErrorBoundary><CACDashboard /></ErrorBoundary> },
+          { path: "break-even", element: <ErrorBoundary><BreakEvenAnalysis /></ErrorBoundary> },
           { path: "package-cost-matrix", element: <Navigate to="/finance/package-cost-matrix" replace /> },
 
           // PHASE 3: Consolidated Cost Module Routes
           // Main dashboard: /finance/cost-per-wash (CostPerWashModule)
           // Specialized views:
-          { path: "cost-by-plan", element: <Suspense fallback={<PageLoader />}><CostPerWashByPlan /></Suspense> },
-          { path: "cost-by-consumption", element: <Suspense fallback={<PageLoader />}><CostPerWashByConsumption /></Suspense> },
-          { path: "labour-cost", element: <Suspense fallback={<PageLoader />}><LabourCostPerWash /></Suspense> },
+          { path: "cost-by-plan", element: <CostPerWashByPlan /> },
+          { path: "cost-by-consumption", element: <CostPerWashByConsumption /> },
+          { path: "labour-cost", element: <LabourCostPerWash /> },
           { path: "cost-report", element: <CostPerWashReport /> },
 
           // Legacy redirects for backward compatibility
@@ -437,8 +447,8 @@ export const router = createHashRouter([
           { path: "labour-cost-per-wash", element: <Navigate to="/analytics/unit-economics/labour-cost" replace /> },
           { path: "cost-per-wash-report", element: <Navigate to="/analytics/unit-economics/cost-report" replace /> },
 
-          { path: "employee-efficiency", element: <Suspense fallback={<PageLoader />}><ErrorBoundary key="EmployeeEfficiency"><EmployeeEfficiency /></ErrorBoundary></Suspense> },
-          { path: "city-comparison", element: <Suspense fallback={<PageLoader />}><ErrorBoundary key="CityComparison"><CityComparison /></ErrorBoundary></Suspense> },
+          { path: "employee-efficiency", element: <ErrorBoundary><EmployeeEfficiency /></ErrorBoundary> },
+          { path: "city-comparison", element: <ErrorBoundary><CityComparison /></ErrorBoundary> },
           { path: "role-based-demo", element: <DevOnlyRoute element={<RoleBasedAnalyticsDashboard />} /> },
         ]
       },

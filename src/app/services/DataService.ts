@@ -65,14 +65,6 @@ const STORAGE_KEYS = {
   ROLE_PERMISSION_OVERRIDES: "role_permission_overrides",
   CUSTOM_TRANSACTION_SUB_TYPES: "custom_transaction_sub_types", // GST transaction categorization
   MOBILE_CHANGE_REQUESTS: "mobile_change_requests",
-  // ── Added: keys used by contexts but previously missing from this map ──
-  INVENTORY_ITEMS:         "inventory_items",         // InventoryContext
-  STOCK_TRANSACTIONS:      "stock_transactions",      // InventoryContext
-  FINANCE_BUDGETS:         "finance_budgets",         // FinanceContext
-  FINANCE_ALERTS:          "finance_alerts",          // FinanceContext
-  FINANCE_RECOMMENDATIONS: "finance_recommendations", // FinanceContext
-  BUSINESS_RULES:          "business_rules",          // BusinessRulesContext
-  DEMOS:                   "demos",                   // DemoContext
 } as const;
 
 type EntityType = keyof typeof STORAGE_KEYS;
@@ -173,9 +165,8 @@ class DataServiceClass {
       localStorage.setItem(key, JSON.stringify(updated));
       import.meta.env.DEV && console.log(`[DataService] Inserted ${newRecords.length} record(s) to ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
-      const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
-      if (isQuota) { console.warn(`[DataService] Could not insert ${entityType} — localStorage full`); }
-      else { console.error(`[DataService] Error inserting to ${entityType}:`, error); }
+      console.error(`[DataService] Error inserting to ${entityType}:`, error);
+      throw error;
     }
   }
 
@@ -204,9 +195,8 @@ class DataServiceClass {
       localStorage.setItem(key, JSON.stringify(updated));
       import.meta.env.DEV && console.log(`[DataService] Updated record ${id} in ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
-      const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
-      if (isQuota) { console.warn(`[DataService] Could not update ${entityType} — localStorage full`); }
-      else { console.error(`[DataService] Error updating ${entityType}:`, error); }
+      console.error(`[DataService] Error updating ${entityType}:`, error);
+      throw error;
     }
   }
 
@@ -231,9 +221,8 @@ class DataServiceClass {
       localStorage.setItem(key, JSON.stringify(filtered));
       import.meta.env.DEV && console.log(`[DataService] Deleted record ${id} from ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
-      const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
-      if (isQuota) { console.warn(`[DataService] Could not delete ${entityType} — localStorage full`); }
-      else { console.error(`[DataService] Error deleting from ${entityType}:`, error); }
+      console.error(`[DataService] Error deleting from ${entityType}:`, error);
+      throw error;
     }
   }
 
@@ -305,9 +294,8 @@ class DataServiceClass {
       }
       import.meta.env.DEV && console.log(`[DataService] Set ${records.length} record(s) for ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
-      const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
-      if (isQuota) { console.warn(`[DataService] Could not store ${entityType} — localStorage full`); }
-      else { console.error(`[DataService] Error setting ${entityType}:`, error); }
+      console.error(`[DataService] Error setting ${entityType}:`, error);
+      throw error;
     }
   }
 
@@ -324,6 +312,7 @@ class DataServiceClass {
       import.meta.env.DEV && console.log(`[DataService] Cleared ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
       console.error(`[DataService] Error clearing ${entityType}:`, error);
+      throw error;
     }
   }
 
@@ -342,6 +331,7 @@ class DataServiceClass {
       import.meta.env.DEV && console.log(`[DataService] Cleared all data for ${city}`);
     } catch (error) {
       console.error("[DataService] Error clearing all data:", error);
+      throw error;
     }
   }
 
@@ -465,78 +455,6 @@ migrateAttendanceData();
 
 // ── localStorage Cleanup Utility ─────────────────────────────────────────────
 // Call window.__cleanStorage() in browser console to free space
-
-
-// ── Startup Storage Cleanup ───────────────────────────────────────────────────
-// Runs on every app start to prevent localStorage from filling up
-
-export function startupStorageCleanup(): void {
-  try {
-    const usage = getStorageUsage();
-    console.log(`[Storage] Usage: ${usage.usedKB}KB (${usage.pct}%)`);
-
-    // If under 60% used, nothing to do
-    if (usage.pct < 60) return;
-
-    console.warn(`[Storage] High usage (${usage.pct}%) — running cleanup`);
-
-    const allKeys = Object.keys(localStorage);
-    let freed = 0;
-
-    // 1. Remove backup keys (largest offenders)
-    allKeys.forEach(k => {
-      if (k.startsWith("BACKUP_") || k.startsWith("__temp_")) {
-        try { localStorage.removeItem(k); freed++; } catch(_) {}
-      }
-    });
-
-    // 2. Remove duplicate legacy keys when city-namespaced key exists
-    // e.g. remove "cleancar_employees" if "cleancar_CITY-SURAT_employees" exists
-    const legacyPrefixRe = /^cleancar_(?!CITY-)(.+)$/;
-    allKeys.forEach(k => {
-      const m = k.match(legacyPrefixRe);
-      if (!m) return;
-      const baseKey = m[1];
-      // Check if any city-namespaced version exists
-      const hasCityKey = allKeys.some(ck => ck.startsWith(`cleancar_CITY-`) && ck.endsWith(`_${baseKey}`));
-      if (hasCityKey) {
-        try { localStorage.removeItem(k); freed++; } catch(_) {}
-      }
-    });
-
-    // 3. If still over 70%, remove non-Surat city data (Mumbai, Ahmedabad are secondary)
-    if (getStorageUsage().pct > 70) {
-      const selectedCity = localStorage.getItem("cleancar_selected_city") || "CITY-SURAT";
-      allKeys.forEach(k => {
-        if (k.startsWith("cleancar_CITY-") && !k.startsWith(`cleancar_${selectedCity}`)) {
-          // Only remove large tables for other cities
-          const largeTables = ["attendance_records", "jobs", "leads", "customers", "subscriptions", "revenues", "payables", "ledger"];
-          if (largeTables.some(t => k.endsWith(`_${t}`))) {
-            try { localStorage.removeItem(k); freed++; } catch(_) {}
-          }
-        }
-      });
-    }
-
-    // 4. If still over 80%, remove attendance records (largest single table)
-    if (getStorageUsage().pct > 80) {
-      allKeys.forEach(k => {
-        if (k.includes("attendance_records") || k.includes("_jobs")) {
-          try { localStorage.removeItem(k); freed++; } catch(_) {}
-        }
-      });
-    }
-
-    if (freed > 0) {
-      console.log(`[Storage] Cleanup freed ${freed} keys. New usage: ${getStorageUsage().usedKB}KB`);
-    }
-  } catch(e) {
-    // Non-critical — never block app startup
-  }
-}
-
-// Run immediately on module load
-startupStorageCleanup();
 
 export function cleanupStaleStorage(): { freed: string[], total: number } {
   const stalePatterns = [

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useRef} from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 interface SidebarContextType {
   collapsed: boolean;
@@ -15,7 +15,6 @@ const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 SidebarContext.displayName = "SidebarContext";
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const _dbGroupsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem("sidebarCollapsed") === "true"; }
     catch { return false; }
@@ -27,8 +26,6 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
       return stored ? new Set(JSON.parse(stored)) : new Set<string>();
     } catch { return new Set<string>(); }
   });
-
-  const _dbCollapsedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggleSidebar = () => { setCollapsed(p => !p); setUserToggled(true); };
 
@@ -50,26 +47,20 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (_dbCollapsedTimer.current) clearTimeout(_dbCollapsedTimer.current);
-    _dbCollapsedTimer.current = setTimeout(() => {
-      try { localStorage.setItem("sidebarCollapsed", String(collapsed)); } catch {}
-    }, 300);
+    try { localStorage.setItem("sidebarCollapsed", String(collapsed)); } catch {}
   }, [collapsed]);
 
   useEffect(() => {
-    if (_dbGroupsTimer.current) clearTimeout(_dbGroupsTimer.current);
-    _dbGroupsTimer.current = setTimeout(() => {
-      try { localStorage.setItem("sidebarOpenGroups", JSON.stringify([...openGroups])); } catch {}
-    }, 300);
+    try { localStorage.setItem("sidebarOpenGroups", JSON.stringify([...openGroups])); } catch {}
   }, [openGroups]);
 
-  const contextValue = useMemo((): SidebarContextType => ({
+  const value: SidebarContextType = {
     collapsed, setCollapsed, toggleSidebar,
     userToggled, setUserToggled,
     openGroups, toggleGroup, openGroup,
-  }), [collapsed, userToggled, openGroups]);
+  };
 
-    return <SidebarContext.Provider value={contextValue}>{children}</SidebarContext.Provider>;
+  return <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>;
 }
 
 export function useSidebar() {
@@ -82,7 +73,7 @@ export function useSidebar() {
         openGroups: new Set<string>(), toggleGroup: () => {}, openGroup: () => {},
       } as SidebarContextType;
     }
-    console.warn("[useSidebar] outside SidebarProvider - fallback"); return context as any;
+    throw new Error("useSidebar must be used within SidebarProvider");
   }
   return context;
 }
