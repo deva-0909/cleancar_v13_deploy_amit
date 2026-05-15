@@ -84,7 +84,7 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
   const { city } = useCity();
 
   const _dbSubscrTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  <CustomerSubscription[]>(() => {
+  const [subscriptions, setSubscriptions] = useState<CustomerSubscription[]>(() => {
     const stored = DataService.get<CustomerSubscription>("SUBSCRIPTIONS");
     logger.debug("CustomerSubscriptionContext loaded", { count: stored.length });
     return stored;

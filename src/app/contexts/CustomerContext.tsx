@@ -63,8 +63,7 @@ interface CustomerContextType {
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
 
 export function CustomerProvider({ children }: { children: ReactNode }) {
-  const _dbCustTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  <Customer[]>(() => {
+  const [customers, setCustomers] = useState<Customer[]>(() => {
     const stored = DataService.get<Customer>("CUSTOMERS");
     logger.debug("CustomerContext loaded", { count: stored.length });
     return stored;
@@ -72,11 +71,12 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
 
   const [leads, setLeads] = useState<Lead[]>(() => {
     const stored = DataService.get<Lead>("LEADS");
-  const _dbCustTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const _dbLeadsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     logger.debug("Leads loaded", { count: stored.length });
     return stored;
   });
+
+  const _dbCustTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const _dbLeadsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { city, cityInfo } = useCity();
   const cityCustomers = useMemo(() => {

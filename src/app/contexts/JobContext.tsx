@@ -137,10 +137,11 @@ const JobContext = createContext<JobContextType | undefined>(undefined);
 export function JobProvider({ children }: { children: ReactNode }) {
   const [allJobs, setAllJobs] = useState<Job[]>(() => {
     const stored = DataService.get<Job>("JOBS");
-  const _dbJobsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     logger.debug("JobContext loaded", { count: stored.length });
     return stored;
   });
+
+  const _dbJobsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { emit } = useEvents();
 
   // Persist to storage (local cache - instant)

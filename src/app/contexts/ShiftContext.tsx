@@ -55,7 +55,6 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
   const [shifts, setShifts] = useState<Shift[]>(() => {
     // Try to load from storage
     const stored = localStorage.getItem("cleancar_shifts");
-  const _dbShiftsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
@@ -70,6 +69,8 @@ export function ShiftProvider({ children }: { children: ReactNode }) {
     logger.debug("ShiftContext initialized with defaults", { count: DEFAULT_SHIFTS.length });
     return DEFAULT_SHIFTS;
   });
+
+  const _dbShiftsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Persist to storage — wrapped in try/catch to prevent quota crash
   useEffect(() => {

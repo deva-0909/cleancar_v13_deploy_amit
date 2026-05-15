@@ -102,8 +102,7 @@ const InventoryContext = createContext<InventoryContextType | undefined>(undefin
 const DEFAULT_CITY = "CITY-SURAT"; // Backward compatibility default
 
 export function InventoryProvider({ children }: { children: ReactNode }) {
-  const _dbTxnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  <InventoryItem[]>(() => {
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
     // ✅ PHASE 1: Backward compatibility - normalize existing data
     // If old inventory exists without cityId, default to CITY-SURAT
     const storedInventory = DataService.get<InventoryItem>("INVENTORY_ITEMS");
@@ -112,8 +111,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       cityId: item.cityId || DEFAULT_CITY, // ✅ Prevents crash for old data
     }));
   });
-  const _dbInvTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  <StockTransaction[]>(() =>
+  const [stockTransactions, setStockTransactions] = useState<StockTransaction[]>(() =>
     DataService.get<StockTransaction>("STOCK_TRANSACTIONS")
   );
   const _dbInvTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);

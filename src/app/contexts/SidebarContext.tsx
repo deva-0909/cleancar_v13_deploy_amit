@@ -16,7 +16,7 @@ SidebarContext.displayName = "SidebarContext";
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
   const _dbGroupsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  <boolean>(() => {
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem("sidebarCollapsed") === "true"; }
     catch { return false; }
   });
@@ -24,11 +24,11 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem("sidebarOpenGroups");
-  const _dbCollapsedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const _dbGroupsTimer    = useRef<ReturnType<typeof setTimeout> | null>(null);
       return stored ? new Set(JSON.parse(stored)) : new Set<string>();
     } catch { return new Set<string>(); }
   });
+
+  const _dbCollapsedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toggleSidebar = () => { setCollapsed(p => !p); setUserToggled(true); };
 
