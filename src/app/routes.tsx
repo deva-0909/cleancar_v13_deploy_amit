@@ -2,6 +2,7 @@
 import React, { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import { RootLayoutWrapper } from "./components/layouts/RootLayoutWrapper";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ProtectedRoute } from "./components/guards/ProtectedRoute";
 
 // Loading fallback for lazy-loaded routes
@@ -415,10 +416,10 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/analytics/dashboard" replace /> },
           { path: "dashboard", element: <AnalyticsDashboardWithDrillDown /> },
-          { path: "unit-economics", element: <Suspense fallback={<PageLoader />}><UnitEconomicsDashboard /></Suspense> },
-          { path: "customer-ltv", element: <Suspense fallback={<PageLoader />}><CustomerLTVAnalysis /></Suspense> },
-          { path: "cac", element: <Suspense fallback={<PageLoader />}><CACDashboard /></Suspense> },
-          { path: "break-even", element: <Suspense fallback={<PageLoader />}><BreakEvenAnalysis /></Suspense> },
+          { path: "unit-economics", element: <Suspense fallback={<PageLoader />}><ErrorBoundary key="unit-economics"><UnitEconomicsDashboard /></ErrorBoundary></Suspense> },
+          { path: "customer-ltv", element: <Suspense fallback={<PageLoader />}><ErrorBoundary key="CustomerLTVAnalysis"><CustomerLTVAnalysis /></ErrorBoundary></Suspense> },
+          { path: "cac", element: <Suspense fallback={<PageLoader />}><ErrorBoundary key="CACDashboard"><CACDashboard /></ErrorBoundary></Suspense> },
+          { path: "break-even", element: <Suspense fallback={<PageLoader />}><ErrorBoundary key="BreakEvenAnalysis"><BreakEvenAnalysis /></ErrorBoundary></Suspense> },
           { path: "package-cost-matrix", element: <Navigate to="/finance/package-cost-matrix" replace /> },
 
           // PHASE 3: Consolidated Cost Module Routes
@@ -436,8 +437,8 @@ export const router = createBrowserRouter([
           { path: "labour-cost-per-wash", element: <Navigate to="/analytics/unit-economics/labour-cost" replace /> },
           { path: "cost-per-wash-report", element: <Navigate to="/analytics/unit-economics/cost-report" replace /> },
 
-          { path: "employee-efficiency", element: <Suspense fallback={<PageLoader />}><EmployeeEfficiency /></Suspense> },
-          { path: "city-comparison", element: <Suspense fallback={<PageLoader />}><CityComparison /></Suspense> },
+          { path: "employee-efficiency", element: <Suspense fallback={<PageLoader />}><ErrorBoundary key="EmployeeEfficiency"><EmployeeEfficiency /></ErrorBoundary></Suspense> },
+          { path: "city-comparison", element: <Suspense fallback={<PageLoader />}><ErrorBoundary key="CityComparison"><CityComparison /></ErrorBoundary></Suspense> },
           { path: "role-based-demo", element: <DevOnlyRoute element={<RoleBasedAnalyticsDashboard />} /> },
         ]
       },
