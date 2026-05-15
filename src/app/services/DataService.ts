@@ -77,6 +77,8 @@ const STORAGE_KEYS = {
   COMPLAINTS:               "complaints",
   ADVANCE_MANAGEMENT:       "advance_management",
   CLOTH_TRACKING:           "cloth_tracking",
+  CLOTH_ITEMS:              "cloth_items",
+  CLOTH_EXCHANGES:          "cloth_exchanges",
 } as const;
 
 type EntityType = keyof typeof STORAGE_KEYS;

@@ -242,24 +242,24 @@ export function ClothAdminDashboard() {
                 >
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">
-                      {exchange.employeeName}
+                      {exchange.employeeName || (exchange as any).reason || "Unknown"}
                     </p>
                     <p className="text-sm text-gray-600">
                       {exchange.role} •{" "}
-                      {new Date(exchange.timestamp).toLocaleTimeString()}
+                      {exchange.timestamp ? new Date(exchange.timestamp).toLocaleTimeString() : (exchange as any).date ? new Date((exchange as any).date).toLocaleDateString() : "—"}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                     <div className="text-center">
                       <p className="text-xs text-amber-600">Dirty</p>
                       <p className="text-lg font-bold text-amber-900">
-                        {exchange.dirtyExterior + exchange.dirtyInterior}
+                        {(exchange.dirtyExterior ?? (exchange as any).oldQty ?? 0) + (exchange.dirtyInterior ?? 0)}
                       </p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-green-600">Clean</p>
                       <p className="text-lg font-bold text-green-900">
-                        {exchange.cleanExterior + exchange.cleanInterior}
+                        {(exchange.cleanExterior ?? (exchange as any).newQty ?? 0) + (exchange.cleanInterior ?? 0)}
                       </p>
                     </div>
                     <Badge
@@ -269,7 +269,7 @@ export function ClothAdminDashboard() {
                           : "bg-red-600"
                       }
                     >
-                      {exchange.isComplete ? "✓ Complete" : "✗ Incomplete"}
+                      {(exchange.isComplete ?? false) ? "✓ Complete" : "✗ Incomplete"}
                     </Badge>
                   </div>
                 </div>
