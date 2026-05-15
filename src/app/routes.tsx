@@ -239,6 +239,7 @@ import { BusinessFlowDemo } from "./components/BusinessFlowDemo";
 import { UnauthorizedPage } from "./components/pages/UnauthorizedPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MobileChangeRequest } from "./components/hr/MobileChangeRequest";
+import { MyAccountPage } from "./components/hr/MyAccountPage";
 
 export const router = createBrowserRouter([
   {
@@ -582,6 +583,7 @@ export const router = createBrowserRouter([
       { path: "incentives", element: <Navigate to="/incentives/configuration" replace /> },
 
       // My Account - Employee self-service
+      { path: "my-account", element: <MyAccountPage /> },
       { path: "my-account/mobile-change", element: <MobileChangeRequest /> },
 
       // Unauthorized page - shown when access denied
