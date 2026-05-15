@@ -70,7 +70,7 @@ export function EventMonitor() {
   }, [getEventHistory]);
 
   // Only show in development
-  if (import.meta.env.MODE !== "development") {
+  if (process.env.NODE_ENV !== "development") {
     return null;
   }
 

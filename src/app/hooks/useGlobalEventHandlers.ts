@@ -32,7 +32,7 @@ import { useCustomers } from "../contexts/CustomerContext";
 import { useCustomerSubscriptions } from "../contexts/CustomerSubscriptionContext";
 import { useFinance } from "../contexts/FinanceContext";
 import { useJobs } from "../contexts/JobContext";
-import { useAttendance } from "../contexts/AttendanceContext";
+import { useEmployeeData } from "./useEmployeeData";
 import { useIncentive } from "../contexts/IncentiveContext";
 import { accountingEntryService } from "../services/accountingEntryService";
 
@@ -42,8 +42,8 @@ export function useGlobalEventHandlers() {
   const subscriptionContext = useCustomerSubscriptions();
   const financeContext = useFinance();
   const jobContext = useJobs();
-  const attendanceCtx  = useAttendance();
-  const incentiveCtx   = useIncentive();
+  const employeeContext = useEmployeeData();
+  const incentiveContext = useIncentive();
 
   // ==================== LEAD_CONVERTED ====================
   // Updates: CustomerContext, SubscriptionContext, FinanceContext
@@ -131,9 +131,9 @@ export function useGlobalEventHandlers() {
       // ✅ 3. Update washer's incentive achievement
       const washerId = event.data.washerId;
       if (washerId) {
-        const currentIncentive = incentiveCtx.getEmployeeIncentive(washerId);
+        const currentIncentive = incentiveContext.getEmployeeIncentive(washerId);
         if (currentIncentive) {
-          incentiveCtx.updateAchievement(washerId, currentIncentive.achieved + 1);
+          incentiveContext.updateAchievement(washerId, currentIncentive.achieved + 1);
           logger.debug("Incentive achievement updated", { washerId, achieved: currentIncentive.achieved + 1 });
         }
       }
@@ -253,7 +253,7 @@ export function useGlobalEventHandlers() {
 
       // ✅ Add attendance record
       const today = new Date().toISOString().split('T')[0];
-      attendanceCtx.addAttendanceRecord({
+      employeeContext.addAttendanceRecord({
         employeeId,
         date: today,
         checkIn: checkInTime,
