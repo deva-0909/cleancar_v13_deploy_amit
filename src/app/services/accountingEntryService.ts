@@ -336,6 +336,23 @@ class AccountingEntryService {
       changeHistory: [],
     };
     this.saveEntries([...all, entry]);
+    // Notify FinanceContext so expense entries reflect in analytics
+    // Only for expense/purchase types that create payables
+    if (["Expense", "Purchase", "AssetPurchase"].includes(entry.entryType) && entry.totalBillValue > 0) {
+      try {
+        window.dispatchEvent(new CustomEvent("cc360_accounting_entry_created", {
+          detail: {
+            entryType: entry.entryType,
+            amount: entry.totalBillValue,
+            taxableValue: entry.taxableValue,
+            description: entry.narration || `${entry.entryType} — ${entry.vendorName || "Vendor"}`,
+            vendorId: entry.vendorId,
+            cityId: entry.cityId,
+            date: entry.date,
+          }
+        }));
+      } catch (_e) { /* non-critical — analytics will update on next load */ }
+    }
     return entry;
   }
 

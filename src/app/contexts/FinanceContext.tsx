@@ -281,6 +281,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const budgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const altTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!mrrData.length) return;
@@ -295,7 +296,11 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }, [payables]);
 
   useEffect(() => {
-    // Never write revenues back to localStorage — Supabase is source of truth
+    // Persist revenues to localStorage so entries survive page refresh
+    // (Supabase will re-sync on next load if online — this is a fallback)
+    if (!revenues.length) return;
+    if (revTimerRef.current) clearTimeout(revTimerRef.current);
+    revTimerRef.current = setTimeout(() => DataService.setAll("FINANCE_REVENUES", revenues), 500);
   }, [revenues]);
 
   useEffect(() => {
@@ -375,13 +380,33 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       if (!d?.subscriptionId) return;
       try { updateMRRForCancellation(d.subscriptionId, new Date().toISOString()); } catch { /* ignore */ }
     };
+    // Listener: accounting entries (Expense/Purchase) → create payable in FinanceContext
+    const handleAccountingEntry = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (!d?.amount || !d?.cityId) return;
+      try {
+        createPayable({
+          type: d.entryType === "AssetPurchase" ? "Vendor" : "Vendor",
+          description: d.description || `${d.entryType} entry`,
+          vendorId: d.vendorId,
+          amount: d.amount,
+          dueDate: d.date
+            ? new Date(new Date(d.date).getTime() + 30 * 86400000).toISOString().split("T")[0]
+            : new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
+          status: "Pending",
+          cityId: d.cityId,
+        });
+      } catch { /* non-critical */ }
+    };
     window.addEventListener("cc360_payroll_approved", handlePayrollApproved);
     window.addEventListener("cc360_mrr_add", handleMRRAdd);
     window.addEventListener("cc360_mrr_remove", handleMRRRemove);
+    window.addEventListener("cc360_accounting_entry_created", handleAccountingEntry);
     return () => {
       window.removeEventListener("cc360_payroll_approved", handlePayrollApproved);
       window.removeEventListener("cc360_mrr_add", handleMRRAdd);
       window.removeEventListener("cc360_mrr_remove", handleMRRRemove);
+      window.removeEventListener("cc360_accounting_entry_created", handleAccountingEntry);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
