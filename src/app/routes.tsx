@@ -249,7 +249,7 @@ export const router = createBrowserRouter([
   // Standalone Onboarding Portal routes (no header/sidebar) - MUST come FIRST
   {
     path: "/onboarding/:empId",
-    element: <Suspense fallback={<PageLoader />}><OnboardingPortal /></Suspense>,
+    element: <Suspense fallback={<PageLoader />}><ErrorBoundary><OnboardingPortal /></ErrorBoundary></Suspense>,
   },
   {
     path: "/onboard/:empId",
@@ -322,7 +322,7 @@ export const router = createBrowserRouter([
       { path: "finance/reports", element: <FinancialReportsModule /> },
       { path: "finance/transactions", element: <FinanceTransactions /> },
       { path: "finance/ledger-entries", element: <LedgerEntriesView /> },
-      { path: "finance/chart-of-accounts", element: <Suspense fallback={<PageLoader />}><ChartOfAccounts /></Suspense> },
+      { path: "finance/chart-of-accounts", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><ChartOfAccounts /></ErrorBoundary></Suspense> },
       { path: "finance/invoices", element: <InvoiceManagement /> },
       { path: "finance/invoices/:id", element: <InvoiceDetail /> },
       { path: "finance/payments", element: <PaymentManagement /> },
@@ -330,10 +330,10 @@ export const router = createBrowserRouter([
       { path: "finance/package-cost-matrix", element: <PackageCostMatrix /> },
       { path: "finance/cost-per-wash", element: <CostPerWashModule /> },
       { path: "finance/cost-per-wash/actual-inputs", element: <ActualCostInputs /> },
-      { path: "hr", element: <Suspense fallback={<PageLoader />}><HRModule /></Suspense> },
+      { path: "hr", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><HRModule /></ErrorBoundary></Suspense> },
       { path: "hr/leave", element: <Navigate to="/hr/professional-leave" replace /> },
       { path: "hr/enhanced-leave", element: <Navigate to="/hr/professional-leave" replace /> },
-      { path: "hr/professional-leave", element: <Suspense fallback={<PageLoader />}><ProfessionalLeaveManagement /></Suspense> },
+      { path: "hr/professional-leave", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><ProfessionalLeaveManagement /></ErrorBoundary></Suspense> },
       { path: "hr/leave-policy-engine", element: <LeavePolicyEngine /> },
       { path: "hr/onboarding", element: <EmployeeOnboarding /> },
       { path: "hr/exit-settlement", element: <ExitFFSettlement /> },
@@ -343,7 +343,7 @@ export const router = createBrowserRouter([
       { path: "hr/holiday-management", element: <HolidayManagement /> },
       { path: "hr/lifecycle-reports", element: <LifeCycleReports /> },
       { path: "hr/employee-ledger", element: <EmployeeLedger /> },
-      { path: "hr/statutory-forms-onboarding", element: <Suspense fallback={<PageLoader />}><StatutoryFormsOnboarding /></Suspense> },
+      { path: "hr/statutory-forms-onboarding", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><StatutoryFormsOnboarding /></ErrorBoundary></Suspense> },
       { path: "hr/statutory-forms-verification", element: <StatutoryFormsVerification /> },
       { path: "hr/onboarding-automation", element: <OnboardingAutomation /> },
       { path: "hr/self-service", element: <EmployeeSelfService /> },
@@ -366,9 +366,9 @@ export const router = createBrowserRouter([
       { path: "accounts/accounting-entry", element: <AccountingEntry /> },
       { path: "accounts/expense-voucher", element: <ExpenseVoucher /> },
       { path: "accounts/item-master", element: <ItemMaster /> },
-      { path: "accounts/payables", element: <Suspense fallback={<PageLoader />}><PayablesDashboard /></Suspense> },
-      { path: "accounts/tds-payable", element: <Suspense fallback={<PageLoader />}><TDSPayableModule /></Suspense> },
-      { path: "accounts/advance-tax", element: <Suspense fallback={<PageLoader />}><AdvanceTaxCalculator /></Suspense> },
+      { path: "accounts/payables", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><PayablesDashboard /></ErrorBoundary></Suspense> },
+      { path: "accounts/tds-payable", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><TDSPayableModule /></ErrorBoundary></Suspense> },
+      { path: "accounts/advance-tax", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><AdvanceTaxCalculator /></ErrorBoundary></Suspense> },
       { path: "accounts/journal-entry", element: <JournalEntry /> },
       { path: "accounts/dashboard", element: <AccountsDashboard /> },
       { path: "accounts/transactions", element: <AccountingTransactionList /> },
@@ -423,9 +423,9 @@ export const router = createBrowserRouter([
           // PHASE 3: Consolidated Cost Module Routes
           // Main dashboard: /finance/cost-per-wash (CostPerWashModule)
           // Specialized views:
-          { path: "cost-by-plan", element: <Suspense fallback={<PageLoader />}><CostPerWashByPlan /></Suspense> },
-          { path: "cost-by-consumption", element: <Suspense fallback={<PageLoader />}><CostPerWashByConsumption /></Suspense> },
-          { path: "labour-cost", element: <Suspense fallback={<PageLoader />}><LabourCostPerWash /></Suspense> },
+          { path: "cost-by-plan", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><CostPerWashByPlan /></ErrorBoundary></Suspense> },
+          { path: "cost-by-consumption", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><CostPerWashByConsumption /></ErrorBoundary></Suspense> },
+          { path: "labour-cost", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><LabourCostPerWash /></ErrorBoundary></Suspense> },
           { path: "cost-report", element: <CostPerWashReport /> },
 
           // Legacy redirects for backward compatibility
@@ -463,7 +463,7 @@ export const router = createBrowserRouter([
         element: <Outlet />,
         children: [
           { index: true, element: <Navigate to="/subscription/plan-management" replace /> },
-          { path: "plan-management", element: <Suspense fallback={<PageLoader />}><AdminPlanManagement userRole="ADMIN" /></Suspense> },
+          { path: "plan-management", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><AdminPlanManagement userRole="ADMIN" /></ErrorBoundary></Suspense> },
           { path: "plan-editor", element: <PlanEditor /> },
         ]
       },
@@ -564,7 +564,7 @@ export const router = createBrowserRouter([
       // Subscription Management System (Production) - Dynamic plan system
       { path: "subscription-app", element: <SubscriptionApp /> },
       { path: "plans", element: <PlanSelectionScreen /> },
-      { path: "admin/plans", element: <Suspense fallback={<PageLoader />}><AdminPlanManagement userRole="ADMIN" /></Suspense> },
+      { path: "admin/plans", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><AdminPlanManagement userRole="ADMIN" /></ErrorBoundary></Suspense> },
       { path: "subscription-diagnostics", element: <DevOnlyRoute element={<SubscriptionDiagnostics />} /> },
 
       // Client Portal - Read-only client interface
@@ -577,7 +577,7 @@ export const router = createBrowserRouter([
       { path: "workforce/working-hours", element: <WorkingHoursSetup /> },
 
       // Incentive Management System - Configuration, Simulation & Forecasting
-      { path: "incentives/configuration", element: <Suspense fallback={<PageLoader />}><IncentiveConfiguration /></Suspense> },
+      { path: "incentives/configuration", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><IncentiveConfiguration /></ErrorBoundary></Suspense> },
       { path: "incentives/simulator", element: <IncentiveSimulator /> },
       { path: "incentives/forecast", element: <IncentiveDashboard /> },
       { path: "incentives", element: <Navigate to="/incentives/configuration" replace /> },

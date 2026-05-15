@@ -35,7 +35,7 @@
  */
 
 import { DataService } from "../../services/DataService";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -169,6 +169,10 @@ const calculateProbationCredits = (joiningDate: string, confirmationDate: string
 };
 
 function ProfessionalLeaveManagement() {
+  // Deferred render — 118KB component, unblocks navigation
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { const t = requestAnimationFrame(() => setMounted(true)); return () => cancelAnimationFrame(t); }, []);
+
   const { currentRole, currentUser } = useRole();
   const [activeScreen, setActiveScreen] = useState<"dashboard" | "probation" | "allocation" | "exit" | "history" | "settings">("dashboard");
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("EMP-001");
@@ -561,6 +565,12 @@ function ProfessionalLeaveManagement() {
     { id: "history", label: "Leave History", icon: TrendingUp },
     { id: "settings", label: "Global Settings", icon: Shield, adminOnly: true },
   ];
+
+  if (!mounted) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">

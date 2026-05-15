@@ -402,6 +402,11 @@ function IncentiveConfiguration() {
   // PHASE 2: Migrated to useEmployeeData (dual-read from EmployeeContext + HRDataContext)
   const { roles, departments, employees } = useEmployeeData();
 
+  // Deferred render — unblocks React scheduler for instant navigation feel
+  // Heavy JSX (3400+ lines) is deferred by one animation frame
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { const t = requestAnimationFrame(() => setMounted(true)); return () => cancelAnimationFrame(t); }, []);
+
   // State
   const [selectedRoleCode, setSelectedRoleCode] = useState<string>("");
   const [config, setConfig] = useState<IncentiveConfigState>({
@@ -890,6 +895,12 @@ function IncentiveConfiguration() {
   const isLocked = config.status !== "Draft";
   const availableKPIMetrics = AVAILABLE_METRICS.filter(
     m => !config.kpiMetrics.find(k => k.metricCode === m.code)
+  );
+
+  if (!mounted) return (
+    <div className="flex items-center justify-center h-64 p-6">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+    </div>
   );
 
   return (
