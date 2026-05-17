@@ -79,6 +79,12 @@ const STORAGE_KEYS = {
   CLOTH_TRACKING:           "cloth_tracking",
   CLOTH_ITEMS:              "cloth_items",
   CLOTH_EXCHANGES:          "cloth_exchanges",
+  // ── Plan Management persistence ──
+  PLAN_TIERS:               "plan_tiers",
+  PLAN_ADDONS:              "plan_addons",
+  PLAN_COMBOS:              "plan_combos",
+  PLAN_DISCOUNTS:           "plan_discounts",
+  PLAN_AUDIT_LOG:           "plan_audit_log",
 } as const;
 
 type EntityType = keyof typeof STORAGE_KEYS;

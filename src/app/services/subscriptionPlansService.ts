@@ -240,7 +240,7 @@ class SubscriptionPlansService {
         features = [...commonEveryWash, ...commonMonthly];
         break;
 
-      case "SHAMPOO_WASH":
+      case "WATER_SHAMPOO":
         features = [
           ...commonEveryWash,
           {
@@ -259,8 +259,7 @@ class SubscriptionPlansService {
         ];
         break;
 
-      case "SHAMPOO_WAX":
-      case "SHAMPOO_POLISH":
+      case "WATER_SHAMPOO_WAX":
         features = [
           ...commonEveryWash,
           {

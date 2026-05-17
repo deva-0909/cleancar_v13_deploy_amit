@@ -51,8 +51,10 @@ export function PlanChangeImpactDashboard() {
 
   // Calculate price changes for Hatchback (default comparison category)
   const getPriceChange = (plan: string) => {
-    const oldPrice = activePlan.pricingMatrix["Hatchback"][plan as keyof typeof activePlan.pricingMatrix.Hatchback];
-    const newPrice = scheduledPlan.pricingMatrix["Hatchback"][plan as keyof typeof scheduledPlan.pricingMatrix.Hatchback];
+    // ✅ FIX: correct vehicle category key (was "Hatchback" — doesn't exist)
+    const CAT = "Hatchback / Compact Sedan" as const;
+    const oldPrice = (activePlan.pricingMatrix[CAT] as any)?.[plan];
+    const newPrice = (scheduledPlan.pricingMatrix[CAT] as any)?.[plan];
     
     if (oldPrice === "NA" || newPrice === "NA") return null;
     

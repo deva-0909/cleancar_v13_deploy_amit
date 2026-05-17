@@ -463,7 +463,7 @@ export const router = createBrowserRouter([
         element: <Outlet />,
         children: [
           { index: true, element: <Navigate to="/subscription/plan-management" replace /> },
-          { path: "plan-management", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><AdminPlanManagement userRole="ADMIN" /></ErrorBoundary></Suspense> },
+          { path: "plan-management", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><AdminPlanManagement /></ErrorBoundary></Suspense> },
           { path: "plan-editor", element: <PlanEditor /> },
         ]
       },
@@ -564,7 +564,7 @@ export const router = createBrowserRouter([
       // Subscription Management System (Production) - Dynamic plan system
       { path: "subscription-app", element: <SubscriptionApp /> },
       { path: "plans", element: <PlanSelectionScreen /> },
-      { path: "admin/plans", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><AdminPlanManagement userRole="ADMIN" /></ErrorBoundary></Suspense> },
+      { path: "admin/plans", element: <Suspense fallback={<PageLoader />}><ErrorBoundary><AdminPlanManagement /></ErrorBoundary></Suspense> },
       { path: "subscription-diagnostics", element: <DevOnlyRoute element={<SubscriptionDiagnostics />} /> },
 
       // Client Portal - Read-only client interface

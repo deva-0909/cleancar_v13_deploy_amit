@@ -21,7 +21,10 @@
  * Used for: Pricing screens, plan editors, finance calculations
  */
 
-import React, { createContext, useContext, ReactNode, useMemo } from "react";
+import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect, useCallback } from "react";
+import { DataService } from "../services/DataService";
+import type { PlanTier, Addon, ComboOffer as ComboOfferType } from "../types/subscriptionPlans.types";
+import { subscriptionPlansService } from "../services/subscriptionPlansService";
 import {
   CURRENT_PLAN_VERSION,
   getActivePlanVersion,
@@ -78,7 +81,42 @@ const PlanDefinitionContext = createContext<PlanDefinitionContextType | undefine
 );
 
 export function PlanDefinitionProvider({ children }: { children: ReactNode }) {
-  const activePlan = getActivePlanVersion();
+  // ✅ FIX: reload overridden tiers from DataService when admin makes changes
+  const [overriddenTiers, setOverriddenTiers] = useState<PlanTier[]>(() => {
+    const stored = DataService.get<PlanTier>("PLAN_TIERS");
+    return stored.length > 0 ? stored : [];
+  });
+
+  const reloadTiers = useCallback(() => {
+    const stored = DataService.get<PlanTier>("PLAN_TIERS");
+    if (stored.length > 0) setOverriddenTiers(stored);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("cc360_plan_price_changed", reloadTiers);
+    return () => window.removeEventListener("cc360_plan_price_changed", reloadTiers);
+  }, [reloadTiers]);
+
+  // Build a merged pricingMatrix: start from CURRENT_PLAN_VERSION then overlay
+  // any admin-edited prices stored in DataService
+  const activePlan = useMemo((): PlanVersion => {
+    if (overriddenTiers.length === 0) return getActivePlanVersion();
+    const base = getActivePlanVersion();
+    // Deep-clone pricingMatrix so we don't mutate the constant
+    const matrix = JSON.parse(JSON.stringify(base.pricingMatrix)) as typeof base.pricingMatrix;
+    overriddenTiers.forEach(tier => {
+      const cat = subscriptionPlansService.getVehicleCategoryById(tier.vehicleCategoryId);
+      if (!cat) return;
+      const catKey = cat.displayName as VehicleCategory;
+      if (!matrix[catKey]) return;
+      // Map enum tier name back to display plan type
+      const planKey = tier.displayName as PlanType;
+      if (planKey in matrix[catKey]) {
+        (matrix[catKey] as any)[planKey] = tier.baseMonthlyPrice;
+      }
+    });
+    return { ...base, pricingMatrix: matrix };
+  }, [overriddenTiers]);
 
   const getPlanPrice = (vehicle: VehicleCategory, plan: PlanType): number | "NA" => {
     return activePlan.pricingMatrix[vehicle][plan];
