@@ -15,10 +15,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "../ui/card";
-import {
-  Table as UITable, TableBody as UITableBody, TableCell as UITableCell,
-  TableHead as UITableHead, TableHeader as UITableHeader, TableRow as UITableRow,
 } from "../ui/table";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
@@ -191,20 +187,26 @@ export default function AdminPlanManagement() {
 
   // ── Load all data on mount (synchronous — no spinner after initial render) ──
   useEffect(() => {
-    const cats  = subscriptionPlansService.getVehicleCategories();
-    const tiers = loadTiers();
-    const ads   = loadAddons();
-    const comb  = loadCombos();
-    const disc  = loadDiscounts();
-    const audit = loadAuditLog();
+    // P3 FIX: try/catch ensures loading=false even if any service call throws
+    try {
+      const cats  = subscriptionPlansService.getVehicleCategories();
+      const tiers = loadTiers();
+      const ads   = loadAddons();
+      const comb  = loadCombos();
+      const disc  = loadDiscounts();
+      const audit = loadAuditLog();
 
-    setCategories(cats);
-    setAllTiers(tiers);
-    setAddons(ads);
-    setCombos(comb);
-    setDurationDiscounts(disc);
-    setAuditLogs(audit);
-    setLoading(false);
+      setCategories(cats);
+      setAllTiers(tiers);
+      setAddons(ads);
+      setCombos(comb);
+      setDurationDiscounts(disc);
+      setAuditLogs(audit);
+    } catch (err) {
+      console.error("[AdminPlanManagement] Load error:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   // ── Audit helper ─────────────────────────────────────────────────────────────
@@ -523,41 +525,41 @@ export default function AdminPlanManagement() {
                   </Button>
                 )}
               </div>
-              <UITable>
-                <UITableHeader>
-                  <UITableRow>
-                    <UITableHead>Category</UITableHead>
-                    <UITableHead>Tier</UITableHead>
-                    <UITableHead>Base Monthly Price</UITableHead>
-                    <UITableHead>Cost per Wash</UITableHead>
-                    <UITableHead>Status</UITableHead>
-                    <UITableHead>Actions</UITableHead>
-                  </UITableRow>
-                </UITableHeader>
-                <UITableBody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Tier</TableHead>
+                    <TableHead>Base Monthly Price</TableHead>
+                    <TableHead>Cost per Wash</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {allTiers.map(tier => {
                     const cat = categories.find(c => c.id === tier.vehicleCategoryId);
                     return (
-                      <UITableRow key={tier.id}>
-                        <UITableCell>
+                      <TableRow key={tier.id}>
+                        <TableCell>
                           <p className="font-medium">{cat?.displayName ?? "Unknown"}</p>
                           <p className="text-xs text-gray-400">{cat?.type}</p>
-                        </UITableCell>
-                        <UITableCell>
+                        </TableCell>
+                        <TableCell>
                           <Badge variant="outline">{tier.displayName}</Badge>
-                        </UITableCell>
-                        <UITableCell className="font-semibold">
+                        </TableCell>
+                        <TableCell className="font-semibold">
                           {subscriptionPlansService.formatPrice(tier.baseMonthlyPrice)}
-                        </UITableCell>
-                        <UITableCell className="text-gray-500">
+                        </TableCell>
+                        <TableCell className="text-gray-500">
                           {subscriptionPlansService.formatPrice(tier.costPerWash)}
-                        </UITableCell>
-                        <UITableCell>
+                        </TableCell>
+                        <TableCell>
                           {tier.isActive
                             ? <Badge className="bg-green-600">Active</Badge>
                             : <Badge variant="secondary">Disabled</Badge>}
-                        </UITableCell>
-                        <UITableCell>
+                        </TableCell>
+                        <TableCell>
                           <div className="flex items-center gap-1">
                             {permissions.canEditPlan && (
                               <Button variant="ghost" size="sm"
@@ -581,12 +583,12 @@ export default function AdminPlanManagement() {
                               </Button>
                             )}
                           </div>
-                        </UITableCell>
-                      </UITableRow>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </UITableBody>
-              </UITable>
+                </TableBody>
+              </Table>
             </Card>
           </TabsContent>
 
@@ -601,51 +603,51 @@ export default function AdminPlanManagement() {
                   </Button>
                 )}
               </div>
-              <UITable>
-                <UITableHeader>
-                  <UITableRow>
-                    <UITableHead>Service Name</UITableHead>
-                    <UITableHead>Description</UITableHead>
-                    <UITableHead>Price</UITableHead>
-                    <UITableHead>Billing</UITableHead>
-                    <UITableHead>Margin</UITableHead>
-                    <UITableHead>Confirmed</UITableHead>
-                    <UITableHead>Active</UITableHead>
-                    <UITableHead>Actions</UITableHead>
-                  </UITableRow>
-                </UITableHeader>
-                <UITableBody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Service Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Billing</TableHead>
+                    <TableHead>Margin</TableHead>
+                    <TableHead>Confirmed</TableHead>
+                    <TableHead>Active</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {addons.map(addon => (
-                    <UITableRow key={addon.id}>
-                      <UITableCell className="font-medium">{addon.name}</UITableCell>
-                      <UITableCell className="text-sm text-gray-500 max-w-xs truncate">{addon.description}</UITableCell>
-                      <UITableCell className="font-semibold">{subscriptionPlansService.formatPrice(addon.price)}</UITableCell>
-                      <UITableCell>
+                    <TableRow key={addon.id}>
+                      <TableCell className="font-medium">{addon.name}</TableCell>
+                      <TableCell className="text-sm text-gray-500 max-w-xs truncate">{addon.description}</TableCell>
+                      <TableCell className="font-semibold">{subscriptionPlansService.formatPrice(addon.price)}</TableCell>
+                      <TableCell>
                         <Badge variant="outline">{addon.billingType === "PER_VISIT" ? "Per Visit" : "Per Month"}</Badge>
-                      </UITableCell>
-                      <UITableCell>{addon.marginPercent}%</UITableCell>
-                      <UITableCell>
+                      </TableCell>
+                      <TableCell>{addon.marginPercent}%</TableCell>
+                      <TableCell>
                         {addon.isOperationallyConfirmed
                           ? <Badge className="bg-green-600">Confirmed</Badge>
                           : <Badge className="bg-yellow-600">Pending</Badge>}
-                      </UITableCell>
-                      <UITableCell>
+                      </TableCell>
+                      <TableCell>
                         {permissions.canManageAddons
                           ? <Switch checked={addon.isActive} onCheckedChange={v => handleToggleAddon(addon.id, v)} />
                           : <Badge variant={addon.isActive ? "default" : "secondary"}>{addon.isActive ? "Yes" : "No"}</Badge>}
-                      </UITableCell>
-                      <UITableCell>
+                      </TableCell>
+                      <TableCell>
                         {permissions.canManageAddons && (
                           <Button variant="ghost" size="sm"
                             onClick={() => { setEditingAddon(addon); setAddonFormData(addon); setEditAddonDialogOpen(true); }}>
                             <Edit className="w-4 h-4" />
                           </Button>
                         )}
-                      </UITableCell>
-                    </UITableRow>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </UITableBody>
-              </UITable>
+                </TableBody>
+              </Table>
             </Card>
           </TabsContent>
 

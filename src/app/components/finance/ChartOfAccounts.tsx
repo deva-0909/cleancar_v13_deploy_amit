@@ -917,58 +917,107 @@ const initialAccounts: Account[] = [
   },
 ];
 
+
+// ── Persistence helpers (C1/C2/C3 fixes) ────────────────────────────────────
+// Using namespaced localStorage directly (no DataService CHART_OF_ACCOUNTS key exists).
+const COA_ACCOUNTS_KEY = "cleancar_coa_accounts_v1";
+const COA_AUDIT_KEY    = "cleancar_coa_audit_history_v1";
+
+function persistAccounts(accts: Account[]): void {
+  try { localStorage.setItem(COA_ACCOUNTS_KEY, JSON.stringify(accts)); } catch {}
+}
+function loadPersistedAccounts(): Account[] {
+  try {
+    const raw = localStorage.getItem(COA_ACCOUNTS_KEY);
+    if (raw) { const p = JSON.parse(raw) as Account[]; if (p.length > 0) return p; }
+  } catch {}
+  return initialAccounts;
+}
+function persistAudit(history: AuditRecord[]): void {
+  try { localStorage.setItem(COA_AUDIT_KEY, JSON.stringify(history)); } catch {}
+}
+function loadPersistedAudit(): AuditRecord[] {
+  try {
+    const raw = localStorage.getItem(COA_AUDIT_KEY);
+    if (raw) return JSON.parse(raw) as AuditRecord[];
+  } catch {}
+  return [];
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 function ChartOfAccounts() {
   const { currentRole } = useRole();
-  const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("All");
-  const [filterType, setFilterType] = useState("All");
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(["1000", "2000", "3000", "4000", "5000"]));
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  
-  // Audit Trail state
-  const [auditHistory, setAuditHistory] = useState<AuditRecord[]>([]);
-  const [isAuditDialogOpen, setIsAuditDialogOpen] = useState(false);
-  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
-  const [auditNotes, setAuditNotes] = useState("");
 
-  // Form state
+  // C1 FIX: load from localStorage, fall back to initialAccounts on first visit
+  const [accounts, setAccountsState] = useState<Account[]>(() => loadPersistedAccounts());
+
+  // Wrapped setter that auto-persists on every change (C5 FIX)
+  const setAccounts = (updater: Account[] | ((prev: Account[]) => Account[])) => {
+    setAccountsState(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      persistAccounts(next);
+      return next;
+    });
+  };
+
+  const [searchTerm,       setSearchTerm]       = useState("");
+  const [filterCategory,   setFilterCategory]   = useState("All");
+  const [filterType,       setFilterType]       = useState("All");
+  const [expandedNodes,    setExpandedNodes]    = useState<Set<string>>(new Set(["1000","2000","3000","4000","5000"]));
+  const [isAddDialogOpen,  setIsAddDialogOpen]  = useState(false);
+  const [editingAccount,   setEditingAccount]   = useState<Account | null>(null);
+
+  // C2 FIX: load audit history from localStorage
+  const [auditHistory, setAuditHistoryState] = useState<AuditRecord[]>(() => loadPersistedAudit());
+  const setAuditHistory = (updater: AuditRecord[] | ((prev: AuditRecord[]) => AuditRecord[])) => {
+    setAuditHistoryState(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      persistAudit(next);
+      return next;
+    });
+  };
+
+  const [isAuditDialogOpen,   setIsAuditDialogOpen]   = useState(false);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [auditNotes,          setAuditNotes]          = useState("");
+
   const [formData, setFormData] = useState({
-    code: "",
-    name: "",
-    type: "Ledger",
-    category: "Assets",
-    parentAccount: "",
-    gstApplicable: false,
-    tdsApplicable: false,
+    code: "", name: "", type: "Ledger", category: "Assets",
+    parentAccount: "", gstApplicable: false, tdsApplicable: false,
   });
 
-  // Check if user has access
-  const hasAccess = currentRole === "Super Admin" || currentRole === "Admin" || currentRole === "Accounts";
-  
-  // Check if user can run audit (Super Admin or Admin only)
-  const canRunAudit = currentRole === "Super Admin" || currentRole === "Admin";
+  const hasAccess   = ["Super Admin","Admin","Accounts"].includes(currentRole);
+  const canRunAudit = ["Super Admin","Admin"].includes(currentRole);
 
-  // Function to run system audit
+  // C4 FIX: totals computed HERE (before runSystemAudit) so closure captures current values
+  const totals = {
+    assets:      accounts.filter(a => a.category === "Assets"      && a.type === "Ledger").reduce((s,a)=>s+a.balance,0),
+    liabilities: accounts.filter(a => a.category === "Liabilities" && a.type === "Ledger").reduce((s,a)=>s+a.balance,0),
+    equity:      accounts.filter(a => a.category === "Equity"      && a.type === "Ledger").reduce((s,a)=>s+a.balance,0),
+    income:      accounts.filter(a => a.category === "Income"      && a.type === "Ledger").reduce((s,a)=>s+a.balance,0),
+    expenses:    accounts.filter(a => a.category === "Expenses"    && a.type === "Ledger").reduce((s,a)=>s+a.balance,0),
+  };
+  const isBalanced    = totals.assets === (totals.liabilities + totals.equity);
+  const difference    = totals.assets - (totals.liabilities + totals.equity);
+  const absDifference = Math.abs(difference);
+
+  // C4 FIX: runSystemAudit defined AFTER totals — closure now captures live values
   const runSystemAudit = () => {
-    const newAuditRecord: AuditRecord = {
+    const rec: AuditRecord = {
       id: `AUDIT-${Date.now()}`,
       timestamp: new Date().toISOString(),
-      auditedBy: currentRole === "Super Admin" ? "John Mitchell" : "Sarah Johnson", // In real app, get from auth context
+      auditedBy: currentRole === "Super Admin" ? "System Admin" : "Accounts Manager",
       role: currentRole,
       status: isBalanced ? "Balanced" : "Not Balanced",
-      difference: difference,
+      difference,
       totals: { ...totals },
-      accountSnapshot: JSON.parse(JSON.stringify(accounts)), // Deep clone
+      accountSnapshot: JSON.parse(JSON.stringify(accounts)),
       notes: auditNotes,
     };
-
-    setAuditHistory([newAuditRecord, ...auditHistory]);
+    setAuditHistory(prev => [rec, ...prev]);   // C2 FIX: persists automatically
     setIsAuditDialogOpen(false);
     setAuditNotes("");
-    
-    toast.success(`System audit completed successfully. Status: ${newAuditRecord.status}`);
+    toast.success(`System audit completed. Status: ${rec.status}`);
   };
 
   if (!hasAccess) {
@@ -979,9 +1028,8 @@ function ChartOfAccounts() {
           <CardContent className="p-8 text-center">
             <div className="text-red-500 text-lg font-semibold">Access Denied</div>
             <p className="text-gray-500 mt-2">
-              You don't have permission to access the Chart of Accounts.
-              <br />
-              Please contact your administrator.
+              You don{"'"}t have permission to access the Chart of Accounts.
+              <br />Please contact your administrator.
             </p>
           </CardContent>
         </Card>
@@ -1194,18 +1242,9 @@ function ChartOfAccounts() {
   const accountHierarchy = buildAccountHierarchy(filteredAccounts);
 
   // Calculate totals by category
-  const totals = {
-    assets: accounts.filter(a => a.category === "Assets" && a.type === "Ledger").reduce((sum, a) => sum + a.balance, 0),
-    liabilities: accounts.filter(a => a.category === "Liabilities" && a.type === "Ledger").reduce((sum, a) => sum + a.balance, 0),
-    equity: accounts.filter(a => a.category === "Equity" && a.type === "Ledger").reduce((sum, a) => sum + a.balance, 0),
-    income: accounts.filter(a => a.category === "Income" && a.type === "Ledger").reduce((sum, a) => sum + a.balance, 0),
-    expenses: accounts.filter(a => a.category === "Expenses" && a.type === "Ledger").reduce((sum, a) => sum + a.balance, 0),
-  };
 
-  // Calculate balance sheet status
-  const isBalanced = totals.assets === (totals.liabilities + totals.equity);
-  const difference = totals.assets - (totals.liabilities + totals.equity);
-  const absDifference = Math.abs(difference);
+  // (totals, isBalanced, difference, absDifference already defined above — C4 fix)
+
 
   // Generate recommendations for unbalanced sheet
   const getRecommendations = () => {
