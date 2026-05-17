@@ -470,6 +470,8 @@ class AccountingEntryService {
       { name: "TDS Receivable", accountHead: "current_assets", accountHeadLabel: "Current Assets", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
       { name: "Employee Advance", accountHead: "current_assets", accountHeadLabel: "Current Assets", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
       { name: "Advance Tax", accountHead: "current_assets", accountHeadLabel: "Current Assets", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      // Alias kept for backward compatibility with any journal entries already posted
+      { name: "Advance Tax Paid", accountHead: "current_assets", accountHeadLabel: "Current Assets", nature: "asset", type: "other", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
 
       // ASSETS - Accounts Receivable
       { name: "Accounts Receivable", accountHead: "accounts_receivable", accountHeadLabel: "Accounts Receivable", nature: "asset", type: "customer", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
