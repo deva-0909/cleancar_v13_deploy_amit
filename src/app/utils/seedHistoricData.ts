@@ -588,37 +588,22 @@ for (const empId of WASHER_IDS) {
 // ─────────────────────────────────────────────────────────────────────────
 // 7. INVENTORY — Surat warehouse
 // ─────────────────────────────────────────────────────────────────────────
+// ✅ FIXED: field names now match InventoryItem interface exactly
 export const HISTORIC_INVENTORY: any[] = [
-  { id:"INV-SUR-001", name:"Car Shampoo 5L", category:"Chemical", unit:"Bottle",
-    centralStock:45, minLevel:10, reorderLevel:20, costPerUnit:480, cityId:"CITY-SURAT",
-    lastRestocked:d(2,15), expiryDate:"2027-02-15" },
-  { id:"INV-SUR-002", name:"Microfiber Cloth Large", category:"Equipment", unit:"Piece",
-    centralStock:120, minLevel:30, reorderLevel:50, costPerUnit:85, cityId:"CITY-SURAT",
-    lastRestocked:d(3,1) },
-  { id:"INV-SUR-003", name:"Tyre Shine 500ml", category:"Chemical", unit:"Bottle",
-    centralStock:30, minLevel:8, reorderLevel:15, costPerUnit:220, cityId:"CITY-SURAT",
-    lastRestocked:d(2,20) },
-  { id:"INV-SUR-004", name:"Dashboard Polish", category:"Chemical", unit:"Bottle",
-    centralStock:8, minLevel:10, reorderLevel:20, costPerUnit:150, cityId:"CITY-SURAT",
-    lastRestocked:d(2,10), alert:"Low Stock — Below Reorder Level" },
-  { id:"INV-SUR-005", name:"Pressure Washer Nozzle", category:"Equipment", unit:"Piece",
-    centralStock:6, minLevel:2, reorderLevel:4, costPerUnit:350, cityId:"CITY-SURAT",
-    lastRestocked:d(1,15) },
-  { id:"INV-SUR-006", name:"Washer Uniform Set", category:"Uniform", unit:"Set",
-    centralStock:25, minLevel:10, reorderLevel:15, costPerUnit:650, cityId:"CITY-SURAT",
-    lastRestocked:d(3,5) },
-  { id:"INV-MUM-001", name:"Car Shampoo 5L", category:"Chemical", unit:"Bottle",
-    centralStock:50, minLevel:10, reorderLevel:20, costPerUnit:490, cityId:"CITY-MUMBAI",
-    lastRestocked:d(3,1) },
-  { id:"INV-MUM-002", name:"Microfiber Cloth Large", category:"Equipment", unit:"Piece",
-    centralStock:90, minLevel:30, reorderLevel:50, costPerUnit:90, cityId:"CITY-MUMBAI",
-    lastRestocked:d(3,10) },
-  { id:"INV-MUM-003", name:"Dashboard Polish", category:"Chemical", unit:"Bottle",
-    centralStock:22, minLevel:10, reorderLevel:20, costPerUnit:155, cityId:"CITY-MUMBAI",
-    lastRestocked:d(2,20) },
-  { id:"INV-MUM-004", name:"Washer Uniform Set", category:"Uniform", unit:"Set",
-    centralStock:30, minLevel:10, reorderLevel:15, costPerUnit:680, cityId:"CITY-MUMBAI",
-    lastRestocked:d(3,5) },
+  { itemId:"INV-SUR-001", itemName:"Car Shampoo 5L",        category:"Cleaning Supplies", unit:"L",   centralStock:45,  reorderLevel:20, unitCost:480, cityId:"CITY-SURAT",     supervisorStock:{}, washerStock:{}, lastProcurementDate:d(2,15) },
+  { itemId:"INV-SUR-002", itemName:"Microfiber Cloth Large", category:"Equipment",         unit:"Pcs", centralStock:120, reorderLevel:50, unitCost:85,  cityId:"CITY-SURAT",     supervisorStock:{}, washerStock:{}, lastProcurementDate:d(3,1)  },
+  { itemId:"INV-SUR-003", itemName:"Tyre Shine 500ml",       category:"Cleaning Supplies", unit:"L",   centralStock:30,  reorderLevel:15, unitCost:220, cityId:"CITY-SURAT",     supervisorStock:{}, washerStock:{}, lastProcurementDate:d(2,20) },
+  { itemId:"INV-SUR-004", itemName:"Dashboard Polish",        category:"Cleaning Supplies", unit:"L",   centralStock:8,   reorderLevel:20, unitCost:150, cityId:"CITY-SURAT",     supervisorStock:{}, washerStock:{}, lastProcurementDate:d(2,10) },
+  { itemId:"INV-SUR-005", itemName:"Pressure Washer Nozzle", category:"Equipment",         unit:"Pcs", centralStock:6,   reorderLevel:4,  unitCost:350, cityId:"CITY-SURAT",     supervisorStock:{}, washerStock:{}, lastProcurementDate:d(1,15) },
+  { itemId:"INV-SUR-006", itemName:"Washer Uniform Set",      category:"Consumables",       unit:"Pcs", centralStock:25,  reorderLevel:15, unitCost:650, cityId:"CITY-SURAT",     supervisorStock:{}, washerStock:{}, lastProcurementDate:d(3,5)  },
+  { itemId:"INV-SUR-007", itemName:"Wheel Cleaner 1L",        category:"Cleaning Supplies", unit:"L",   centralStock:18,  reorderLevel:12, unitCost:185, cityId:"CITY-SURAT",     supervisorStock:{}, washerStock:{}, lastProcurementDate:d(3,10) },
+  { itemId:"INV-SUR-008", itemName:"Glass Cleaner 500ml",     category:"Cleaning Supplies", unit:"L",   centralStock:0,   reorderLevel:10, unitCost:120, cityId:"CITY-SURAT",     supervisorStock:{}, washerStock:{}, lastProcurementDate:d(2,5)  },
+  { itemId:"INV-MUM-001", itemName:"Car Shampoo 5L",          category:"Cleaning Supplies", unit:"L",   centralStock:50,  reorderLevel:20, unitCost:490, cityId:"CITY-MUMBAI",    supervisorStock:{}, washerStock:{}, lastProcurementDate:d(3,1)  },
+  { itemId:"INV-MUM-002", itemName:"Microfiber Cloth Large",  category:"Equipment",         unit:"Pcs", centralStock:90,  reorderLevel:50, unitCost:90,  cityId:"CITY-MUMBAI",    supervisorStock:{}, washerStock:{}, lastProcurementDate:d(3,10) },
+  { itemId:"INV-MUM-003", itemName:"Dashboard Polish",         category:"Cleaning Supplies", unit:"L",   centralStock:22,  reorderLevel:20, unitCost:155, cityId:"CITY-MUMBAI",    supervisorStock:{}, washerStock:{}, lastProcurementDate:d(2,20) },
+  { itemId:"INV-MUM-004", itemName:"Washer Uniform Set",       category:"Consumables",       unit:"Pcs", centralStock:30,  reorderLevel:15, unitCost:680, cityId:"CITY-MUMBAI",    supervisorStock:{}, washerStock:{}, lastProcurementDate:d(3,5)  },
+  { itemId:"INV-AHM-001", itemName:"Car Shampoo 5L",           category:"Cleaning Supplies", unit:"L",   centralStock:35,  reorderLevel:20, unitCost:475, cityId:"CITY-AHMEDABAD", supervisorStock:{}, washerStock:{}, lastProcurementDate:d(2,28) },
+  { itemId:"INV-AHM-002", itemName:"Microfiber Cloth Large",   category:"Equipment",         unit:"Pcs", centralStock:70,  reorderLevel:50, unitCost:82,  cityId:"CITY-AHMEDABAD", supervisorStock:{}, washerStock:{}, lastProcurementDate:d(3,8)  },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -836,11 +821,11 @@ for (const emp of HISTORIC_EMPLOYEE_DB.filter(e => e.designation === "Car Washer
 
 // ── HISTORIC SUBSCRIPTIONS ────────────────────────────────────────────────
 // ~150 active subscriptions linking to HISTORIC_CUSTOMERS
-const PLAN_TYPES = ["Basic", "Standard", "Premium", "Deluxe"] as const;
+const PLAN_TYPES = ["Water Wash", "Water + Shampoo", "Water + Shampoo + Wax"] as const;
 const FREQUENCIES = ["Daily", "Alternate Days", "Weekly", "Bi-Weekly", "Monthly"] as const;
 const BILLING_CYCLES = ["Monthly", "Quarterly", "Annual"] as const;
 const PLAN_BASE_PRICES: Record<string, number> = {
-  Basic: 599, Standard: 999, Premium: 1499, Deluxe: 2199
+  "Water Wash": 699, "Water + Shampoo": 1299, "Water + Shampoo + Wax": 1999
 };
 const VEHICLE_TYPES = ["Hatchback", "Sedan", "SUV", "MUV", "Luxury"];
 
@@ -861,7 +846,7 @@ export const HISTORIC_SUBSCRIPTIONS: any[] = [];
       subscriptionId: `SUB-${cust.cityId === "CITY-SURAT" ? "SUR" : "MUM"}-${String(subIdx).padStart(4,"0")}`,
       customerId: cust.customerId || cust.id,
       packageType: plan,
-      packageName: `${plan} Car Wash`,
+      packageName: plan,
       frequency: FREQUENCIES[subIdx % FREQUENCIES.length],
       status: subIdx % 10 === 0 ? "Paused" : subIdx % 15 === 0 ? "Cancelled" : "Active",
       startDate,
@@ -979,16 +964,21 @@ export function seedHistoricData(): void {
     // Attendance
     localStorage.setItem("cleancar_attendance_records", JSON.stringify(HISTORIC_ATTENDANCE));
 
-    // Inventory
-    localStorage.setItem("cleancar_inventory_items", JSON.stringify(
-      HISTORIC_INVENTORY.map((item: any) => ({
+    // Inventory — write to city-namespaced keys that DataService reads
+    // (DataService.get("INVENTORY_ITEMS") reads "cleancar_CITY-{id}_inventory_items")
+    const invByCityId: Record<string, any[]> = {};
+    for (const item of HISTORIC_INVENTORY) {
+      const cid: string = item.cityId || "CITY-SURAT";
+      if (!invByCityId[cid]) invByCityId[cid] = [];
+      invByCityId[cid].push({
         ...item,
-        itemId: item.itemId || item.id,
-        itemName: item.itemName || item.name,
-        supervisorStock: item.supervisorStock || {},
-        washerStock: item.washerStock || {},
-      }))
-    ));
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    for (const [cid, items] of Object.entries(invByCityId)) {
+      localStorage.setItem(`cleancar_${cid}_inventory_items`, JSON.stringify(items));
+    }
 
     // Finance
     localStorage.setItem("cleancar_mrr",      JSON.stringify(HISTORIC_MRR));
