@@ -90,16 +90,19 @@ function BreakEvenAnalysis() {
         status: monthlyProfit > 0 && breakEvenMonths <= 24 ? "Profitable" : "Pre Break-Even",
       };
     }).filter(store =>
-      STORE_CITY_MAP[store.store]?.toLowerCase() === selectedCity ||
-      store.store.toLowerCase().includes(selectedCity)
+      // City-level data: displayName = "Surat" | "Mumbai" | "Ahmedabad"
+      store.store.toLowerCase().includes(selectedCity) ||
+      selectedCity.includes(store.store.toLowerCase())
     );
   }, [selectedCity, availableCities, getRevenueByCity, getPayablesByCity]);
 
   // Fallback to masterData when no real finance records
   const displayStoreBreakEven = storeBreakEven.some(s => s.monthlyRevenue > 0)
-    ? storeBreakEven : MASTER_STORE_BREAKEVEN.filter(store =>
-      STORE_CITY_MAP[store.store]?.toLowerCase() === selectedCity
-    );
+    ? storeBreakEven
+    : MASTER_STORE_BREAKEVEN.filter(store =>
+        STORE_CITY_MAP[store.store]?.toLowerCase() === selectedCity ||
+        store.store.toLowerCase().includes(selectedCity)
+      );
 
   // Get the first store for the timeline chart
   const primaryStore = displayStoreBreakEven[0];

@@ -131,7 +131,7 @@ function UnitEconomicsDashboard() {
   const totalMonthlyRevenue = activeSubscriptions.reduce((sum, sub) => {
     const cycleMultiplier = sub.billingCycle === "Annual" ? 12 :
                             sub.billingCycle === "Quarterly" ? 3 : 1;
-    return sum + ((sub?.pricing?.finalPrice ?? 0) / cycleMultiplier);
+    return sum + ((sub?.pricing?.finalPrice ?? sub?.priceLocked ?? 0) / cycleMultiplier);
   }, 0);
 
   const revenuePerCustomer = totalCustomers > 0 ? Math.round(totalMonthlyRevenue / totalCustomers) : 0;
@@ -183,7 +183,7 @@ function UnitEconomicsDashboard() {
         month: new Date(month + "-01").toLocaleString("en-IN", { month: "short" }),
         ...d,
       }));
-    return trend.length > 0 ? trend : revenueVsCostTrend; // fallback
+    return trend.length > 0 ? trend : SEED_REVENUE_COST_TREND; // fallback
   }, [city, getRevenueByCity, getPayablesByCity]);
 
   // Estimated cost per wash (labor + materials + overhead)
@@ -284,16 +284,15 @@ function UnitEconomicsDashboard() {
     const totalRevenue = customersInPlan.reduce((sum, sub) => {
       const cycleMultiplier = sub.billingCycle === "Annual" ? 12 :
                               sub.billingCycle === "Quarterly" ? 3 : 1;
-      return sum + ((sub?.pricing?.finalPrice ?? 0) / cycleMultiplier);
+      return sum + ((sub?.pricing?.finalPrice ?? sub?.priceLocked ?? 0) / cycleMultiplier);
     }, 0);
     const avgPrice = totalRevenue / customerCount;
 
     // Estimate avg washes based on package type and frequency
     const avgWashes =
-      packageType === "Basic" ? 3.5 :
-      packageType === "Standard" ? 4.0 :
-      packageType === "Premium" ? 4.5 :
-      packageType === "Deluxe" ? 5.0 : 4.0;
+      packageType === "Water Wash" ? 3.5 :
+      packageType === "Water + Shampoo" ? 4.0 :
+      packageType === "Water + Shampoo + Wax" ? 4.5 : 4.0;
 
     const totalCost = Math.round(customerCount * avgWashes * costPerWash);
     const profit = totalRevenue - totalCost;
@@ -320,7 +319,7 @@ function UnitEconomicsDashboard() {
       const customer = (customers || []).find(c => c.customerId === sub.customerId);
       if (!customer) return;
 
-      const pincode = (customer?.address?.pinCode ?? "Unknown");
+      const pincode = customer?.address?.pinCode ?? (customer as any)?.pincode ?? (customer as any)?.pinCode ?? "Unknown";
       if (!pincodeMap.has(pincode)) {
         pincodeMap.set(pincode, { customers: new Set(), washes: 0, revenue: 0 });
       }
@@ -330,11 +329,11 @@ function UnitEconomicsDashboard() {
 
       const cycleMultiplier = sub.billingCycle === "Annual" ? 12 :
                               sub.billingCycle === "Quarterly" ? 3 : 1;
-      pincodeData.revenue += (sub?.pricing?.finalPrice ?? 0) / cycleMultiplier;
+      pincodeData.revenue += (sub?.pricing?.finalPrice ?? sub?.priceLocked ?? 0) / cycleMultiplier;
     });
 
     completedJobs.forEach(job => {
-      const pincode = job.location.pinCode;
+      const pincode = job.location?.pinCode ?? job.pinCode ?? "Unknown";
       if (pincodeMap.has(pincode)) {
         pincodeMap.get(pincode)!.washes++;
       }

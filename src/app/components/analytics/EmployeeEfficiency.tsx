@@ -93,23 +93,31 @@ function EmployeeEfficiency() {
     const completedJobs = (jobs || []).filter(job => job.status === "Completed" || job.status === "Verified");
 
     // Get unique cities from employees
-    const cities = Array.from(new Set(activeEmployees.map(emp =>
-      (emp.city || emp.workLocation || "").toUpperCase()
-    ).filter(Boolean)));
+    const cities = Array.from(new Set(activeEmployees.map(emp => {
+      const raw = emp.city || emp.workLocation || emp.cityId || "";
+      // Normalise CITY-SURAT → SURAT, "Surat" → "SURAT"
+      return raw.replace(/^CITY-/i, "").toUpperCase();
+    }).filter(Boolean)));
 
     return cities.map(cityName => {
-      const cityEmployees = activeEmployees.filter(emp =>
-        (emp.city || emp.workLocation || "").toUpperCase() === cityName
-      );
-      const cityWashers = cityEmployees.filter(emp => emp.role === "Car Washer Full Time" || emp.role === "Car Washer Part Time");
+      const cityEmployees = activeEmployees.filter(emp => {
+        const raw = emp.city || emp.workLocation || emp.cityId || "";
+        return raw.replace(/^CITY-/i, "").toUpperCase() === cityName;
+      });
+      const cityWashers = cityEmployees.filter(emp => emp.role === "Car Washer" || emp.role === "Car Washer Full Time" || emp.role === "Car Washer Part Time");
       const citySupervisors = cityEmployees.filter(emp => emp.role === "Supervisor");
-      const cityJobs = completedJobs.filter(job =>
-        (job.city?.toUpperCase() === cityName || job.cityId?.includes(cityName.toLowerCase()))
-      );
+      const cityJobs = completedJobs.filter(job => {
+        const jobCity = job.city || job.cityId || "";
+        return jobCity.replace(/^CITY-/i, "").toUpperCase() === cityName ||
+               jobCity.toUpperCase() === cityName;
+      });
 
       // Calculate washes per washer for each washer
       const washerJobCounts = cityWashers.map(washer => {
-        return cityJobs.filter(job => job.washerId === washer.employeeId).length;
+        // JobContext stores washerId as either employeeId string or employee DB id
+        return cityJobs.filter(job =>
+          job.washerId === washer.employeeId || job.washerId === washer.id
+        ).length;
       });
 
       const totalEmployees = cityEmployees.length;
@@ -263,18 +271,23 @@ function EmployeeEfficiency() {
   // Performance distribution calculated from real washer data
   const performanceDistribution = useMemo(() => {
     const activeWashers = (employees || []).filter(emp =>
-      emp.status === "Active" && (emp.role === "Car Washer Full Time" || emp.role === "Car Washer Part Time")
+      emp.status === "Active" && (emp.role === "Car Washer" || emp.role === "Car Washer Full Time" || emp.role === "Car Washer Part Time")
     );
     const completedJobs = (jobs || []).filter(job => job.status === "Completed" || job.status === "Verified");
 
     // Filter by city if selected
     const filteredWashers = selectedCity === "ALL"
       ? activeWashers
-      : activeWashers.filter(w => (w.city || w.workLocation || "").toUpperCase() === selectedCity);
+      : activeWashers.filter(w => {
+        const raw = w.city || w.workLocation || w.cityId || "";
+        return raw.replace(/^CITY-/i, "").toUpperCase() === selectedCity;
+      });
 
     // Calculate washes per washer
     const washerPerformance = filteredWashers.map(washer => {
-      return completedJobs.filter(job => job.washerId === washer.id).length;
+      return completedJobs.filter(job =>
+        job.washerId === washer.id || job.washerId === washer.employeeId
+      ).length;
     });
 
     // Distribute into ranges

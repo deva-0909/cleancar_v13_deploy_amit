@@ -72,7 +72,7 @@ function CustomerLTVAnalysis() {
     churnedSubs.forEach(sub => {
       if (!sub.startDate || !sub.endDate) return;
       const months = Math.max(1, Math.round(
-        (new Date(sub.endDate).getTime() - new Date(sub.startDate).getTime()) / (30 * 86400000)
+        ((sub.endDate ? new Date(sub.endDate).getTime() : Date.now()) - new Date(sub.startDate).getTime()) / (30 * 86400000)
       ));
       const pkg = sub.packageType || "Unknown";
       if (!packageMap[pkg]) packageMap[pkg] = [];
@@ -140,7 +140,7 @@ function CustomerLTVAnalysis() {
       const customer = customers.find(c => c.customerId === sub.customerId);
       if (!customer) return;
 
-      const city = customer.address.city;
+      const city = customer?.address?.city ?? (customer as any)?.city ?? "Unknown";
       if (!cityMap.has(city)) {
         cityMap.set(city, { subscriptions: [], customerCount: 0 });
       }
@@ -164,11 +164,12 @@ function CustomerLTVAnalysis() {
     }).sort((a, b) => b.totalValue - a.totalValue);
   }, [customerSubscriptions, customers]);
 
-  const totalCustomers = ltvByPlan.reduce((sum, p) => sum + p.customers, 0);
+  const validPlans = ltvByPlan.filter((p): p is NonNullable<typeof p> => p != null);
+  const totalCustomers = validPlans.reduce((sum, p) => sum + p.customers, 0);
   const avgLTV = totalCustomers > 0
-    ? Math.round(ltvByPlan.reduce((sum, p) => sum + (p.avgLTV * p.customers), 0) / totalCustomers)
+    ? Math.round(validPlans.reduce((sum, p) => sum + (p.avgLTV * p.customers), 0) / totalCustomers)
     : 0;
-  const totalLTVValue = ltvByPlan.reduce((sum, p) => sum + p.totalValue, 0);
+  const totalLTVValue = validPlans.reduce((sum, p) => sum + p.totalValue, 0);
 
   // Show empty state if no data
   if (customerSubscriptions.length === 0) {

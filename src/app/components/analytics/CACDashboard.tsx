@@ -31,6 +31,8 @@ import { AnalyticsService } from "../../services/analyticsService";
 import { useCustomers } from "../../contexts/CustomerContext";
 import { useCity } from "../../contexts/CityContext";
 import { useEmployee } from "../../contexts/EmployeeContext";
+import { useCustomerSubscriptions } from "../../contexts/AppProvider";
+import { calculateAverageLTV } from "../../lib/analytics-utils";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
@@ -135,14 +137,18 @@ function CACDashboard() {
   const displayCACByCity    = cacByCity.every(c => c.customers > 0) ? cacByCity : mockCACByCity;
   const displayCACTrend     = cacTrend.length > 0 ? cacTrend : mockCACTrend;
 
+  const { subscriptions: allSubs } = useCustomerSubscriptions();
   const totalSpend = displayCACByChannel.reduce((sum, c) => sum + c.spend, 0);
   const totalCustomers = displayCACByChannel.reduce((sum, c) => sum + c.customers, 0);
-  const avgCAC = totalSpend / totalCustomers;
-  const avgLTV = 18500; // From LTV analysis
-  const ltvCacRatio = avgLTV / avgCAC;
+  // Safe: guard against division by zero when no channel data exists yet
+  const avgCAC = totalCustomers > 0 ? totalSpend / totalCustomers : 850;
+  // Live LTV from real subscriptions — fallback 18500 only when no subs
+  const avgLTV = allSubs.length > 0 ? calculateAverageLTV(allSubs) : 18500;
+  const ltvCacRatio = avgCAC > 0 ? avgLTV / avgCAC : 0;
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
+      <BackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -171,7 +177,7 @@ function CACDashboard() {
               <div>
                 <div className="text-sm text-gray-500">Average CAC</div>
                 <div className="text-2xl font-bold text-gray-900 mt-1">
-                  ₹{avgCAC.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                  ₹{isFinite(avgCAC) ? Math.round(avgCAC).toLocaleString("en-IN") : "—"}
                 </div>
                 <div className="text-xs text-green-600 mt-2">↓ 24.2% vs last quarter</div>
               </div>
