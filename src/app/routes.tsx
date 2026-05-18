@@ -1,6 +1,7 @@
 // Router Configuration - FIXED: Removed bad imports (Updated: 2026-03-26)
 import React, { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
+import { GlobalFiltersProvider } from "./components/navigation/GlobalFilterBar";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { RootLayoutWrapper } from "./components/layouts/RootLayoutWrapper";
 
