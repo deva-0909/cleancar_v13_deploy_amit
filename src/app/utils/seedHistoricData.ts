@@ -11,7 +11,7 @@
  * Run once on first load via seedHistoricData()
  */
 
-const SEED_FLAG = "HISTORIC_DATA_SEEDED_V4"; // V4: fixed key mismatches, added jobs/subs
+// SEED_FLAG is declared inside seedHistoricData() as V5
 
 // ── Password hash (Demo@1234) ──────────────────────────────────────────────
 const PWD = "RGVtb0AxMjM0Q0MzNjBTQUxU";
@@ -939,72 +939,369 @@ export const HISTORIC_JOBS: any[] = [];
 })();
 
 export function seedHistoricData(): void {
+  // ── Bump this flag version to force re-seed after fixes ─────────────────
+  const SEED_FLAG = "HISTORIC_DATA_SEEDED_V5";
   try {
     if (localStorage.getItem(SEED_FLAG)) return;
 
-    // Employee DB records
+    const now = new Date().toISOString();
+
+    // ── Helper: split array by city and write 3 keys each ───────────────────
+    // Writes:
+    //   cleancar_<baseKey>                    ← legacy fallback (Surat reads this)
+    //   cleancar_CITY-SURAT_<baseKey>         ← primary Surat
+    //   cleancar_CITY-MUMBAI_<baseKey>        ← primary Mumbai
+    function writeByCityId(baseKey: string, records: any[]) {
+      const sur = records.filter(r => (r.cityId || "CITY-SURAT") === "CITY-SURAT");
+      const mum = records.filter(r => r.cityId === "CITY-MUMBAI");
+      localStorage.setItem(`cleancar_${baseKey}`,              JSON.stringify(records));
+      localStorage.setItem(`cleancar_CITY-SURAT_${baseKey}`,   JSON.stringify(sur));
+      localStorage.setItem(`cleancar_CITY-MUMBAI_${baseKey}`,  JSON.stringify(mum));
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 1. EMPLOYEES
+    // FIX KEY-1: old code wrote to EMPLOYEE_DATABASE_RECORDS only.
+    // EmployeeContext reads DataService "EMPLOYEES" →
+    //   primary:  cleancar_CITY-SURAT_employees
+    //   fallback: cleancar_employees
+    // We write all three so both old auth system AND EmployeeContext work.
+    // ────────────────────────────────────────────────────────────────────────
     const existingEmpDb = JSON.parse(localStorage.getItem("EMPLOYEE_DATABASE_RECORDS") || "[]");
     const existingIds   = new Set(existingEmpDb.map((e: any) => e.id));
     const newEmps       = HISTORIC_EMPLOYEE_DB.filter(e => !existingIds.has(e.id));
-    localStorage.setItem("EMPLOYEE_DATABASE_RECORDS",
-      JSON.stringify([...existingEmpDb, ...newEmps]));
+    const allEmps       = [...existingEmpDb, ...newEmps];
 
-    // Payroll
-    localStorage.setItem("cleancar_payroll_runs", JSON.stringify(HISTORIC_PAYROLL));
+    // Legacy auth system key (unchanged — keeps login working)
+    localStorage.setItem("EMPLOYEE_DATABASE_RECORDS", JSON.stringify(allEmps));
 
-    // Customers
-    localStorage.setItem("cleancar_customers", JSON.stringify(HISTORIC_CUSTOMERS));
+    // DataService-compatible keys — EmployeeContext reads these
+    // Employee interface uses 'employeeId' as primary key; our seed uses 'id'.
+    // We map id → employeeId so EmployeeContext joins work correctly.
+    const mappedEmps = allEmps.map((e: any) => ({
+      ...e,
+      employeeId:    e.id || e.employeeId,         // primary key EmployeeContext expects
+      phone:         e.mobile || e.phone,
+      joiningDate:   e.dateOfJoining || e.joiningDate,
+      role:          e.designation || e.role,
+      status:        e.status || "Active",
+      department:    e.department || "Operations",
+      city:          e.city || "Surat",
+      cityId:        e.workLocation || e.cityId || "CITY-SURAT",
+    }));
+    const surEmps = mappedEmps.filter((e: any) => (e.cityId || "CITY-SURAT") === "CITY-SURAT");
+    const mumEmps = mappedEmps.filter((e: any) => e.cityId === "CITY-MUMBAI");
+    localStorage.setItem("cleancar_employees",              JSON.stringify(mappedEmps));
+    localStorage.setItem("cleancar_CITY-SURAT_employees",   JSON.stringify(surEmps));
+    localStorage.setItem("cleancar_CITY-MUMBAI_employees",  JSON.stringify(mumEmps));
 
-    // Leads
-    localStorage.setItem("cleancar_leads", JSON.stringify(HISTORIC_LEADS));
+    // ────────────────────────────────────────────────────────────────────────
+    // 2. PAYROLL RUNS
+    // FIX KEY-5: split by city; also map to PayrollRun interface shape
+    // PayrollRun expects: { payrollId, employeeId, month:"YYYY-MM", period,
+    //   cityId, baseSalary, incentiveAmount, grossSalary, pf, esic, pt,
+    //   tds:0, advances:0, penalties:0, totalDeductions, netSalary,
+    //   presentDays, absentDays, lopDays, workingDays, status }
+    // ────────────────────────────────────────────────────────────────────────
+    const mappedPayroll = HISTORIC_PAYROLL.map((p: any) => {
+      const monthStr = `${p.year}-${String(p.month).padStart(2,"0")}`;
+      const totalDed = (p.deductions?.pf_employee || 0) +
+                       (p.deductions?.esic || 0) +
+                       (p.deductions?.pt || 0);
+      return {
+        payrollId:       p.id,
+        employeeId:      p.employeeId,
+        month:           monthStr,
+        period: {
+          startDate: `${p.year}-${String(p.month).padStart(2,"0")}-01`,
+          endDate:   `${p.year}-${String(p.month).padStart(2,"0")}-${p.totalDays || 30}`,
+        },
+        cityId:          p.cityId || "CITY-SURAT",
+        baseSalary:      p.grossSalary || 0,
+        incentiveAmount: p.incentiveAmount || 0,
+        addOnEarnings:   0,
+        allowances:      0,
+        grossSalary:     (p.grossSalary || 0) + (p.incentiveAmount || 0),
+        pf:              p.deductions?.pf_employee || 0,
+        esic:            p.deductions?.esic || 0,
+        pt:              p.deductions?.pt || 0,
+        tds:             0,
+        advances:        0,
+        penalties:       0,
+        totalDeductions: totalDed,
+        netSalary:       p.netSalary || 0,
+        presentDays:     p.presentDays || p.totalDays || 26,
+        absentDays:      (p.totalDays || 26) - (p.presentDays || p.totalDays || 26),
+        lopDays:         (p.totalDays || 26) - (p.presentDays || p.totalDays || 26),
+        workingDays:     p.totalDays || 26,
+        status:          p.status || "Paid",
+        createdAt:       p.processedAt || now,
+        updatedAt:       p.processedAt || now,
+      };
+    });
+    writeByCityId("payroll_runs", mappedPayroll);
 
-    // Complaints
-    localStorage.setItem("cleancar_complaints", JSON.stringify(HISTORIC_COMPLAINTS));
+    // ────────────────────────────────────────────────────────────────────────
+    // 3. CUSTOMERS
+    // FIX KEY-4 + Customer interface shape
+    // Customer interface expects: { customerId, firstName, lastName, email,
+    //   phone, address:{line1,area,city,pinCode}, status, cityId,
+    //   createdAt, updatedAt }
+    // ────────────────────────────────────────────────────────────────────────
+    const mappedCustomers = HISTORIC_CUSTOMERS.map((c: any) => ({
+      customerId:  c.id || c.customerId,                 // ← canonical ID
+      firstName:   c.name?.split(" ")[0] || c.name || "Customer",
+      lastName:    c.name?.split(" ").slice(1).join(" ") || "",
+      email:       c.email || `${c.id?.toLowerCase()}@example.com`,
+      phone:       c.mobile || c.phone || "9800000000",
+      address: {
+        line1:   c.address || "123 Main Street",
+        area:    c.area || "Adajan",
+        city:    c.city || "Surat",
+        pinCode: c.pinCode || "395001",
+      },
+      vehicleDetails: c.vehicle ? {
+        category:           "Sedan",
+        brand:              c.vehicle.split(" ")[0] || "Maruti",
+        color:              "White",
+        registrationNumber: c.vehicleNumber || "GJ05AB1234",
+      } : undefined,
+      leadSource: "Walk-in",
+      status:     c.subscriptionStatus === "Cancelled" ? "Churned" : "Active",
+      cityId:     c.cityId || "CITY-SURAT",
+      createdAt:  c.createdAt || now,
+      updatedAt:  c.createdAt || now,
+      tags:       [],
+      notes:      "",
+    }));
+    writeByCityId("customers", mappedCustomers);
 
-    // Attendance
-    localStorage.setItem("cleancar_attendance_records", JSON.stringify(HISTORIC_ATTENDANCE));
+    // ────────────────────────────────────────────────────────────────────────
+    // 4. LEADS
+    // FIX KEY-5 city split
+    // ────────────────────────────────────────────────────────────────────────
+    writeByCityId("leads", HISTORIC_LEADS);
 
-    // Inventory — write to city-namespaced keys that DataService reads
-    // (DataService.get("INVENTORY_ITEMS") reads "cleancar_CITY-{id}_inventory_items")
+    // ────────────────────────────────────────────────────────────────────────
+    // 5. SUBSCRIPTIONS
+    // FIX KEY-5 city split
+    // CustomerSubscription expects: { subscriptionId, customerId, packageType,
+    //   packageName, frequency, status, startDate, pricing:{basePrice,discount,
+    //   finalPrice,currency}, priceLocked, serviceDetails, billingCycle,
+    //   paymentStatus, createdAt, updatedAt }
+    // ────────────────────────────────────────────────────────────────────────
+    const PACKAGE_MAP: Record<string, string> = {
+      "Water Wash": "Basic", "Water + Shampoo": "Standard",
+      "Water + Shampoo + Wax": "Premium",
+    };
+    const mappedSubs = HISTORIC_SUBSCRIPTIONS.map((s: any) => ({
+      ...s,
+      // Ensure customerId matches the mapped customer IDs (CUST-SUR-XXX format)
+      customerId: s.customerId,
+      // packageType must be "Basic"|"Standard"|"Premium"|"Deluxe"
+      packageType: (PACKAGE_MAP[s.packageType] || PACKAGE_MAP[s.packageName] || "Basic") as any,
+      cityId: s.cityId || "CITY-SURAT",
+      createdAt: s.createdAt || now,
+      updatedAt: s.updatedAt || now,
+    }));
+    writeByCityId("subscriptions", mappedSubs);
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 6. JOBS
+    // FIX KEY-5 city split
+    // ────────────────────────────────────────────────────────────────────────
+    writeByCityId("jobs", HISTORIC_JOBS);
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 7. ATTENDANCE
+    // FIX KEY-5 city split
+    // ────────────────────────────────────────────────────────────────────────
+    writeByCityId("attendance_records", HISTORIC_ATTENDANCE);
+
+    // ────────────────────────────────────────────────────────────────────────
+    // 8. INVENTORY (already city-split correctly in original — keep as-is)
+    // ────────────────────────────────────────────────────────────────────────
     const invByCityId: Record<string, any[]> = {};
     for (const item of HISTORIC_INVENTORY) {
       const cid: string = item.cityId || "CITY-SURAT";
       if (!invByCityId[cid]) invByCityId[cid] = [];
-      invByCityId[cid].push({
-        ...item,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      invByCityId[cid].push({ ...item, createdAt: now, updatedAt: now });
     }
     for (const [cid, items] of Object.entries(invByCityId)) {
       localStorage.setItem(`cleancar_${cid}_inventory_items`, JSON.stringify(items));
     }
 
-    // Finance
-    localStorage.setItem("cleancar_mrr",      JSON.stringify(HISTORIC_MRR));
-    localStorage.setItem("cleancar_payables", JSON.stringify(HISTORIC_PAYABLES));
-    localStorage.setItem("cleancar_revenues",  JSON.stringify(HISTORIC_REVENUES));
+    // ────────────────────────────────────────────────────────────────────────
+    // 9. FINANCE — MRR, Payables, Revenues
+    // FIX KEY-2a: MRRData interface expects
+    //   { mrrId, month:"YYYY-MM", subscriptionId, customerId, revenue,
+    //     status:"Active"|"Churned"|"Paused", cityId, createdAt, updatedAt }
+    // Seed HISTORIC_MRR has: { id, cityId, month(number), year, activeSubscriptions,
+    //   newSubscriptions, churned, revenue, avgRevPerSub, growthRate }
+    // These are SUMMARY records; FinanceContext also works with individual records.
+    // We keep the original AND add one per-subscription MRR record per active sub.
+    // ────────────────────────────────────────────────────────────────────────
+    const mrrRecords: any[] = [];
+    for (const mrrSummary of HISTORIC_MRR) {
+      const monthStr = `${mrrSummary.year}-${String(mrrSummary.month).padStart(2,"0")}`;
+      // Create individual MRR records from subscriptions for that month/city
+      const subsByCityMonth = HISTORIC_SUBSCRIPTIONS.filter((s: any) =>
+        s.cityId === mrrSummary.cityId &&
+        s.startDate?.startsWith(`2026-0${mrrSummary.month}`)
+      );
+      if (subsByCityMonth.length > 0) {
+        subsByCityMonth.slice(0, 20).forEach((s: any, i: number) => {
+          mrrRecords.push({
+            mrrId:           `MRR-${mrrSummary.cityId}-${mrrSummary.month}-${String(i+1).padStart(3,"0")}`,
+            month:           monthStr,
+            subscriptionId:  s.subscriptionId,
+            customerId:      s.customerId,
+            revenue:         s.pricing?.finalPrice || mrrSummary.avgRevPerSub || 1150,
+            status:          s.status === "Cancelled" ? "Churned" : s.status === "Paused" ? "Paused" : "Active",
+            cityId:          mrrSummary.cityId,
+            createdAt:       `${monthStr}-01T00:00:00.000Z`,
+            updatedAt:       `${monthStr}-01T00:00:00.000Z`,
+          });
+        });
+      } else {
+        // Fallback: create synthetic MRR records when no matching subs
+        for (let i = 0; i < Math.min(mrrSummary.activeSubscriptions, 15); i++) {
+          mrrRecords.push({
+            mrrId:          `MRR-${mrrSummary.cityId}-${mrrSummary.month}-${String(i+1).padStart(3,"0")}`,
+            month:          monthStr,
+            subscriptionId: `SUB-SEED-${mrrSummary.cityId}-${mrrSummary.month}-${i}`,
+            customerId:     `CUST-${mrrSummary.cityId === "CITY-SURAT" ? "SUR" : "MUM"}-${String((i%100)+1).padStart(3,"0")}`,
+            revenue:        mrrSummary.avgRevPerSub || 1150,
+            status:         "Active" as const,
+            cityId:         mrrSummary.cityId,
+            createdAt:      `${monthStr}-01T00:00:00.000Z`,
+            updatedAt:      `${monthStr}-01T00:00:00.000Z`,
+          });
+        }
+      }
+    }
+    writeByCityId("mrr", mrrRecords);
 
-    // Advances
-    localStorage.setItem("cleancar_advance_management", JSON.stringify(HISTORIC_ADVANCES));
+    // FIX KEY-2b: Payable interface expects
+    //   { payableId, type:"Vendor"|"Statutory"|"Salary", vendorName,
+    //     amount, dueDate, status:"Pending"|"Approved"|"Paid"|"Overdue",
+    //     description, cityId, createdAt, updatedAt }
+    // Seed uses: { id, vendor, status includes "Overdue" }
+    const TYPE_MAP: Record<string, string> = {
+      "Vendor":"Vendor", "Statutory":"Statutory", "Salary":"Salary", "Overdue":"Vendor",
+    };
+    const mappedPayables = HISTORIC_PAYABLES.map((p: any) => ({
+      payableId:      p.id || p.payableId,
+      type:           (TYPE_MAP[p.type] || "Vendor") as "Vendor" | "Statutory" | "Salary",
+      vendorName:     p.vendor || p.vendorName || "Unknown Vendor",
+      invoiceNumber:  p.invoiceNo || p.invoiceNumber,
+      statutoryType:  p.type === "Statutory" ? (
+        p.vendor?.includes("ESIC") ? "ESIC" :
+        p.vendor?.includes("EPFO") || p.vendor?.includes("PF") ? "PF" :
+        p.vendor?.includes("PT") || p.vendor?.includes("Professional") ? "PT" :
+        p.vendor?.includes("TDS") ? "TDS" :
+        p.vendor?.includes("GST") ? "GST" : "PF"
+      ) : undefined,
+      amount:         p.amount,
+      dueDate:        p.dueDate,
+      status:         (p.status === "Overdue" ? "Overdue" :
+                       p.status === "Paid" ? "Paid" : "Pending") as "Pending"|"Approved"|"Paid"|"Overdue",
+      description:    p.description || `${p.type} payment to ${p.vendor || p.vendorName}`,
+      cityId:         p.cityId || "CITY-SURAT",
+      paidAt:         p.paidDate,
+      createdAt:      now,
+      updatedAt:      now,
+    }));
+    writeByCityId("payables", mappedPayables);
 
-    // Incentives
-    localStorage.setItem("cleancar_employee_incentives", JSON.stringify(HISTORIC_INCENTIVES));
+    // FIX KEY-2c + KEY-6: Revenue interface + customerId prefix fix
+    // Revenue expects: { revenueId, customerId (must match CUST-XXX), type,
+    //   amount, receivedDate, paymentMethod, status, cityId, createdAt }
+    // Fix: ensure customerId uses CUST- prefix (not CST-)
+    const mappedRevenues = HISTORIC_REVENUES.map((r: any) => ({
+      ...r,
+      // FIX KEY-6: CST- → CUST- prefix alignment
+      customerId: r.customerId?.replace(/^CST-/, "CUST-") || r.customerId,
+      status: r.status || "Received",
+      createdAt: r.createdAt || now,
+    }));
+    writeByCityId("revenues", mappedRevenues);
 
-    // Cloth tracking
-    localStorage.setItem("cleancar_cloth_tracking", JSON.stringify(HISTORIC_CLOTH));
+    // ────────────────────────────────────────────────────────────────────────
+    // 10. INCENTIVES
+    // FIX KEY-5 city split
+    // ────────────────────────────────────────────────────────────────────────
+    writeByCityId("employee_incentives", HISTORIC_INCENTIVES);
 
-    // Jobs (C2 fix)
-    localStorage.setItem("cleancar_jobs", JSON.stringify(HISTORIC_JOBS));
+    // ────────────────────────────────────────────────────────────────────────
+    // 11. COMPLAINTS, ADVANCES, CLOTH TRACKING
+    // FIX KEY-5 city split
+    // ────────────────────────────────────────────────────────────────────────
+    writeByCityId("complaints",         HISTORIC_COMPLAINTS);
+    writeByCityId("advance_management", HISTORIC_ADVANCES);
+    writeByCityId("cloth_tracking",     HISTORIC_CLOTH);
 
-    // Subscriptions (C3 fix)
-    localStorage.setItem("cleancar_subscriptions", JSON.stringify(HISTORIC_SUBSCRIPTIONS));
+    // ────────────────────────────────────────────────────────────────────────
+    // 12. LEDGER MASTERS
+    // FIX KEY-8: accountingEntryService reads cleancar_ledger_masters directly.
+    // Seed default ledgers so Accounts Dashboard shows real balances.
+    // ────────────────────────────────────────────────────────────────────────
+    const existingLedgers = JSON.parse(
+      localStorage.getItem("cleancar_ledger_masters") || "[]"
+    );
+    if (existingLedgers.length === 0) {
+      const defaultLedgers = [
+        // SURAT
+        { id:"LM-CASH-SUR",     name:"Petty Cash",            accountHead:"cash_bank",           type:"other",           city:"Surat", cityId:"CITY-SURAT",  openingBalance:50000,  balance:50000,  balanceType:"Dr" },
+        { id:"LM-BANK-SUR",     name:"Axis Bank",             accountHead:"cash_bank",           type:"bank",            city:"Surat", cityId:"CITY-SURAT",  openingBalance:500000, balance:500000, balanceType:"Dr" },
+        { id:"LM-RAZORPAY-SUR", name:"Razorpay",              accountHead:"cash_bank",           type:"payment_gateway", city:"Surat", cityId:"CITY-SURAT",  openingBalance:0,      balance:0,      balanceType:"Dr" },
+        { id:"LM-RZPCHG-SUR",   name:"Razorpay Charges",      accountHead:"indirect_expenses",   type:"vendor",          city:"Surat", cityId:"CITY-SURAT",  openingBalance:0,      balance:0,      balanceType:"Cr" },
+        { id:"LM-SALES-SUR",    name:"Sales Revenue",         accountHead:"direct_income",       type:"income",          city:"Surat", cityId:"CITY-SURAT",  openingBalance:0,      balance:0,      balanceType:"Cr" },
+        { id:"LM-EXP-SUR",      name:"Operating Expenses",    accountHead:"indirect_expenses",   type:"expense",         city:"Surat", cityId:"CITY-SURAT",  openingBalance:0,      balance:0,      balanceType:"Dr" },
+        { id:"LM-GST-OUT-SUR",  name:"GST Output",            accountHead:"gst_output",          type:"liability",       city:"Surat", cityId:"CITY-SURAT",  openingBalance:0,      balance:0,      balanceType:"Cr" },
+        { id:"LM-GST-IN-SUR",   name:"GST Input Credit",      accountHead:"gst_input",           type:"asset",           city:"Surat", cityId:"CITY-SURAT",  openingBalance:0,      balance:0,      balanceType:"Dr" },
+        { id:"LM-TDS-194C-SUR", name:"TDS Payable 194C",      accountHead:"tds_payable",         type:"liability",       city:"Surat", cityId:"CITY-SURAT",  openingBalance:0,      balance:0,      balanceType:"Cr" },
+        { id:"LM-TDS-194J-SUR", name:"TDS Payable 194J",      accountHead:"tds_payable",         type:"liability",       city:"Surat", cityId:"CITY-SURAT",  openingBalance:0,      balance:0,      balanceType:"Cr" },
+        { id:"LM-DEBTORS-SUR",  name:"Customer Debtors",      accountHead:"accounts_receivable", type:"asset",           city:"Surat", cityId:"CITY-SURAT",  openingBalance:0,      balance:0,      balanceType:"Dr" },
+        { id:"LM-SALARY-SUR",   name:"Salary Payable",        accountHead:"salary_payable",      type:"liability",       city:"Surat", cityId:"CITY-SURAT",  openingBalance:0,      balance:0,      balanceType:"Cr" },
+        { id:"LM-PF-SUR",       name:"PF Payable",            accountHead:"pf_payable",          type:"liability",       city:"Surat", cityId:"CITY-SURAT",  openingBalance:0,      balance:0,      balanceType:"Cr" },
+        { id:"LM-ESIC-SUR",     name:"ESIC Payable",          accountHead:"esic_payable",        type:"liability",       city:"Surat", cityId:"CITY-SURAT",  openingBalance:0,      balance:0,      balanceType:"Cr" },
+        { id:"LM-CHEM-SUR",     name:"Shreeji Chemicals",     accountHead:"accounts_payable",    type:"vendor",          city:"Surat", cityId:"CITY-SURAT",  openingBalance:0,      balance:18500,  balanceType:"Cr" },
+        // MUMBAI
+        { id:"LM-CASH-MUM",     name:"Petty Cash",            accountHead:"cash_bank",           type:"other",           city:"Mumbai", cityId:"CITY-MUMBAI", openingBalance:45000,  balance:45000,  balanceType:"Dr" },
+        { id:"LM-BANK-MUM",     name:"HDFC Bank",             accountHead:"cash_bank",           type:"bank",            city:"Mumbai", cityId:"CITY-MUMBAI", openingBalance:450000, balance:450000, balanceType:"Dr" },
+        { id:"LM-SALES-MUM",    name:"Sales Revenue",         accountHead:"direct_income",       type:"income",          city:"Mumbai", cityId:"CITY-MUMBAI", openingBalance:0,      balance:0,      balanceType:"Cr" },
+        { id:"LM-EXP-MUM",      name:"Operating Expenses",    accountHead:"indirect_expenses",   type:"expense",         city:"Mumbai", cityId:"CITY-MUMBAI", openingBalance:0,      balance:0,      balanceType:"Dr" },
+        { id:"LM-DEBTORS-MUM",  name:"Customer Debtors",      accountHead:"accounts_receivable", type:"asset",           city:"Mumbai", cityId:"CITY-MUMBAI", openingBalance:0,      balance:0,      balanceType:"Dr" },
+      ];
+      localStorage.setItem("cleancar_ledger_masters", JSON.stringify(defaultLedgers));
+    }
 
+    // ── Mark complete ────────────────────────────────────────────────────────
     localStorage.setItem(SEED_FLAG, "true");
-    console.log(`[HistoricData] ✅ Seeded: ${HISTORIC_EMPLOYEE_DB.length} employees, `+
-      `${HISTORIC_CUSTOMERS.length} customers, ${HISTORIC_PAYROLL.length} payroll runs, `+
-      `${HISTORIC_LEADS.length} leads, ${HISTORIC_COMPLAINTS.length} complaints, `+
-      `${HISTORIC_ATTENDANCE.length} attendance records, ${HISTORIC_INCENTIVES.length} incentives`);
+
+    // Also clear old seed flags so a user who had the old broken seed
+    // gets the corrected data on their next reload
+    localStorage.removeItem("HISTORIC_DATA_SEEDED_V1");
+    localStorage.removeItem("HISTORIC_DATA_SEEDED_V2");
+    localStorage.removeItem("HISTORIC_DATA_SEEDED_V3");
+    localStorage.removeItem("HISTORIC_DATA_SEEDED_V4");
+
+    console.log(
+      `[HistoricData] ✅ V5 seeded:\n` +
+      `  ${HISTORIC_EMPLOYEE_DB.length} employees (3 keys each)\n` +
+      `  ${HISTORIC_CUSTOMERS.length} customers (city-split)\n` +
+      `  ${HISTORIC_LEADS.length} leads (city-split)\n` +
+      `  ${HISTORIC_SUBSCRIPTIONS.length} subscriptions (city-split)\n` +
+      `  ${HISTORIC_JOBS.length} jobs (city-split)\n` +
+      `  ${HISTORIC_PAYROLL.length} payroll runs (interface-mapped)\n` +
+      `  ${HISTORIC_ATTENDANCE.length} attendance records (city-split)\n` +
+      `  ${HISTORIC_INCENTIVES.length} incentive records (city-split)\n` +
+      `  ${mappedPayables.length} payables (interface-mapped)\n` +
+      `  ${mappedRevenues.length} revenues (customerId prefix fixed)\n` +
+      `  ${HISTORIC_COMPLAINTS.length} complaints\n` +
+      `  Ledger masters + MRR records added`
+    );
   } catch (err) {
     console.error("[HistoricData] Seed failed:", err);
   }
