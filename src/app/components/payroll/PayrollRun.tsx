@@ -38,6 +38,7 @@ import {
   Building2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { DataService } from "../../services/DataService";
 import { useEmployeeData } from "../../hooks/useEmployeeData";
 import { formatCurrency } from "../../lib/formatters";
 import { hasPermission } from "../../utils/permissionEngine";
@@ -179,8 +180,33 @@ export function PayrollRun() {
       )) {
         const days = computeDaysPresent(run.employeeId, `${selectedYear}-${String(selectedMonth).padStart(2,"0")}`);
         if (days > 0) {
-          // Days present computed from real attendance — update the payroll run
-          processPayroll({ ...run, daysWorked: days, status: "draft" });
+          // Subtract approved unpaid (UL/LWP) leaves for this employee this month
+          const leaveRequests = DataService.get<{
+            employeeId: string; leaveType: string; status: string;
+            fromDate: string; toDate: string;
+          }>("LEAVE_REQUESTS");
+          const monthStr = `${selectedYear}-${String(
+            ["January","February","March","April","May","June",
+             "July","August","September","October","November","December"]
+            .indexOf(selectedMonth) + 1
+          ).padStart(2,"0")}`;
+          const unpaidLeaveDays = leaveRequests
+            .filter(l =>
+              l.employeeId === run.employeeId &&
+              l.status === "Approved" &&
+              (l.leaveType === "UL" || l.leaveType === "LWP") &&
+              l.fromDate?.startsWith(monthStr)
+            )
+            .reduce((total, l) => {
+              const from = new Date(l.fromDate);
+              const to = new Date(l.toDate || l.fromDate);
+              const diff = Math.ceil((to.getTime() - from.getTime()) / 86400000) + 1;
+              return total + diff;
+            }, 0);
+
+          const adjustedDays = Math.max(0, days - unpaidLeaveDays);
+          // Days present computed from real attendance, minus approved unpaid leaves
+          processPayroll({ ...run, daysWorked: adjustedDays, status: "draft" });
           processed++;
         }
       }

@@ -10,7 +10,7 @@
  * Single source of truth for incentives
  */
 
-import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef} from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef} from "react";
 import { DataService } from "../services/DataService";
 import { incentiveLedgerService } from "../services/incentiveLedger";
 import { useEvents } from "./EventSystem";
@@ -121,14 +121,12 @@ const IncentiveContext = createContext<IncentiveContextType | undefined>(undefin
 export function IncentiveProvider({ children }: { children: ReactNode }) {
   const { emit } = useEvents();
 
-  const _dbIncentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [incentivePlans, setIncentivePlans] = useState<IncentivePlan[]>(() => {
     const stored = DataService.get<IncentivePlan>("INCENTIVE_PLANS");
     console.log(`[IncentiveContext] Loaded ${stored.length} incentive plans`);
     return stored;
   });
 
-  const _dbEmployTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [employeeIncentives, setEmployeeIncentives] = useState<EmployeeIncentive[]>(() => {
     const stored = DataService.get<EmployeeIncentive>("EMPLOYEE_INCENTIVES");
     return stored;
@@ -331,6 +329,18 @@ export function IncentiveProvider({ children }: { children: ReactNode }) {
       calculatedAmount,
     });
   }, [getEmployeeIncentive, calculateIncentive, updateEmployeeIncentive]);
+
+  // ── Audit score listener — updates washer incentive when supervisor submits audit
+  React.useEffect(() => {
+    const handleAuditSubmitted = (e: Event) => {
+      const { washerId, auditScore } = (e as CustomEvent).detail || {};
+      if (!washerId || auditScore == null) return;
+      // updateAchievement(washerId, auditScore) maps score to incentive achievement
+      updateAchievement(washerId, auditScore);
+    };
+    window.addEventListener("cc360_audit_submitted", handleAuditSubmitted);
+    return () => window.removeEventListener("cc360_audit_submitted", handleAuditSubmitted);
+  }, [updateAchievement]);
 
   // ========== APPROVAL WORKFLOW ==========
 

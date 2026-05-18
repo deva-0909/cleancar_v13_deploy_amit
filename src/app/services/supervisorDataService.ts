@@ -357,8 +357,24 @@ class SupervisorDataService {
   }
 
   submitAudit(submission: AuditSubmission): { success: boolean; message?: string } {
-    // In production: POST /api/supervisor/audit
-    console.log("Audit submitted:", submission);
+    // Calculate audit score from checklist compliance
+    const totalItems = submission.checklist.length;
+    const compliantItems = submission.checklist.filter(c => c.isCompliant).length;
+    const auditScore = totalItems > 0 ? Math.round((compliantItems / totalItems) * 100) : 75;
+
+    // Fire event so IncentiveContext can update washer achievement
+    try {
+      window.dispatchEvent(new CustomEvent("cc360_audit_submitted", {
+        detail: {
+          washerId: submission.washerId,
+          supervisorId: submission.supervisorId,
+          auditScore,
+          timestamp: submission.timestamp,
+        }
+      }));
+    } catch { /* non-critical */ }
+
+    console.log("Audit submitted — score:", auditScore, "washer:", submission.washerId);
     return { success: true };
   }
 
