@@ -53,6 +53,11 @@ const channelDistribution = [
 function CACDashboard() {
   const { currentRole } = useRole();
 
+  // ✅ ALL hooks must be called before any conditional return (Rules of Hooks)
+  const { cityCustomers, cityLeads } = useCustomers();
+  const { city } = useCity();
+  const { employees } = useEmployee();
+
   const hasAccess = currentRole === "Super Admin" || currentRole === "Admin" || currentRole === "Accounts";
 
   if (!hasAccess) {
@@ -69,10 +74,6 @@ function CACDashboard() {
       </div>
     );
   }
-
-  const { cityCustomers, cityLeads } = useCustomers();
-  const { city } = useCity();
-  const { employees } = useEmployee();
 
   // Get conversion events from analyticsService
   const conversionMetrics = useMemo(() =>
