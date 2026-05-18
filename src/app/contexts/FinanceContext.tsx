@@ -1234,6 +1234,11 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     runDecisionEngine,
     getRecommendations,
   }), [
+    // DATA ARRAYS only — all functions are closures over these arrays.
+    // Do NOT add plain function refs here: they are recreated every render,
+    // which would invalidate contextValue every render → infinite re-render loop.
+    // useCallback functions (getRevenueByCity, getPayablesByCity, getLedgerEntriesByCity)
+    // are stable and safe to include.
     mrrData, payables, revenues, ledgerEntries, budgets, alerts, recommendations,
     getRevenueByCity, getPayablesByCity, getLedgerEntriesByCity,
   ]); // eslint-disable-line react-hooks/exhaustive-deps

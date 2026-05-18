@@ -240,6 +240,7 @@ import { UnauthorizedPage } from "./components/pages/UnauthorizedPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MobileChangeRequest } from "./components/hr/MobileChangeRequest";
 import { MyAccountPage } from "./components/hr/MyAccountPage";
+import { GlobalFiltersProvider } from "./components/navigation/GlobalFilterBar";
 
 export const router = createBrowserRouter([
   {
@@ -410,7 +411,7 @@ export const router = createBrowserRouter([
       { path: "store-manager/vendor-request", element: <VendorRequest /> },
       {
         path: "analytics",
-        element: <Outlet />,
+        element: <GlobalFiltersProvider><Outlet /></GlobalFiltersProvider>,
         children: [
           { index: true, element: <Navigate to="/analytics/dashboard" replace /> },
           { path: "dashboard", element: <AnalyticsDashboardWithDrillDown /> },
