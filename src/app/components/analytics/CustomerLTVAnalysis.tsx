@@ -140,7 +140,7 @@ function CustomerLTVAnalysis() {
       const customer = customers.find(c => c.customerId === sub.customerId);
       if (!customer) return;
 
-      const city = customer?.address?.city ?? (customer as any)?.city ?? "Unknown";
+      const city = customer?.address?.city ?? (customer as any)?.city ?? (customer as any)?.cityId?.replace("CITY-","") ?? "Unknown";
       if (!cityMap.has(city)) {
         cityMap.set(city, { subscriptions: [], customerCount: 0 });
       }
@@ -351,7 +351,7 @@ function CustomerLTVAnalysis() {
                 </tr>
               </thead>
               <tbody>
-                {ltvByPlan.map((plan) => {
+                {validPlans.map((plan) => {
                   const classification = classifyLTVValue(plan.avgLTV);
                   return (
                     <tr key={plan.id} className="border-b hover:bg-muted/50">

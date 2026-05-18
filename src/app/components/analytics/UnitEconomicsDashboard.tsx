@@ -290,9 +290,10 @@ function UnitEconomicsDashboard() {
 
     // Estimate avg washes based on package type and frequency
     const avgWashes =
-      packageType === "Water Wash" ? 3.5 :
-      packageType === "Water + Shampoo" ? 4.0 :
-      packageType === "Water + Shampoo + Wax" ? 4.5 : 4.0;
+      packageType === "Basic" ? 3.5 :
+      packageType === "Standard" ? 4.0 :
+      packageType === "Premium" ? 4.5 :
+      packageType === "Deluxe" ? 5.0 : 4.0;
 
     const totalCost = Math.round(customerCount * avgWashes * costPerWash);
     const profit = totalRevenue - totalCost;
@@ -319,7 +320,7 @@ function UnitEconomicsDashboard() {
       const customer = (customers || []).find(c => c.customerId === sub.customerId);
       if (!customer) return;
 
-      const pincode = customer?.address?.pinCode ?? (customer as any)?.pincode ?? (customer as any)?.pinCode ?? "Unknown";
+      const pincode = customer?.address?.pinCode ?? (customer as any)?.pincode ?? "Unknown";
       if (!pincodeMap.has(pincode)) {
         pincodeMap.set(pincode, { customers: new Set(), washes: 0, revenue: 0 });
       }

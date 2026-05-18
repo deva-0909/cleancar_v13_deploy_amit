@@ -140,15 +140,12 @@ function CACDashboard() {
   const { subscriptions: allSubs } = useCustomerSubscriptions();
   const totalSpend = displayCACByChannel.reduce((sum, c) => sum + c.spend, 0);
   const totalCustomers = displayCACByChannel.reduce((sum, c) => sum + c.customers, 0);
-  // Safe: guard against division by zero when no channel data exists yet
   const avgCAC = totalCustomers > 0 ? totalSpend / totalCustomers : 850;
-  // Live LTV from real subscriptions — fallback 18500 only when no subs
   const avgLTV = allSubs.length > 0 ? calculateAverageLTV(allSubs) : 18500;
   const ltvCacRatio = avgCAC > 0 ? avgLTV / avgCAC : 0;
 
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
-      <BackButton />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

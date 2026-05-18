@@ -17,16 +17,12 @@ export const LTV_THRESHOLDS = {
  * Package retention estimates (in months)
  * Based on historical customer retention patterns
  */
-// Keyed on canonical plan names (3-plan structure)
 export const PACKAGE_RETENTION_MONTHS: Record<string, number> = {
-  "Water Wash":               12,
-  "Water + Shampoo":          15,
-  "Water + Shampoo + Wax":    18,
-  // Legacy aliases — kept so old seeded data still resolves
-  "Basic":   12,
-  "Standard":15,
-  "Premium": 18,
-  "Deluxe":  18,
+  "Water Wash": 12,
+  "Water + Shampoo": 15,
+  "Water + Shampoo + Wax": 18,
+  // Legacy aliases
+  Basic: 12, Standard: 15, Premium: 18, Deluxe: 18,
 };
 
 /**
@@ -36,8 +32,8 @@ export function calculateEffectiveMonthlyPrice(subscription: CustomerSubscriptio
   const cycleMultiplier =
     subscription.billingCycle === "Annual" ? 12 :
     subscription.billingCycle === "Quarterly" ? 3 : 1;
-  // priceLocked is the immutable price snapshot; pricing.finalPrice may be absent
-  const price = subscription.pricing?.finalPrice ?? subscription.priceLocked ?? 0;
+
+  const price = subscription?.pricing?.finalPrice ?? (subscription as any)?.priceLocked ?? 0;
   return price / cycleMultiplier;
 }
 
