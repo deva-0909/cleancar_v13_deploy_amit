@@ -22,7 +22,7 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
   // Sales roles - Direct to their specific apps
   TSE: {
     defaultPath: "/tse-app",
-    allowedPaths: ["/tse-app", "/tse-diagnostics", "/leads", "/my-account", "/hr/self-service", "/hr/professional-leave", "/performance"],
+    allowedPaths: ["/tse-app", "/tse-diagnostics", "/leads", "/my-account"],
   },
   TSM: {
     defaultPath: "/tsm-app",
@@ -40,7 +40,16 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
   },
   Supervisor: {
     defaultPath: "/supervisor-app/dashboard",
-    allowedPaths: ["/", "/supervisor-app", "/supervisor", "/washer-jobs", "/service-zones", "/complaints", "/car-washer", "/inventory", "/cloth-tracking", "/advance", "/hr/professional-leave", "/hr/self-service", "/performance", "/my-account"],
+    allowedPaths: [
+      "/", "/supervisor-app", "/supervisor-app/dashboard", "/supervisor-app/team",
+      "/supervisor-app/audit", "/supervisor-app/cloth", "/supervisor-app/alerts",
+      "/supervisor-app/schedule", "/supervisor-app/leads", "/supervisor-app/incentive",
+      "/supervisor-app/issues", "/supervisor-app/visibility", "/supervisor-app/cover",
+      "/supervisor-app/kpi",
+      "/supervisor", "/washer-jobs", "/service-zones", "/complaints", "/car-washer",
+      "/inventory", "/cloth-tracking", "/advance", "/hr/professional-leave",
+      "/hr/self-service", "/performance", "/my-account"
+    ],
   },
   "Operations Manager": {
     defaultPath: "/operations",
