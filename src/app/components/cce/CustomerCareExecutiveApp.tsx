@@ -456,7 +456,7 @@ export function CustomerCareExecutiveApp() {
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm py-2 px-3 rounded-lg font-medium"
                       >
                         ✅ Mark Resolved
-                      </button>
+                      </Button>
                       <Button
                         onClick={() => handleEscalate('Manual escalation by CCE')}
                         title="Critical cases only - skips Supervisor"
