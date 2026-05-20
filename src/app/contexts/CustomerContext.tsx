@@ -63,7 +63,6 @@ interface CustomerContextType {
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
 
 export function CustomerProvider({ children }: { children: ReactNode }) {
-  const _dbCustTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [customers, setCustomers] = useState<Customer[]>(() => {
     const stored = DataService.get<Customer>("CUSTOMERS");
     logger.debug("CustomerContext loaded", { count: stored.length });
@@ -113,6 +112,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const _dbCustTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (_dbCustTimer.current) clearTimeout(_dbCustTimer.current);
     _dbCustTimer.current = setTimeout(() => {
