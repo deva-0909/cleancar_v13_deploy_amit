@@ -457,13 +457,16 @@ export function CustomerCareExecutiveApp() {
                       >
                         ✅ Mark Resolved
                       </button>
-                      <button
-                      onClick={() => handleEscalate('Manual escalation by CCE')}
-                      title="Critical cases only - skips Supervisor"
-                    >
-                      <AlertCircle className="w-4 h-4 mr-2" />
-                      Escalate to TSM (Critical)
-                    </Button>
+                      <Button
+                        onClick={() => handleEscalate('Manual escalation by CCE')}
+                        title="Critical cases only - skips Supervisor"
+                        variant="destructive"
+                        size="sm"
+                        className="flex-1"
+                      >
+                        <AlertCircle className="w-4 h-4 mr-2" />
+                        Escalate to TSM (Critical)
+                      </Button>
                   </div>
                   <p className="text-xs text-gray-500 mt-3">
                     📋 Standard path: CCE → Supervisor → Operations Manager
