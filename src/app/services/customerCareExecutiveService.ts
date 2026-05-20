@@ -603,6 +603,19 @@ class CustomerCareExecutiveService {
   // PERFORMANCE & ANALYTICS
   // ============================================================================
 
+  resolveComplaint(ticketId: string, resolution: string, cceId: string): { success: boolean; message: string } {
+    const idx = this.mockComplaints.findIndex(c => c.ticketId === ticketId);
+    if (idx === -1) return { success: false, message: "Complaint not found" };
+    this.mockComplaints[idx] = {
+      ...this.mockComplaints[idx],
+      status: 'closed',
+      resolution,
+      resolvedAt: new Date(),
+      resolvedBy: cceId,
+    };
+    return { success: true, message: `Complaint ${ticketId} resolved and closed.` };
+  }
+
   getTodayStats(): CCEDailyStats {
     const today = new Date().toISOString().split('T')[0];
     const todayComplaints = this.mockComplaints.filter(

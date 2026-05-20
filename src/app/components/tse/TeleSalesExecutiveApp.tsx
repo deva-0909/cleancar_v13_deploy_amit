@@ -150,14 +150,34 @@ export function TeleSalesExecutiveApp() {
 
   // Handle CRM update submission
   const handleCRMSubmit = (crmUpdate: CRMUpdate) => {
-    // In real implementation, this would save to backend
+    if (activeCallSession) {
+      // Persist the outcome to the lead cache
+      const updates: Partial<TSELead> = {
+        status: crmUpdate.outcome as any,
+        notes: crmUpdate.notes,
+        tags: crmUpdate.tags || [],
+      };
+      if (crmUpdate.outcome === "CALLBACK" && crmUpdate.callbackTime) {
+        (updates as any).nextFollowUpAt = new Date(crmUpdate.callbackTime);
+      }
+      teleSalesExecutiveService.updateLeadCRM(activeCallSession.lead.id, updates);
+      if (crmUpdate.outcome === "CONVERTED") {
+        teleSalesExecutiveService.convertLead(
+          activeCallSession.lead.id,
+          crmUpdate.finalPrice || 0,
+          crmUpdate.dealType || "standard"
+        );
+      } else if (crmUpdate.outcome === "LOST") {
+        teleSalesExecutiveService.markLeadLost(
+          activeCallSession.lead.id,
+          crmUpdate.lostReason || "Not interested"
+        );
+      }
+    }
     logger.log("CRM Update:", crmUpdate);
-
-    // Reset call session and return to lead queue
+    // Reset call session and return to lead queue — queue auto-refreshes via interval
     setActiveCallSession(null);
     setCurrentScreen("LEAD_QUEUE");
-
-    // Show success message
     toast.success("CRM updated successfully!");
   };
 

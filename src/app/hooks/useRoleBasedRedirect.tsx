@@ -22,7 +22,7 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
   // Sales roles - Direct to their specific apps
   TSE: {
     defaultPath: "/tse-app",
-    allowedPaths: ["/tse-app", "/tse-diagnostics", "/leads", "/my-account"],
+    allowedPaths: ["/tse-app", "/tse-diagnostics", "/leads", "/my-account", "/hr/self-service", "/hr/professional-leave", "/performance"],
   },
   TSM: {
     defaultPath: "/tsm-app",

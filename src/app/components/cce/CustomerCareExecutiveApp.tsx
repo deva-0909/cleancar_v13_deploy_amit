@@ -90,6 +90,7 @@ export function CustomerCareExecutiveApp() {
 
   // CSAT state
   const [csatScore, setCSATScore] = useState<number | null>(null);
+  const [resolutionNotes, setResolutionNotes] = useState('');
   const [csatFeedback, setCSATFeedback] = useState('');
 
   // Supervisor assignment state
@@ -227,6 +228,25 @@ export function CustomerCareExecutiveApp() {
     loadData();
     setCurrentScreen('QUEUE');
     setSelectedComplaint(null);
+  };
+
+  const handleResolveComplaint = () => {
+    if (!selectedComplaint) return;
+    const notes = resolutionNotes.trim() || 'Issue resolved by CCE';
+    const result = customerCareExecutiveService.resolveComplaint(
+      selectedComplaint.ticketId,
+      notes,
+      'cce_001'
+    );
+    if (result.success) {
+      toast.success(result.message);
+      loadData();
+      setCurrentScreen('QUEUE');
+      setSelectedComplaint(null);
+      setResolutionNotes('');
+    } else {
+      toast.error(result.message);
+    }
   };
 
   return (
@@ -428,6 +448,16 @@ export function CustomerCareExecutiveApp() {
 
                     <Button
                       variant="destructive"
+                      onClick={() => {
+                          const notes = window.prompt('Resolution notes (optional):', '') || 'Issue resolved';
+                          setResolutionNotes(notes);
+                          setTimeout(handleResolveComplaint, 100);
+                        }}
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm py-2 px-3 rounded-lg font-medium"
+                      >
+                        ✅ Mark Resolved
+                      </button>
+                      <button
                       onClick={() => handleEscalate('Manual escalation by CCE')}
                       title="Critical cases only - skips Supervisor"
                     >

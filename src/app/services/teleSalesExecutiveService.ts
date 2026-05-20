@@ -40,6 +40,9 @@ import { subscriptionPlansService } from "./subscriptionPlansService";
 import type { VehicleCategoryName, PlanTier } from "../types/subscriptionPlans.types";
 
 class TeleSalesExecutiveService {
+  // In-memory lead cache so updates persist within a session
+  private _leadsCache: TSELead[] | null = null;
+
   // ============================================
   // SUBSCRIPTION PLAN INTEGRATION
   // ============================================
@@ -130,6 +133,9 @@ class TeleSalesExecutiveService {
    * Get all leads assigned to TSE, sorted by priority
    */
   getLeadQueue(): TSELead[] {
+    // Return cached leads if already loaded (persists updates within session)
+    if (this._leadsCache !== null) return this._leadsCache;
+
     const now = new Date();
 
     const mockLeads: TSELead[] = [
@@ -601,8 +607,14 @@ class TeleSalesExecutiveService {
    * Update lead CRM status
    */
   updateLeadCRM(leadId: string, updates: Partial<TSELead>): boolean {
-    // In production: POST /api/tse/leads/:id/update
-    console.log("Updating lead CRM:", leadId, updates);
+    // Update in-memory cache so lead queue reflects the change immediately
+    const leads = this.getLeadQueue();
+    const idx = leads.findIndex(l => l.id === leadId);
+    if (idx !== -1) {
+      leads[idx] = { ...leads[idx], ...updates };
+      this._leadsCache = leads;
+    }
+    console.log("Lead CRM updated:", leadId, updates);
     return true;
   }
 
@@ -622,8 +634,14 @@ class TeleSalesExecutiveService {
    * Mark lead as converted
    */
   convertLead(leadId: string, finalPrice: number, dealType: string): boolean {
-    // In production: POST /api/tse/leads/:id/convert
-    console.log("Converting lead:", leadId, finalPrice, dealType);
+    // Mark lead as converted in cache — removed from active queue
+    const leads = this.getLeadQueue();
+    const idx = leads.findIndex(l => l.id === leadId);
+    if (idx !== -1) {
+      leads[idx] = { ...leads[idx], status: "CONVERTED" as any, finalPrice };
+      this._leadsCache = leads;
+    }
+    console.log("Lead converted:", leadId, finalPrice, dealType);
     return true;
   }
 
@@ -631,8 +649,13 @@ class TeleSalesExecutiveService {
    * Mark lead as lost
    */
   markLeadLost(leadId: string, reason: string): boolean {
-    // In production: POST /api/tse/leads/:id/lost
-    console.log("Marking lead lost:", leadId, reason);
+    const leads = this.getLeadQueue();
+    const idx = leads.findIndex(l => l.id === leadId);
+    if (idx !== -1) {
+      leads[idx] = { ...leads[idx], status: "LOST" as any, lostReason: reason as any };
+      this._leadsCache = leads;
+    }
+    console.log("Lead lost:", leadId, reason);
     return true;
   }
 }
