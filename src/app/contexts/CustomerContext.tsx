@@ -112,7 +112,6 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const _dbCustTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (_dbCustTimer.current) clearTimeout(_dbCustTimer.current);
     _dbCustTimer.current = setTimeout(() => {
