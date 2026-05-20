@@ -102,6 +102,8 @@ const InventoryContext = createContext<InventoryContextType | undefined>(undefin
 const DEFAULT_CITY = "CITY-SURAT"; // Backward compatibility default
 
 export function InventoryProvider({ children }: { children: ReactNode }) {
+  const _dbInvTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const _dbTxnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>(() => {
     // Load from storage with city-id backfill for legacy data
     const storedInventory = DataService.get<InventoryItem>("INVENTORY_ITEMS");

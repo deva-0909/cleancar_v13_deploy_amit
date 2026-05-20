@@ -121,6 +121,8 @@ const IncentiveContext = createContext<IncentiveContextType | undefined>(undefin
 export function IncentiveProvider({ children }: { children: ReactNode }) {
   const { emit } = useEvents();
 
+  const _dbEmployTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const _dbIncentTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [incentivePlans, setIncentivePlans] = useState<IncentivePlan[]>(() => {
     const stored = DataService.get<IncentivePlan>("INCENTIVE_PLANS");
     console.log(`[IncentiveContext] Loaded ${stored.length} incentive plans`);
