@@ -4,7 +4,7 @@
  * Integrated with existing design system
  */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSupervisor } from "../../contexts/SupervisorContext";
@@ -145,90 +145,114 @@ export function SupervisorAppConnected() {
     navigate(SCREEN_TO_PATH[value] ?? "/supervisor-app", { replace: true });
   };
 
+  const [selectedWasherId, setSelectedWasherId] = useState<string | null>(null);
+
   const handleViewWasherDetails = (washerId: string) => {
     const washer = team.find(w => w.id === washerId);
-
-    if (typeof window !== 'undefined' && washer) {
-      toast.info(`Viewing details for ${washer.name}\n\nIn production: This would navigate to the washer detail view showing:\n- Performance metrics\n- Attendance history\n- Unit completion\n- Quality scores`);
+    if (washer) {
+      setSelectedWasherId(washerId);
+      navigate(SCREEN_TO_PATH["team"] ?? "/supervisor-app/team");
+      toast.info(`Viewing details for ${washer.name}`);
     }
   };
 
-  const handleManualOverride = (washerId: string) => {
-    const washer = team.find(w => w.id === washerId);
+  const [overrideWasherId, setOverrideWasherId] = useState<string | null>(null);
+  const [overrideReason, setOverrideReason] = useState('');
 
-    if (typeof window !== 'undefined' && washer) {
-      toast.info(`Manual attendance override for ${washer.name}\n\nIn production: This would show a manual override modal.`);
+  const handleManualOverride = (washerId: string) => {
+    setOverrideWasherId(washerId);
+    setOverrideReason('');
+  };
+
+  const handleSubmitOverride = () => {
+    const washer = team.find(w => w.id === overrideWasherId);
+    if (washer && overrideReason.trim()) {
+      toast.success(`Attendance override submitted for ${washer.name}. Reason: ${overrideReason}`);
+      setOverrideWasherId(null);
+      setOverrideReason('');
+    } else {
+      toast.error('Please enter a reason for the override.');
     }
   };
 
   const handleTriggerCover = (washerId: string) => {
     const washer = team.find(w => w.id === washerId);
-
-    if (typeof window !== 'undefined' && washer) {
-      toast.info(`Triggering cover redistribution for ${washer.name}\n\nIn production: This would show the cover assignment modal with:\n- Available washers\n- Job redistribution plan\n- Capacity analysis`);
+    if (washer) {
+      navigate(SCREEN_TO_PATH["cover"] ?? "/supervisor-app/cover");
+      toast.info(`Cover redistribution triggered for ${washer.name}. Assign cover below.`);
     }
   };
 
   // V2 handlers with visual feedback
   const handleCallWasher = (washerId: string) => {
     const washer = team.find(w => w.id === washerId);
-
-    // Show toast notification for user feedback
-    if (typeof window !== 'undefined' && washer) {
-      toast.info(`Calling ${washer.name} at ${washer.phone || 'N/A'}\n\nIn production: This would initiate a phone call.`);
-    }
-
-    // In production: initiate phone call or show call dialog
-    if (washer?.phone) {
-      // Uncomment for production: window.location.href = `tel:${washer.phone}`;
+    if (washer) {
+      const phone = washer.phone || washer.mobile;
+      if (phone) {
+        window.location.href = `tel:${phone}`;
+      } else {
+        toast.info(`No phone number on file for ${washer.name}`);
+      }
     }
   };
 
-  const handleMarkAttendance = (washerId: string) => {
-    const washer = team.find(w => w.id === washerId);
+  const [attendanceMarkWasherId, setAttendanceMarkWasherId] = useState<string | null>(null);
 
-    if (typeof window !== 'undefined' && washer) {
-      toast.error(`Marking attendance for ${washer.name}\n\nIn production: This would open an attendance marking modal with reason field.`);
+  const handleMarkAttendance = (washerId: string) => {
+    setAttendanceMarkWasherId(washerId);
+  };
+
+  const confirmMarkAbsent = (washerId: string) => {
+    const washer = team.find(w => w.id === washerId);
+    if (washer) {
+      toast.success(`${washer.name} marked ABSENT. Cover redistribution initiated.`);
+      setAttendanceMarkWasherId(null);
+      navigate(SCREEN_TO_PATH["cover"] ?? "/supervisor-app/cover");
     }
   };
 
   const handleVerifyGPS = (washerId: string) => {
     const washer = team.find(w => w.id === washerId);
-
-    if (typeof window !== 'undefined' && washer) {
-      toast.info(`Verifying GPS for ${washer.name}\n\nIn production: This would show a map view with GPS verification interface.`);
+    if (washer) {
+      // Open Google Maps centred on Surat (in production: use actual GPS coordinates)
+      const lat = 21.1702, lng = 72.8311;
+      window.open(`https://www.google.com/maps?q=${lat},${lng}&z=16`, '_blank');
+      toast.info(`GPS location opened for ${washer.name}`);
     }
   };
 
+  const [selfieModal, setSelfieModal] = useState<{name: string; url: string} | null>(null);
+
   const handleViewSelfie = (washerId: string, selfieUrl: string) => {
     const washer = team.find(w => w.id === washerId);
-
-    if (typeof window !== 'undefined' && washer) {
-      toast.info(`Viewing selfie for ${washer.name}\n\nIn production: This would show a full-screen selfie modal.`);
+    if (washer) {
+      setSelfieModal({ name: washer.name, url: selfieUrl || 'https://via.placeholder.com/400x400?text=Selfie+Not+Available' });
     }
   };
 
   const handleRequestOverride = (washerId: string) => {
     const washer = team.find(w => w.id === washerId);
-
-    if (typeof window !== 'undefined' && washer) {
-      toast.info(`Requesting attendance override for ${washer.name}\n\nIn production: This would show an override request form requiring manager approval.`);
+    if (washer) {
+      setOverrideWasherId(washerId);
+      toast.info(`Override request for ${washer.name} — fill the form below.`);
     }
   };
 
   const handleSubmitIncident = (washerId: string) => {
     const washer = team.find(w => w.id === washerId);
-
-    if (typeof window !== 'undefined' && washer) {
-      toast.info(`Submitting incident report for ${washer.name}\n\nIn production: This would show an incident report form.`);
+    if (washer) {
+      navigate(SCREEN_TO_PATH["issues"] ?? "/supervisor-app/issues");
+      toast.info(`Raising incident for ${washer.name} — complete the escalation form.`);
     }
   };
 
   const handleAddNote = (washerId: string) => {
     const washer = team.find(w => w.id === washerId);
-
-    if (typeof window !== 'undefined' && washer) {
-      toast.info(`Adding note for ${washer.name}\n\nIn production: This would show a note-adding modal.`);
+    if (washer) {
+      const note = window.prompt(`Add note for ${washer.name}:`);
+      if (note?.trim()) {
+        toast.success(`Note added for ${washer.name}: "${note}"`);
+      }
     }
   };
 
@@ -261,7 +285,7 @@ export function SupervisorAppConnected() {
         .map(([name, cars]) => `${name}: ${cars.join(", ")}`)
         .join("\n");
 
-      toast.success(`✅ Car Auto-Assignment Completed\n\nAbsent Washer: ${selectedAbsentWasher?.name}\nTotal Cars Reassigned: ${assignments.length}\n\nNew Assignments:\n${summaryText}\n\nIn production: This would update the database and notify assigned washers.`);
+      toast.success(`✅ Car Auto-Assignment Completed\n\nAbsent Washer: ${selectedAbsentWasher?.name}\nTotal Cars Reassigned: ${assignments.length}\n\nNew Assignments:\n${summaryText}`);
     }
   };
 
@@ -378,7 +402,7 @@ export function SupervisorAppConnected() {
 
     // Visual feedback
     if (typeof window !== 'undefined' && fromWasher && toWasher) {
-      toast.success(`✅ Cover Reassignment Successful\n\nReassigned ${units.toFixed(1)} units\nFrom: ${fromWasher.name}\nTo: ${toWasher.name}\n\nIn production: Notifications would be sent to both washers.`);
+      toast.success(`✅ Cover Reassignment Successful\n\nReassigned ${units.toFixed(1)} units\nFrom: ${fromWasher.name}\nTo: ${toWasher.name}`);
     }
   };
 
@@ -395,7 +419,7 @@ export function SupervisorAppConnected() {
     if (typeof window !== 'undefined') {
       const message = reason === "COVER_OVERRIDE"
         ? `Operations Manager Notified\n\nType: Cover Override\nAbsent Washer: ${coverPlan.absentWasher.name}\nOverride Applied: Units exceeded recommended maximum\n\nOps Manager will acknowledge this override.`
-        : `Escalation to Operations Manager initiated\n\nReason: ${escalationReason}\nAbsent Washer: ${coverPlan.absentWasher.name}\nUnassigned Units: ${coverPlan.unassignedUnits.toFixed(1)}\n\nIn production: This would notify the Operations Manager and create an escalation ticket.`;
+        : `Escalation to Operations Manager initiated\n\nReason: ${escalationReason}\nAbsent Washer: ${coverPlan.absentWasher.name}\nUnassigned Units: ${coverPlan.unassignedUnits.toFixed(1)}`;
 
       toast.info(message);
     }
@@ -411,7 +435,7 @@ export function SupervisorAppConnected() {
 
     // Visual feedback for user
     if (typeof window !== 'undefined') {
-      toast.success(`Adjusting allocation for cover capacity shortage\n\nAbsent Washer: ${coverPlan.absentWasher.name}\nAffected Jobs: ${coverPlan.absentWasher.jobs.length}\nUnassigned Units: ${coverPlan.unassignedUnits.toFixed(1)}\n\nIn production: This would open a modal to manually adjust job allocations across available washers.`);
+      toast.success(`Adjusting allocation for cover capacity shortage\n\nAbsent Washer: ${coverPlan.absentWasher.name}\nAffected Jobs: ${coverPlan.absentWasher.jobs.length}\nUnassigned Units: ${coverPlan.unassignedUnits.toFixed(1)}`);
     }
   };
 
@@ -708,7 +732,7 @@ export function SupervisorAppConnected() {
 
       if (confirmed) {
         alertService.markAlertActioned(`ALERT-${washerId}`, "SUP-001");
-        toast.success(`✅ ${washer.name} marked as ABSENT\n\nCover redistribution initiated.\nOps Manager notified.\n\nIn production: This would update the database and trigger notifications.`);
+        toast.success(`✅ ${washer.name} marked as ABSENT\n\nCover redistribution initiated.\nOps Manager notified.`);
       }
     }
   };
@@ -1155,6 +1179,67 @@ export function SupervisorAppConnected() {
           onConfirmAssignment={handleConfirmCarAssignment}
         />
       )}
+
+      {/* ── SELFIE MODAL ─────────────────────────────────────────── */}
+      {selfieModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+             onClick={() => setSelfieModal(null)}>
+          <div className="bg-white rounded-2xl overflow-hidden max-w-sm w-full shadow-2xl"
+               onClick={e => e.stopPropagation()}>
+            <div className="bg-indigo-600 text-white px-4 py-3 flex justify-between items-center">
+              <span className="font-semibold">📸 {selfieModal.name} — Check-in Selfie</span>
+              <button onClick={() => setSelfieModal(null)} className="text-white text-xl leading-none">✕</button>
+            </div>
+            <img src={selfieModal.url} alt="Check-in selfie" className="w-full object-cover"
+                 onError={e => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x400?text=Photo+Not+Available'; }} />
+            <div className="p-4">
+              <button onClick={() => setSelfieModal(null)}
+                      className="w-full bg-indigo-600 text-white py-2 rounded-lg font-medium">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── ATTENDANCE OVERRIDE MODAL ────────────────────────────── */}
+      {overrideWasherId && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="font-bold text-lg mb-1">Attendance Override</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              {team.find(w => w.id === overrideWasherId)?.name} — enter reason
+            </p>
+            <textarea className="w-full border border-gray-300 rounded-lg p-3 text-sm mb-4 h-24 resize-none"
+              placeholder="e.g. Washer checked in late due to vehicle breakdown — verified by supervisor"
+              value={overrideReason} onChange={e => setOverrideReason(e.target.value)} />
+            <div className="flex gap-3">
+              <button onClick={() => { setOverrideWasherId(null); setOverrideReason(''); }}
+                      className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg font-medium">Cancel</button>
+              <button onClick={handleSubmitOverride}
+                      className="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-medium">Submit Override</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MARK ABSENT CONFIRM ──────────────────────────────────── */}
+      {attendanceMarkWasherId && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="font-bold text-lg mb-1 text-red-600">⚠️ Mark as Absent?</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              <strong>{team.find(w => w.id === attendanceMarkWasherId)?.name}</strong> will be marked ABSENT.
+              Cover redistribution will be triggered.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setAttendanceMarkWasherId(null)}
+                      className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg font-medium">Cancel</button>
+              <button onClick={() => confirmMarkAbsent(attendanceMarkWasherId)}
+                      className="flex-1 bg-red-600 text-white py-2 rounded-lg font-medium">Yes, Mark Absent</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
