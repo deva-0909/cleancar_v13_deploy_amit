@@ -148,7 +148,7 @@ export default function TDSPayableModule() {
       if (!grouped[section]) {
         const rateInfo = TDS_RATE_CHART.find(r => r.section === section);
         grouped[section] = {
-          section, nature: rateInfo?.natureOfPayment || "Unknown",
+          section, nature: rateInfo?.nature || "Unknown",
           entries: [], totalTDS: 0, paidMonths: new Set(),
         };
       }
@@ -344,7 +344,7 @@ export default function TDSPayableModule() {
                 {TDS_RATE_CHART.map(rate => (
                   <tr key={rate.section} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm font-mono">{rate.section}</td>
-                    <td className="px-4 py-3 text-sm">{rate.natureOfPayment}</td>
+                    <td className="px-4 py-3 text-sm">{rate.nature}</td>
                     <td className="px-4 py-3 text-sm text-right">{rate.rateIndividual}%</td>
                     <td className="px-4 py-3 text-sm text-right">{rate.rateCompany}%</td>
                     <td className="px-4 py-3 text-sm text-right">₹{(rate?.thresholdSingle ?? 0).toLocaleString()}</td>

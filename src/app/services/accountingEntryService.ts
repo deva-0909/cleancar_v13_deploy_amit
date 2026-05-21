@@ -419,12 +419,24 @@ class AccountingEntryService {
 
   // Returns ALL debit/credit movements: both AccountingEntry and JournalEntry lines
   getAllMovements(from: string, to: string, cityId?: string): Array<{
-    date: string; debitLedgerId: string; creditLedgerId: string; amount: number; voucherNumber: string; description: string;
+    date: string;
+    debitLedgerId: string;   creditLedgerId: string;
+    debitLedgerName: string; creditLedgerName: string;
+    amount: number; voucherNumber: string; description: string;
   }> {
+    // Build id→name + accountHead→name lookup once
+    const allLedgers = this.getLedgers(cityId);
+    const byId   = new Map(allLedgers.map(l => [l.id,          l.name]));
+    const byHead = new Map(allLedgers.map(l => [l.accountHead, l.name]));
+    const resolveName = (id: string): string =>
+      byId.get(id) || byHead.get(id) || id;
+
     const accEntries = this.getByDateRange(from, to, cityId).map(e => ({
       date: e.date,
-      debitLedgerId:  e.debitAccount,
-      creditLedgerId: e.creditAccount,
+      debitLedgerId:    e.debitAccount,
+      creditLedgerId:   e.creditAccount,
+      debitLedgerName:  resolveName(e.debitAccount),
+      creditLedgerName: resolveName(e.creditAccount),
       amount: e.totalBillValue,
       voucherNumber: e.voucherNumber,
       description: e.narration || e.invoiceNumber || "",
@@ -435,8 +447,10 @@ class AccountingEntryService {
       .flatMap(j =>
         j.lines.map(line => ({
           date: j.date,
-          debitLedgerId:  line.debit  > 0 ? line.accountHead : "",
-          creditLedgerId: line.credit > 0 ? line.accountHead : "",
+          debitLedgerId:    line.debit  > 0 ? line.accountHead : "",
+          creditLedgerId:   line.credit > 0 ? line.accountHead : "",
+          debitLedgerName:  line.debit  > 0 ? (byId.get(line.accountHead) || byHead.get(line.accountHead) || line.accountLabel || line.accountHead) : "",
+          creditLedgerName: line.credit > 0 ? (byId.get(line.accountHead) || byHead.get(line.accountHead) || line.accountLabel || line.accountHead) : "",
           amount: Math.max(line.debit, line.credit),
           voucherNumber: j.voucherNumber,
           description: j.narration,
@@ -627,6 +641,28 @@ class AccountingEntryService {
   }
 
   // Auto-create customer debtor ledger when a new subscriber is added
+  // ── TDS Payment Persistence ──────────────────────────────────────────────────
+  getTDSPayments(cityId: string): Array<{
+    id: string; cityId: string; section: string; amount: number;
+    challanNumber: string; bank: string; paymentDate: string;
+    journalVoucher?: string; createdAt: string;
+  }> {
+    try {
+      const raw = localStorage.getItem(`cleancar_tds_payments_${cityId}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }
+
+  saveTDSPayment(payment: {
+    id: string; cityId: string; section: string; amount: number;
+    challanNumber: string; bank: string; paymentDate: string;
+    journalVoucher?: string; createdAt: string;
+  }): void {
+    const all = this.getTDSPayments(payment.cityId);
+    const updated = [...all.filter(p => p.id !== payment.id), payment];
+    localStorage.setItem(`cleancar_tds_payments_${payment.cityId}`, JSON.stringify(updated));
+  }
+
   createCustomerLedger(customerId: string, customerName: string,
       subscriptionPlan: string, cityId: string, city: string): LedgerMaster {
     const existing = this.getLedgers(cityId).find(l => l.customerId === customerId);
