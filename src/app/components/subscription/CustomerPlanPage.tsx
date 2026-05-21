@@ -10,6 +10,10 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
+import { useFinance } from "../../contexts/FinanceContext";
+import { useCustomers } from "../../contexts/AppProvider";
+import { useCustomerSubscriptions } from "../../contexts/AppProvider";
+import { useCity } from "../../contexts/CityContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG TYPES & DEFAULTS
@@ -241,10 +245,29 @@ export function CustomerPlanPage() {
   // Step 5 state
   const [custName, setCustName] = useState("");
   const [custMobile, setCustMobile] = useState("");
+  const [custEmail, setCustEmail] = useState("");
   const [custReg, setCustReg] = useState("");
   const [custAddress, setCustAddress] = useState("");
   const [prefTime, setPrefTime] = useState("");
   const [parking, setParking] = useState<"dedicated" | "random">("dedicated");
+  const [notifyPref, setNotifyPref] = useState<"whatsapp" | "email" | "both">("whatsapp");
+
+  // Step 6.5 — T&C consent
+  const [consentTerms, setConsentTerms]     = useState(false);
+  const [consentRefund, setConsentRefund]   = useState(false);
+  const [consentCancel, setConsentCancel]   = useState(false);
+  const [showTnC, setShowTnC]               = useState<"terms" | "refund" | "cancel" | null>(null);
+
+  // Payment processing state
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [generatedInvoice, setGeneratedInvoice] = useState<any>(null);
+
+  // Contexts for data sync
+  const { recordRevenue } = useFinance();
+  const { addCustomer, customers } = useCustomers();
+  const { createSubscription } = useCustomerSubscriptions();
+  const { city } = useCity();
 
   // Listen for config changes from admin
   useEffect(() => {
@@ -298,8 +321,156 @@ export function CustomerPlanPage() {
   const step2Ok = pincodeStatus !== null;
   const step3Ok = planMode === "monthly" ? !!selectedPlan : !!selectedPack;
   const step5Ok = custName && custMobile && custAddress;
+  const consentOk = consentTerms && consentRefund && consentCancel;
 
   const goTo = (n: number) => { setStep(n); window.scrollTo({ top: 0, behavior: "smooth" }); };
+
+  // ── Handle Payment + Full Data Sync ──────────────────────────────────────
+  const handlePayment = async () => {
+    if (!consentOk) return;
+    setIsProcessing(true);
+
+    try {
+      const now = new Date();
+      const invNum = `INV-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${Date.now().toString().slice(-6)}`;
+      setInvoiceNumber(invNum);
+
+      const nameParts = custName.trim().split(" ");
+      const firstName = nameParts[0] || custName;
+      const lastName  = nameParts.slice(1).join(" ") || "—";
+
+      // 1️⃣ Find or create customer record
+      const existing = customers.find(c =>
+        c.phone === custMobile ||
+        (custEmail && c.email === custEmail)
+      );
+
+      let customerId: string;
+      if (existing) {
+        customerId = existing.customerId;
+      } else {
+        const newCust = addCustomer({
+          firstName,
+          lastName,
+          email: custEmail || "",
+          phone: custMobile,
+          address: {
+            line1: custAddress,
+            area: cfg.serviceablePincodes.find(p => p.code === pincode)?.label || pincode,
+            city: "Surat",
+            pinCode: pincode,
+          },
+          vehicleDetails: activeCat ? {
+            category: activeCat,
+            brand: carModel.split(" ")[0] || carModel,
+            color: "",
+            registrationNumber: custReg.toUpperCase(),
+          } : undefined,
+          leadSource: "Website — Buy Page",
+          status: "Active",
+          tags: ["web-signup"],
+        });
+        customerId = newCust.customerId;
+      }
+
+      // 2️⃣ Create subscription record
+      const planObj = cfg.monthlyPlans.find(p => p.id === selectedPlan);
+      const packObj = cfg.packs.find(p => p.id === selectedPack);
+      const renewalDate = new Date(now);
+      renewalDate.setMonth(renewalDate.getMonth() + 1);
+
+      const sub = createSubscription({
+        customerId,
+        packageType: selectedPlan === "wax" ? "Premium" : selectedPlan === "shampoo" ? "Standard" : "Basic",
+        packageName: planMode === "monthly"
+          ? (planObj?.name || selectedPlan || "Plan")
+          : (packObj?.name || selectedPack || "Pack"),
+        frequency: "Daily",
+        status: "Active",
+        startDate: now.toISOString().split("T")[0],
+        renewalDate: renewalDate.toISOString().split("T")[0],
+        pricing: {
+          basePrice: basePrice,
+          discount: 0,
+          finalPrice: total,
+          currency: "INR",
+        },
+        serviceDetails: {
+          vehicleType: activeCat || "hatchback",
+          addOns: addons,
+          preferredTimeSlot: prefTime,
+        },
+        billingCycle: "Monthly",
+        paymentStatus: "Paid",
+      });
+
+      // 3️⃣ Record revenue in FinanceContext (auto-posts double-entry ledger)
+      recordRevenue({
+        customerId,
+        subscriptionId: sub.subscriptionId,
+        type: planMode === "monthly" ? "Subscription" : "One-Time",
+        amount: total,
+        receivedDate: now.toISOString().split("T")[0],
+        paymentMethod: "UPI",   // In production: from Razorpay response
+        invoiceNumber: invNum,
+        status: "Received",
+        cityId: city || "CITY-SURAT",
+      });
+
+      // 4️⃣ Build invoice object for display + sharing
+      const invoice = {
+        invoiceNumber: invNum,
+        invoiceDate: now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
+        customerName: custName,
+        customerPhone: custMobile,
+        customerEmail: custEmail,
+        vehicleReg: custReg,
+        address: custAddress,
+        pincode,
+        items: [
+          ...(planMode === "monthly"
+            ? [{ name: `${planObj?.name || selectedPlan} — Monthly Subscription (${catLabel})`, qty: 1, rate: planPrice, amount: planPrice }]
+            : [{ name: `${packObj?.name || selectedPack} Pack`, qty: 1, rate: packPrice, amount: packPrice }]
+          ),
+          ...addons.map(id => {
+            const a = cfg.addons.find(x => x.id === id);
+            return { name: a?.name || id, qty: 1, rate: a?.price || 0, amount: a?.price || 0 };
+          }),
+        ],
+        subtotal: total,
+        cgst: parseFloat((total * 0.09).toFixed(2)),
+        sgst: parseFloat((total * 0.09).toFixed(2)),
+        grandTotal: parseFloat((total * 1.18).toFixed(2)),
+        paymentMethod: "Razorpay (UPI/Card/NetBanking)",
+        subscriptionId: sub.subscriptionId,
+        customerId,
+        notifyPref,
+        commitment: planMode === "monthly" ? (cfg.commitments.find(c => c.id === commitment)?.term || commitment) : "N/A",
+      };
+      setGeneratedInvoice(invoice);
+
+      // 5️⃣ Persist invoice to localStorage for InvoiceManagement screen
+      try {
+        const stored = JSON.parse(localStorage.getItem("cleancar_web_invoices") || "[]");
+        stored.unshift({ ...invoice, createdAt: now.toISOString(), status: "PAID" });
+        localStorage.setItem("cleancar_web_invoices", JSON.stringify(stored.slice(0, 500)));
+      } catch (_) {}
+
+      // 6️⃣ Simulate WhatsApp / Email dispatch
+      const waMsg = encodeURIComponent(
+        `Hi ${firstName}! 🎉\n\nYour ${invoice.items[0].name} is confirmed!\n\nInvoice: ${invNum}\nAmount Paid: ₹${invoice.grandTotal.toLocaleString("en-IN")} (incl. GST)\n\nService starts within 2 working days. Your washer will send before & after photos after every wash.\n\nThank you for choosing ${cfg.brand.name}! 🚗✨`
+      );
+      if (notifyPref === "whatsapp" || notifyPref === "both") {
+        window._pendingWAInvoice = `https://wa.me/${cfg.brand.whatsappNumber}?text=${waMsg}`;
+      }
+
+      setIsProcessing(false);
+      goTo(7);
+    } catch (err) {
+      console.error("Payment/sync error:", err);
+      setIsProcessing(false);
+    }
+  };
 
   const STEPS = [
     { n: 1, label: "Your Car" },
@@ -307,30 +478,150 @@ export function CustomerPlanPage() {
     { n: 3, label: "Plan" },
     { n: 4, label: "Add-ons" },
     { n: 5, label: "Details" },
-    { n: 6, label: "Review" },
+    { n: 6, label: "Review & T&C" },
   ];
 
   // ── SUCCESS ─────────────────────────────────────────────────────────────
   if (step === 7) {
+    const inv = generatedInvoice;
+    const waMsg = encodeURIComponent(
+      `Hi! Sharing my invoice ${inv?.invoiceNumber} from ${cfg.brand.name}. Please confirm my subscription.`
+    );
     return (
-      <div style={{ minHeight: "100vh", background: "#F8FBFF", fontFamily: "'DM Sans', sans-serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
-        <div style={{ maxWidth: 560, width: "100%", background: "#fff", borderRadius: 24, padding: "48px 40px", textAlign: "center", boxShadow: "0 12px 48px rgba(33,150,243,0.15)" }}>
-          <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
-          <h2 style={{ fontFamily: "'Syne',sans-serif", fontSize: 28, fontWeight: 800, marginBottom: 12 }}>You're all set!</h2>
-          <p style={{ color: "#4A5568", marginBottom: 8 }}>Your payment is confirmed. Welcome to {cfg.brand.name}.</p>
-          <p style={{ fontSize: 13, color: "#90A4AE", marginBottom: 32 }}>Receipt sent to your WhatsApp.</p>
-          <div style={{ textAlign: "left", display: "flex", flexDirection: "column", gap: 16, marginBottom: 32 }}>
-            {cfg.postPaymentSteps.map((s, i) => (
-              <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#2196F3", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{i+1}</div>
-                <div style={{ fontSize: 14, color: "#0D1B2A", paddingTop: 4 }}>{s}</div>
-              </div>
-            ))}
+      <div style={{ minHeight: "100vh", background: "#F8FBFF", fontFamily: "'DM Sans', sans-serif", padding: "40px 20px" }}>
+        <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <div style={{ maxWidth: 640, margin: "0 auto" }}>
+          {/* Success header */}
+          <div style={{ textAlign: "center", marginBottom: 32 }}>
+            <div style={{ fontSize: 64, marginBottom: 16 }}>🎉</div>
+            <h2 style={{ fontFamily: "'Syne',sans-serif", fontSize: 28, fontWeight: 800, marginBottom: 8 }}>Payment Confirmed!</h2>
+            <p style={{ color: "#4A5568", fontSize: 15 }}>Welcome to {cfg.brand.name}. Your subscription is now active.</p>
           </div>
-          <a href={`https://wa.me/${cfg.brand.whatsappNumber}`} target="_blank" rel="noreferrer"
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#25D366", color: "#fff", padding: "14px 24px", borderRadius: 50, fontWeight: 700, fontSize: 15, textDecoration: "none" }}>
-            💬 Chat with us on WhatsApp
-          </a>
+
+          {/* Invoice card */}
+          {inv && (
+            <div style={{ background: "#fff", border: "1.5px solid #E3EEF7", borderRadius: 16, marginBottom: 24, overflow: "hidden" }}>
+              {/* Invoice header */}
+              <div style={{ background: "linear-gradient(135deg,#1565C0,#2196F3)", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, color: "#fff" }}>{cfg.brand.name}</div>
+                  <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 13 }}>Tax Invoice</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ color: "#FFEB3B", fontWeight: 700, fontSize: 15, fontFamily: "'Syne',sans-serif" }}>{inv.invoiceNumber}</div>
+                  <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 13 }}>{inv.invoiceDate}</div>
+                </div>
+              </div>
+
+              <div style={{ padding: "20px 24px" }}>
+                {/* Bill to */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20, paddingBottom: 20, borderBottom: "1px solid #E3EEF7" }}>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#90A4AE", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Bill To</div>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>{inv.customerName}</div>
+                    <div style={{ fontSize: 13, color: "#4A5568" }}>📱 {inv.customerPhone}</div>
+                    {inv.customerEmail && <div style={{ fontSize: 13, color: "#4A5568" }}>✉️ {inv.customerEmail}</div>}
+                    <div style={{ fontSize: 13, color: "#4A5568", marginTop: 4 }}>{inv.address}</div>
+                    <div style={{ fontSize: 13, color: "#4A5568" }}>Pin: {inv.pincode}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#90A4AE", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Vehicle</div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{inv.vehicleReg || "Not provided"}</div>
+                    <div style={{ fontSize: 13, color: "#4A5568" }}>{catLabel}</div>
+                    <div style={{ fontSize: 11, color: "#90A4AE", marginTop: 8 }}>Subscription ID</div>
+                    <div style={{ fontFamily: "monospace", fontSize: 12, color: "#1565C0" }}>{inv.subscriptionId}</div>
+                  </div>
+                </div>
+
+                {/* Line items */}
+                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
+                  <thead>
+                    <tr style={{ background: "#F8FBFF" }}>
+                      <th style={{ padding: "8px 10px", textAlign: "left", fontSize: 12, fontWeight: 700, color: "#374151", borderBottom: "1px solid #E3EEF7" }}>Description</th>
+                      <th style={{ padding: "8px 10px", textAlign: "center", fontSize: 12, fontWeight: 700, color: "#374151", borderBottom: "1px solid #E3EEF7", width: 40 }}>Qty</th>
+                      <th style={{ padding: "8px 10px", textAlign: "right", fontSize: 12, fontWeight: 700, color: "#374151", borderBottom: "1px solid #E3EEF7" }}>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inv.items.map((item: any, i: number) => (
+                      <tr key={i} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                        <td style={{ padding: "10px", fontSize: 13 }}>{item.name}</td>
+                        <td style={{ padding: "10px", textAlign: "center", fontSize: 13 }}>{item.qty}</td>
+                        <td style={{ padding: "10px", textAlign: "right", fontSize: 13, fontWeight: 600 }}>₹{item.amount.toLocaleString("en-IN")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Tax breakdown */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "14px 10px", background: "#F8FBFF", borderRadius: 10, marginBottom: 16 }}>
+                  {[
+                    ["Subtotal (Taxable Value)", `₹${inv.subtotal.toLocaleString("en-IN")}`],
+                    ["CGST @ 9%", `₹${inv.cgst.toLocaleString("en-IN")}`],
+                    ["SGST @ 9%", `₹${inv.sgst.toLocaleString("en-IN")}`],
+                  ].map(([k, v]) => (
+                    <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#4A5568" }}>
+                      <span>{k}</span><span>{v}</span>
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 16, fontFamily: "'Syne',sans-serif", color: "#1565C0", borderTop: "1.5px solid #E3EEF7", paddingTop: 10, marginTop: 4 }}>
+                    <span>Grand Total</span>
+                    <span>₹{inv.grandTotal.toLocaleString("en-IN")}</span>
+                  </div>
+                </div>
+
+                {/* Payment info */}
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#4A5568", marginBottom: 4 }}>
+                  <span>Payment Method</span><span style={{ fontWeight: 600 }}>{inv.paymentMethod}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#4A5568" }}>
+                  <span>Commitment</span><span style={{ fontWeight: 600 }}>{inv.commitment}</span>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div style={{ background: "#F8FBFF", borderTop: "1px solid #E3EEF7", padding: "14px 24px", fontSize: 12, color: "#90A4AE", textAlign: "center" }}>
+                🔒 This is a computer-generated invoice. {cfg.brand.name} · {cfg.brand.phone}
+              </div>
+            </div>
+          )}
+
+          {/* Share buttons */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 28 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 4 }}>
+              📤 Share invoice via:
+            </p>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <a href={`https://wa.me/${cfg.brand.whatsappNumber}?text=${encodeURIComponent(`Hi! My invoice no. is ${inv?.invoiceNumber}. Amount paid: ₹${inv?.grandTotal}. Please confirm my ${cfg.brand.name} subscription.`)}`}
+                target="_blank" rel="noreferrer"
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#25D366", color: "#fff", padding: "12px 20px", borderRadius: 50, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
+                💬 Send on WhatsApp
+              </a>
+              {inv?.customerEmail && (
+                <a href={`mailto:${inv.customerEmail}?subject=Invoice ${inv?.invoiceNumber} — ${cfg.brand.name}&body=Dear ${inv?.customerName},%0A%0AThank you for subscribing to ${cfg.brand.name}.%0A%0AInvoice No: ${inv?.invoiceNumber}%0AAmount: ₹${inv?.grandTotal} (incl. GST)%0A%0AYour service starts within 2 working days.`}
+                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#2196F3", color: "#fff", padding: "12px 20px", borderRadius: 50, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
+                  📧 Send by Email
+                </a>
+              )}
+            </div>
+            <button onClick={() => window.print()}
+              style={{ padding: "11px 20px", background: "#F3F4F6", color: "#374151", border: "1.5px solid #E5E7EB", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
+              🖨️ Print / Save as PDF
+            </button>
+          </div>
+
+          {/* What happens next */}
+          <div style={{ background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 14, padding: "18px 20px", marginBottom: 24 }}>
+            <div style={{ fontWeight: 700, color: "#1B5E20", marginBottom: 12, fontSize: 14 }}>📋 What happens next:</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {cfg.postPaymentSteps.map((s, i) => (
+                <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#2196F3", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i+1}</div>
+                  <div style={{ fontSize: 13, color: "#2E7D32", paddingTop: 3 }}>{s}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -658,6 +949,7 @@ export function CustomerPlanPage() {
               {[
                 { label: "Full name *", value: custName, set: setCustName, placeholder: "Amit Patel", col: 1 },
                 { label: "Mobile (WhatsApp) *", value: custMobile, set: setCustMobile, placeholder: "+91 98765 43210", col: 1 },
+                { label: "Email address", value: custEmail, set: setCustEmail, placeholder: "amit@example.com", col: 1 },
                 { label: "Vehicle registration", value: custReg, set: setCustReg, placeholder: "GJ05MJ2345", col: 1 },
               ].map(f => (
                 <div key={f.label}>
@@ -700,22 +992,43 @@ export function CustomerPlanPage() {
               </div>
             </div>
 
+            {/* Notification preference */}
+            <div style={{ marginBottom: 28 }}>
+              <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Send invoice & updates via</label>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                {[
+                  { id: "whatsapp", label: "WhatsApp only", icon: "💬" },
+                  { id: "email",    label: "Email only",    icon: "📧" },
+                  { id: "both",     label: "Both",          icon: "📲" },
+                ].map(opt => (
+                  <div key={opt.id} onClick={() => setNotifyPref(opt.id as any)}
+                    style={{ border: `2px solid ${notifyPref === opt.id ? "#2196F3" : "#E3EEF7"}`, borderRadius: 12, padding: "12px 20px", cursor: "pointer", background: notifyPref === opt.id ? "#E3F2FD" : "#fff", display: "flex", alignItems: "center", gap: 8, fontWeight: notifyPref === opt.id ? 700 : 500, fontSize: 14, transition: "all 0.15s" }}>
+                    <span>{opt.icon}</span>{opt.label}
+                  </div>
+                ))}
+              </div>
+              {notifyPref !== "whatsapp" && !custEmail && (
+                <p style={{ fontSize: 12, color: "#F59E0B", marginTop: 8 }}>⚠️ Please enter your email address above to receive email notifications.</p>
+              )}
+            </div>
+
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <button onClick={() => goTo(4)} style={{ padding: "12px 24px", background: "#f0f4f8", color: "#4A5568", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>← Back</button>
               <button onClick={() => goTo(6)} disabled={!step5Ok}
                 style={{ padding: "13px 32px", background: step5Ok ? "#2196F3" : "#BBDEFB", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: step5Ok ? "pointer" : "not-allowed", fontFamily: "'DM Sans',sans-serif" }}>
-                Review Order →
+                Review & Accept T&C →
               </button>
             </div>
           </div>
         )}
 
-        {/* ── STEP 6: REVIEW ───────────────────────────────────────────────── */}
+        {/* ── STEP 6: REVIEW + T&C + PAY ───────────────────────────────────── */}
         {step === 6 && (
           <div>
-            <h2 style={{ fontFamily: "'Syne',sans-serif", fontSize: 26, fontWeight: 700, marginBottom: 6 }}>Review your order</h2>
-            <p style={{ fontSize: 15, color: "#4A5568", marginBottom: 24 }}>Check everything below, then proceed to pay securely via Razorpay.</p>
+            <h2 style={{ fontFamily: "'Syne',sans-serif", fontSize: 26, fontWeight: 700, marginBottom: 6 }}>Review & Confirm</h2>
+            <p style={{ fontSize: 15, color: "#4A5568", marginBottom: 24 }}>Review your order, read and accept our policies, then pay securely.</p>
 
+            {/* Photos promise */}
             <div style={{ background: "#E3F2FD", border: "1px solid #BBDEFB", borderRadius: 14, padding: "16px 20px", display: "flex", gap: 14, alignItems: "center", marginBottom: 24, maxWidth: 640 }}>
               <span style={{ fontSize: 24 }}>📸</span>
               <span style={{ fontSize: 14 }}>After <strong>every single wash</strong>, your washer will send <strong>before & after photos directly to your WhatsApp</strong>. You don't need to be present.</span>
@@ -760,12 +1073,159 @@ export function CustomerPlanPage() {
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <button onClick={() => goTo(5)} style={{ padding: "12px 24px", background: "#f0f4f8", color: "#4A5568", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>← Back</button>
-              <button onClick={() => goTo(7)}
-                style={{ padding: "15px 40px", background: "#2196F3", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "'DM Sans',sans-serif", display: "flex", alignItems: "center", gap: 8 }}>
-                🔒 Pay Securely via Razorpay →
-              </button>
             </div>
-            <p style={{ fontSize: 12, color: "#90A4AE", marginTop: 12 }}>By proceeding you agree to our Terms & Conditions and Cancellation Policy.</p>
+
+            {/* ── T&C CONSENT SECTION ──────────────────────────────────────── */}
+            <div style={{ maxWidth: 640, marginTop: 32, marginBottom: 8 }}>
+              <h3 style={{ fontFamily: "'Syne',sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 6 }}>Terms & Policies</h3>
+              <p style={{ fontSize: 13, color: "#4A5568", marginBottom: 20 }}>Please read and accept all three policies before proceeding to payment.</p>
+
+              {/* T&C 1 — Terms of Service */}
+              <div style={{ border: `2px solid ${consentTerms ? "#00C853" : "#E3EEF7"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 12, background: consentTerms ? "#F0FDF4" : "#fff" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>📄 Terms of Service</div>
+                    <div style={{ fontSize: 12, color: "#4A5568" }}>Service schedule, washer conduct, quality standards, service area</div>
+                  </div>
+                  <button onClick={() => setShowTnC("terms")}
+                    style={{ padding: "5px 14px", background: "#E3F2FD", color: "#1565C0", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
+                    Read →
+                  </button>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13, fontWeight: 600, color: consentTerms ? "#15803D" : "#374151" }}>
+                  <input type="checkbox" checked={consentTerms} onChange={e => setConsentTerms(e.target.checked)}
+                    style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#00C853" }} />
+                  I have read and agree to the Terms of Service
+                </label>
+              </div>
+
+              {/* T&C 2 — Refund Policy */}
+              <div style={{ border: `2px solid ${consentRefund ? "#00C853" : "#E3EEF7"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 12, background: consentRefund ? "#F0FDF4" : "#fff" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>💰 Refund Policy</div>
+                    <div style={{ fontSize: 12, color: "#4A5568" }}>Conditions for refund, pro-rata billing, dispute resolution</div>
+                  </div>
+                  <button onClick={() => setShowTnC("refund")}
+                    style={{ padding: "5px 14px", background: "#E3F2FD", color: "#1565C0", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
+                    Read →
+                  </button>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13, fontWeight: 600, color: consentRefund ? "#15803D" : "#374151" }}>
+                  <input type="checkbox" checked={consentRefund} onChange={e => setConsentRefund(e.target.checked)}
+                    style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#00C853" }} />
+                  I have read and agree to the Refund Policy
+                </label>
+              </div>
+
+              {/* T&C 3 — Cancellation Policy */}
+              <div style={{ border: `2px solid ${consentCancel ? "#00C853" : "#E3EEF7"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 24, background: consentCancel ? "#F0FDF4" : "#fff" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>🚫 Cancellation Policy</div>
+                    <div style={{ fontSize: 12, color: "#4A5568" }}>7-day notice, no lock-in, pause options, penalty-free exit</div>
+                  </div>
+                  <button onClick={() => setShowTnC("cancel")}
+                    style={{ padding: "5px 14px", background: "#E3F2FD", color: "#1565C0", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
+                    Read →
+                  </button>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13, fontWeight: 600, color: consentCancel ? "#15803D" : "#374151" }}>
+                  <input type="checkbox" checked={consentCancel} onChange={e => setConsentCancel(e.target.checked)}
+                    style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#00C853" }} />
+                  I have read and agree to the Cancellation Policy
+                </label>
+              </div>
+
+              {/* Consent summary */}
+              {!consentOk && (
+                <div style={{ background: "#FFF3E0", border: "1px solid #FFB74D", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: "#E65100" }}>
+                  ⚠️ Please accept all three policies above to proceed to payment.
+                </div>
+              )}
+              {consentOk && (
+                <div style={{ background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 10, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: "#2E7D32", fontWeight: 600 }}>
+                  ✅ All policies accepted. You're ready to pay.
+                </div>
+              )}
+
+              {/* PAY BUTTON */}
+              <button
+                onClick={handlePayment}
+                disabled={!consentOk || isProcessing}
+                style={{
+                  width: "100%", padding: "16px", borderRadius: 14, border: "none",
+                  background: consentOk && !isProcessing ? "linear-gradient(135deg,#1565C0,#2196F3)" : "#BBDEFB",
+                  color: "#fff", fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18,
+                  cursor: consentOk && !isProcessing ? "pointer" : "not-allowed",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                  boxShadow: consentOk && !isProcessing ? "0 8px 24px rgba(33,150,243,0.35)" : "none",
+                  transition: "all 0.2s",
+                }}>
+                {isProcessing ? (
+                  <><span style={{ display: "inline-block", animation: "spin 1s linear infinite" }}>⏳</span> Processing…</>
+                ) : (
+                  <>🔒 Pay {inr(parseFloat((total * 1.18).toFixed(2)))} Securely via Razorpay</>
+                )}
+              </button>
+              <p style={{ fontSize: 11, color: "#90A4AE", textAlign: "center", marginTop: 10 }}>
+                Amount includes GST (CGST 9% + SGST 9%). By paying you confirm all consents above.
+              </p>
+            </div>
+
+            {/* ── POLICY MODALS ─────────────────────────────────────────────── */}
+            {showTnC && (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+                onClick={() => setShowTnC(null)}>
+                <div style={{ background: "#fff", borderRadius: 18, maxWidth: 560, width: "100%", maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
+                  onClick={e => e.stopPropagation()}>
+                  <div style={{ padding: "20px 24px", borderBottom: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, margin: 0 }}>
+                      {showTnC === "terms" ? "📄 Terms of Service" : showTnC === "refund" ? "💰 Refund Policy" : "🚫 Cancellation Policy"}
+                    </h3>
+                    <button onClick={() => setShowTnC(null)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6B7280" }}>✕</button>
+                  </div>
+                  <div style={{ padding: "20px 24px", overflowY: "auto", fontSize: 13, lineHeight: 1.8, color: "#374151" }}>
+                    {showTnC === "terms" && <>
+                      <p><strong>1. Service Delivery</strong><br />We provide daily doorstep car wash services as per the selected plan. Our trained washers follow a defined quality checklist for every wash. Service is provided at the registered address between the chosen time slot.</p>
+                      <p><strong>2. Quality Guarantee</strong><br />If you are not satisfied with the wash quality, report it within 24 hours via WhatsApp. We will arrange a free re-wash within 24 hours at no extra cost.</p>
+                      <p><strong>3. Washer Conduct</strong><br />Our washers are background-verified and trained. They will carry their {cfg.brand.name} ID at all times. You may request a washer replacement via your account manager.</p>
+                      <p><strong>4. Service Area</strong><br />Service is available only at the registered pincode. Change of address must be communicated 48 hours in advance and is subject to area availability.</p>
+                      <p><strong>5. Equipment & Materials</strong><br />All cleaning materials and equipment are provided by {cfg.brand.name}. No additional materials are needed from the customer.</p>
+                      <p><strong>6. Photo Documentation</strong><br />Before and after photos will be sent to your registered WhatsApp number after every wash as proof of service.</p>
+                    </>}
+                    {showTnC === "refund" && <>
+                      <p><strong>1. Subscription Payments</strong><br />Subscription fees are charged monthly in advance. Payments are non-refundable for the current billing cycle except in the circumstances below.</p>
+                      <p><strong>2. Pro-rata Refund</strong><br />If you cancel within the first 7 days of a new subscription (not a renewal), a pro-rata refund for unused days will be processed within 5–7 business days to the original payment method.</p>
+                      <p><strong>3. Service Failure Refund</strong><br />If we fail to deliver service for 3 or more consecutive days without prior notice, you are entitled to a pro-rata refund or credit for the affected days.</p>
+                      <p><strong>4. Razorpay Processing</strong><br />All refunds are processed via Razorpay to your original payment source. We do not offer cash refunds.</p>
+                      <p><strong>5. Dispute Resolution</strong><br />For disputes, contact us within 30 days of the transaction via WhatsApp or email. We aim to resolve all disputes within 5 business days.</p>
+                    </>}
+                    {showTnC === "cancel" && <>
+                      <p><strong>1. No Lock-in</strong><br />There is no minimum commitment. You may cancel your subscription at any time.</p>
+                      <p><strong>2. Notice Period</strong><br />A 7-day written notice (via WhatsApp or email) is required for cancellation. Your service will continue until the 7th day after notice.</p>
+                      <p><strong>3. Immediate Cancellation</strong><br />If you require immediate cancellation, we will pause your service and process a pro-rata refund for the remaining days in the current cycle.</p>
+                      <p><strong>4. Pause Option</strong><br />Instead of cancelling, you may pause your subscription for up to 30 days per year. No charges apply during a pause period.</p>
+                      <p><strong>5. Renewal</strong><br />Subscriptions auto-renew monthly. You will receive a reminder WhatsApp message 3 days before renewal. You can cancel before renewal with no charge.</p>
+                      <p><strong>6. Multi-month Commitments</strong><br />If you have opted for a 3, 6, or 12-month loyalty plan, the discount applies on renewal only. Cancellation before renewal does not affect the current month.</p>
+                    </>}
+                  </div>
+                  <div style={{ padding: "16px 24px", borderTop: "1px solid #E5E7EB", display: "flex", gap: 10 }}>
+                    <button onClick={() => {
+                      if (showTnC === "terms") setConsentTerms(true);
+                      if (showTnC === "refund") setConsentRefund(true);
+                      if (showTnC === "cancel") setConsentCancel(true);
+                      setShowTnC(null);
+                    }} style={{ flex: 1, padding: "12px", background: "#00C853", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+                      ✓ I Accept & Close
+                    </button>
+                    <button onClick={() => setShowTnC(null)} style={{ padding: "12px 20px", background: "#F3F4F6", color: "#374151", border: "none", borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
