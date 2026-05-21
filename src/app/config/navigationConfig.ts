@@ -110,6 +110,42 @@ export const NAV_CONFIG: NavItem[] = [
     ]
   },
 
+  // SALES HEAD APP
+  {
+    label: "SH APP",
+    path: "/sh-app",
+    icon: Crown,
+    module: "crm",
+    match: "exact",
+    description: "Sales Head workspace — team coaching, lead pipeline, incentives",
+    children: [
+      { label: "Command Dashboard", path: "/sh-app?tab=dashboard", icon: LayoutDashboard, module: "crm", match: "exact" },
+      { label: "Lead Pipeline",     path: "/sh-app?tab=pipeline",  icon: ListTree,        module: "crm", match: "exact" },
+      { label: "TCE Performance",   path: "/sh-app?tab=tce",       icon: Users,           module: "crm", match: "exact" },
+      { label: "My Closures",       path: "/sh-app?tab=personal",  icon: Target,          module: "crm", match: "exact" },
+      { label: "Incentives",        path: "/sh-app?tab=incentive", icon: TrendingUp,      module: "crm", match: "exact" },
+      { label: "Reports",           path: "/sh-app?tab=reports",   icon: BarChart,        module: "crm", match: "exact" },
+    ]
+  },
+
+  // SALES MANAGER APP
+  {
+    label: "SM APP",
+    path: "/sm-app-alliance",
+    icon: Building2,
+    module: "crm",
+    match: "exact",
+    description: "Sales Manager workspace — alliance management, locations, BTL",
+    children: [
+      { label: "Alliance Dashboard", path: "/sm-app-alliance?tab=dashboard",  icon: MapPin,      module: "crm", match: "exact" },
+      { label: "My Locations",       path: "/sm-app-alliance?tab=detail",     icon: Building2,   module: "crm", match: "exact" },
+      { label: "Submit Location",    path: "/sm-app-alliance?tab=submit",     icon: PlusCircle,  module: "crm", match: "exact" },
+      { label: "Block Deals",        path: "/sm-app-alliance?tab=block",      icon: Package,     module: "crm", match: "exact" },
+      { label: "Incentives",         path: "/sm-app-alliance?tab=incentive",  icon: TrendingUp,  module: "crm", match: "exact" },
+      { label: "BTL Expenses",       path: "/sm-app-alliance?tab=expenses",   icon: Receipt,     module: "crm", match: "exact" },
+    ]
+  },
+
   // CCE - Customer Care Executive App
   {
     label: "CCE App",

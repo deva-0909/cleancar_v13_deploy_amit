@@ -19,7 +19,9 @@ export type Role =
   | "Procurement Manager"
   | "Accounts"
   | "HR"
-  | "Marketing Agency";
+  | "Marketing Agency"
+  | "Sales Head"
+  | "Sales Manager";
 
 export interface WorkingHours {
   start: string;
@@ -615,6 +617,75 @@ export const roleConfigurations: Record<Role, RoleConfig> = {
     canRaiseMaterialRequisition: false,
     canApproveRequisitions: false,
   },
+  "Sales Head": {
+    name: "Sales Head",
+    modules: [
+      "dashboard",
+      "crm",
+      "leads",
+      "customers",
+      "complaints",
+      "leave",
+      "performance",
+      "analytics",
+    ],
+    dashboardType: "sales",
+    canApprove: true,
+    canCreate: true,
+    canDelete: false,
+    canExport: true,
+    canSeeFinancials: true,
+    canSeeAuditTrail: false,
+    workingHours: { start: "10:00", end: "19:00" },
+    reportsTo: ["City Manager", "Super Admin", "Admin"],
+    targets: {
+      daily: { calls: 20 },
+      monthly: { conversions: 10, teamConversions: 75 }
+    },
+    canApproveLeaves: true,
+    canSeeTeamLeaves: true,
+    canManageOnboarding: false,
+    canProcessExitSettlement: false,
+    canRaiseMaterialRequisition: false,
+    canApproveRequisitions: false,
+    dataGranularity: "TEAM",
+    showRawData: true,
+    showAggregatedView: true,
+  },
+
+  "Sales Manager": {
+    name: "Sales Manager",
+    modules: [
+      "dashboard",
+      "crm",
+      "leads",
+      "customers",
+      "leave",
+      "performance",
+    ],
+    dashboardType: "sales",
+    canApprove: false,
+    canCreate: true,
+    canDelete: false,
+    canExport: true,
+    canSeeFinancials: false,
+    canSeeAuditTrail: false,
+    workingHours: { start: "08:00", end: "18:30" },
+    reportsTo: ["Sales Head", "City Manager", "Super Admin"],
+    targets: {
+      monthly: { locations: 5, leads: 30, conversions: 5 }
+    },
+    canApproveLeaves: false,
+    canSeeTeamLeaves: false,
+    canManageOnboarding: false,
+    canProcessExitSettlement: false,
+    canRaiseMaterialRequisition: false,
+    canApproveRequisitions: false,
+    dataGranularity: "INDIVIDUAL",
+    showRawData: true,
+    showAggregatedView: false,
+  },
+
   "Marketing Agency": {
     name: "Marketing Agency",
     modules: [
