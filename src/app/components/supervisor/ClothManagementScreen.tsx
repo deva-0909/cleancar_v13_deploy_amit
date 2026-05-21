@@ -234,9 +234,9 @@ export function ClothManagementScreen({
                   </CardContent>
                 </Card>
               ) : (
-                supervisorCloths.map((batch) => {
-                const config = statusConfig[batch.status];
-                const isBlocked = !batch.issuedDate;
+                <>{supervisorCloths.map((batch) => {
+                  const config = statusConfig[batch.status];
+                  const isBlocked = !batch.issuedDate;
 
                 return (
                   <Card
@@ -346,8 +346,9 @@ export function ClothManagementScreen({
                   </div>
                 </CardContent>
               </Card>
-                )
-              })}
+                );
+              })}</>
+              )}
             </div>
           </TabsContent>
 
