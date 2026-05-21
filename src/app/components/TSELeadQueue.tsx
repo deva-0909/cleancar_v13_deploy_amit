@@ -202,8 +202,8 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
       </Card>
 
       {/* Lead Queue Table */}
-      <Card className="p-6">
-        <Table>
+      <Card className="p-6 overflow-x-auto">
+        <Table className="min-w-[900px]">
           <TableHeader>
             <TableRow>
               <TableHead>Priority</TableHead>
@@ -214,7 +214,7 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
               <TableHead>Attempts</TableHead>
               <TableHead>SLA Status</TableHead>
               <TableHead>Est. Value</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="min-w-[200px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -291,7 +291,7 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
                     <Button
                       size="sm"
                       onClick={() => onCallLead(lead)}
-                      className="gap-2"
+                      className="gap-1.5 bg-gray-900 hover:bg-gray-700 text-white"
                     >
                       <Phone className="w-4 h-4" />
                       Call Now
@@ -300,11 +300,10 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
                       size="sm"
                       variant="outline"
                       onClick={() => setWhatsAppLead(lead)}
-                      className="gap-1.5 border-green-400 text-green-700 hover:bg-green-50"
-                      title="Send WhatsApp message"
+                      className="gap-1.5 border-green-500 text-green-700 hover:bg-green-50 font-medium"
                     >
                       <MessageCircle className="w-4 h-4" />
-                      <span className="hidden sm:inline">WhatsApp</span>
+                      WhatsApp
                     </Button>
                   </div>
                 </TableCell>
