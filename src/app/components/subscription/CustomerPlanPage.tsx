@@ -103,15 +103,205 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
     { id: "luxury",    label: "Luxury / Large SUV",         icon: "🏎️" },
   ],
   carModelMap: {
-    swift:"hatchback", baleno:"hatchback", i20:"hatchback", tiago:"hatchback",
-    dzire:"hatchback", alto:"hatchback", wagon:"hatchback", figo:"hatchback",
-    polo:"hatchback", jazz:"hatchback", amaze:"hatchback", tigor:"hatchback",
-    creta:"suv", innova:"suv", ertiga:"suv", thar:"suv", xuv300:"suv",
-    seltos:"suv", venue:"suv", nexon:"suv", ecosport:"suv", city:"suv",
-    ciaz:"suv", verna:"suv", brezza:"suv", kushaq:"suv", slavia:"suv",
-    fortuner:"luxury", xuv700:"luxury", meridian:"luxury", scorpio:"luxury",
-    endeavour:"luxury", harrier:"luxury", safari:"luxury", gloster:"luxury",
-    hilux:"luxury", crysta:"luxury",
+    // ── MARUTI SUZUKI ──────────────────────────────────────────────────────
+    // Hatchbacks
+    "alto":"hatchback", "alto800":"hatchback", "altok10":"hatchback",
+    "swift":"hatchback", "swiftdzire":"hatchback",
+    "baleno":"hatchback", "celerio":"hatchback", "ignis":"hatchback",
+    "wagon":"hatchback", "wagonr":"hatchback",
+    "ritz":"hatchback", "estilo":"hatchback", "zen":"hatchback",
+    "sx4":"hatchback", "splash":"hatchback",
+    "dzire":"hatchback", "ciaz":"hatchback",
+    // SUV/Sedan
+    "ertiga":"suv", "xertiga":"suv", "vitara":"suv", "vitarabrezza":"suv",
+    "brezza":"suv", "scross":"suv", "s-cross":"suv",
+    "grand":"suv", "grandvitara":"suv",
+    "eeco":"suv", "omni":"suv",
+    "fronx":"suv", "jimny":"suv",
+    "invicto":"luxury",
+
+    // ── HYUNDAI ────────────────────────────────────────────────────────────
+    "i10":"hatchback", "grandi10":"hatchback", "i10nios":"hatchback",
+    "i20":"hatchback", "i20active":"hatchback", "i20n":"hatchback",
+    "aura":"hatchback", "santro":"hatchback", "eon":"hatchback",
+    "accent":"hatchback", "getz":"hatchback",
+    "verna":"suv", "elantra":"suv", "sonata":"suv",
+    "creta":"suv", "venue":"suv", "alcazar":"suv",
+    "tucson":"suv", "ioniq5":"luxury",
+    "kona":"suv",
+
+    // ── TATA MOTORS ────────────────────────────────────────────────────────
+    "tiago":"hatchback", "tiagoev":"hatchback",
+    "tigor":"hatchback", "tigorev":"hatchback",
+    "indica":"hatchback", "indicav2":"hatchback", "indigo":"hatchback",
+    "nexon":"suv", "nexonev":"suv", "nexonmax":"suv",
+    "harrier":"suv", "safari":"suv",
+    "punch":"hatchback", "punchev":"hatchback",
+    "altroz":"hatchback",
+    "hexa":"suv", "aria":"suv", "sumo":"suv",
+    "nano":"hatchback", "manza":"hatchback",
+    "zest":"hatchback", "bolt":"hatchback",
+    "avinya":"luxury", "curvv":"suv", "curvvev":"suv",
+
+    // ── MAHINDRA ───────────────────────────────────────────────────────────
+    "thar":"suv", "tharre":"suv",
+    "scorpio":"suv", "scorpioclassic":"suv", "scorpion":"suv",
+    "scorpioe":"suv", "scorpion":"suv",
+    "xuv300":"suv", "xuv400":"suv", "xuv700":"luxury",
+    "bolero":"suv", "boleropik":"suv", "boleromax":"suv",
+    "kuv100":"hatchback", "kuv300":"suv",
+    "marazzo":"suv", "alturas":"luxury",
+    "xylo":"suv", "verito":"hatchback",
+    "roxor":"suv", "marshal":"suv",
+    "be6":"luxury", "xe9":"luxury",
+
+    // ── HONDA ──────────────────────────────────────────────────────────────
+    "jazz":"hatchback", "brio":"hatchback",
+    "amaze":"hatchback", "city":"suv",
+    "civic":"suv", "accord":"luxury",
+    "wrv":"suv", "hrv":"suv", "brv":"suv",
+    "crv":"luxury", "pilot":"luxury",
+    "elevate":"suv",
+
+    // ── TOYOTA ─────────────────────────────────────────────────────────────
+    "etios":"hatchback", "etiosliva":"hatchback", "etiosgd":"hatchback",
+    "yaris":"hatchback", "yariscross":"suv",
+    "glanza":"hatchback",
+    "innova":"suv", "innovacrystal":"suv", "innovahycross":"suv", "crysta":"suv",
+    "fortuner":"luxury", "fortunelegender":"luxury",
+    "camry":"luxury", "vellfire":"luxury", "hilux":"luxury",
+    "land":"luxury", "landcruiser":"luxury", "prado":"luxury",
+    "urban":"suv", "urbancruiser":"suv", "raize":"suv",
+    "hyryder":"suv", "taisor":"suv",
+
+    // ── KIA ────────────────────────────────────────────────────────────────
+    "seltos":"suv", "carnival":"luxury", "sonet":"suv",
+    "ev6":"luxury", "ev9":"luxury",
+    "carens":"suv",
+
+    // ── SKODA ──────────────────────────────────────────────────────────────
+    "rapid":"hatchback", "fabia":"hatchback",
+    "octavia":"suv", "superb":"luxury",
+    "kushaq":"suv", "slavia":"suv",
+    "kodiaq":"luxury", "karoq":"suv",
+    "enyaq":"luxury",
+
+    // ── VOLKSWAGEN ─────────────────────────────────────────────────────────
+    "polo":"hatchback", "vento":"hatchback", "ameo":"hatchback",
+    "virtus":"suv", "taigun":"suv",
+    "passat":"luxury", "tiguan":"luxury", "tiguarallspace":"luxury",
+    "touareg":"luxury", "id4":"luxury",
+
+    // ── RENAULT ────────────────────────────────────────────────────────────
+    "kwid":"hatchback", "triber":"suv",
+    "kiger":"suv", "duster":"suv",
+    "lodgy":"suv", "scala":"hatchback",
+    "fluence":"suv",
+
+    // ── NISSAN ─────────────────────────────────────────────────────────────
+    "micra":"hatchback", "sunny":"hatchback",
+    "magnite":"suv", "kicks":"suv",
+    "teana":"luxury", "xtrail":"luxury",
+    "patrol":"luxury",
+
+    // ── FORD (discontinued India, still on roads) ──────────────────────────
+    "figo":"hatchback", "aspire":"hatchback",
+    "freestyle":"suv", "ecosport":"suv",
+    "endeavour":"luxury",
+    "mondeo":"suv", "mustang":"luxury",
+    "fusion":"suv",
+
+    // ── MERCEDES-BENZ ──────────────────────────────────────────────────────
+    "aclass":"luxury", "bclass":"luxury", "cclass":"luxury",
+    "eclass":"luxury", "sclass":"luxury",
+    "gla":"luxury", "glb":"luxury", "glc":"luxury",
+    "gle":"luxury", "gls":"luxury", "gclass":"luxury",
+    "amg":"luxury", "cla":"luxury", "cls":"luxury",
+    "eqb":"luxury", "eqc":"luxury", "eqs":"luxury",
+    "c200":"luxury", "c220":"luxury", "e200":"luxury",
+    "s450":"luxury", "s500":"luxury",
+
+    // ── BMW ────────────────────────────────────────────────────────────────
+    "1series":"luxury", "2series":"luxury", "3series":"luxury",
+    "4series":"luxury", "5series":"luxury", "6series":"luxury",
+    "7series":"luxury", "8series":"luxury",
+    "x1":"luxury", "x2":"luxury", "x3":"luxury",
+    "x4":"luxury", "x5":"luxury", "x6":"luxury", "x7":"luxury",
+    "m3":"luxury", "m5":"luxury", "z4":"luxury",
+    "i4":"luxury", "ix":"luxury", "ix3":"luxury",
+
+    // ── AUDI ───────────────────────────────────────────────────────────────
+    "a3":"luxury", "a4":"luxury", "a5":"luxury",
+    "a6":"luxury", "a7":"luxury", "a8":"luxury",
+    "q2":"luxury", "q3":"luxury", "q5":"luxury",
+    "q7":"luxury", "q8":"luxury",
+    "rs":"luxury", "r8":"luxury", "tt":"luxury",
+    "e-tron":"luxury", "etron":"luxury",
+
+    // ── VOLVO ──────────────────────────────────────────────────────────────
+    "xc40":"luxury", "xc60":"luxury", "xc90":"luxury",
+    "s60":"luxury", "s90":"luxury",
+    "v60":"luxury", "v90":"luxury",
+    "c40":"luxury",
+
+    // ── JAGUAR ─────────────────────────────────────────────────────────────
+    "jaguar":"luxury", "xf":"luxury", "xe":"luxury", "xj":"luxury",
+    "fpace":"luxury", "epace":"luxury", "ipace":"luxury",
+
+    // ── LAND ROVER ─────────────────────────────────────────────────────────
+    "landrover":"luxury", "defender":"luxury", "discovery":"luxury",
+    "freelander":"luxury", "rangerover":"luxury",
+    "sport":"luxury", "velar":"luxury", "evoque":"luxury",
+
+    // ── PORSCHE ────────────────────────────────────────────────────────────
+    "porsche":"luxury", "cayenne":"luxury", "macan":"luxury",
+    "panamera":"luxury", "taycan":"luxury", "911":"luxury",
+    "boxster":"luxury", "cayman":"luxury",
+
+    // ── JEEP ───────────────────────────────────────────────────────────────
+    "compass":"suv", "meridian":"luxury",
+    "wrangler":"luxury", "cherokee":"luxury",
+    "grand cherokee":"luxury", "grandcherokee":"luxury",
+    "renegade":"suv",
+
+    // ── MG (MORRIS GARAGES) ────────────────────────────────────────────────
+    "hector":"suv", "hectorplus":"suv",
+    "gloster":"luxury", "astor":"suv",
+    "zs":"suv", "zsev":"suv",
+    "comet":"hatchback", "cometev":"hatchback",
+    "mg":"suv",
+
+    // ── CITROEN ────────────────────────────────────────────────────────────
+    "c3":"hatchback", "c3aircross":"suv",
+    "c5":"suv", "c5aircross":"suv",
+    "basalt":"suv", "ec3":"hatchback",
+
+    // ── LEXUS ──────────────────────────────────────────────────────────────
+    "lexus":"luxury", "lx":"luxury", "rx":"luxury",
+    "nx":"luxury", "ux":"luxury",
+    "es":"luxury", "ls":"luxury", "lc":"luxury",
+
+    // ── MASERATI / FERRARI / LAMBORGHINI ───────────────────────────────────
+    "maserati":"luxury", "ferrari":"luxury", "lamborghini":"luxury",
+    "ghibli":"luxury", "levante":"luxury", "grecale":"luxury",
+    "huracan":"luxury", "urus":"luxury", "aventador":"luxury",
+
+    // ── BENTLEY / ROLLS ROYCE / ASTON MARTIN ──────────────────────────────
+    "bentley":"luxury", "rollsroyce":"luxury", "astonmartin":"luxury",
+    "ghost":"luxury", "phantom":"luxury", "cullinan":"luxury",
+    "continental":"luxury", "vantage":"luxury", "dbx":"luxury",
+
+    // ── OLA / PURE EV / EV SEGMENT ─────────────────────────────────────────
+    "ola":"hatchback", "olaes1":"hatchback",
+    "nexonev":"suv", "tiagoev":"hatchback",
+    "minicooper":"luxury", "mini":"luxury",
+
+    // ── ISUZU ──────────────────────────────────────────────────────────────
+    "dmax":"suv", "mux":"suv",
+
+    // ── MITSUBISHI ─────────────────────────────────────────────────────────
+    "outlander":"luxury", "pajero":"luxury", "eclipse":"luxury",
+    "lancer":"hatchback",
   },
   serviceablePincodes: [
     { code: "395007", label: "Vesu / Pal" },
@@ -622,6 +812,14 @@ export function CustomerPlanPage() {
               ))}
             </div>
           </div>
+
+          {/* Cancellation link */}
+          <div style={{ textAlign: "center", padding: "16px 0", borderTop: "1px solid #E3EEF7" }}>
+            <p style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 8 }}>Need to cancel your service in the future?</p>
+            <a href="/cancel-service" style={{ fontSize: 13, color: "#546E7A", fontWeight: 600, textDecoration: "underline" }}>
+              Request Service Cancellation →
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -640,6 +838,10 @@ export function CustomerPlanPage() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <span style={{ fontSize: 13, color: "#4A5568" }}>📞 {cfg.brand.phone}</span>
+          <a href="/cancel-service"
+            style={{ color: "#546E7A", fontSize: 13, fontWeight: 600, textDecoration: "none", padding: "7px 14px", border: "1.5px solid #CFD8DC", borderRadius: 50 }}>
+            Cancel Service
+          </a>
           <a href={`https://wa.me/${cfg.brand.whatsappNumber}`} target="_blank" rel="noreferrer"
             style={{ background: "#25D366", color: "#fff", padding: "8px 16px", borderRadius: 50, fontSize: 13, fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
             💬 WhatsApp
@@ -1187,27 +1389,51 @@ export function CustomerPlanPage() {
                   </div>
                   <div style={{ padding: "20px 24px", overflowY: "auto", fontSize: 13, lineHeight: 1.8, color: "#374151" }}>
                     {showTnC === "terms" && <>
-                      <p><strong>1. Service Delivery</strong><br />We provide daily doorstep car wash services as per the selected plan. Our trained washers follow a defined quality checklist for every wash. Service is provided at the registered address between the chosen time slot.</p>
-                      <p><strong>2. Quality Guarantee</strong><br />If you are not satisfied with the wash quality, report it within 24 hours via WhatsApp. We will arrange a free re-wash within 24 hours at no extra cost.</p>
-                      <p><strong>3. Washer Conduct</strong><br />Our washers are background-verified and trained. They will carry their {cfg.brand.name} ID at all times. You may request a washer replacement via your account manager.</p>
-                      <p><strong>4. Service Area</strong><br />Service is available only at the registered pincode. Change of address must be communicated 48 hours in advance and is subject to area availability.</p>
-                      <p><strong>5. Equipment & Materials</strong><br />All cleaning materials and equipment are provided by {cfg.brand.name}. No additional materials are needed from the customer.</p>
-                      <p><strong>6. Photo Documentation</strong><br />Before and after photos will be sent to your registered WhatsApp number after every wash as proof of service.</p>
+                      <p style={{fontSize:12,color:"#6B7280",marginBottom:12}}>Effective Date: 1st June 2025 · 24/9 Carwashing Pvt. Ltd.</p>
+                      <p><strong>1. Introduction</strong><br />These Terms constitute a legally binding agreement between you ("Customer") and 24/9 Carwashing Pvt. Ltd. for professional car wash services. By subscribing you confirm you have read, understood, and agree to be bound by these Terms.</p>
+                      <p><strong>2. Registered Vehicle Policy</strong><br />The vehicle registration number provided at subscription is the sole vehicle entitled to receive services. No substitution or temporary swap is permissible for any reason, including breakdown or absence. A vehicle change is treated as a new subscription with a 20% vehicle-change fee on the original contract value — no refund is due on the original subscription.</p>
+                      <p><strong>3. Service Continuity — No Pause Policy</strong><br />Subscribed service terms run continuously from commencement and <strong>cannot be paused, suspended, or placed on hold</strong> for any reason. Customer travel, vehicle repair, public holidays, or personal choice not to use the service do <em>not</em> entitle any pause or extension. The term lapses regardless of days not availed.</p>
+                      <p><strong>4. Scope of Services</strong><br />Services are provided at operational locations in Surat as per the enrolled plan. Availability is subject to operational capacity. The Company may reschedule due to weather, force majeure, or circumstances beyond reasonable control.</p>
+                      <p><strong>5. Payments & Fees</strong><br />All fees are payable in advance. GST and statutory levies are charged over and above quoted fees. Payment gateway charges on refunds shall not exceed 2% of the transaction value. Pricing revisions require 7 calendar days' notice and apply only to new subscriptions — existing active subscriptions are not affected.</p>
+                      <p><strong>6. Customer Obligations</strong><br />Ensure the Registered Vehicle is available on each service day with at least 2 ft clearance on all 4 sides. Disclose any pre-existing vehicle damage before service commencement. Comply with reasonable instructions of Company staff.</p>
+                      <p><strong>7. Limitation of Liability</strong><br />The Company's total liability shall not exceed fees paid in the 30 days preceding the claim. The Company is not liable for consequential, indirect, or punitive damages. Pre-existing damages discovered during service are not the Company's liability.</p>
+                      <p><strong>8. Governing Law</strong><br />These Terms are governed by the laws of India. Disputes are subject to exclusive jurisdiction of courts in Surat, Gujarat. Disputes must be raised in writing within 7 calendar days of the triggering event.</p>
                     </>}
                     {showTnC === "refund" && <>
-                      <p><strong>1. Subscription Payments</strong><br />Subscription fees are charged monthly in advance. Payments are non-refundable for the current billing cycle except in the circumstances below.</p>
-                      <p><strong>2. Pro-rata Refund</strong><br />If you cancel within the first 7 days of a new subscription (not a renewal), a pro-rata refund for unused days will be processed within 5–7 business days to the original payment method.</p>
-                      <p><strong>3. Service Failure Refund</strong><br />If we fail to deliver service for 3 or more consecutive days without prior notice, you are entitled to a pro-rata refund or credit for the affected days.</p>
-                      <p><strong>4. Razorpay Processing</strong><br />All refunds are processed via Razorpay to your original payment source. We do not offer cash refunds.</p>
-                      <p><strong>5. Dispute Resolution</strong><br />For disputes, contact us within 30 days of the transaction via WhatsApp or email. We aim to resolve all disputes within 5 business days.</p>
+                      <p style={{fontSize:12,color:"#6B7280",marginBottom:12}}>Effective Date: 1st June 2025 · 24/9 Carwashing Pvt. Ltd.</p>
+                      <p><strong>1. Refund Eligibility</strong><br />Refunds are considered only in these circumstances: (a) Pre-commencement cancellation more than 5 days before service starts — full refund less gateway charges (max 2%); (b) Cancellation within the first 70% of the Service Term — prorata + 10% cancellation fee deducted; (c) Service failure solely attributable to the Company for 3+ consecutive scheduled days; (d) Duplicate or erroneous payments verified by finance.</p>
+                      <p><strong>2. No Refund Situations</strong><br />No refund is applicable for: cancellation after 70%+ of Service Term has elapsed (full fee forfeited); customer non-availability or choice not to use service; vehicle unavailability; vehicle change requests; service quality dissatisfaction where Company has made reasonable remedy efforts; requests after the Service Term expires.</p>
+                      <p><strong>3. Refund Computation</strong></p>
+                      <div style={{background:"#F9FAFB",borderRadius:8,padding:"10px 12px",marginBottom:8,fontSize:12}}>
+                        <div>Total Fee Paid</div>
+                        <div>− Prorata Used (daily rate × days elapsed)</div>
+                        <div>− Cancellation Fee (10% of total contract value)</div>
+                        <div>− Payment Gateway Charges (actual, max 2%)</div>
+                        <div style={{borderTop:"1px solid #E5E7EB",paddingTop:6,marginTop:6,fontWeight:700}}>= Net Refund Amount</div>
+                        <div style={{marginTop:8,color:"#1565C0"}}>Example: ₹3,000 package / 30 days. Cancel at Day 12. Prorata = ₹1,200. Fee = ₹300. Refund = ₹1,500.</div>
+                      </div>
+                      <p><strong>4. Processing Timelines</strong><br />UPI/Net Banking: 5–7 business days. Debit Card: 7–10 days. Credit Card: 7–14 days. Cash: Cheque/NEFT within 10 business days. Timelines are indicative; delays due to banking intermediaries are not the Company's liability.</p>
+                      <p><strong>5. Refund Process</strong><br />Submit written cancellation request → Company acknowledges within 2 business days → refund quantum computed and communicated → you confirm payment details → refund processed within timelines above → confirmation sent to registered contact.</p>
+                      <p><strong>6. GST on Refunds</strong><br />The GST component of a refund is processed per applicable GST law. A credit note is issued as required under GST Act 2017. Consult your tax advisor for treatment in your filings.</p>
+                      <p><strong>7. Contact</strong><br />Email: support@249carwashing.com · Phone: 080 4879 4545 (Mon–Sat, 10am–7pm)</p>
                     </>}
                     {showTnC === "cancel" && <>
-                      <p><strong>1. No Lock-in</strong><br />There is no minimum commitment. You may cancel your subscription at any time.</p>
-                      <p><strong>2. Notice Period</strong><br />A 7-day written notice (via WhatsApp or email) is required for cancellation. Your service will continue until the 7th day after notice.</p>
-                      <p><strong>3. Immediate Cancellation</strong><br />If you require immediate cancellation, we will pause your service and process a pro-rata refund for the remaining days in the current cycle.</p>
-                      <p><strong>4. Pause Option</strong><br />Instead of cancelling, you may pause your subscription for up to 30 days per year. No charges apply during a pause period.</p>
-                      <p><strong>5. Renewal</strong><br />Subscriptions auto-renew monthly. You will receive a reminder WhatsApp message 3 days before renewal. You can cancel before renewal with no charge.</p>
-                      <p><strong>6. Multi-month Commitments</strong><br />If you have opted for a 3, 6, or 12-month loyalty plan, the discount applies on renewal only. Cancellation before renewal does not affect the current month.</p>
+                      <p style={{fontSize:12,color:"#6B7280",marginBottom:12}}>Effective Date: 1st June 2025 · 24/9 Carwashing Pvt. Ltd.</p>
+                      <p><strong>1. How to Request Cancellation</strong><br />Submit a written request via email to the registered Company support address, or in person at a service location. The request must include your name, subscription/invoice number, registered vehicle number, and reason. <strong>Verbal or WhatsApp requests to field staff are not valid</strong> and will not be processed until a formal written request is received. The effective cancellation date is when the Company acknowledges receipt (within 2 business days).</p>
+                      <div style={{background:"#FFF3E0",border:"1px solid #FFB74D",borderRadius:8,padding:"10px 12px",marginBottom:12,fontSize:12}}>
+                        <strong>📋 Cancellation Fee Schedule</strong>
+                        <table style={{width:"100%",marginTop:8,borderCollapse:"collapse",fontSize:11}}>
+                          <thead><tr style={{background:"#FFF"}}><th style={{textAlign:"left",padding:"4px 6px",borderBottom:"1px solid #FDE68A"}}>Window</th><th style={{padding:"4px 6px",borderBottom:"1px solid #FDE68A"}}>Fee</th><th style={{padding:"4px 6px",borderBottom:"1px solid #FDE68A"}}>Refund</th></tr></thead>
+                          <tbody>
+                            <tr><td style={{padding:"4px 6px",borderBottom:"1px solid #FEF3C7"}}>Before service starts (&gt;5 days)</td><td style={{padding:"4px 6px",borderBottom:"1px solid #FEF3C7",textAlign:"center"}}>Nil</td><td style={{padding:"4px 6px",borderBottom:"1px solid #FEF3C7"}}>Full refund less gateway charges</td></tr>
+                            <tr><td style={{padding:"4px 6px",borderBottom:"1px solid #FEF3C7"}}>Day 1 – 70% of term elapsed</td><td style={{padding:"4px 6px",borderBottom:"1px solid #FEF3C7",textAlign:"center"}}>Prorata used + 10% of contract</td><td style={{padding:"4px 6px",borderBottom:"1px solid #FEF3C7"}}>Balance after deductions</td></tr>
+                            <tr style={{background:"#FEF2F2"}}><td style={{padding:"4px 6px",fontWeight:700}}>After 70% of term</td><td style={{padding:"4px 6px",textAlign:"center",fontWeight:700,color:"#DC2626"}}>100% forfeited</td><td style={{padding:"4px 6px",color:"#DC2626",fontWeight:700}}>No refund</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <p><strong>2. No Pause Rule</strong><br />Cancellation due to customer travel, vehicle unavailability, or choice not to use service does not qualify for any fee waiver or term extension.</p>
+                      <p><strong>3. Non-Transferability</strong><br />Subscriptions are non-transferable. Remaining service days cannot be assigned to another person or vehicle. Vehicle change requests are not cancellations and are governed by Section 4 of the Terms & Conditions.</p>
+                      <p><strong>4. Disputes</strong><br />Raise disputes in writing within 7 days of receiving the cancellation settlement. The Company's decision after review is final and binding.</p>
                     </>}
                   </div>
                   <div style={{ padding: "16px 24px", borderTop: "1px solid #E5E7EB", display: "flex", gap: 10 }}>
