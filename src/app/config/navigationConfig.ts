@@ -314,6 +314,7 @@ export const NAV_CONFIG: NavItem[] = [
       { label: "Permissions", path: "/admin/permissions", icon: ShieldCheck, module: "admin", match: "prefix" },
       { label: "Role & Permissions", path: "/admin/role-permissions", icon: ShieldCheck, module: "admin", match: "prefix" },
       { label: "Subscription Plans", path: "/subscription/plan-management", icon: Package, module: "admin", match: "prefix" },
+      { label: "Plan Page Editor", path: "/admin/plan-page-editor", icon: MousePointerClick, module: "admin", match: "prefix" },
       { label: "Comm. Templates", path: "/settings/communication-templates", icon: Mail, module: "admin", match: "prefix" },
       { label: "Cost Configuration", path: "/settings/cost-configuration", icon: SlidersHorizontal, module: "admin", match: "prefix" },
       { label: "Working Hours", path: "/workforce/working-hours", icon: Clock, module: "admin", match: "prefix" },
