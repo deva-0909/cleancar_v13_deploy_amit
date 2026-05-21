@@ -1,150 +1,254 @@
 /**
- * CancellationRequestPage.tsx
- * Public page at /cancel-service
+ * CancellationRequestPage.tsx  — /cancel-service
  *
- * Allows an existing customer to:
- *  1. Enter their subscription details
- *  2. See live refund calculation (per 24/9 Cancellation Policy)
- *  3. Accept T&C for the cancellation
- *  4. Submit a formal cancellation request (stored in localStorage + WhatsApp)
+ * Flow:
+ *   Step 1 — Customer identifies themselves (name + mobile ONLY; sub ID optional)
+ *             System auto-fetches their subscription from CustomerContext
+ *   Step 2 — Reason for cancellation
+ *   Step 3 — Full policy-driven refund breakdown shown; customer accepts or declines
+ *             • Accept  → cancellation request queued to TSM (stored in cleancar_tsm_refunds)
+ *                         + complaint logged to CCE service as info ticket
+ *             • Decline → escalated to CCE (stored in cleancar_complaints as P2 ticket)
+ *                         CCE will call the customer to discuss and resolve
+ *   Step 4 — Confirmation screen
  *
- * Policy: 24/9 Carwashing Pvt. Ltd. Cancellation Policy effective 1 June 2025
- *   - Before service starts (>5 days): nil fee, full refund less gateway (max 2%)
- *   - Day 1 – 70% elapsed: prorata + 10% of total contract value
- *   - After 70% elapsed: 100% forfeited, no refund
+ * Policy: 24/9 Carwashing Pvt. Ltd. — Cancellation Policy effective 1 June 2025
  */
 
 import { useState, useEffect } from "react";
-import { loadConfig, DEFAULT_CONFIG, type PlanPageConfig } from "./CustomerPlanPage";
+import { loadConfig, type PlanPageConfig } from "./CustomerPlanPage";
 
-// ── types ──────────────────────────────────────────────────────────────────
-interface CancelRequest {
-  id: string;
-  submittedAt: string;
-  customerName: string;
-  customerMobile: string;
-  customerEmail: string;
+// ─── Types ───────────────────────────────────────────────────────────────────
+interface FoundSubscription {
   subscriptionId: string;
   invoiceNumber: string;
+  customerName: string;
+  customerId: string;
+  packageName: string;
   vehicleReg: string;
-  reason: string;
-  otherReason?: string;
-  totalAmount: number;
+  vehicleCategory: string;
   startDate: string;
   totalDays: number;
-  daysElapsed: number;
-  percentElapsed: number;
-  prorata: number;
-  cancellationFee: number;
-  gatewayFee: number;
-  refundAmount: number;
-  refundZone: "full" | "partial" | "none";
-  status: "Submitted" | "Under Review" | "Approved" | "Rejected" | "Processed";
+  totalAmount: number;
+  paymentMethod: string;
+  cityId: string;
 }
 
 const CANCEL_REASONS = [
   "Relocating / Moving out of service area",
   "Selling the vehicle",
   "Not satisfied with service quality",
-  "Purchased a new vehicle (vehicle change)",
+  "Purchased a new vehicle (vehicle change required)",
   "Financial reasons",
-  "Extended travel / vehicle not available",
+  "Extended travel / vehicle not available for long period",
   "Service no longer required",
   "Other (please specify)",
 ];
 
-const INR = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
+const INR = (n: number) => "₹" + Math.max(0, Math.round(n)).toLocaleString("en-IN");
 
-function computeRefund(total: number, days: number, elapsed: number) {
-  const pct = days > 0 ? (elapsed / days) * 100 : 0;
-  const dailyRate = days > 0 ? total / days : 0;
-  const prorata = Math.round(dailyRate * elapsed);
+// ─── Policy Calculation ───────────────────────────────────────────────────────
+function computeRefund(total: number, totalDays: number, startDate: string) {
+  const start   = new Date(startDate);
+  const today   = new Date();
+  const elapsed = Math.max(0, Math.floor((today.getTime() - start.getTime()) / 86400000));
+  const pct     = totalDays > 0 ? Math.min(100, (elapsed / totalDays) * 100) : 0;
+  const daily   = totalDays > 0 ? total / totalDays : 0;
+  const prorata = Math.round(daily * Math.min(elapsed, totalDays));
   const cancelFee = Math.round(total * 0.10);
   const gatewayFee = Math.round(total * 0.02);
 
-  if (elapsed === 0) {
-    // Pre-commencement (>5 days before start)
-    return { pct: 0, prorata: 0, cancelFee: 0, gatewayFee, refund: total - gatewayFee, zone: "full" as const };
+  // Pre-commencement (not started yet)
+  if (elapsed <= 0) {
+    return { elapsed: 0, pct: 0, prorata: 0, cancelFee: 0, gatewayFee, refund: total - gatewayFee, zone: "full" as const, daily };
   }
+  // No-refund zone ≥ 70%
   if (pct >= 70) {
-    return { pct, prorata: total, cancelFee: 0, gatewayFee: 0, refund: 0, zone: "none" as const };
+    return { elapsed, pct, prorata: total, cancelFee: 0, gatewayFee: 0, refund: 0, zone: "none" as const, daily };
   }
+  // Partial refund
   const refund = Math.max(0, total - prorata - cancelFee - gatewayFee);
-  return { pct, prorata, cancelFee, gatewayFee, refund, zone: "partial" as const };
+  return { elapsed, pct, prorata, cancelFee, gatewayFee, refund, zone: "partial" as const, daily };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Main Component ───────────────────────────────────────────────────────────
 export function CancellationRequestPage() {
   const [cfg] = useState<PlanPageConfig>(loadConfig);
-  const [step, setStep]       = useState<1|2|3|4>(1);
-  const [submitted, setSubmitted] = useState(false);
-  const [submittedReq, setSubmittedReq] = useState<CancelRequest | null>(null);
 
-  // Step 1 — lookup
-  const [custName, setCustName]       = useState("");
-  const [custMobile, setCustMobile]   = useState("");
-  const [custEmail, setCustEmail]     = useState("");
-  const [subId, setSubId]             = useState("");
-  const [invoiceNo, setInvoiceNo]     = useState("");
-  const [vehicleReg, setVehicleReg]   = useState("");
+  // Step management
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [outcome, setOutcome] = useState<"accepted" | "declined" | null>(null);
 
-  // Step 2 — subscription details
-  const [totalAmount, setTotalAmount] = useState("");
-  const [startDate, setStartDate]     = useState("");
-  const [totalDays, setTotalDays]     = useState("30");
+  // Step 1 — identification
+  const [custMobile, setCustMobile] = useState("");
+  const [vehicleReg, setVehicleReg] = useState("");
+  const [subIdHint, setSubIdHint]   = useState(""); // optional
+  const [isLooking, setIsLooking]   = useState(false);
+  const [lookupError, setLookupError] = useState("");
+  const [found, setFound] = useState<FoundSubscription | null>(null);
 
-  // Step 3 — reason
-  const [reason, setReason]           = useState("");
+  // Step 2 — reason
+  const [reason, setReason]         = useState("");
   const [otherReason, setOtherReason] = useState("");
 
-  // Step 4 — consent
+  // Step 3 — consent
   const [consentPolicy, setConsentPolicy] = useState(false);
-  const [consentFee, setConsentFee]       = useState(false);
-  const [showPolicy, setShowPolicy]       = useState(false);
+  const [consentCalc, setConsentCalc]     = useState(false);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [isSubmitting, setIsSubmitting]   = useState(false);
+  const [refId, setRefId]                 = useState("");
 
-  const step1Ok = custName && custMobile && (subId || invoiceNo) && vehicleReg;
-  const step2Ok = totalAmount && parseFloat(totalAmount) > 0 && startDate && parseInt(totalDays) > 0;
-  const step3Ok = reason && (reason !== "Other (please specify)" || otherReason.trim());
-  const step4Ok = consentPolicy && consentFee;
+  const step1Ok = custMobile.length >= 10 && vehicleReg.trim().length >= 4;
+  const step2Ok = reason && (reason !== "Other (please specify)" || otherReason.trim());
 
-  // Live refund calc
-  const calc = (() => {
-    if (!step2Ok) return null;
-    const total = parseFloat(totalAmount);
-    const days  = parseInt(totalDays);
-    const start = new Date(startDate);
-    const today = new Date();
-    const elapsed = Math.max(0, Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
-    return { elapsed, ...computeRefund(total, days, Math.min(elapsed, days)) };
-  })();
+  const calc = found ? computeRefund(found.totalAmount, found.totalDays, found.startDate) : null;
 
-  const handleSubmit = () => {
-    if (!calc) return;
-    const req: CancelRequest = {
-      id: `CANC-${Date.now()}`,
+  // ── Lookup subscription from localStorage stores ─────────────────────────
+  const handleLookup = () => {
+    setIsLooking(true);
+    setLookupError("");
+    setFound(null);
+
+    try {
+      const mobile = custMobile.replace(/\D/g, "").slice(-10);
+      const reg    = vehicleReg.trim().toUpperCase().replace(/\s/g, "");
+
+      // Search web invoices first
+      const webInvoices: any[] = JSON.parse(localStorage.getItem("cleancar_web_invoices") || "[]");
+      let match = webInvoices.find((inv: any) => {
+        const invMobile = (inv.customerPhone || "").replace(/\D/g, "").slice(-10);
+        const invReg    = (inv.vehicleReg || "").toUpperCase().replace(/\s/g, "");
+        const invSub    = (inv.subscriptionId || "").toLowerCase();
+        const mobileMatch = invMobile === mobile;
+        const regMatch    = reg ? invReg === reg : true;
+        const subMatch    = subIdHint ? invSub.includes(subIdHint.toLowerCase()) : true;
+        return mobileMatch && (regMatch || !reg) && subMatch;
+      });
+
+      if (match) {
+        setFound({
+          subscriptionId: match.subscriptionId || match.invoiceNumber,
+          invoiceNumber:  match.invoiceNumber,
+          customerName:   match.customerName,
+          customerId:     match.customerId || "",
+          packageName:    match.items?.[0]?.name || "Subscription",
+          vehicleReg:     match.vehicleReg || reg,
+          vehicleCategory: match.vehicleCategory || "",
+          startDate:      match.createdAt?.split("T")[0] || new Date().toISOString().split("T")[0],
+          totalDays:      30,
+          totalAmount:    match.subtotal || 0,
+          paymentMethod:  match.paymentMethod || "Online",
+          cityId:         "CITY-SURAT",
+        });
+        setIsLooking(false);
+        return;
+      }
+
+      // Search CustomerSubscriptionContext store
+      const subs: any[] = JSON.parse(localStorage.getItem("cc360_subscriptions") || "[]");
+      const customers: any[] = JSON.parse(localStorage.getItem("cc360_customers") || "[]");
+      const revenues: any[] = JSON.parse(localStorage.getItem("FINANCE_REVENUES") || "[]");
+
+      // Find customer by mobile
+      const customer = customers.find((c: any) => {
+        const ph = (c.phone || c.mobile || "").replace(/\D/g, "").slice(-10);
+        return ph === mobile;
+      });
+
+      if (customer) {
+        // Find their active subscription
+        const sub = subs.find((s: any) =>
+          s.customerId === customer.customerId &&
+          s.status === "Active" &&
+          (!subIdHint || s.subscriptionId?.toLowerCase().includes(subIdHint.toLowerCase()))
+        );
+
+        if (sub) {
+          // Find revenue record for invoice number
+          const rev = revenues.find((r: any) => r.customerId === customer.customerId && r.subscriptionId === sub.subscriptionId);
+          setFound({
+            subscriptionId: sub.subscriptionId,
+            invoiceNumber:  rev?.invoiceNumber || sub.subscriptionId,
+            customerName:   `${customer.firstName} ${customer.lastName}`.trim(),
+            customerId:     customer.customerId,
+            packageName:    sub.packageName || sub.packageType,
+            vehicleReg:     customer.vehicleDetails?.registrationNumber || reg,
+            vehicleCategory: customer.vehicleDetails?.category || "",
+            startDate:      sub.startDate,
+            totalDays:      sub.billingCycle === "Annual" ? 365 : sub.billingCycle === "Quarterly" ? 90 : 30,
+            totalAmount:    sub.priceLocked || sub.pricing?.finalPrice || 0,
+            paymentMethod:  rev?.paymentMethod || "Online",
+            cityId:         sub.cityId || customer.cityId || "CITY-SURAT",
+          });
+          setIsLooking(false);
+          return;
+        }
+      }
+
+      // Not found
+      setLookupError(
+        "We couldn't find an active subscription for this mobile number" +
+        (reg ? ` and vehicle ${reg}` : "") +
+        ". Please check the details or contact us on WhatsApp."
+      );
+    } catch (e) {
+      setLookupError("Something went wrong. Please try again or contact support.");
+    }
+    setIsLooking(false);
+  };
+
+  // ── Submit with acceptance ────────────────────────────────────────────────
+  const handleAccept = () => {
+    if (!found || !calc) return;
+    setIsSubmitting(true);
+    const id = `CANC-${Date.now()}`;
+    setRefId(id);
+
+    const req = {
+      id,
+      type: "cancellation_request",
+      status: "Pending TSM Review",
       submittedAt: new Date().toISOString(),
-      customerName: custName,
+      // Customer
+      customerName: found.customerName,
+      customerId:   found.customerId,
       customerMobile: custMobile,
-      customerEmail: custEmail,
-      subscriptionId: subId,
-      invoiceNumber: invoiceNo,
-      vehicleReg: vehicleReg.toUpperCase(),
-      reason,
-      otherReason: reason === "Other (please specify)" ? otherReason : undefined,
-      totalAmount: parseFloat(totalAmount),
-      startDate,
-      totalDays: parseInt(totalDays),
-      daysElapsed: calc.elapsed,
+      vehicleReg: found.vehicleReg,
+      // Subscription
+      subscriptionId: found.subscriptionId,
+      invoiceNumber:  found.invoiceNumber,
+      packageName:    found.packageName,
+      startDate:      found.startDate,
+      totalDays:      found.totalDays,
+      cityId:         found.cityId,
+      // Financials
+      totalAmount:    found.totalAmount,
+      daysElapsed:    calc.elapsed,
       percentElapsed: calc.pct,
-      prorata: calc.prorata,
+      prorata:        calc.prorata,
       cancellationFee: calc.cancelFee,
-      gatewayFee: calc.gatewayFee,
-      refundAmount: calc.refund,
-      refundZone: calc.zone,
-      status: "Submitted",
+      gatewayFee:     calc.gatewayFee,
+      refundAmount:   calc.refund,
+      refundZone:     calc.zone,
+      paymentMethod:  found.paymentMethod,
+      // Reason
+      reason,
+      otherReason: reason === "Other (please specify)" ? otherReason : "",
+      // Workflow
+      customerConsent: true,
+      assignedTo: "TSM",
+      action: "Process Refund",
     };
 
-    // Persist to localStorage for admin review
+    // Save to TSM refund queue
+    try {
+      const key = "cleancar_tsm_refunds";
+      const existing = JSON.parse(localStorage.getItem(key) || "[]");
+      existing.unshift(req);
+      localStorage.setItem(key, JSON.stringify(existing));
+    } catch (_) {}
+
+    // Also save to cancellation requests
     try {
       const key = "cleancar_cancellation_requests";
       const existing = JSON.parse(localStorage.getItem(key) || "[]");
@@ -152,289 +256,245 @@ export function CancellationRequestPage() {
       localStorage.setItem(key, JSON.stringify(existing));
     } catch (_) {}
 
-    setSubmittedReq(req);
-    setSubmitted(true);
+    // Log info ticket to CCE (for visibility)
+    try {
+      const cceTicket = {
+        id: `TKT-${Date.now()}`,
+        ticketId: `TKT-${Date.now()}`,
+        customerId: found.customerId,
+        customerName: found.customerName,
+        customerPhone: custMobile,
+        vehicle: found.vehicleCategory,
+        vehicleNumber: found.vehicleReg,
+        complaintType: "Cancellation Request — Customer Accepted",
+        complaintTypeId: "CANCELLATION",
+        description: `Customer accepted cancellation terms. Refund of ${INR(calc.refund)} to be processed by TSM. Ref: ${id}`,
+        channel: "web",
+        priority: "Low",
+        status: "open",
+        cceId: "CCE-AUTO",
+        cceName: "System",
+        createdAt: new Date().toISOString(),
+        loggedAt: new Date().toISOString(),
+        cancellationRef: id,
+        assignedTo: "TSM",
+      };
+      const complaints = JSON.parse(localStorage.getItem("cleancar_complaints") || "[]");
+      complaints.unshift(cceTicket);
+      localStorage.setItem("cleancar_complaints", JSON.stringify(complaints));
+    } catch (_) {}
+
+    setOutcome("accepted");
+    setIsSubmitting(false);
+    setStep(4);
   };
 
-  // ── SUCCESS ─────────────────────────────────────────────────────────────
-  if (submitted && submittedReq) {
-    const r = submittedReq;
-    const waBody = encodeURIComponent(
-      `CANCELLATION REQUEST\n\nRef: ${r.id}\nCustomer: ${r.customerName}\nMobile: ${r.customerMobile}\nInvoice/Sub: ${r.invoiceNumber || r.subscriptionId}\nVehicle: ${r.vehicleReg}\nReason: ${r.reason}${r.otherReason ? " — " + r.otherReason : ""}\n\nService Start: ${r.startDate}\nDays Elapsed: ${r.daysElapsed} of ${r.totalDays}\n\nTotal Paid: ${INR(r.totalAmount)}\nProrata Used: ${INR(r.prorata)}\nCancellation Fee: ${INR(r.cancellationFee)}\nGateway: ${INR(r.gatewayFee)}\nExpected Refund: ${r.refundZone === "none" ? "No Refund" : INR(r.refundAmount)}\n\nPlease acknowledge this formal cancellation request.`
-    );
-    const emailBody = encodeURIComponent(
-      `Dear 24/9 Car Wash,\n\nI hereby submit a formal cancellation request for my subscription.\n\nCancellation Reference: ${r.id}\nFull Name: ${r.customerName}\nContact: ${r.customerMobile}\nSubscription ID: ${r.subscriptionId || "N/A"}\nInvoice Number: ${r.invoiceNumber || "N/A"}\nRegistered Vehicle: ${r.vehicleReg}\nService Start Date: ${r.startDate}\nReason: ${r.reason}${r.otherReason ? " — " + r.otherReason : ""}\n\nExpected Refund (per Cancellation Policy):\n- Total Paid: ${INR(r.totalAmount)}\n- Prorata Used (${r.daysElapsed} days): ${INR(r.prorata)}\n- Cancellation Fee (10%): ${INR(r.cancellationFee)}\n- Gateway Charges: ${INR(r.gatewayFee)}\n- Net Refund: ${r.refundZone === "none" ? "Nil (>70% term elapsed)" : INR(r.refundAmount)}\n\nPlease acknowledge receipt within 2 business days.\n\nRegards,\n${r.customerName}`
-    );
+  // ── Submit with decline — escalate to CCE ────────────────────────────────
+  const handleDecline = () => {
+    if (!found || !calc) return;
+    setIsSubmitting(true);
+    const id = `CANC-${Date.now()}`;
+    setRefId(id);
 
-    return (
-      <div style={{ minHeight: "100vh", background: "#F8FBFF", fontFamily: "'DM Sans',sans-serif", padding: "40px 20px" }}>
-        <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <div style={{ maxWidth: 580, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <div style={{ fontSize: 56, marginBottom: 12 }}>📋</div>
-            <h2 style={{ fontFamily: "'Syne',sans-serif", fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Cancellation Request Submitted</h2>
-            <p style={{ color: "#4A5568", fontSize: 14 }}>Reference: <strong style={{ color: "#1565C0" }}>{r.id}</strong></p>
-            <p style={{ color: "#4A5568", fontSize: 13, marginTop: 4 }}>We will acknowledge your request within <strong>2 business days</strong>.</p>
-          </div>
+    // Escalate to CCE as P2 complaint
+    try {
+      const cceTicket = {
+        id: `TKT-CANC-${Date.now()}`,
+        ticketId: `TKT-CANC-${Date.now()}`,
+        customerId: found.customerId,
+        customerName: found.customerName,
+        customerPhone: custMobile,
+        vehicle: found.vehicleCategory,
+        vehicleNumber: found.vehicleReg,
+        complaintType: "Cancellation — Customer Declined Refund Terms",
+        complaintTypeId: "CANCELLATION_DISPUTE",
+        description: `Customer declined the computed refund of ${INR(calc.refund)} for subscription ${found.subscriptionId}. Reason: ${reason}${otherReason ? " — " + otherReason : ""}. Please call customer to discuss and resolve. Cancellation Ref: ${id}.`,
+        channel: "web",
+        priority: "High",
+        status: "open",
+        cceId: "CCE-AUTO",
+        cceName: "Unassigned — Needs CCE",
+        createdAt: new Date().toISOString(),
+        loggedAt: new Date().toISOString(),
+        cancellationRef: id,
+        assignedTo: "CCE",
+        slaHours: 4,
+        escalated: true,
+      };
+      const complaints = JSON.parse(localStorage.getItem("cleancar_complaints") || "[]");
+      complaints.unshift(cceTicket);
+      localStorage.setItem("cleancar_complaints", JSON.stringify(complaints));
+    } catch (_) {}
 
-          {/* Summary card */}
-          <div style={{ background: "#fff", border: "1.5px solid #E3EEF7", borderRadius: 14, marginBottom: 20, overflow: "hidden" }}>
-            <div style={{ background: r.refundZone === "none" ? "#FEF2F2" : r.refundZone === "full" ? "#E8F5E9" : "#E3F2FD", padding: "14px 20px", fontWeight: 700, fontSize: 15, display: "flex", justifyContent: "space-between" }}>
-              <span>{r.refundZone === "none" ? "⚠️ No Refund Zone" : r.refundZone === "full" ? "✅ Full Refund Applicable" : "💰 Partial Refund Applicable"}</span>
-              <span style={{ color: r.refundZone === "none" ? "#DC2626" : "#1565C0" }}>
-                {r.refundZone === "none" ? "Nil" : INR(r.refundAmount)}
-              </span>
-            </div>
-            <div style={{ padding: "16px 20px" }}>
-              {[
-                ["Reference ID", r.id],
-                ["Customer", r.customerName],
-                ["Vehicle", r.vehicleReg],
-                ["Invoice / Sub ID", r.invoiceNumber || r.subscriptionId],
-                ["Reason", r.reason + (r.otherReason ? " — " + r.otherReason : "")],
-                ["Term", `${r.daysElapsed} of ${r.totalDays} days elapsed (${Math.round(r.percentElapsed)}%)`],
-                ["Total Paid", INR(r.totalAmount)],
-                ...(r.refundZone !== "none" ? [
-                  ["Prorata Deducted", `− ${INR(r.prorata)}`],
-                  ["Cancellation Fee (10%)", `− ${INR(r.cancellationFee)}`],
-                  ["Gateway Charges", `− ${INR(r.gatewayFee)}`],
-                ] : []),
-                ["Expected Refund", r.refundZone === "none" ? "Nil — term ≥ 70% elapsed" : INR(r.refundAmount)],
-              ].map(([k, v]) => (
-                <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #F3F4F6", fontSize: 13 }}>
-                  <span style={{ color: "#4A5568" }}>{k}</span>
-                  <span style={{ fontWeight: 600, textAlign: "right", maxWidth: "55%" }}>{v}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+    // Save to cancellation requests with declined status
+    try {
+      const req = {
+        id,
+        type: "cancellation_dispute",
+        status: "Escalated to CCE",
+        submittedAt: new Date().toISOString(),
+        customerName: found.customerName,
+        customerId: found.customerId,
+        customerMobile: custMobile,
+        vehicleReg: found.vehicleReg,
+        subscriptionId: found.subscriptionId,
+        invoiceNumber: found.invoiceNumber,
+        packageName: found.packageName,
+        totalAmount: found.totalAmount,
+        refundAmount: calc.refund,
+        refundZone: calc.zone,
+        reason,
+        otherReason: reason === "Other (please specify)" ? otherReason : "",
+        customerConsent: false,
+        assignedTo: "CCE",
+        action: "Call Customer — Dispute Resolution",
+      };
+      const existing = JSON.parse(localStorage.getItem("cleancar_cancellation_requests") || "[]");
+      existing.unshift(req);
+      localStorage.setItem("cleancar_cancellation_requests", JSON.stringify(existing));
+    } catch (_) {}
 
-          {/* What happens next */}
-          <div style={{ background: "#E3F2FD", border: "1px solid #BBDEFB", borderRadius: 12, padding: "16px 20px", marginBottom: 20 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: "#1565C0", marginBottom: 10 }}>📋 What happens next:</div>
-            {[
-              "Company acknowledges receipt within 2 business days",
-              "Finance team verifies subscription and refund computation",
-              "Refund quantum communicated to you for confirmation",
-              "Refund processed to original payment source",
-              "Confirmation sent to your registered contact",
-            ].map((s, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, marginBottom: 6, fontSize: 13, color: "#1565C0" }}>
-                <span style={{ fontWeight: 700 }}>{i + 1}.</span>{s}
-              </div>
-            ))}
-          </div>
+    setOutcome("declined");
+    setIsSubmitting(false);
+    setStep(4);
+  };
 
-          {/* Send via */}
-          <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: "#374151" }}>Send this request formally via:</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
-            <a href={`https://wa.me/${cfg.brand.whatsappNumber}?text=${waBody}`} target="_blank" rel="noreferrer"
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#25D366", color: "#fff", padding: "13px 20px", borderRadius: 50, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
-              💬 Send via WhatsApp to 24/9 Car Wash
-            </a>
-            <a href={`mailto:support@249carwashing.com?subject=Cancellation Request — ${r.id}&body=${emailBody}`}
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#2196F3", color: "#fff", padding: "13px 20px", borderRadius: 50, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
-              📧 Send via Email to support@249carwashing.com
-            </a>
-            <button onClick={() => window.print()}
-              style={{ padding: "11px 20px", background: "#F3F4F6", color: "#374151", border: "1.5px solid #E5E7EB", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
-              🖨️ Print / Save as PDF
-            </button>
-          </div>
+  // ─── Styles ───────────────────────────────────────────────────────────────
+  const S = {
+    page: { minHeight: "100vh", background: "#F8FBFF", fontFamily: "'DM Sans',sans-serif", color: "#0D1B2A" } as const,
+    card: { background: "#fff", border: "1.5px solid #E3EEF7", borderRadius: 14, overflow: "hidden", marginBottom: 20 } as const,
+    input: { width: "100%", padding: "11px 14px", border: "1.5px solid #E3EEF7", borderRadius: 10, fontSize: 14, fontFamily: "inherit", outline: "none", boxSizing: "border-box" } as const,
+    label: { display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6, color: "#374151" } as const,
+    btn:   (active: boolean, color = "#546E7A") => ({ padding: "12px 28px", background: active ? color : "#CFD8DC", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: active ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 0.15s" }) as const,
+    back:  { padding: "11px 22px", background: "#F3F4F6", color: "#374151", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" } as const,
+  };
 
-          <div style={{ background: "#FFF3E0", border: "1px solid #FFB74D", borderRadius: 12, padding: "14px 18px", fontSize: 13, color: "#92400E" }}>
-            ⚠️ <strong>Important:</strong> Verbal or WhatsApp messages to field staff are not valid. Your formal request must be submitted via email to <strong>support@249carwashing.com</strong> or in person at a service location. Use the buttons above to do this now.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── MAIN FORM ────────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════════════════
   return (
-    <div style={{ minHeight: "100vh", background: "#F8FBFF", fontFamily: "'DM Sans',sans-serif", color: "#0D1B2A" }}>
+    <div style={S.page}>
       <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
       {/* NAV */}
-      <nav style={{ background: "#fff", borderBottom: "1px solid #E3EEF7", padding: "14px 32px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <a href="/buy" style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, color: "#2196F3", textDecoration: "none" }}>
-          🚿 {cfg.brand.name}
-        </a>
-        <span style={{ fontSize: 13, color: "#4A5568" }}>📞 {cfg.brand.phone}</span>
+      <nav style={{ background: "#fff", borderBottom: "1px solid #E3EEF7", padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <a href="/buy" style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 18, color: "#2196F3", textDecoration: "none" }}>🚿 {cfg.brand.name}</a>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <span style={{ fontSize: 13, color: "#6B7280" }}>📞 {cfg.brand.phone}</span>
+          <a href={`https://wa.me/${cfg.brand.whatsappNumber}`} target="_blank" rel="noreferrer"
+            style={{ background: "#25D366", color: "#fff", padding: "7px 14px", borderRadius: 50, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>💬 WhatsApp</a>
+        </div>
       </nav>
 
       {/* HEADER */}
-      <div style={{ background: "linear-gradient(135deg,#37474F,#546E7A)", padding: "40px 32px", textAlign: "center" }}>
-        <div style={{ display: "inline-block", background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", fontSize: 12, fontWeight: 600, padding: "5px 14px", borderRadius: 50, marginBottom: 16 }}>
-          Service Cancellation Request
-        </div>
-        <h1 style={{ fontFamily: "'Syne',sans-serif", fontSize: "clamp(22px,4vw,36px)", fontWeight: 800, color: "#fff", marginBottom: 10 }}>
-          Request Cancellation of Service
+      <div style={{ background: "linear-gradient(135deg,#37474F,#546E7A)", padding: "36px 28px", textAlign: "center" }}>
+        <h1 style={{ fontFamily: "'Syne',sans-serif", fontSize: "clamp(20px,4vw,32px)", fontWeight: 800, color: "#fff", marginBottom: 8 }}>
+          Request Service Cancellation
         </h1>
-        <p style={{ color: "rgba(255,255,255,0.8)", fontSize: 14, maxWidth: 520, margin: "0 auto" }}>
-          We're sorry to see you go. Fill in the details below and we'll compute your refund entitlement as per our Cancellation Policy.
+        <p style={{ color: "rgba(255,255,255,0.75)", fontSize: 14 }}>
+          We're sorry to see you go. Your refund will be calculated as per our Cancellation Policy.
         </p>
       </div>
 
-      {/* STEPS */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #E3EEF7", padding: "0 32px", display: "flex", justifyContent: "center" }}>
+      {/* STEP INDICATOR */}
+      <div style={{ background: "#fff", borderBottom: "1px solid #E3EEF7", display: "flex", justifyContent: "center" }}>
         {[
-          { n: 1, label: "Your Details" },
-          { n: 2, label: "Subscription" },
-          { n: 3, label: "Reason" },
-          { n: 4, label: "Confirm" },
+          { n: 1, label: "Find Subscription" },
+          { n: 2, label: "Reason" },
+          { n: 3, label: "Refund & Confirm" },
+          { n: 4, label: "Done" },
         ].map(s => (
-          <div key={s.n} style={{ flex: 1, maxWidth: 180, padding: "14px 8px", display: "flex", alignItems: "center", gap: 8, borderBottom: step === s.n ? "3px solid #546E7A" : "3px solid transparent" }}>
-            <div style={{ width: 24, height: 24, borderRadius: "50%", background: s.n < step ? "#00C853" : step === s.n ? "#546E7A" : "#CFD8DC", color: "#fff", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <div key={s.n} style={{ flex: 1, maxWidth: 180, padding: "13px 8px", display: "flex", alignItems: "center", gap: 8, borderBottom: step === s.n ? "3px solid #546E7A" : "3px solid transparent" }}>
+            <div style={{ width: 22, height: 22, borderRadius: "50%", background: s.n < step ? "#00C853" : step === s.n ? "#546E7A" : "#CFD8DC", color: "#fff", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               {s.n < step ? "✓" : s.n}
             </div>
-            <span style={{ fontSize: 12, fontWeight: step === s.n ? 700 : 400, color: step === s.n ? "#37474F" : "#78909C" }}>{s.label}</span>
+            <span style={{ fontSize: 12, fontWeight: step === s.n ? 700 : 400, color: step === s.n ? "#37474F" : "#90A4AE" }}>{s.label}</span>
           </div>
         ))}
       </div>
 
-      <div style={{ maxWidth: 620, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "36px 24px 80px" }}>
 
-        {/* ── STEP 1: YOUR DETAILS ───────────────────────────────────────── */}
+        {/* ═══ STEP 1: FIND SUBSCRIPTION ════════════════════════════════════ */}
         {step === 1 && (
           <div>
-            <h2 style={{ fontFamily: "'Syne',sans-serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Your contact details</h2>
-            <p style={{ fontSize: 14, color: "#4A5568", marginBottom: 28 }}>These must match what you used when subscribing.</p>
+            <h2 style={{ fontFamily: "'Syne',sans-serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Find your subscription</h2>
+            <p style={{ fontSize: 14, color: "#4A5568", marginBottom: 24 }}>Enter your registered mobile number and vehicle registration. The system will find your subscription automatically.</p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-              {[
-                { label: "Full Name *", value: custName, set: setCustName, placeholder: "Amit Patel" },
-                { label: "Mobile *", value: custMobile, set: setCustMobile, placeholder: "+91 98765 43210" },
-                { label: "Email", value: custEmail, set: setCustEmail, placeholder: "amit@example.com" },
-                { label: "Vehicle Registration *", value: vehicleReg, set: setVehicleReg, placeholder: "GJ05MJ2345" },
-              ].map(f => (
-                <div key={f.label}>
-                  <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{f.label}</label>
-                  <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
-                    style={{ width: "100%", padding: "11px 14px", border: "1.5px solid #E3EEF7", borderRadius: 10, fontSize: 14, fontFamily: "inherit", outline: "none" }} />
-                </div>
-              ))}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+              <div>
+                <label style={S.label}>Mobile Number *</label>
+                <input value={custMobile} onChange={e => setCustMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  placeholder="98765 43210" style={S.input} maxLength={10} />
+              </div>
+              <div>
+                <label style={S.label}>Vehicle Registration *</label>
+                <input value={vehicleReg} onChange={e => setVehicleReg(e.target.value.toUpperCase())}
+                  placeholder="GJ05MJ2345" style={S.input} />
+              </div>
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Subscription ID <span style={{ fontWeight: 400, color: "#9CA3AF" }}>or</span> Invoice Number *</label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  <input value={subId} onChange={e => setSubId(e.target.value)} placeholder="SUB-1234567"
-                    style={{ padding: "11px 14px", border: "1.5px solid #E3EEF7", borderRadius: 10, fontSize: 14, fontFamily: "monospace", outline: "none" }} />
-                  <input value={invoiceNo} onChange={e => setInvoiceNo(e.target.value)} placeholder="INV-2025-06-001234"
-                    style={{ padding: "11px 14px", border: "1.5px solid #E3EEF7", borderRadius: 10, fontSize: 14, fontFamily: "monospace", outline: "none" }} />
-                </div>
-                <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>Found in your payment confirmation or WhatsApp receipt</p>
+                <label style={{ ...S.label, fontWeight: 400, color: "#9CA3AF" }}>
+                  Subscription / Invoice ID <span style={{ fontSize: 11 }}>(optional — helps if you have multiple)</span>
+                </label>
+                <input value={subIdHint} onChange={e => setSubIdHint(e.target.value)}
+                  placeholder="SUB-... or INV-... (leave blank to auto-detect)" style={S.input} />
               </div>
             </div>
 
-            <button onClick={() => setStep(2)} disabled={!step1Ok}
-              style={{ padding: "13px 32px", background: step1Ok ? "#546E7A" : "#CFD8DC", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: step1Ok ? "pointer" : "not-allowed" }}>
-              Next →
-            </button>
-          </div>
-        )}
-
-        {/* ── STEP 2: SUBSCRIPTION DETAILS ──────────────────────────────── */}
-        {step === 2 && (
-          <div>
-            <h2 style={{ fontFamily: "'Syne',sans-serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Your subscription details</h2>
-            <p style={{ fontSize: 14, color: "#4A5568", marginBottom: 8 }}>We use these to compute your refund entitlement.</p>
-            <div style={{ background: "#E3F2FD", border: "1px solid #BBDEFB", borderRadius: 10, padding: "12px 16px", marginBottom: 24, fontSize: 13, color: "#1565C0" }}>
-              📄 These details are on your invoice/receipt sent to WhatsApp or email at the time of subscription.
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Total Amount Paid (₹) *</label>
-                <div style={{ position: "relative" }}>
-                  <span style={{ position: "absolute", left: 12, top: 11, color: "#6B7280", fontWeight: 600 }}>₹</span>
-                  <input type="number" value={totalAmount} onChange={e => setTotalAmount(e.target.value)} placeholder="1499"
-                    style={{ width: "100%", padding: "11px 14px 11px 26px", border: "1.5px solid #E3EEF7", borderRadius: 10, fontSize: 15, fontWeight: 700, fontFamily: "inherit", outline: "none" }} />
-                </div>
-              </div>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Service Start Date *</label>
-                <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                  style={{ width: "100%", padding: "11px 14px", border: "1.5px solid #E3EEF7", borderRadius: 10, fontSize: 14, fontFamily: "inherit", outline: "none" }} />
-              </div>
-              <div>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Total Service Days *</label>
-                <select value={totalDays} onChange={e => setTotalDays(e.target.value)}
-                  style={{ width: "100%", padding: "11px 14px", border: "1.5px solid #E3EEF7", borderRadius: 10, fontSize: 14, fontFamily: "inherit", outline: "none" }}>
-                  <option value="30">30 days (Monthly)</option>
-                  <option value="90">90 days (3 Months)</option>
-                  <option value="180">180 days (6 Months)</option>
-                  <option value="365">365 days (Annual)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Live refund calculator */}
-            {calc && (
-              <div style={{ border: `2px solid ${calc.zone === "none" ? "#FCA5A5" : calc.zone === "full" ? "#86EFAC" : "#93C5FD"}`, borderRadius: 14, overflow: "hidden", marginBottom: 24 }}>
-                <div style={{ background: calc.zone === "none" ? "#FEF2F2" : calc.zone === "full" ? "#F0FDF4" : "#EFF6FF", padding: "14px 18px", fontWeight: 700, fontSize: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>
-                    {calc.zone === "none" ? "⚠️ No Refund Zone" : calc.zone === "full" ? "✅ Full Refund" : "💰 Partial Refund"}
-                  </span>
-                  <span style={{ fontFamily: "'Syne',sans-serif", fontSize: 20, color: calc.zone === "none" ? "#DC2626" : "#1565C0" }}>
-                    {calc.zone === "none" ? "Nil" : `≈ ${INR(calc.refund)}`}
-                  </span>
-                </div>
-                <div style={{ padding: "14px 18px", fontSize: 13 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ color: "#4A5568" }}>Days elapsed</span>
-                    <span style={{ fontWeight: 600 }}>{calc.elapsed} of {totalDays} days ({Math.round(calc.pct)}%)</span>
-                  </div>
-                  {/* Progress bar */}
-                  <div style={{ height: 8, background: "#E5E7EB", borderRadius: 4, marginBottom: 12, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${Math.min(100, calc.pct)}%`, background: calc.zone === "none" ? "#EF4444" : calc.zone === "full" ? "#22C55E" : "#3B82F6", borderRadius: 4, transition: "width 0.3s" }} />
-                    {/* 70% marker */}
-                    <div style={{ position: "relative" }}>
-                      <div style={{ position: "absolute", left: "70%", top: -8, width: 2, height: 8, background: "#F59E0B" }} />
-                    </div>
-                  </div>
-                  {[
-                    ["Total Paid", INR(parseFloat(totalAmount))],
-                    ...(calc.zone !== "none" && calc.zone !== "full" ? [
-                      ["− Prorata Used", `− ${INR(calc.prorata)}`],
-                      ["− Cancellation Fee (10%)", `− ${INR(calc.cancelFee)}`],
-                    ] : []),
-                    ["− Gateway Charges (max 2%)", `− ${INR(calc.gatewayFee)}`],
-                  ].map(([k, v]) => (
-                    <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: "1px solid #F3F4F6", fontSize: 13 }}>
-                      <span style={{ color: "#4A5568" }}>{k}</span><span style={{ fontWeight: 600 }}>{v}</span>
-                    </div>
-                  ))}
-                  <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, fontWeight: 800, fontSize: 15, fontFamily: "'Syne',sans-serif" }}>
-                    <span>Expected Refund</span>
-                    <span style={{ color: calc.zone === "none" ? "#DC2626" : "#1565C0" }}>
-                      {calc.zone === "none" ? "Nil" : `≈ ${INR(calc.refund)}`}
-                    </span>
-                  </div>
-                  {calc.zone === "none" && (
-                    <p style={{ fontSize: 12, color: "#DC2626", marginTop: 8 }}>
-                      More than 70% of your service term has elapsed. As per the Cancellation Policy, no refund is applicable. You may continue availing service until the term ends.
-                    </p>
-                  )}
-                  <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>* Indicative amount. Final refund subject to verification by finance team. Timelines: UPI/NB 5–7 days, Debit 7–10 days, Credit 7–14 days.</p>
+            {lookupError && (
+              <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "#DC2626" }}>
+                ⚠️ {lookupError}
+                <div style={{ marginTop: 8 }}>
+                  <a href={`https://wa.me/${cfg.brand.whatsappNumber}?text=${encodeURIComponent("Hi, I want to cancel my subscription but the system couldn't find it. My mobile is " + custMobile)}`}
+                    target="_blank" rel="noreferrer" style={{ color: "#25D366", fontWeight: 600, textDecoration: "none" }}>
+                    💬 Contact us on WhatsApp instead →
+                  </a>
                 </div>
               </div>
             )}
 
-            <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setStep(1)} style={{ padding: "12px 24px", background: "#F3F4F6", color: "#374151", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>← Back</button>
-              <button onClick={() => setStep(3)} disabled={!step2Ok}
-                style={{ padding: "13px 32px", background: step2Ok ? "#546E7A" : "#CFD8DC", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: step2Ok ? "pointer" : "not-allowed" }}>
-                Next →
-              </button>
+            {/* Found subscription preview */}
+            {found && (
+              <div style={{ background: "#E8F5E9", border: "1.5px solid #A5D6A7", borderRadius: 12, padding: "16px 20px", marginBottom: 20 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#1B5E20", marginBottom: 10 }}>✅ Subscription Found</div>
+                {[
+                  ["Customer", found.customerName],
+                  ["Package", found.packageName],
+                  ["Vehicle", found.vehicleReg],
+                  ["Subscription ID", found.subscriptionId],
+                  ["Start Date", found.startDate],
+                  ["Amount Paid", INR(found.totalAmount)],
+                ].map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                    <span style={{ color: "#2E7D32" }}>{k}</span>
+                    <span style={{ fontWeight: 600 }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              {!found && (
+                <button onClick={handleLookup} disabled={!step1Ok || isLooking}
+                  style={S.btn(step1Ok && !isLooking, "#546E7A")}>
+                  {isLooking ? "🔍 Searching…" : "🔍 Find My Subscription"}
+                </button>
+              )}
+              {found && (
+                <>
+                  <button onClick={() => { setFound(null); setLookupError(""); }} style={S.back}>← Try Again</button>
+                  <button onClick={() => setStep(2)} style={S.btn(true, "#546E7A")}>Continue with This Subscription →</button>
+                </>
+              )}
             </div>
           </div>
         )}
 
-        {/* ── STEP 3: REASON ─────────────────────────────────────────────── */}
-        {step === 3 && (
+        {/* ═══ STEP 2: REASON ═══════════════════════════════════════════════ */}
+        {step === 2 && (
           <div>
             <h2 style={{ fontFamily: "'Syne',sans-serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Reason for cancellation</h2>
-            <p style={{ fontSize: 14, color: "#4A5568", marginBottom: 24 }}>This helps us improve. Please select the closest reason.</p>
+            <p style={{ fontSize: 14, color: "#4A5568", marginBottom: 24 }}>This helps us improve. Please choose the closest option.</p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
               {CANCEL_REASONS.map(r => (
@@ -449,121 +509,297 @@ export function CancellationRequestPage() {
             </div>
 
             {reason === "Other (please specify)" && (
-              <div style={{ marginBottom: 24 }}>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Please describe *</label>
+              <div style={{ marginBottom: 20 }}>
+                <label style={S.label}>Please describe *</label>
                 <textarea value={otherReason} onChange={e => setOtherReason(e.target.value)} rows={3}
                   placeholder="Please provide details..."
-                  style={{ width: "100%", padding: "12px 14px", border: "1.5px solid #E3EEF7", borderRadius: 10, fontSize: 14, fontFamily: "inherit", outline: "none", resize: "vertical" }} />
+                  style={{ ...S.input, resize: "vertical" }} />
               </div>
             )}
 
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setStep(2)} style={{ padding: "12px 24px", background: "#F3F4F6", color: "#374151", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>← Back</button>
-              <button onClick={() => setStep(4)} disabled={!step3Ok}
-                style={{ padding: "13px 32px", background: step3Ok ? "#546E7A" : "#CFD8DC", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: step3Ok ? "pointer" : "not-allowed" }}>
-                Next →
-              </button>
+              <button onClick={() => setStep(1)} style={S.back}>← Back</button>
+              <button onClick={() => setStep(3)} disabled={!step2Ok} style={S.btn(!!step2Ok, "#546E7A")}>View Refund Calculation →</button>
             </div>
           </div>
         )}
 
-        {/* ── STEP 4: CONFIRM ────────────────────────────────────────────── */}
-        {step === 4 && calc && (
+        {/* ═══ STEP 3: REFUND BREAKDOWN + ACCEPT / DECLINE ═════════════════ */}
+        {step === 3 && found && calc && (
           <div>
-            <h2 style={{ fontFamily: "'Syne',sans-serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Confirm cancellation</h2>
-            <p style={{ fontSize: 14, color: "#4A5568", marginBottom: 20 }}>Please read and accept the terms before submitting your formal request.</p>
+            <h2 style={{ fontFamily: "'Syne',sans-serif", fontSize: 22, fontWeight: 700, marginBottom: 6 }}>Your Refund Calculation</h2>
+            <p style={{ fontSize: 14, color: "#4A5568", marginBottom: 20 }}>
+              Computed as per 24/9 Carwashing Pvt. Ltd. Cancellation Policy (effective 1 June 2025).
+            </p>
 
-            {/* Summary */}
-            <div style={{ background: "#fff", border: "1.5px solid #E3EEF7", borderRadius: 14, marginBottom: 20, overflow: "hidden" }}>
-              <div style={{ padding: "12px 18px", background: "#F8FBFF", fontWeight: 700, fontSize: 14, borderBottom: "1px solid #E3EEF7" }}>Cancellation Summary</div>
-              {[
-                ["Customer", custName],
-                ["Vehicle", vehicleReg.toUpperCase()],
-                ["Subscription / Invoice", subId || invoiceNo],
-                ["Reason", reason + (otherReason ? " — " + otherReason : "")],
-                ["Days elapsed", `${calc.elapsed} of ${totalDays} (${Math.round(calc.pct)}%)`],
-                ["Expected Refund", calc.zone === "none" ? "Nil" : `≈ ${INR(calc.refund)}`],
-              ].map(([k, v]) => (
-                <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "10px 18px", borderBottom: "1px solid #F3F4F6", fontSize: 13 }}>
-                  <span style={{ color: "#4A5568" }}>{k}</span>
-                  <span style={{ fontWeight: 600, maxWidth: "60%", textAlign: "right" }}>{v}</span>
-                </div>
-              ))}
+            {/* Subscription Summary */}
+            <div style={S.card}>
+              <div style={{ padding: "12px 18px", background: "#F8FBFF", borderBottom: "1px solid #E3EEF7", fontWeight: 700, fontSize: 14, color: "#374151" }}>
+                📋 Subscription Details
+              </div>
+              <div style={{ padding: "14px 18px" }}>
+                {[
+                  ["Customer",       found.customerName],
+                  ["Package",        found.packageName],
+                  ["Vehicle",        found.vehicleReg],
+                  ["Service Started",found.startDate],
+                  ["Term",           `${found.totalDays} days`],
+                  ["Days Used",      `${calc.elapsed} of ${found.totalDays} days`],
+                  ["Reason",         reason + (otherReason ? " — " + otherReason : "")],
+                ].map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0", borderBottom: "1px solid #F3F4F6" }}>
+                    <span style={{ color: "#4A5568" }}>{k}</span>
+                    <span style={{ fontWeight: 600, maxWidth: "55%", textAlign: "right" }}>{v}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Consent checkboxes */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 24 }}>
+            {/* Refund Calculation */}
+            <div style={{ border: `2px solid ${calc.zone === "none" ? "#FCA5A5" : calc.zone === "full" ? "#86EFAC" : "#93C5FD"}`, borderRadius: 14, overflow: "hidden", marginBottom: 20 }}>
+              <div style={{ background: calc.zone === "none" ? "#FEF2F2" : calc.zone === "full" ? "#F0FDF4" : "#EFF6FF", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontWeight: 700, fontSize: 15 }}>
+                  {calc.zone === "none" ? "⚠️ No Refund Zone" : calc.zone === "full" ? "✅ Full Refund Applicable" : "💰 Partial Refund Applicable"}
+                </span>
+                <span style={{ fontFamily: "'Syne',sans-serif", fontSize: 22, fontWeight: 800, color: calc.zone === "none" ? "#DC2626" : "#1565C0" }}>
+                  {calc.zone === "none" ? "₹0" : INR(calc.refund)}
+                </span>
+              </div>
+
+              <div style={{ padding: "16px 20px" }}>
+                {/* Progress bar */}
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6B7280", marginBottom: 4 }}>
+                    <span>Day 0</span>
+                    <span style={{ color: "#F59E0B", fontWeight: 600 }}>70% = Day {Math.round(found.totalDays * 0.7)} (No Refund Zone starts)</span>
+                    <span>Day {found.totalDays}</span>
+                  </div>
+                  <div style={{ height: 10, background: "#E5E7EB", borderRadius: 5, position: "relative", overflow: "visible" }}>
+                    <div style={{ height: "100%", width: `${Math.min(100, calc.pct)}%`, background: calc.zone === "none" ? "#EF4444" : calc.zone === "full" ? "#22C55E" : "#3B82F6", borderRadius: 5, transition: "width 0.4s" }} />
+                    {/* 70% marker */}
+                    <div style={{ position: "absolute", left: "70%", top: -3, width: 3, height: 16, background: "#F59E0B", borderRadius: 2 }} />
+                  </div>
+                  <div style={{ fontSize: 12, color: "#6B7280", marginTop: 4 }}>
+                    You are at <strong>{Math.round(calc.pct)}% ({calc.elapsed} days used)</strong> of your {found.totalDays}-day term.
+                  </div>
+                </div>
+
+                {/* Calculation table */}
+                <div style={{ background: "#F9FAFB", borderRadius: 10, padding: "14px 16px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Refund Computation
+                  </div>
+                  {[
+                    { label: "Total Amount Paid",                                val: INR(found.totalAmount),  color: "#374151" },
+                    { label: `Prorata Used (${INR(Math.round(calc.daily))}/day × ${calc.elapsed} days)`, val: `− ${INR(calc.prorata)}`, color: "#DC2626" },
+                    ...(calc.zone === "partial" ? [
+                      { label: "Cancellation Fee (10% of ₹" + found.totalAmount.toLocaleString("en-IN") + ")", val: `− ${INR(calc.cancelFee)}`, color: "#DC2626" },
+                    ] : []),
+                    ...(calc.zone !== "none" ? [
+                      { label: "Payment Gateway Charges (max 2%)", val: `− ${INR(calc.gatewayFee)}`, color: "#DC2626" },
+                    ] : []),
+                  ].map(row => (
+                    <div key={row.label} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "6px 0", borderBottom: "1px solid #E5E7EB", color: row.color }}>
+                      <span>{row.label}</span>
+                      <span style={{ fontWeight: 600 }}>{row.val}</span>
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10, marginTop: 4, fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 17 }}>
+                    <span>Net Refund to You</span>
+                    <span style={{ color: calc.zone === "none" ? "#DC2626" : "#1565C0" }}>
+                      {calc.zone === "none" ? "₹0 (No Refund)" : INR(calc.refund)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Refund timeline */}
+                {calc.zone !== "none" && (
+                  <div style={{ marginTop: 12, fontSize: 12, color: "#6B7280", background: "#EFF6FF", borderRadius: 8, padding: "10px 14px" }}>
+                    💳 Refund timeline: UPI/Net Banking 5–7 days · Debit Card 7–10 days · Credit Card 7–14 days · Cash 10 days (NEFT/Cheque). Credited to original payment source.
+                  </div>
+                )}
+
+                {calc.zone === "none" && (
+                  <div style={{ marginTop: 12, fontSize: 13, color: "#DC2626", background: "#FEF2F2", borderRadius: 8, padding: "10px 14px" }}>
+                    ⚠️ More than 70% of your service term ({Math.round(calc.pct)}%) has elapsed. As per our policy, no refund is applicable at this stage. However, you may continue using the service for the remaining {found.totalDays - calc.elapsed} days.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Policy consent */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
               <label style={{ display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer", fontSize: 13 }}>
                 <input type="checkbox" checked={consentPolicy} onChange={e => setConsentPolicy(e.target.checked)}
                   style={{ width: 18, height: 18, marginTop: 1, cursor: "pointer", accentColor: "#546E7A", flexShrink: 0 }} />
-                <span>I have read and understood the <button onClick={() => setShowPolicy(true)} style={{ background: "none", border: "none", color: "#2196F3", fontWeight: 600, cursor: "pointer", padding: 0, fontSize: 13 }}>Cancellation Policy</button>. I understand the refund computation method and the no-refund zone after 70% term elapsed.</span>
+                <span>I have read and understood the <button onClick={() => setShowPolicyModal(true)}
+                  style={{ background: "none", border: "none", color: "#2196F3", fontWeight: 600, cursor: "pointer", padding: 0, fontSize: 13, textDecoration: "underline" }}>
+                  Cancellation Policy
+                </button> and accept the terms.</span>
               </label>
               <label style={{ display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer", fontSize: 13 }}>
-                <input type="checkbox" checked={consentFee} onChange={e => setConsentFee(e.target.checked)}
+                <input type="checkbox" checked={consentCalc} onChange={e => setConsentCalc(e.target.checked)}
                   style={{ width: 18, height: 18, marginTop: 1, cursor: "pointer", accentColor: "#546E7A", flexShrink: 0 }} />
-                <span>I acknowledge that a <strong>10% cancellation fee</strong> on the total contract value applies (where within the first 70% of term), and that the refund will be credited to the <strong>original payment source</strong> within the timelines specified in the Refund Policy.</span>
+                <span>I confirm the above calculation is correct and agree to proceed accordingly.</span>
               </label>
             </div>
 
-            <div style={{ background: "#FFF3E0", border: "1px solid #FFB74D", borderRadius: 10, padding: "12px 16px", marginBottom: 24, fontSize: 13, color: "#92400E" }}>
-              ⚠️ After submitting, use the WhatsApp or email button on the next screen to send a formal written request to 24/9 Car Wash. The cancellation is effective when the Company acknowledges receipt.
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button onClick={() => setStep(2)} style={S.back}>← Back</button>
             </div>
 
-            <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setStep(3)} style={{ padding: "12px 24px", background: "#F3F4F6", color: "#374151", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>← Back</button>
-              <button onClick={handleSubmit} disabled={!step4Ok}
-                style={{ padding: "14px 36px", background: step4Ok ? "#546E7A" : "#CFD8DC", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: step4Ok ? "pointer" : "not-allowed" }}>
-                Submit Cancellation Request
-              </button>
+            {/* Accept / Decline */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 20 }}>
+              <div style={{ border: "2px solid #E3EEF7", borderRadius: 14, padding: "20px", textAlign: "center", background: "#F8FBFF" }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>Accept & Proceed</div>
+                <div style={{ fontSize: 12, color: "#4A5568", marginBottom: 14, lineHeight: 1.5 }}>
+                  {calc.zone === "none"
+                    ? "Accept the no-refund outcome and close the subscription."
+                    : `Accept the refund of ${INR(calc.refund)} and proceed with cancellation.`}
+                  <br />Sent to <strong>TSM</strong> for refund processing.
+                </div>
+                <button
+                  onClick={handleAccept}
+                  disabled={!consentPolicy || !consentCalc || isSubmitting}
+                  style={{ ...S.btn(consentPolicy && consentCalc && !isSubmitting, "#00C853"), width: "100%", padding: "12px" }}>
+                  {isSubmitting ? "Submitting…" : "✅ Accept"}
+                </button>
+                {(!consentPolicy || !consentCalc) && (
+                  <p style={{ fontSize: 11, color: "#F59E0B", marginTop: 6 }}>Please accept both checkboxes above first.</p>
+                )}
+              </div>
+
+              <div style={{ border: "2px solid #FECACA", borderRadius: 14, padding: "20px", textAlign: "center", background: "#FFF5F5" }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>Decline & Discuss</div>
+                <div style={{ fontSize: 12, color: "#4A5568", marginBottom: 14, lineHeight: 1.5 }}>
+                  Not satisfied with the calculation? A <strong>Customer Care Executive</strong> will call you within 4 hours to discuss and resolve.
+                </div>
+                <button
+                  onClick={handleDecline}
+                  disabled={isSubmitting}
+                  style={{ ...S.btn(!isSubmitting, "#EF4444"), width: "100%", padding: "12px" }}>
+                  {isSubmitting ? "Submitting…" : "❌ Decline — Escalate to CCE"}
+                </button>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Policy modal */}
-        {showPolicy && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
-            onClick={() => setShowPolicy(false)}>
-            <div style={{ background: "#fff", borderRadius: 18, maxWidth: 580, width: "100%", maxHeight: "82vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
-              onClick={e => e.stopPropagation()}>
-              <div style={{ padding: "18px 24px", borderBottom: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: 17, margin: 0 }}>🚫 Cancellation Policy</h3>
-                <button onClick={() => setShowPolicy(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6B7280" }}>✕</button>
-              </div>
-              <div style={{ padding: "20px 24px", overflowY: "auto", fontSize: 13, lineHeight: 1.8, color: "#374151" }}>
-                <p style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 12 }}>24/9 Carwashing Pvt. Ltd. · Effective Date: 1st June 2025</p>
-                <p><strong>1. How to Request</strong><br />Submit a written request via email to support@249carwashing.com or in person. Include your name, subscription/invoice number, vehicle registration, and reason. Verbal or WhatsApp requests to field staff are not valid.</p>
-                <div style={{ background: "#FFF3E0", border: "1px solid #FFB74D", borderRadius: 8, padding: "10px 12px", marginBottom: 12, fontSize: 12 }}>
-                  <strong>Fee Schedule</strong>
-                  <table style={{ width: "100%", marginTop: 8, borderCollapse: "collapse", fontSize: 11 }}>
-                    <thead><tr><th style={{ textAlign: "left", padding: "4px 6px", borderBottom: "1px solid #FDE68A" }}>Window</th><th style={{ padding: "4px 6px", borderBottom: "1px solid #FDE68A" }}>Fee</th><th style={{ padding: "4px 6px", borderBottom: "1px solid #FDE68A" }}>Refund</th></tr></thead>
-                    <tbody>
-                      <tr><td style={{ padding: "4px 6px", borderBottom: "1px solid #FEF3C7" }}>Before service starts (&gt;5 days)</td><td style={{ padding: "4px 6px", textAlign: "center" }}>Nil</td><td style={{ padding: "4px 6px" }}>Full refund less gateway charges</td></tr>
-                      <tr><td style={{ padding: "4px 6px", borderBottom: "1px solid #FEF3C7" }}>Day 1 – 70% of term</td><td style={{ padding: "4px 6px", textAlign: "center" }}>Prorata + 10% of contract</td><td style={{ padding: "4px 6px" }}>Balance after deductions</td></tr>
-                      <tr style={{ background: "#FEF2F2" }}><td style={{ padding: "4px 6px", fontWeight: 700 }}>After 70% elapsed</td><td style={{ padding: "4px 6px", textAlign: "center", color: "#DC2626", fontWeight: 700 }}>100% forfeited</td><td style={{ padding: "4px 6px", color: "#DC2626", fontWeight: 700 }}>No refund</td></tr>
-                    </tbody>
-                  </table>
+        {/* ═══ STEP 4: CONFIRMATION ══════════════════════════════════════════ */}
+        {step === 4 && (
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 64, marginBottom: 16 }}>{outcome === "accepted" ? "✅" : "📞"}</div>
+            <h2 style={{ fontFamily: "'Syne',sans-serif", fontSize: 24, fontWeight: 800, marginBottom: 8 }}>
+              {outcome === "accepted" ? "Cancellation Submitted" : "Escalated to Customer Care"}
+            </h2>
+            <p style={{ color: "#4A5568", fontSize: 14, marginBottom: 4 }}>
+              Reference: <strong style={{ color: "#1565C0", fontFamily: "monospace" }}>{refId}</strong>
+            </p>
+
+            {outcome === "accepted" && calc && found ? (
+              <>
+                <div style={{ background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 14, padding: "20px 24px", maxWidth: 480, margin: "20px auto 24px", textAlign: "left" }}>
+                  <div style={{ fontWeight: 700, color: "#1B5E20", marginBottom: 12, fontSize: 14 }}>📋 What happens next:</div>
+                  {[
+                    "Your request is queued for TSM (Territory Sales Manager) review",
+                    "TSM will verify subscription and approve refund within 1 business day",
+                    "Finance / Accounts will process the refund",
+                    calc.refund > 0
+                      ? `₹${calc.refund.toLocaleString("en-IN")} will be credited to your original payment source`
+                      : "Subscription will be marked closed (no refund — ≥70% term elapsed)",
+                    "Confirmation SMS/WhatsApp sent when refund is processed",
+                  ].map((s, i) => (
+                    <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8, fontSize: 13, color: "#2E7D32" }}>
+                      <span style={{ fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>{s}
+                    </div>
+                  ))}
                 </div>
-                <p><strong>2. Example</strong><br />Total package ₹3,000 for 30 days. Customer cancels at Day 12 (40% elapsed). Prorata = ₹1,200. Cancellation fee = ₹300 (10%). Gateway = ₹60. Refund = ₹1,440.</p>
-                <p><strong>3. No Pause Rule</strong><br />Customer travel, vehicle repair, or choice not to use service does not qualify for fee waiver or term extension.</p>
-                <p><strong>4. Non-Transferability</strong><br />Subscriptions cannot be transferred to another person, vehicle, or entity.</p>
-                <p><strong>5. Contact</strong><br />Email: support@249carwashing.com · Phone: 080 4879 4545 (Mon–Sat, 10am–7pm)</p>
+                <a href={`https://wa.me/${cfg.brand.whatsappNumber}?text=${encodeURIComponent("Cancellation Reference: " + refId + "\nSubscription: " + found.subscriptionId + "\nI have accepted the cancellation terms. Please process my refund of " + INR(calc.refund) + ".")}`}
+                  target="_blank" rel="noreferrer"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#25D366", color: "#fff", padding: "12px 24px", borderRadius: 50, fontWeight: 700, fontSize: 14, textDecoration: "none", marginBottom: 12 }}>
+                  💬 Send Reference on WhatsApp
+                </a>
+              </>
+            ) : (
+              <>
+                <div style={{ background: "#FFF3E0", border: "1px solid #FFB74D", borderRadius: 14, padding: "20px 24px", maxWidth: 480, margin: "20px auto 24px", textAlign: "left" }}>
+                  <div style={{ fontWeight: 700, color: "#E65100", marginBottom: 12, fontSize: 14 }}>📞 What happens next:</div>
+                  {[
+                    "Your case is escalated to a Customer Care Executive (CCE)",
+                    "A CCE will call you within 4 working hours on " + custMobile,
+                    "They will review your case and offer a resolution",
+                    "If resolved, the refund will be processed per final agreed amount",
+                    "If unresolved, it will be escalated to the Operations Manager",
+                  ].map((s, i) => (
+                    <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8, fontSize: 13, color: "#E65100" }}>
+                      <span style={{ fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>{s}
+                    </div>
+                  ))}
+                </div>
+                <a href={`https://wa.me/${cfg.brand.whatsappNumber}?text=${encodeURIComponent("Cancellation Reference: " + refId + ". I have declined the refund calculation and would like to discuss. Please have a CCE call me.")}`}
+                  target="_blank" rel="noreferrer"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#25D366", color: "#fff", padding: "12px 24px", borderRadius: 50, fontWeight: 700, fontSize: 14, textDecoration: "none", marginBottom: 12 }}>
+                  💬 Chat on WhatsApp
+                </a>
+              </>
+            )}
+
+            <div style={{ marginTop: 8 }}>
+              <button onClick={() => window.print()}
+                style={{ padding: "10px 20px", background: "#F3F4F6", color: "#374151", border: "1.5px solid #E5E7EB", borderRadius: 50, fontWeight: 600, fontSize: 13, cursor: "pointer", marginRight: 10 }}>
+                🖨️ Print / Save PDF
+              </button>
+              <a href="/buy" style={{ fontSize: 13, color: "#546E7A", fontWeight: 600, textDecoration: "underline" }}>Back to Home</a>
+            </div>
+          </div>
+        )}
+
+        {/* Policy Modal */}
+        {showPolicyModal && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+            onClick={() => setShowPolicyModal(false)}>
+            <div style={{ background: "#fff", borderRadius: 18, maxWidth: 560, width: "100%", maxHeight: "82vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ padding: "16px 22px", borderBottom: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <strong style={{ fontSize: 16 }}>🚫 Cancellation Policy — 24/9 Carwashing</strong>
+                <button onClick={() => setShowPolicyModal(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6B7280" }}>✕</button>
               </div>
-              <div style={{ padding: "14px 24px", borderTop: "1px solid #E5E7EB", display: "flex", gap: 10 }}>
-                <button onClick={() => { setConsentPolicy(true); setShowPolicy(false); }}
+              <div style={{ padding: "18px 22px", overflowY: "auto", fontSize: 13, lineHeight: 1.8, color: "#374151" }}>
+                <p style={{ fontSize: 11, color: "#9CA3AF" }}>Effective Date: 1 June 2025 · 24/9 Carwashing Pvt. Ltd.</p>
+                <p><strong>1. How to Request</strong><br />Written request via email support@249carwashing.com or in person. Include name, subscription/invoice, vehicle reg, and reason. WhatsApp to field staff is NOT valid.</p>
+                <p><strong>2. Fee Schedule</strong></p>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, marginBottom: 12 }}>
+                  <thead><tr style={{ background: "#F9FAFB" }}><th style={{ padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #E5E7EB" }}>Window</th><th style={{ padding: "6px 8px", borderBottom: "1px solid #E5E7EB" }}>Fee</th><th style={{ padding: "6px 8px", borderBottom: "1px solid #E5E7EB" }}>Refund</th></tr></thead>
+                  <tbody>
+                    <tr><td style={{ padding: "6px 8px", borderBottom: "1px solid #F3F4F6" }}>Before service ({">"} 5 days)</td><td style={{ padding: "6px 8px", textAlign: "center" }}>Nil</td><td style={{ padding: "6px 8px" }}>Full less gateway (max 2%)</td></tr>
+                    <tr><td style={{ padding: "6px 8px", borderBottom: "1px solid #F3F4F6" }}>Day 1 – 70% of term</td><td style={{ padding: "6px 8px", textAlign: "center" }}>Prorata + 10%</td><td style={{ padding: "6px 8px" }}>Balance after deductions</td></tr>
+                    <tr style={{ background: "#FEF2F2" }}><td style={{ padding: "6px 8px", fontWeight: 700 }}>After 70% elapsed</td><td style={{ padding: "6px 8px", color: "#DC2626", fontWeight: 700, textAlign: "center" }}>100% forfeited</td><td style={{ padding: "6px 8px", color: "#DC2626", fontWeight: 700 }}>No refund</td></tr>
+                  </tbody>
+                </table>
+                <p><strong>Example:</strong> ₹3,000 package / 30 days. Cancel at Day 12 (40%). Prorata ₹1,200 + Fee ₹300 + Gateway ₹60 = Refund ₹1,440.</p>
+                <p><strong>3. No Pause Rule</strong><br />Customer travel, vehicle unavailability, or choice not to use service does not qualify for fee waiver or term extension.</p>
+                <p><strong>4. Non-Transferability</strong><br />Subscriptions are not transferable to another person or vehicle.</p>
+                <p><strong>Contact:</strong> support@249carwashing.com · 080 4879 4545 (Mon–Sat 10am–7pm)</p>
+              </div>
+              <div style={{ padding: "14px 22px", borderTop: "1px solid #E5E7EB", display: "flex", gap: 10 }}>
+                <button onClick={() => { setConsentPolicy(true); setShowPolicyModal(false); }}
                   style={{ flex: 1, padding: "11px", background: "#546E7A", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
                   ✓ I Understand & Accept
                 </button>
-                <button onClick={() => setShowPolicy(false)} style={{ padding: "11px 18px", background: "#F3F4F6", color: "#374151", border: "none", borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Close</button>
+                <button onClick={() => setShowPolicyModal(false)}
+                  style={{ padding: "11px 18px", background: "#F3F4F6", color: "#374151", border: "none", borderRadius: 10, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>Close</button>
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Bottom strip */}
-      <div style={{ background: "#37474F", padding: "12px 32px", display: "flex", gap: 24, justifyContent: "center", flexWrap: "wrap" }}>
+      {/* Footer */}
+      <div style={{ background: "#37474F", padding: "12px 28px", display: "flex", gap: 20, justifyContent: "center", flexWrap: "wrap" }}>
         {["📧 support@249carwashing.com", "📞 080 4879 4545", "Mon–Sat · 10am–7pm"].map((t, i) => (
-          <span key={i} style={{ color: "rgba(255,255,255,0.8)", fontSize: 13 }}>{t}</span>
+          <span key={i} style={{ color: "rgba(255,255,255,0.75)", fontSize: 13 }}>{t}</span>
         ))}
       </div>
     </div>
