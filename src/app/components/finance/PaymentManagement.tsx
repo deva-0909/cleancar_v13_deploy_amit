@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { formatCurrency } from "../../lib/formatters";
+import { toast } from "sonner";
 import {
   DollarSign,
   Calendar,
@@ -10,6 +11,9 @@ import {
   Download,
   Eye,
   FileText,
+  Plus,
+  ArrowDownCircle,
+  ArrowUpCircle,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -36,6 +40,13 @@ import { Label } from "../ui/label";
 import { Badge } from "../ui/badge";
 import { useCity } from "../../contexts/CityContext";
 import { accountingEntryService } from "../../services/accountingEntryService";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "../ui/sheet";
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -228,10 +239,67 @@ function getPaymentModeBadge(mode: string) {
 
 export default function PaymentManagement() {
   const { city } = useCity();
+  const navigate = useNavigate();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [summary, setSummary] = useState<PaymentSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [showReceiveForm, setShowReceiveForm] = useState(false);
+  const [showMakeForm, setShowMakeForm] = useState(false);
+  const [receiveForm, setReceiveForm] = useState({ partyName: "", amount: "", mode: "CASH", reference: "", date: new Date().toISOString().split("T")[0], narration: "" });
+  const [makeForm, setMakeForm] = useState({ partyName: "", amount: "", mode: "BANK_TRANSFER", reference: "", date: new Date().toISOString().split("T")[0], narration: "" });
+  const [isSaving, setIsSaving] = useState(false);
+
+  async function handleReceivePayment() {
+    if (!receiveForm.partyName || !receiveForm.amount) { toast.error("Party name and amount are required"); return; }
+    setIsSaving(true);
+    await new Promise(r => setTimeout(r, 300));
+    const newPay: Payment = {
+      id: `PAY-${Date.now()}`,
+      paymentNumber: `RCV-${String(payments.length + 1).padStart(4,"0")}`,
+      invoiceId: "",
+      invoiceNumber: receiveForm.reference || "—",
+      customerName: receiveForm.partyName,
+      paymentDate: receiveForm.date,
+      paymentMode: receiveForm.mode,
+      paymentReference: receiveForm.reference,
+      amount: parseFloat(receiveForm.amount),
+      city,
+      createdAt: new Date().toISOString(),
+      createdBy: "Finance",
+    };
+    setPayments(prev => [newPay, ...prev]);
+    setShowReceiveForm(false);
+    setReceiveForm({ partyName: "", amount: "", mode: "CASH", reference: "", date: new Date().toISOString().split("T")[0], narration: "" });
+    setIsSaving(false);
+    toast.success(`Payment of ₹${receiveForm.amount} received from ${receiveForm.partyName}`);
+  }
+
+  async function handleMakePayment() {
+    if (!makeForm.partyName || !makeForm.amount) { toast.error("Party name and amount are required"); return; }
+    setIsSaving(true);
+    await new Promise(r => setTimeout(r, 300));
+    const newPay: Payment = {
+      id: `PAY-${Date.now()}`,
+      paymentNumber: `PMT-${String(payments.length + 1).padStart(4,"0")}`,
+      invoiceId: "",
+      invoiceNumber: makeForm.reference || "—",
+      customerName: makeForm.partyName,
+      paymentDate: makeForm.date,
+      paymentMode: makeForm.mode,
+      paymentReference: makeForm.reference,
+      amount: -parseFloat(makeForm.amount),
+      city,
+      createdAt: new Date().toISOString(),
+      createdBy: "Finance",
+    };
+    setPayments(prev => [newPay, ...prev]);
+    setShowMakeForm(false);
+    setMakeForm({ partyName: "", amount: "", mode: "BANK_TRANSFER", reference: "", date: new Date().toISOString().split("T")[0], narration: "" });
+    setIsSaving(false);
+    toast.success(`Payment of ₹${makeForm.amount} made to ${makeForm.partyName}`);
+  }
 
   const [filters, setFilters] = useState<PaymentFilters>({
     city: "all",
@@ -314,17 +382,25 @@ export default function PaymentManagement() {
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
       <BackButton to="/finance" />
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold">Payment Management</h1>
-          <p className="text-gray-600">
-            View and track all payment transactions
-          </p>
+          <p className="text-gray-600">View, receive, and make payment transactions</p>
         </div>
-        <Button variant="outline">
-          <Download className="w-4 h-4 mr-2" />
-          Export Payments
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowReceiveForm(true)} className="bg-green-600 hover:bg-green-700">
+            <ArrowDownCircle className="w-4 h-4 mr-2" />
+            Receive Payment
+          </Button>
+          <Button onClick={() => setShowMakeForm(true)} variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50">
+            <ArrowUpCircle className="w-4 h-4 mr-2" />
+            Make Payment
+          </Button>
+          <Button variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -600,5 +676,61 @@ export default function PaymentManagement() {
         </Card>
       )}
     </div>
+
+    {/* Receive Payment Sheet */}
+    <Sheet open={showReceiveForm} onOpenChange={setShowReceiveForm}>
+      <SheetContent className="w-full sm:w-[480px]">
+        <SheetHeader>
+          <SheetTitle className="text-green-700">Receive Payment</SheetTitle>
+          <SheetDescription>Record an incoming payment from a customer or party</SheetDescription>
+        </SheetHeader>
+        <div className="mt-6 space-y-4">
+          <div><Label>Party / Customer Name *</Label><Input value={receiveForm.partyName} onChange={e => setReceiveForm({...receiveForm, partyName: e.target.value})} placeholder="Customer or company name" /></div>
+          <div><Label>Amount (₹) *</Label><Input type="number" value={receiveForm.amount} onChange={e => setReceiveForm({...receiveForm, amount: e.target.value})} placeholder="0.00" /></div>
+          <div><Label>Payment Mode</Label>
+            <select className="w-full border rounded px-3 py-2 mt-1" value={receiveForm.mode} onChange={e => setReceiveForm({...receiveForm, mode: e.target.value})}>
+              {["CASH","UPI","CARD","BANK_TRANSFER","CHEQUE"].map(m => <option key={m} value={m}>{m.replace("_"," ")}</option>)}
+            </select>
+          </div>
+          <div><Label>Reference / Invoice No.</Label><Input value={receiveForm.reference} onChange={e => setReceiveForm({...receiveForm, reference: e.target.value})} placeholder="INV-001 or transaction ID" /></div>
+          <div><Label>Date</Label><Input type="date" value={receiveForm.date} onChange={e => setReceiveForm({...receiveForm, date: e.target.value})} /></div>
+          <div><Label>Narration</Label><Input value={receiveForm.narration} onChange={e => setReceiveForm({...receiveForm, narration: e.target.value})} placeholder="Optional note" /></div>
+          <div className="flex gap-2 pt-2">
+            <Button onClick={handleReceivePayment} disabled={isSaving} className="flex-1 bg-green-600 hover:bg-green-700">
+              {isSaving ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Saving...</> : <><ArrowDownCircle className="w-4 h-4 mr-2" />Confirm Receipt</>}
+            </Button>
+            <Button variant="outline" onClick={() => setShowReceiveForm(false)}>Cancel</Button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+
+    {/* Make Payment Sheet */}
+    <Sheet open={showMakeForm} onOpenChange={setShowMakeForm}>
+      <SheetContent className="w-full sm:w-[480px]">
+        <SheetHeader>
+          <SheetTitle className="text-orange-700">Make Payment</SheetTitle>
+          <SheetDescription>Record an outgoing payment to a vendor or party</SheetDescription>
+        </SheetHeader>
+        <div className="mt-6 space-y-4">
+          <div><Label>Party / Vendor Name *</Label><Input value={makeForm.partyName} onChange={e => setMakeForm({...makeForm, partyName: e.target.value})} placeholder="Vendor or company name" /></div>
+          <div><Label>Amount (₹) *</Label><Input type="number" value={makeForm.amount} onChange={e => setMakeForm({...makeForm, amount: e.target.value})} placeholder="0.00" /></div>
+          <div><Label>Payment Mode</Label>
+            <select className="w-full border rounded px-3 py-2 mt-1" value={makeForm.mode} onChange={e => setMakeForm({...makeForm, mode: e.target.value})}>
+              {["BANK_TRANSFER","CHEQUE","CASH","UPI","NEFT","RTGS"].map(m => <option key={m} value={m}>{m.replace("_"," ")}</option>)}
+            </select>
+          </div>
+          <div><Label>Reference / Bill No.</Label><Input value={makeForm.reference} onChange={e => setMakeForm({...makeForm, reference: e.target.value})} placeholder="Bill no or UTR" /></div>
+          <div><Label>Date</Label><Input type="date" value={makeForm.date} onChange={e => setMakeForm({...makeForm, date: e.target.value})} /></div>
+          <div><Label>Narration</Label><Input value={makeForm.narration} onChange={e => setMakeForm({...makeForm, narration: e.target.value})} placeholder="Purpose of payment" /></div>
+          <div className="flex gap-2 pt-2">
+            <Button onClick={handleMakePayment} disabled={isSaving} className="flex-1 bg-orange-600 hover:bg-orange-700">
+              {isSaving ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Saving...</> : <><ArrowUpCircle className="w-4 h-4 mr-2" />Confirm Payment</>}
+            </Button>
+            <Button variant="outline" onClick={() => setShowMakeForm(false)}>Cancel</Button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -397,9 +397,67 @@ export default function InvoiceManagement() {
     }
   }
 
+  const navigate = useNavigate();
+
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    customerId: "",
+    serviceType: "",
+    amount: "",
+    dueDate: new Date(Date.now() + 30*24*60*60*1000).toISOString().split("T")[0],
+    notes: "",
+  });
+  const [isCreating, setIsCreating] = useState(false);
+
   function handleViewInvoice(invoiceId: string) {
-    // Navigate to invoice detail page
-    navigate(`/finance/invoices/${invoiceId}`);
+    const inv = invoices.find(i => i.id === invoiceId);
+    if (!inv) return;
+    setSelectedInvoice(inv);
+    setPaymentForm({
+      amount: inv.balanceDue.toString(),
+      paymentMode: "CASH",
+      paymentReference: "",
+      paymentDate: new Date().toISOString().split("T")[0],
+    });
+    setIsPaymentDrawerOpen(true);
+  }
+
+  async function handleCreateInvoice() {
+    if (!createForm.customerId || !createForm.amount) {
+      toast.error("Customer and amount are required");
+      return;
+    }
+    setIsCreating(true);
+    const amt = parseFloat(createForm.amount);
+    const cgst = parseFloat((amt * 0.09).toFixed(2));
+    const sgst = parseFloat((amt * 0.09).toFixed(2));
+    const total = amt + cgst + sgst;
+    const newInv: Invoice = {
+      id: `INV-${Date.now()}`,
+      invoiceNumber: `INV-${new Date().getFullYear()}-${String(invoices.length + 1).padStart(4,"0")}`,
+      customerId: createForm.customerId,
+      customerName: customers.find(c => c.customerId === createForm.customerId)
+        ? `${customers.find(c => c.customerId === createForm.customerId)!.firstName} ${customers.find(c => c.customerId === createForm.customerId)!.lastName}`
+        : createForm.customerId,
+      serviceType: createForm.serviceType || "Service",
+      invoiceDate: new Date().toISOString().split("T")[0],
+      dueDate: createForm.dueDate,
+      subtotal: amt,
+      taxAmount: cgst + sgst,
+      discountAmount: 0,
+      totalAmount: total,
+      paidAmount: 0,
+      balanceDue: total,
+      status: "UNPAID",
+      paymentStatus: "PENDING",
+      city: city,
+      createdAt: new Date().toISOString(),
+    };
+    setInvoices(prev => [newInv, ...prev]);
+    setShowCreateForm(false);
+    setCreateForm({ customerId: "", serviceType: "", amount: "", dueDate: new Date(Date.now() + 30*24*60*60*1000).toISOString().split("T")[0], notes: "" });
+    setIsCreating(false);
+    toast.success(`Invoice ${newInv.invoiceNumber} created successfully`);
   }
 
   // ============================================================================
@@ -444,7 +502,7 @@ export default function InvoiceManagement() {
             Manage invoices, payments, and receivables
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setShowCreateForm(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Create Invoice
         </Button>
@@ -648,6 +706,56 @@ export default function InvoiceManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Create Invoice Sheet */}
+      <Sheet open={showCreateForm} onOpenChange={setShowCreateForm}>
+        <SheetContent className="w-full sm:w-[500px]">
+          <SheetHeader>
+            <SheetTitle>Create New Invoice</SheetTitle>
+            <SheetDescription>Generate a new invoice for a customer</SheetDescription>
+          </SheetHeader>
+          <div className="mt-6 space-y-4">
+            <div>
+              <Label>Customer *</Label>
+              <Select value={createForm.customerId} onValueChange={v => setCreateForm({...createForm, customerId: v})}>
+                <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                <SelectContent>
+                  {customers.slice(0,50).map(c => (
+                    <SelectItem key={c.customerId} value={c.customerId}>{c.firstName} {c.lastName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Service Type</Label>
+              <Input value={createForm.serviceType} onChange={e => setCreateForm({...createForm, serviceType: e.target.value})} placeholder="e.g. Monthly Subscription" />
+            </div>
+            <div>
+              <Label>Amount (Before Tax) *</Label>
+              <Input type="number" value={createForm.amount} onChange={e => setCreateForm({...createForm, amount: e.target.value})} placeholder="0.00" />
+              {createForm.amount && (
+                <p className="text-xs text-gray-500 mt-1">
+                  CGST 9%: ₹{(parseFloat(createForm.amount||"0")*0.09).toFixed(2)} | SGST 9%: ₹{(parseFloat(createForm.amount||"0")*0.09).toFixed(2)} | Total: ₹{(parseFloat(createForm.amount||"0")*1.18).toFixed(2)}
+                </p>
+              )}
+            </div>
+            <div>
+              <Label>Due Date</Label>
+              <Input type="date" value={createForm.dueDate} onChange={e => setCreateForm({...createForm, dueDate: e.target.value})} />
+            </div>
+            <div>
+              <Label>Notes</Label>
+              <Input value={createForm.notes} onChange={e => setCreateForm({...createForm, notes: e.target.value})} placeholder="Optional notes" />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleCreateInvoice} disabled={isCreating} className="flex-1">
+                {isCreating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Creating...</> : <><Plus className="w-4 h-4 mr-2" />Create Invoice</>}
+              </Button>
+              <Button variant="outline" onClick={() => setShowCreateForm(false)}>Cancel</Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Payment Recording Drawer */}
       <Sheet open={isPaymentDrawerOpen} onOpenChange={setIsPaymentDrawerOpen}>

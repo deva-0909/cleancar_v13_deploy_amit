@@ -91,18 +91,30 @@ export function AccountingEntry() {
   // Auto-fill vendor details when vendor is selected
   useEffect(() => {
     if (selectedVendorId) {
-      const vendors = gstComplianceService.getVendors();
-      const vendor = vendors.find(v => v.id === selectedVendorId);
-      if (vendor) {
-        setVendorName(vendor.name);
-        setVendorGstin(vendor.gstin);
-        setVendorStateCode(vendor.stateCode);
+      if (selectedVendorId.startsWith("LM-")) {
+        // Vendor from LedgerMaster
+        const ledgerId = selectedVendorId.replace("LM-", "");
+        const ledger = accountingEntryService.getLedgers(city).find(l => l.id === ledgerId);
+        if (ledger) {
+          setVendorName(ledger.name);
+          setVendorGstin(ledger.gstin || "");
+          setVendorStateCode(ledger.gstin?.substring(0, 2) || "24");
+          setCreditAccount(ledger.id);
+        }
+      } else {
+        const vendors = gstComplianceService.getVendors();
+        const vendor = vendors.find(v => v.id === selectedVendorId);
+        if (vendor) {
+          setVendorName(vendor.name);
+          setVendorGstin(vendor.gstin);
+          setVendorStateCode(vendor.stateCode);
 
-        // Find vendor's ledger and auto-populate credit account
-        const allLedgers = accountingEntryService.getLedgers(city);
-        const vendorLedger = allLedgers.find(l => l.gstin === vendor.gstin && l.type === "vendor");
-        if (vendorLedger) {
-          setCreditAccount(vendorLedger.id);
+          // Find vendor's ledger and auto-populate credit account
+          const allLedgers = accountingEntryService.getLedgers(city);
+          const vendorLedger = allLedgers.find(l => l.gstin === vendor.gstin && l.type === "vendor");
+          if (vendorLedger) {
+            setCreditAccount(vendorLedger.id);
+          }
         }
       }
     }
@@ -303,6 +315,14 @@ export function AccountingEntry() {
         ))}
       </div>
 
+      {/* Quick Shortcuts */}
+      <div className="flex gap-2 flex-wrap">
+        <span className="text-xs text-gray-500 self-center">Quick Add:</span>
+        <a href="/accounts/ledger-master?new=vendor" className="text-xs px-2 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded hover:bg-blue-100">+ New Vendor</a>
+        <a href="/accounts/ledger-master?new=expense" className="text-xs px-2 py-1 bg-purple-50 border border-purple-200 text-purple-700 rounded hover:bg-purple-100">+ New Expense Ledger</a>
+        <a href="/accounts/ledger-master?new=asset" className="text-xs px-2 py-1 bg-amber-50 border border-amber-200 text-amber-700 rounded hover:bg-amber-100">+ New Asset Ledger</a>
+      </div>
+
       {/* Quick Mode */}
       {quickMode && (
         <div className="space-y-4">
@@ -400,14 +420,31 @@ export function AccountingEntry() {
           {/* Section 1: Voucher Details */}
           <div className="p-4 bg-gray-100 rounded space-y-4">
             <h3 className="font-semibold">Voucher Details</h3>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Voucher Number</label>
+                <label className="block text-sm font-medium mb-1">
+                  Voucher Number
+                  <span className="ml-1 text-xs text-gray-500 font-normal">(Auto-generated)</span>
+                </label>
                 <input
                   type="text"
                   value={voucherPreview}
                   disabled
                   className="w-full border rounded px-3 py-2 bg-gray-200 font-mono text-gray-700"
+                  title="System generated entry number — cannot be edited"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Vendor Invoice Number *
+                  <span className="ml-1 text-xs text-blue-600 font-normal">(Enter vendor's bill no.)</span>
+                </label>
+                <input
+                  type="text"
+                  value={invoiceNumber}
+                  onChange={(e) => setInvoiceNumber(e.target.value)}
+                  className="w-full border rounded px-3 py-2 font-medium"
+                  placeholder="e.g. BILL/2025-26/0042"
                 />
               </div>
               <div>
@@ -440,7 +477,7 @@ export function AccountingEntry() {
             <h3 className="font-semibold">Party & Invoice</h3>
             <div className="grid grid-cols-2 gap-4">
               {/* Vendor Dropdown */}
-              {(activeTab === "Expense" || activeTab === "Purchase" || activeTab === "AssetPurchase") && (
+              {(activeTab === "Expense" || activeTab === "Purchase" || activeTab === "AssetPurchase" || activeTab === "PurchaseReturn") && (
                 <div>
                   <label className="block text-sm font-medium mb-1">Select Vendor</label>
                   <select
@@ -449,11 +486,21 @@ export function AccountingEntry() {
                     className="w-full border rounded px-3 py-2"
                   >
                     <option value="">Select Vendor</option>
+                    {/* GST vendors from gstComplianceService */}
                     {gstComplianceService.getVendors().map((vendor) => (
                       <option key={vendor.id} value={vendor.id}>
-                        {vendor.name} - {vendor.gstin}
+                        {vendor.name} — {vendor.gstin || "Non-GST"}
                       </option>
                     ))}
+                    {/* Vendor ledgers added via Ledger Master */}
+                    {accountingEntryService.getLedgers(city)
+                      .filter(l => (l.type === "vendor" || l.accountHead === "accounts_payable") && !l.isSystem)
+                      .map((l) => (
+                        <option key={`LM-${l.id}`} value={`LM-${l.id}`}>
+                          {l.name} {l.gstin ? `— ${l.gstin}` : "— Non-GST"}
+                        </option>
+                      ))
+                    }
                   </select>
                 </div>
               )}
@@ -517,16 +564,6 @@ export function AccountingEntry() {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Invoice / Reference Number</label>
-                <input
-                  type="text"
-                  value={invoiceNumber}
-                  onChange={(e) => setInvoiceNumber(e.target.value)}
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="INV-001"
-                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">HSN / SAC Code</label>
@@ -712,21 +749,20 @@ export function AccountingEntry() {
                 <select
                   value={debitAccount}
                   onChange={e => setDebitAccount(e.target.value)}
-                  size={5}
-                  className="w-full border rounded px-3 py-1 text-sm"
+                  className="w-full border rounded px-3 py-2 text-sm bg-white"
                 >
-                  <option value="">— Select —</option>
+                  <option value="">— Select Debit Account —</option>
                   {CHART_OF_ACCOUNTS_HEADS.map(head => {
                     const ledgers = accountingEntryService.getLedgersByHead(head.value, city)
                       .filter(l => !debitSearch || l.name.toLowerCase().includes(debitSearch.toLowerCase()));
                     if (ledgers.length === 0) return null;
                     return (
-                      <optgroup key={head.value} label={head.label}>
+                      <optgroup key={head.value} label={`${head.label} (${head.nature})`}>
                         {ledgers.map(ledger => {
                           const bal = accountingEntryService.getLedgerBalance(ledger.id);
                           return (
                             <option key={ledger.id} value={ledger.id}>
-                              {ledger.name} — Bal: ₹{(bal?.balance ?? 0).toLocaleString()} {bal.balanceType}
+                              {ledger.name} — ₹{(bal?.balance ?? 0).toLocaleString()} {bal.balanceType}
                             </option>
                           );
                         })}
@@ -736,7 +772,7 @@ export function AccountingEntry() {
                 </select>
                 {debitAccount && (
                   <p className="text-xs text-blue-600 mt-0.5">
-                    Selected: {accountingEntryService.getLedgers(city).find(l => l.id === debitAccount)?.name}
+                    ✓ Debit: {accountingEntryService.getLedgers(city).find(l => l.id === debitAccount)?.name}
                   </p>
                 )}
               </div>
@@ -751,21 +787,20 @@ export function AccountingEntry() {
                 <select
                   value={creditAccount}
                   onChange={e => setCreditAccount(e.target.value)}
-                  size={5}
-                  className="w-full border rounded px-3 py-1 text-sm"
+                  className="w-full border rounded px-3 py-2 text-sm bg-white"
                 >
-                  <option value="">— Select —</option>
+                  <option value="">— Select Credit Account —</option>
                   {CHART_OF_ACCOUNTS_HEADS.map(head => {
                     const ledgers = accountingEntryService.getLedgersByHead(head.value, city)
                       .filter(l => !creditSearch || l.name.toLowerCase().includes(creditSearch.toLowerCase()));
                     if (ledgers.length === 0) return null;
                     return (
-                      <optgroup key={head.value} label={head.label}>
+                      <optgroup key={head.value} label={`${head.label} (${head.nature})`}>
                         {ledgers.map(ledger => {
                           const bal = accountingEntryService.getLedgerBalance(ledger.id);
                           return (
                             <option key={ledger.id} value={ledger.id}>
-                              {ledger.name} — Bal: ₹{(bal?.balance ?? 0).toLocaleString()} {bal.balanceType}
+                              {ledger.name} — ₹{(bal?.balance ?? 0).toLocaleString()} {bal.balanceType}
                             </option>
                           );
                         })}
@@ -775,7 +810,7 @@ export function AccountingEntry() {
                 </select>
                 {creditAccount && (
                   <p className="text-xs text-blue-600 mt-0.5">
-                    Selected: {accountingEntryService.getLedgers(city).find(l => l.id === creditAccount)?.name}
+                    ✓ Credit: {accountingEntryService.getLedgers(city).find(l => l.id === creditAccount)?.name}
                   </p>
                 )}
               </div>

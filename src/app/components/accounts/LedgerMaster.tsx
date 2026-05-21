@@ -53,6 +53,8 @@ export function LedgerMaster() {
     mobile: "",
     email: "",
   });
+  const [isNonGST, setIsNonGST] = useState(false);
+  const [entityType, setEntityType] = useState("");
 
   const ledgers = accountingEntryService.getLedgers(currentCityId);
 
@@ -237,8 +239,43 @@ export function LedgerMaster() {
       {/* Search and Create */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-4 flex-1">
+              {/* Group selector */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-600 whitespace-nowrap">Group:</label>
+                <select
+                  className="border rounded px-2 py-1.5 text-sm min-w-[200px]"
+                  value={selectedTab}
+                  onChange={e => setSelectedTab(e.target.value)}
+                >
+                  <option value="all">— ALL LEDGERS —</option>
+                  <optgroup label="LIABILITIES">
+                    <option value="accounts_payable">Accounts Payable (Vendors)</option>
+                    <option value="other_liabilities">Other Liabilities</option>
+                    <option value="creditors">Creditors</option>
+                  </optgroup>
+                  <optgroup label="ASSETS">
+                    <option value="debtors">Debtors (Customers)</option>
+                    <option value="bank_accounts">Bank Accounts</option>
+                    <option value="fixed_assets">Fixed Assets</option>
+                    <option value="current_assets">Current Assets</option>
+                  </optgroup>
+                  <optgroup label="INCOME">
+                    <option value="sales_subscription">Sales / Subscription Revenue</option>
+                    <option value="other_income">Other Income</option>
+                  </optgroup>
+                  <optgroup label="EXPENSES">
+                    <option value="transaction_charges">Transaction Charges</option>
+                    <option value="operating_expenses">Operating Expenses</option>
+                    <option value="administrative_expenses">Administrative Expenses</option>
+                  </optgroup>
+                  <optgroup label="BANK & PAYMENT">
+                    <option value="bank">Bank Ledgers</option>
+                    <option value="sales_subscription">Sales Subscription</option>
+                  </optgroup>
+                </select>
+              </div>
               <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
@@ -262,6 +299,8 @@ export function LedgerMaster() {
                 mobile: "",
                 email: "",
               });
+              setIsNonGST(false);
+              setEntityType("");
               setShowCreatePanel(true);
             }}>
               <Plus className="w-4 h-4 mr-2" />
@@ -275,9 +314,9 @@ export function LedgerMaster() {
             <TabsList className="grid grid-cols-6 mb-4">
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="debtors">Debtors</TabsTrigger>
-              <TabsTrigger value="creditors">Creditors</TabsTrigger>
+              <TabsTrigger value="accounts_payable">Vendors</TabsTrigger>
               <TabsTrigger value="bank">Bank</TabsTrigger>
-              <TabsTrigger value="sales_subscription">Sales</TabsTrigger>
+              <TabsTrigger value="fixed_assets">Fixed Assets</TabsTrigger>
               <TabsTrigger value="transaction_charges">Expenses</TabsTrigger>
             </TabsList>
 
@@ -291,6 +330,23 @@ export function LedgerMaster() {
                 </div>
               </div>
             )}
+
+            {/* Group ALL summary banner for Vendors and Fixed Assets */}
+            {(selectedTab === "accounts_payable" || selectedTab === "fixed_assets") && filteredLedgers.length > 0 && (() => {
+              const totalBal = filteredLedgers.reduce((sum, l) => {
+                const b = getLedgerBalance(l);
+                return sum + (b.balanceType === "Cr" ? b.balance : -b.balance);
+              }, 0);
+              const label = selectedTab === "accounts_payable" ? "All Vendors — Total Payable" : "All Fixed Assets — Total Value";
+              return (
+                <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex justify-between items-center">
+                  <span className="text-sm font-semibold text-amber-900">{label}</span>
+                  <span className={`font-bold text-lg ${totalBal >= 0 ? "text-red-600" : "text-green-600"}`}>
+                    ₹{Math.abs(totalBal).toLocaleString()} {totalBal >= 0 ? "Cr" : "Dr"}
+                  </span>
+                </div>
+              );
+            })()}
 
             <TabsContent value={selectedTab} className="mt-0">
               <div className="border rounded-lg">
@@ -499,14 +555,69 @@ export function LedgerMaster() {
               </div>
 
               {(formData.type === "customer" || formData.type === "vendor") && (
-                <div>
-                  <Label htmlFor="gstin">GSTIN</Label>
-                  <Input
-                    id="gstin"
-                    value={formData.gstin}
-                    onChange={(e) => setFormData({ ...formData, gstin: e.target.value })}
-                    placeholder="22AAAAA0000A1Z5"
-                  />
+                <div className="space-y-3">
+                  {/* Entity Type for TDS applicability */}
+                  <div>
+                    <Label htmlFor="entityType">Entity Type <span className="text-xs text-gray-500">(for TDS applicability)</span></Label>
+                    <select
+                      id="entityType"
+                      value={entityType}
+                      onChange={(e) => setEntityType(e.target.value)}
+                      className="w-full border rounded px-3 py-2 mt-1"
+                    >
+                      <option value="">Select entity type</option>
+                      <option value="individual_huf">Individual / HUF (TDS @ 1%)</option>
+                      <option value="proprietorship">Proprietorship (TDS @ 1%)</option>
+                      <option value="partnership">Partnership Firm (TDS @ 2%)</option>
+                      <option value="llp">LLP (TDS @ 2%)</option>
+                      <option value="private_limited">Private Limited Company (TDS @ 2%)</option>
+                      <option value="public_limited">Public Limited Company (TDS @ 2%)</option>
+                      <option value="trust">Trust / Society (TDS @ 2%)</option>
+                      <option value="government">Government / PSU (TDS @ 2%)</option>
+                    </select>
+                    {entityType && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        TDS on contract payments: {entityType.includes("individual") || entityType.includes("proprietorship") ? "1%" : "2%"}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Non-GST toggle */}
+                  {formData.type === "vendor" && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="nonGST"
+                        checked={isNonGST}
+                        onChange={(e) => {
+                          setIsNonGST(e.target.checked);
+                          if (e.target.checked) setFormData({ ...formData, gstin: "" });
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <label htmlFor="nonGST" className="text-sm text-gray-700 cursor-pointer">
+                        Non-GST Vendor (no GSTIN)
+                      </label>
+                    </div>
+                  )}
+
+                  {/* GSTIN - optional for non-GST vendors */}
+                  {!isNonGST && (
+                    <div>
+                      <Label htmlFor="gstin">GSTIN {formData.type === "vendor" ? "(optional if non-GST)" : ""}</Label>
+                      <Input
+                        id="gstin"
+                        value={formData.gstin}
+                        onChange={(e) => setFormData({ ...formData, gstin: e.target.value })}
+                        placeholder="22AAAAA0000A1Z5"
+                      />
+                    </div>
+                  )}
+                  {isNonGST && (
+                    <p className="text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded border border-amber-200">
+                      Non-GST vendor — GSTIN not required. Purchases from this vendor will be treated as Non-GST expense.
+                    </p>
+                  )}
                 </div>
               )}
 

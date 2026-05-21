@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useRole } from "../../contexts/RoleContext";
 import { useCity } from "../../contexts/CityContext";
@@ -19,6 +19,10 @@ export function JournalEntry() {
     { accountHead: "", accountLabel: "", debit: 0, credit: 0 },
   ]);
   const [voucherPreview, setVoucherPreview] = useState("");
+  const [ledgerSearches, setLedgerSearches] = useState<Record<number, string>>({});
+
+  // All ledgers grouped by account head — for the ledger picker
+  const allLedgers = useMemo(() => accountingEntryService.getLedgers(city), [city]);
 
   // Calculate totals
   const totalDebit = lines.reduce((sum, line) => sum + line.debit, 0);
@@ -56,7 +60,9 @@ export function JournalEntry() {
     const updated = [...lines];
     if (field === "accountHead") {
       updated[index].accountHead = value as string;
-      updated[index].accountLabel =
+      // value is now a ledger ID — look up the ledger name
+      const ledger = allLedgers.find(l => l.id === value);
+      updated[index].accountLabel = ledger?.name ||
         CHART_OF_ACCOUNTS_HEADS.find((h) => h.value === value)?.label || "";
     } else if (field === "debit" || field === "credit") {
       updated[index][field] = parseFloat(value as string) || 0;
@@ -156,7 +162,7 @@ export function JournalEntry() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Account Head</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Ledger Account</th>
                 <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">Debit (₹)</th>
                 <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">Credit (₹)</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
@@ -168,23 +174,39 @@ export function JournalEntry() {
             <tbody className="divide-y">
               {lines.map((line, index) => (
                 <tr key={index}>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 min-w-[240px]">
+                    <input
+                      className="w-full border rounded px-2 py-1 text-sm mb-1"
+                      placeholder="Search ledger..."
+                      value={ledgerSearches[index] || ""}
+                      onChange={e => setLedgerSearches(prev => ({ ...prev, [index]: e.target.value }))}
+                    />
                     <select
                       value={line.accountHead}
                       onChange={(e) => updateLine(index, "accountHead", e.target.value)}
-                      className="w-full border rounded px-3 py-2"
+                      className="w-full border rounded px-2 py-1 text-sm"
+                      size={4}
                     >
-                      <option value="">Select Account Head</option>
-                      {["asset", "liability", "income", "expense"].map((nature) => (
-                        <optgroup key={nature} label={nature.toUpperCase()}>
-                          {CHART_OF_ACCOUNTS_HEADS.filter((h) => h.nature === nature).map((h) => (
-                            <option key={h.value} value={h.value}>
-                              {h.label}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
+                      <option value="">— Select Ledger —</option>
+                      {CHART_OF_ACCOUNTS_HEADS.map((head) => {
+                        const ledgers = allLedgers
+                          .filter(l => l.accountHead === head.value)
+                          .filter(l => !ledgerSearches[index] || l.name.toLowerCase().includes(ledgerSearches[index].toLowerCase()));
+                        if (ledgers.length === 0) return null;
+                        return (
+                          <optgroup key={head.value} label={`${head.nature.toUpperCase()} › ${head.label}`}>
+                            {ledgers.map(ledger => (
+                              <option key={ledger.id} value={ledger.id}>
+                                {ledger.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        );
+                      })}
                     </select>
+                    {line.accountHead && line.accountLabel && (
+                      <p className="text-xs text-blue-600 mt-0.5">✓ {line.accountLabel}</p>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <input

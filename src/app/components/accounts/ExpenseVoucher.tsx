@@ -45,7 +45,11 @@ export function ExpenseVoucher() {
 
   useEffect(() => {
     const allLedgers = accountingEntryService.getLedgers(cityId);
-    setVendors(allLedgers.filter(l => l.accountHead === "accounts_payable" || l.accountHead === "other_liabilities"));
+    setVendors(allLedgers.filter(l => 
+      l.accountHead === "accounts_payable" || 
+      l.accountHead === "other_liabilities" ||
+      l.type === "vendor"
+    ));
     setExpenseLedgers(allLedgers.filter(l => {
       const isExpense = l.nature === "expense";
       return isExpense;

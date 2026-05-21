@@ -277,18 +277,28 @@ export function RevenueCaptureSystem() {
   const handleExport = () => {
     if (revenues.length === 0) { toast.error("No data to export"); return; }
     const rows = [
-      ["Revenue ID","Date","Customer ID","Type","Amount","Payment Method","Status","City"],
-      ...(revenues || []).map(r => [
-        r.revenueId, r.receivedDate, r.customerId,
-        r.type, r.amount, r.paymentMethod, r.status, cityInfo.displayName,
-      ]),
+      ["Revenue ID","Date","Customer ID","Type","Taxable Value","CGST (9%)","SGST (9%)","IGST","Total Value","Payment Method","Status","City"],
+      ...(revenues || []).map(r => {
+        const taxable = r.amount;
+        // Determine supply type: intra-state = CGST+SGST, inter-state = IGST
+        const isInter = r.supplyType === "INTER_STATE";
+        const cgst   = isInter ? 0 : parseFloat((taxable * 0.09).toFixed(2));
+        const sgst   = isInter ? 0 : parseFloat((taxable * 0.09).toFixed(2));
+        const igst   = isInter ? parseFloat((taxable * 0.18).toFixed(2)) : 0;
+        const total  = parseFloat((taxable + cgst + sgst + igst).toFixed(2));
+        return [
+          r.revenueId, r.receivedDate, r.customerId,
+          r.type, taxable, cgst, sgst, igst, total,
+          r.paymentMethod, r.status, cityInfo.displayName,
+        ];
+      }),
     ];
-    const csv = rows.map(r => r.join(",")).join("\n");
+    const csv = rows.map(r => r.map(v => `"${v}"`).join(",")).join("\n");
     const a = document.createElement("a");
-    a.href = "data:text/csv," + encodeURIComponent(csv);
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
     a.download = `revenue_${filterCityId}_${selectedMonth}.csv`;
     a.click();
-    toast.success(`Exported ${revenues.length} revenue records`);
+    toast.success(`Exported ${revenues.length} revenue records with tax breakup`);
   };
 
   const hasAccess = ["Super Admin","Admin","Accounts","City Manager"].includes(currentRole);
