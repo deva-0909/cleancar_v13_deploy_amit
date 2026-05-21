@@ -25,7 +25,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRole } from "../../contexts/RoleContext";
-import { DEFAULT_CONFIG, type PlanPageConfig, type MonthlyPlanConfig, type AddonConfig, type PackConfig } from "./CustomerPlanPage";
+import { DEFAULT_CONFIG, type PlanPageConfig, type MonthlyPlanConfig, type AddonConfig, type PackConfig } from "../subscription/CustomerPlanPage";
 import { BackButton } from "../ui/back-button";
 
 const STORAGE_KEY = "cleancar_plan_page_config";
