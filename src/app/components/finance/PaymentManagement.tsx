@@ -138,7 +138,7 @@ async function fetchPayments(
     return hasARCredit;
   });
 
-  let livePayments: Payment[] = paymentJournals.map((jv, idx) => {
+  const journalPayments: Payment[] = paymentJournals.map((jv, idx) => {
     const bankLine = jv.lines.find(
       l => (bankLedger && l.accountHead === bankLedger.id) ||
            (cashLedger && l.accountHead === cashLedger.id)
@@ -148,7 +148,6 @@ async function fetchPayments(
     const amount = Math.max(...jv.lines.map(l => l.debit));
     const invoiceMatch = jv.narration.match(/Invoice (INV-[\w-]+)/i);
     const customerMatch = jv.narration.match(/from (.+?) —/i);
-
     return {
       id: jv.id,
       paymentNumber: `PAY-${String(idx + 1).padStart(4, "0")}`,
@@ -159,14 +158,39 @@ async function fetchPayments(
       paymentMode: mode,
       paymentReference: jv.voucherNumber,
       amount,
-      status: "COMPLETED" as const,
       city: jv.cityId,
       createdAt: jv.createdAt,
+      createdBy: jv.createdBy || "System",
     };
   });
 
+  // Also read seeded payments from localStorage
+  const seededKey = `cleancar_${cityId}_payments`;
+  const seededRaw: any[] = JSON.parse(localStorage.getItem(seededKey) || "[]");
+  const seededPayments: Payment[] = seededRaw.map((p: any) => ({
+    id: p.id,
+    paymentNumber: p.paymentNumber,
+    invoiceId: p.invoiceId || "",
+    invoiceNumber: p.invoiceNumber || "—",
+    customerName: p.customerName || "—",
+    paymentDate: p.paymentDate,
+    paymentMode: p.paymentMode || "BANK_TRANSFER",
+    paymentReference: p.paymentReference || "",
+    amount: p.amount,
+    city: p.city || cityId,
+    createdAt: p.createdAt,
+    createdBy: p.createdBy || "Seed",
+  }));
+
+  // Merge, deduplicate
+  const journalIds = new Set(journalPayments.map(p => p.id));
+  let livePayments: Payment[] = [
+    ...journalPayments,
+    ...seededPayments.filter(p => !journalIds.has(p.id)),
+  ];
+
   if (filters.city !== "all") {
-    livePayments = livePayments.filter(p => p.city === filters.city);
+    livePayments = livePayments.filter(p => p.city === filters.city || p.city?.includes(filters.city));
   }
   if (filters.paymentMode !== "all") {
     livePayments = livePayments.filter(p => p.paymentMode === filters.paymentMode);
@@ -317,12 +341,22 @@ export default function PaymentManagement() {
     setError(null);
 
     try {
-      const [paymentsData, summaryData] = await Promise.all([
-        fetchPayments(filters, city),
-        fetchPaymentSummary(filters),
-      ]);
+      const paymentsData = await fetchPayments(filters, city);
       setPayments(paymentsData.payments);
-      setSummary(summaryData);
+
+      // Compute summary from actual payments
+      const byModeMap: Record<string, { count: number; amount: number }> = {};
+      paymentsData.payments.forEach(p => {
+        const m = p.paymentMode;
+        if (!byModeMap[m]) byModeMap[m] = { count: 0, amount: 0 };
+        byModeMap[m].count++;
+        byModeMap[m].amount += Math.abs(p.amount);
+      });
+      setSummary({
+        totalPayments: paymentsData.payments.length,
+        totalAmount: paymentsData.payments.reduce((s, p) => s + Math.abs(p.amount), 0),
+        byMode: Object.entries(byModeMap).map(([mode, v]) => ({ mode, ...v })),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load payments");
     } finally {

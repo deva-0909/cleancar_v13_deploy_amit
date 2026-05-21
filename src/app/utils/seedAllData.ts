@@ -828,6 +828,48 @@ export function seedAllData(): void {
     localStorage.setItem("cleancar_journal_entries",
       JSON.stringify([...existJournals, ...JOURNALS.filter(j=>!existJvIds.has(j.id))]));
 
+    // ── 21. GST VENDORS (for AccountingEntry + ExpenseVoucher dropdowns) ─────
+    const SEED_GST_VENDORS = [
+      { id:"GST-SHREEJI", name:"Shreeji Chemicals", gstin:"24AABCS1234C1Z5", pan:"AABCS1234C", state:"Gujarat", stateCode:"24", address:"Surat, Gujarat", contactPerson:"Ramesh Shah", contactPhone:"9876501234", contactEmail:"shreeji@example.com", vendorType:"Goods", supplyType:"INTRA_STATE", paymentTerms:"30 days", bankAccountNumber:"", ifscCode:"", gstinValidated:true, gstinValidatedOn:"2026-01-01", riskScore:10, riskLevel:"Clean", filingStatus:"Regular Filer", lastFiledMonth:"2026-04", createdBy:"Seed", createdAt:"2026-01-01T00:00:00.000Z", entityType:"private_limited" },
+      { id:"GST-RAJKOT",  name:"Rajkot Equipment Traders", gstin:"24AABCR5678D1Z2", pan:"AABCR5678D", state:"Gujarat", stateCode:"24", address:"Rajkot, Gujarat", contactPerson:"Vijay Patel", contactPhone:"9876509876", contactEmail:"rajkot@example.com", vendorType:"Goods", supplyType:"INTRA_STATE", paymentTerms:"45 days", bankAccountNumber:"", ifscCode:"", gstinValidated:true, gstinValidatedOn:"2026-01-01", riskScore:10, riskLevel:"Clean", filingStatus:"Regular Filer", lastFiledMonth:"2026-04", createdBy:"Seed", createdAt:"2026-01-01T00:00:00.000Z", entityType:"partnership" },
+      { id:"GST-CLEANTECH",name:"Clean Tech India", gstin:"24AABCC4321F1Z3", pan:"AABCC4321F", state:"Gujarat", stateCode:"24", address:"Ahmedabad, Gujarat", contactPerson:"Amit Kumar", contactPhone:"9876543210", contactEmail:"cleantech@example.com", vendorType:"Goods", supplyType:"INTRA_STATE", paymentTerms:"30 days", bankAccountNumber:"", ifscCode:"", gstinValidated:true, gstinValidatedOn:"2026-01-01", riskScore:10, riskLevel:"Clean", filingStatus:"Regular Filer", lastFiledMonth:"2026-04", createdBy:"Seed", createdAt:"2026-01-01T00:00:00.000Z", entityType:"private_limited" },
+      { id:"GST-MWS",     name:"Mumbai Wash Supplies", gstin:"27AABCM5432G1Z1", pan:"AABCM5432G", state:"Maharashtra", stateCode:"27", address:"Mumbai, Maharashtra", contactPerson:"Suresh Yadav", contactPhone:"9123456789", contactEmail:"mws@example.com", vendorType:"Goods", supplyType:"INTER_STATE", paymentTerms:"30 days", bankAccountNumber:"", ifscCode:"", gstinValidated:true, gstinValidatedOn:"2026-01-01", riskScore:15, riskLevel:"Clean", filingStatus:"Regular Filer", lastFiledMonth:"2026-04", createdBy:"Seed", createdAt:"2026-01-01T00:00:00.000Z", entityType:"proprietorship" },
+      { id:"GST-DGVCL",   name:"DGVCL", gstin:"", pan:"AABCD1234E", state:"Gujarat", stateCode:"24", address:"Vadodara, Gujarat", contactPerson:"DGVCL Office", contactPhone:"1800123456", contactEmail:"dgvcl@example.com", vendorType:"Services", supplyType:"INTRA_STATE", paymentTerms:"immediate", bankAccountNumber:"", ifscCode:"", gstinValidated:false, riskScore:0, riskLevel:"Clean", filingStatus:"Unknown", createdBy:"Seed", createdAt:"2026-01-01T00:00:00.000Z", entityType:"government", isNonGST:true },
+    ];
+    ["CITY-SURAT","CITY-MUMBAI"].forEach(cid => {
+      const key = `cleancar_${cid}_gst_vendors`;
+      const existV: any[] = JSON.parse(localStorage.getItem(key)||"[]");
+      const existVIds = new Set(existV.map((v:any)=>v.id));
+      localStorage.setItem(key, JSON.stringify([...existV, ...SEED_GST_VENDORS.filter(v=>!existVIds.has(v.id))]));
+    });
+
+    // ── 22. SEED INVOICES from FINANCE_REVENUES ───────────────────────────────
+    // Invoices are derived from revenues at render time in InvoiceManagement,
+    // so revenues already seed the invoice list. No separate store needed.
+
+    // ── 23. SEED PAYMENTS for PaymentManagement ──────────────────────────────
+    const SEED_PAYMENTS = FINANCE_REVENUES.slice(0, 30).map((r: any, i: number) => ({
+      id: `PAY-SEED-${String(i+1).padStart(4,"0")}`,
+      paymentNumber: `RCV-${String(i+1).padStart(4,"0")}`,
+      invoiceId: r.revenueId,
+      invoiceNumber: r.invoiceNumber,
+      customerName: r.customerId,
+      paymentDate: r.receivedDate,
+      paymentMode: r.paymentMethod === "Cash" ? "CASH" : r.paymentMethod === "UPI" ? "UPI" : "BANK_TRANSFER",
+      paymentReference: r.invoiceNumber,
+      amount: r.amount,
+      city: r.cityId,
+      createdAt: r.createdAt,
+      createdBy: "Seed",
+      type: "receipt",
+    }));
+    ["CITY-SURAT","CITY-MUMBAI"].forEach(cid => {
+      const key = `cleancar_${cid}_payments`;
+      const existP: any[] = JSON.parse(localStorage.getItem(key)||"[]");
+      const existPIds = new Set(existP.map((p:any)=>p.id));
+      localStorage.setItem(key, JSON.stringify([...existP, ...SEED_PAYMENTS.filter(p=>!existPIds.has(p.id) && p.city === cid)]));
+    });
+
     localStorage.setItem(SEED_FLAG, "true");
     console.log(`[seedAllData] ✅ Complete seed done:\n` +
       `  Employees: ${EMPLOYEES.length} | Payroll: ${PAYROLL_RUNS.length} | Attendance: ${ATTENDANCE_RECORDS.length}\n` +

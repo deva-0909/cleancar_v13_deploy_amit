@@ -280,8 +280,10 @@ export function RevenueCaptureSystem() {
       ["Revenue ID","Date","Customer ID","Type","Taxable Value","CGST (9%)","SGST (9%)","IGST","Total Value","Payment Method","Status","City"],
       ...(revenues || []).map(r => {
         const taxable = r.amount;
-        // Determine supply type: intra-state = CGST+SGST, inter-state = IGST
-        const isInter = r.supplyType === "INTER_STATE";
+        // Inter-state if cityId is Mumbai (Maharashtra=27) vs company state Gujarat=24
+        const isInter = r.supplyType === "INTER_STATE" ||
+          (r.cityId === "CITY-MUMBAI") ||
+          (r.vendorStateCode && r.vendorStateCode !== "24");
         const cgst   = isInter ? 0 : parseFloat((taxable * 0.09).toFixed(2));
         const sgst   = isInter ? 0 : parseFloat((taxable * 0.09).toFixed(2));
         const igst   = isInter ? parseFloat((taxable * 0.18).toFixed(2)) : 0;

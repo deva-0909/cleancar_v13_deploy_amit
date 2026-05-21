@@ -346,7 +346,57 @@ export default function InvoiceManagement() {
 
     try {
       const data = await fetchInvoices(filters, revenues, customers);
-      setInvoices(data.invoices);
+
+      // Merge with subscription-generated invoices (UNPAID ones for active subs)
+      const subInvoices: Invoice[] = subscriptions
+        .filter(s => s.status === "Active")
+        .slice(0, 20)
+        .map((sub, i) => {
+          const customer = customers.find(c => c.customerId === sub.customerId);
+          const invoiceNum = i + 1;
+          const baseAmount = sub.pricing?.finalPrice || 0;
+          const cgst = parseFloat((baseAmount * 0.09).toFixed(2));
+          const sgst = parseFloat((baseAmount * 0.09).toFixed(2));
+          const totalAmount = parseFloat((baseAmount + cgst + sgst).toFixed(2));
+          const dueDate = sub.renewalDate || new Date().toISOString().split("T")[0];
+          const today = new Date().toISOString().split("T")[0];
+          const isOverdueInv = dueDate < today;
+          return {
+            id: sub.subscriptionId,
+            invoiceNumber: `INV-${new Date().getFullYear()}-${String(invoiceNum).padStart(4,"0")}`,
+            invoiceDate: sub.startDate || new Date().toISOString().split("T")[0],
+            dueDate,
+            customerId: sub.customerId,
+            customerName: customer ? `${customer.firstName} ${customer.lastName}` : "Customer",
+            serviceType: sub.packageType,
+            subtotal: baseAmount,
+            taxAmount: cgst + sgst,
+            discountAmount: sub.pricing?.discount || 0,
+            totalAmount,
+            paidAmount: 0,
+            balanceDue: totalAmount,
+            status: isOverdueInv ? "OVERDUE" as const : "UNPAID" as const,
+            paymentStatus: "PENDING" as const,
+            city: sub.cityId || "CITY-SURAT",
+            createdAt: sub.startDate || new Date().toISOString(),
+          };
+        });
+
+      // De-duplicate: revenue invoices take priority over sub-generated ones
+      const revenueIds = new Set(data.invoices.map(i => i.id));
+      const uniqueSubInvoices = subInvoices.filter(i => !revenueIds.has(i.id));
+
+      // Apply city filter to sub invoices too
+      const filteredSubInvoices = filters.city === "all"
+        ? uniqueSubInvoices
+        : uniqueSubInvoices.filter(i => i.city === filters.city || i.city?.includes(filters.city));
+
+      const filteredStatusSub = filters.status === "all"
+        ? filteredSubInvoices
+        : filteredSubInvoices.filter(i => i.status === filters.status);
+
+      const allInvoices = [...data.invoices, ...filteredStatusSub];
+      setInvoices(allInvoices);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load invoices");
     } finally {
