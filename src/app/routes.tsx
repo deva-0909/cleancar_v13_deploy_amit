@@ -197,6 +197,8 @@ import { CustomerCareExecutiveApp } from "./components/cce/CustomerCareExecutive
 import TestBTLService from "./test-btl-service";
 import { SubscriptionApp } from "./components/subscription/SubscriptionApp";
 import { PlanSelectionScreen } from "./components/subscription/PlanSelectionScreen";
+import { CustomerPlanPage } from "./components/subscription/CustomerPlanPage";
+import { SuperAdminPlanEditor } from "./components/admin/SuperAdminPlanEditor";
 // import { AdminPlanManagement } from "./components/subscription/AdminPlanManagement"; // NOW LAZY
 import { SubscriptionDiagnostics } from "./components/subscription/SubscriptionDiagnostics";
 import { HierarchyDashboard } from "./components/hierarchy/HierarchyDashboard";
@@ -565,7 +567,9 @@ export const router = createBrowserRouter([
       // Subscription Management System (Production) - Dynamic plan system
       { path: "subscription-app", element: <SubscriptionApp /> },
       { path: "plans", element: <PlanSelectionScreen /> },
+      { path: "buy",   element: <CustomerPlanPage /> },
       { path: "admin/plans", element: <ErrorBoundary><AdminPlanManagement userRole="ADMIN" /></ErrorBoundary> },
+      { path: "admin/plan-page-editor", element: <ErrorBoundary><SuperAdminPlanEditor /></ErrorBoundary> },
       { path: "subscription-diagnostics", element: <DevOnlyRoute element={<SubscriptionDiagnostics />} /> },
 
       // Client Portal - Read-only client interface
