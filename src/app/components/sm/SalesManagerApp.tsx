@@ -14,6 +14,7 @@
  */
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
@@ -144,6 +145,20 @@ function AllianceDashboard({ onTabChange }: { onTabChange: (t: string) => void }
           ))}
         </Card>
       )}
+
+      {/* Quick Access — HR & Personal */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "My Leaves",  to: "/hr/professional-leave", color: "bg-blue-50 border-blue-200 text-blue-700",    icon: "📅" },
+          { label: "My Payslip", to: "/hr/self-service",       color: "bg-green-50 border-green-200 text-green-700",  icon: "💳" },
+          { label: "My Account", to: "/my-account",            color: "bg-purple-50 border-purple-200 text-purple-700",icon: "👤" },
+        ].map(item => (
+          <Link key={item.label} to={item.to}
+            className={`flex items-center gap-2 p-3 rounded-lg border text-sm font-medium ${item.color} hover:opacity-80 transition-opacity`}>
+            <span>{item.icon}</span>{item.label}
+          </Link>
+        ))}
+      </div>
 
       {/* Locations overview */}
       <Card className="p-0 overflow-x-auto">

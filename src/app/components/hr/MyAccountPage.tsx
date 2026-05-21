@@ -39,6 +39,9 @@ const roleBadgeColor: Record<string, string> = {
   "Procurement Manager":    "bg-lime-100 text-lime-800",
   "Accounts":               "bg-sky-100 text-sky-800",
   "HR":                     "bg-violet-100 text-violet-800",
+  "Sales Head":             "bg-fuchsia-100 text-fuchsia-800",
+  "Sales Manager":          "bg-cyan-100 text-cyan-800",
+  "Marketing Agency":       "bg-slate-100 text-slate-800",
 };
 
 export function MyAccountPage() {

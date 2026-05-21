@@ -586,7 +586,7 @@ function ProfessionalLeaveManagement() {
             .filter((item) => {
               // Show admin-only items only to HR and Super Admin
               if (item.adminOnly) {
-                return currentRole === "HR" || currentRole === "Super Admin";
+                return currentRole === "HR" || currentRole === "Super Admin" || currentRole === "Sales Head";
               }
               return true;
             })
@@ -1986,7 +1986,7 @@ function ProfessionalLeaveManagement() {
         )}
 
         {/* Screen 6: Global Settings (HR/Super Admin Only) */}
-        {activeScreen === "settings" && (currentRole === "HR" || currentRole === "Super Admin") && (
+        {activeScreen === "settings" && (currentRole === "HR" || currentRole === "Super Admin" || currentRole === "Sales Head") && (
           <div className="space-y-6">
             <div>
               <h2 className="text-3xl font-serif font-bold text-[#0F1F3D] mb-2 flex items-center gap-3">

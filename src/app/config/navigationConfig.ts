@@ -112,7 +112,7 @@ export const NAV_CONFIG: NavItem[] = [
 
   // SALES HEAD APP
   {
-    label: "SH APP",
+    label: "Sales Head",
     path: "/sh-app",
     icon: Crown,
     module: "crm",
@@ -125,12 +125,15 @@ export const NAV_CONFIG: NavItem[] = [
       { label: "My Closures",       path: "/sh-app?tab=personal",  icon: Target,          module: "crm", match: "exact" },
       { label: "Incentives",        path: "/sh-app?tab=incentive", icon: TrendingUp,      module: "crm", match: "exact" },
       { label: "Reports",           path: "/sh-app?tab=reports",   icon: BarChart,        module: "crm", match: "exact" },
+      { label: "My Leaves",          path: "/hr/professional-leave", icon: Calendar,        module: "leave", match: "prefix" },
+      { label: "My Payslip",         path: "/hr/self-service",       icon: IdCard,          module: "payroll-self-service", match: "prefix" },
+      { label: "My Account",         path: "/my-account",            icon: User,            module: "dashboard", match: "prefix" },
     ]
   },
 
   // SALES MANAGER APP
   {
-    label: "SM APP",
+    label: "Sales Manager",
     path: "/sm-app-alliance",
     icon: Building2,
     module: "crm",
@@ -143,6 +146,9 @@ export const NAV_CONFIG: NavItem[] = [
       { label: "Block Deals",        path: "/sm-app-alliance?tab=block",      icon: Package,     module: "crm", match: "exact" },
       { label: "Incentives",         path: "/sm-app-alliance?tab=incentive",  icon: TrendingUp,  module: "crm", match: "exact" },
       { label: "BTL Expenses",       path: "/sm-app-alliance?tab=expenses",   icon: Receipt,     module: "crm", match: "exact" },
+      { label: "My Leaves",           path: "/hr/professional-leave",          icon: Calendar,    module: "leave", match: "prefix" },
+      { label: "My Payslip",          path: "/hr/self-service",                icon: IdCard,      module: "payroll-self-service", match: "prefix" },
+      { label: "My Account",          path: "/my-account",                     icon: User,        module: "dashboard", match: "prefix" },
     ]
   },
 
