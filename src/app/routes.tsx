@@ -191,6 +191,8 @@ import { SupervisorLayout } from "./components/supervisor/SupervisorLayout";
 import { ClusterManagerApp } from "./components/cm/ClusterManagerApp";
 import { CityManagerApp } from "./components/city/CityManagerApp";
 import { TeleSalesManagerApp } from "./components/tsm/TeleSalesManagerApp";
+import { SalesHeadApp } from "./components/sh/SalesHeadApp";
+import { SalesManagerApp } from "./components/sm/SalesManagerApp";
 import { TeleSalesExecutiveApp } from "./components/tse/TeleSalesExecutiveApp";
 import { TSEDiagnostics } from "./components/tse/TSEDiagnostics";
 import { CustomerCareExecutiveApp } from "./components/cce/CustomerCareExecutiveApp";
@@ -198,7 +200,6 @@ import TestBTLService from "./test-btl-service";
 import { SubscriptionApp } from "./components/subscription/SubscriptionApp";
 import { PlanSelectionScreen } from "./components/subscription/PlanSelectionScreen";
 import { CustomerPlanPage } from "./components/subscription/CustomerPlanPage";
-import { CancellationRequestPage } from "./components/subscription/CancellationRequestPage";
 import { SuperAdminPlanEditor } from "./components/admin/SuperAdminPlanEditor";
 // import { AdminPlanManagement } from "./components/subscription/AdminPlanManagement"; // NOW LAZY
 import { SubscriptionDiagnostics } from "./components/subscription/SubscriptionDiagnostics";
@@ -554,6 +555,8 @@ export const router = createBrowserRouter([
 
       // Tele Sales Manager App (Production) - Pipeline control tower
       { path: "tsm-app", element: <TeleSalesManagerApp /> },
+      { path: "sh-app", element: <SalesHeadApp /> },
+      { path: "sm-app-alliance", element: <SalesManagerApp /> },
 
       // Tele Sales Executive App (Production) - Sales execution interface
       { path: "tse-app", element: <TeleSalesExecutiveApp /> },
@@ -568,8 +571,7 @@ export const router = createBrowserRouter([
       // Subscription Management System (Production) - Dynamic plan system
       { path: "subscription-app", element: <SubscriptionApp /> },
       { path: "plans", element: <PlanSelectionScreen /> },
-      { path: "buy",            element: <CustomerPlanPage /> },
-      { path: "cancel-service", element: <CancellationRequestPage /> },
+      { path: "buy",   element: <CustomerPlanPage /> },
       { path: "admin/plans", element: <ErrorBoundary><AdminPlanManagement userRole="ADMIN" /></ErrorBoundary> },
       { path: "admin/plan-page-editor", element: <ErrorBoundary><SuperAdminPlanEditor /></ErrorBoundary> },
       { path: "subscription-diagnostics", element: <DevOnlyRoute element={<SubscriptionDiagnostics />} /> },
