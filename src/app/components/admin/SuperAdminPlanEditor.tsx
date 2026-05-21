@@ -72,6 +72,53 @@ const Section = ({ title, icon, children }: { title: string; icon: string; child
   );
 };
 
+// ─── AddModelRow: small inline form to add a new car model ───────────────────
+function AddModelRow({ categories, onAdd }: {
+  categories: { id: string; label: string; icon: string }[];
+  onAdd: (keyword: string, categoryId: string) => void;
+}) {
+  const [kw, setKw] = useState("");
+  const [cat, setCat] = useState(categories[0]?.id || "hatchback");
+  const [error, setError] = useState("");
+
+  const handleAdd = () => {
+    const clean = kw.trim().toLowerCase().replace(/\s+/g, "");
+    if (!clean) { setError("Enter a keyword"); return; }
+    if (clean.length < 2) { setError("Keyword must be at least 2 characters"); return; }
+    onAdd(clean, cat);
+    setKw("");
+    setError("");
+    toast.success(`Added "${clean}" → ${categories.find(c => c.id === cat)?.label}`);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 200px auto", gap: 8, alignItems: "center" }}>
+        <div>
+          <input
+            value={kw}
+            onChange={e => { setKw(e.target.value); setError(""); }}
+            onKeyDown={e => e.key === "Enter" && handleAdd()}
+            placeholder="e.g. punch, taisor, curvv"
+            style={{ width: "100%", padding: "9px 12px", border: `1.5px solid ${error ? "#FCA5A5" : "#E5E7EB"}`, borderRadius: 8, fontSize: 14, fontFamily: "monospace", background: "#fff" }}
+          />
+          {error && <p style={{ fontSize: 12, color: "#DC2626", marginTop: 3 }}>{error}</p>}
+        </div>
+        <select value={cat} onChange={e => setCat(e.target.value)}
+          style={{ padding: "9px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: 14, background: "#fff", fontWeight: 600 }}>
+          {categories.map(c => (
+            <option key={c.id} value={c.id}>{c.icon} {c.label}</option>
+          ))}
+        </select>
+        <button onClick={handleAdd}
+          style={{ padding: "9px 20px", background: "#2196F3", color: "#fff", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+          + Add
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
@@ -387,6 +434,97 @@ export function SuperAdminPlanEditor() {
           ))}
           <button onClick={() => update(c => ({ ...c, trustStrip: [...c.trustStrip, "🌟 New trust item"] }))}
             style={{ padding: "7px 14px", background: "#E0F2FE", color: "#0369A1", border: "1.5px solid #BAE6FD", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>+ Add Item</button>
+        </Section>
+
+        {/* ── §12 CAR MODEL MAP ────────────────────────────────────────── */}
+        <Section title="Car Model → Category Mapping" icon="🚗">
+          <p style={{ fontSize: 13, color: "#6B7280", marginBottom: 6 }}>
+            Each row is a <strong>keyword</strong> (matched against what the customer types) mapped to a <strong>vehicle category</strong>.
+            Matching is case-insensitive and partial — e.g. keyword <code style={{ background: "#F3F4F6", padding: "1px 5px", borderRadius: 4 }}>swift</code> will match "Maruti Swift", "Swift Dzire", etc.
+          </p>
+          <p style={{ fontSize: 12, color: "#F59E0B", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8, padding: "8px 12px", marginBottom: 16 }}>
+            ⚠️ Keep keywords <strong>short and unique</strong>. Avoid generic words like "car" or "new" — they'll match everything.
+          </p>
+
+          {/* Search/filter */}
+          <div style={{ marginBottom: 16, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <input
+              placeholder="Filter models..."
+              id="modelSearch"
+              onChange={e => {
+                const q = e.target.value.toLowerCase();
+                document.querySelectorAll<HTMLElement>(".model-row").forEach(row => {
+                  row.style.display = !q || row.dataset.kw?.includes(q) || row.dataset.cat?.includes(q) ? "" : "none";
+                });
+              }}
+              style={{ padding: "8px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: 13, width: 200 }}
+            />
+            <span style={{ fontSize: 12, color: "#6B7280" }}>{Object.keys(cfg.carModelMap).length} models</span>
+            {/* Per-category counts */}
+            {cfg.vehicleCategories.map(cat => (
+              <span key={cat.id} style={{ fontSize: 12, background: cat.id === "hatchback" ? "#DBEAFE" : cat.id === "suv" ? "#DCFCE7" : "#FEF9C3", color: cat.id === "hatchback" ? "#1D4ED8" : cat.id === "suv" ? "#15803D" : "#A16207", padding: "3px 10px", borderRadius: 20, fontWeight: 600 }}>
+                {cat.icon} {cat.label.split(" /")[0]}: {Object.values(cfg.carModelMap).filter(v => v === cat.id).length}
+              </span>
+            ))}
+          </div>
+
+          {/* Column headers */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 180px auto", gap: 8, marginBottom: 6, padding: "0 4px" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5 }}>Keyword (what customer types)</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5 }}>Category</span>
+            <span />
+          </div>
+
+          {/* Rows */}
+          <div style={{ maxHeight: 420, overflowY: "auto", border: "1.5px solid #E5E7EB", borderRadius: 10, padding: "8px" }}>
+            {Object.entries(cfg.carModelMap).map(([kw, cat]) => (
+              <div key={kw} className="model-row" data-kw={kw} data-cat={cat}
+                style={{ display: "grid", gridTemplateColumns: "1fr 180px auto", gap: 8, marginBottom: 6, alignItems: "center" }}>
+                <input
+                  value={kw}
+                  onChange={e => {
+                    const newKw = e.target.value.toLowerCase().replace(/\s+/g, "");
+                    if (!newKw || newKw === kw) return;
+                    update(c => {
+                      const next = { ...c.carModelMap };
+                      delete next[kw];
+                      next[newKw] = cat;
+                      return { ...c, carModelMap: next };
+                    });
+                  }}
+                  style={{ padding: "7px 10px", border: "1.5px solid #E5E7EB", borderRadius: 7, fontSize: 13, fontFamily: "monospace", background: "#F9FAFB" }}
+                />
+                <select
+                  value={cat}
+                  onChange={e => update(c => ({ ...c, carModelMap: { ...c.carModelMap, [kw]: e.target.value } }))}
+                  style={{ padding: "7px 10px", border: "1.5px solid #E5E7EB", borderRadius: 7, fontSize: 13, background: cat === "hatchback" ? "#EFF6FF" : cat === "suv" ? "#F0FDF4" : "#FEFCE8", fontWeight: 600 }}
+                >
+                  {cfg.vehicleCategories.map(vc => (
+                    <option key={vc.id} value={vc.id}>{vc.icon} {vc.label}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => update(c => { const next = { ...c.carModelMap }; delete next[kw]; return { ...c, carModelMap: next }; })}
+                  style={{ padding: "7px 10px", background: "#FEF2F2", color: "#DC2626", border: "1.5px solid #FECACA", borderRadius: 7, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}>
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Add new model row */}
+          <div style={{ marginTop: 14, padding: "14px 16px", background: "#F0FDF4", border: "1.5px solid #BBF7D0", borderRadius: 10 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: "#166534", marginBottom: 10 }}>➕ Add New Car Model</p>
+            <AddModelRow
+              categories={cfg.vehicleCategories}
+              onAdd={(kw, cat) => update(c => ({ ...c, carModelMap: { ...c.carModelMap, [kw]: cat } }))}
+            />
+          </div>
+
+          {/* Bulk add hint */}
+          <div style={{ marginTop: 12, fontSize: 12, color: "#6B7280" }}>
+            💡 <strong>Tip:</strong> Add the main model name only — e.g. <code style={{ background: "#F3F4F6", padding: "1px 4px", borderRadius: 3 }}>creta</code> not "Hyundai Creta 2024 Facelift". The match is partial so it covers all variants.
+          </div>
         </Section>
 
         {/* SAVE BAR */}
