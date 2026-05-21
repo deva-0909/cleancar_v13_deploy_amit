@@ -248,6 +248,108 @@ export function SuperAdminPlanEditor() {
             style={{ padding: "7px 14px", background: "#E0F2FE", color: "#0369A1", border: "1.5px solid #BAE6FD", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>+ Add Pincode</button>
         </Section>
 
+        {/* ── §3.5 VEHICLE CATEGORIES ──────────────────────────────────── */}
+        <Section title="Vehicle Categories" icon="🚗">
+          <p style={{ fontSize: 13, color: "#6B7280", marginBottom: 6 }}>
+            These are the 3 tiers customers choose from on the buy page. Each category has its own pricing column in the plan table.
+          </p>
+          <div style={{ background: "#FEF9C3", border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 12, color: "#92400E" }}>
+            ⚠️ <strong>Important:</strong> If you add or remove a category, go to <strong>§4 Monthly Plan Prices</strong> and set prices for the new category. Car models in §12 assigned to a deleted category will fall back to the first category.
+          </div>
+
+          {cfg.vehicleCategories.map((cat, i) => (
+            <div key={cat.id} style={{ display: "grid", gridTemplateColumns: "60px 1fr 2fr auto", gap: 10, marginBottom: 10, alignItems: "center" }}>
+              {/* Emoji icon */}
+              <input
+                value={cat.icon}
+                onChange={e => update(c => ({ ...c, vehicleCategories: c.vehicleCategories.map((cc, j) => j !== i ? cc : { ...cc, icon: e.target.value }) }))}
+                style={{ padding: "8px 10px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: 22, textAlign: "center", fontFamily: "inherit" }}
+                placeholder="🚗"
+                title="Emoji icon"
+              />
+              {/* ID (slug, used in carModelMap) */}
+              <div>
+                <input
+                  value={cat.id}
+                  onChange={e => {
+                    const newId = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,"");
+                    if (!newId) return;
+                    update(c => {
+                      // Also remap all carModelMap entries that used the old id
+                      const newMap: Record<string,string> = {};
+                      for (const [kw, cid] of Object.entries(c.carModelMap)) {
+                        newMap[kw] = cid === cat.id ? newId : cid;
+                      }
+                      return {
+                        ...c,
+                        vehicleCategories: c.vehicleCategories.map((cc, j) => j !== i ? cc : { ...cc, id: newId }),
+                        carModelMap: newMap,
+                        // Update plan prices keys
+                        monthlyPlans: c.monthlyPlans.map(p => {
+                          const prices = { ...p.prices };
+                          if (cat.id in prices) { prices[newId] = prices[cat.id]; delete prices[cat.id]; }
+                          return { ...p, prices };
+                        }),
+                      };
+                    });
+                  }}
+                  style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: 13, fontFamily: "monospace", background: "#F9FAFB" }}
+                  placeholder="hatchback"
+                  title="Category ID — used in car model map"
+                />
+                <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>ID (slug)</p>
+              </div>
+              {/* Display label */}
+              <div>
+                <input
+                  value={cat.label}
+                  onChange={e => update(c => ({ ...c, vehicleCategories: c.vehicleCategories.map((cc, j) => j !== i ? cc : { ...cc, label: e.target.value }) }))}
+                  style={{ width: "100%", padding: "8px 12px", border: "1.5px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit" }}
+                  placeholder="Hatchback / Compact Sedan"
+                />
+                <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>Display label (shown to customer)</p>
+              </div>
+              {/* Delete — only if more than 1 category */}
+              <button
+                disabled={cfg.vehicleCategories.length <= 1}
+                onClick={() => {
+                  if (!confirm(`Remove category "${cat.label}"? All car models mapped to "${cat.id}" will be reassigned to "${cfg.vehicleCategories[0]?.id}".`)) return;
+                  update(c => {
+                    const fallback = c.vehicleCategories.find((cc, j) => j !== i)?.id || "";
+                    const newMap: Record<string,string> = {};
+                    for (const [kw, cid] of Object.entries(c.carModelMap)) {
+                      newMap[kw] = cid === cat.id ? fallback : cid;
+                    }
+                    return {
+                      ...c,
+                      vehicleCategories: c.vehicleCategories.filter((_, j) => j !== i),
+                      carModelMap: newMap,
+                      monthlyPlans: c.monthlyPlans.map(p => {
+                        const prices = { ...p.prices };
+                        delete prices[cat.id];
+                        return { ...p, prices };
+                      }),
+                    };
+                  });
+                }}
+                style={{ padding: "8px 12px", background: cfg.vehicleCategories.length <= 1 ? "#F9FAFB" : "#FEF2F2", color: cfg.vehicleCategories.length <= 1 ? "#D1D5DB" : "#DC2626", border: `1.5px solid ${cfg.vehicleCategories.length <= 1 ? "#E5E7EB" : "#FECACA"}`, borderRadius: 8, cursor: cfg.vehicleCategories.length <= 1 ? "not-allowed" : "pointer" }}
+                title={cfg.vehicleCategories.length <= 1 ? "Need at least 1 category" : "Remove this category"}>
+                ✕
+              </button>
+            </div>
+          ))}
+
+          <button
+            onClick={() => update(c => ({
+              ...c,
+              vehicleCategories: [...c.vehicleCategories, { id: `cat${Date.now()}`, label: "New Category", icon: "🚘" }],
+              monthlyPlans: c.monthlyPlans.map(p => ({ ...p, prices: { ...p.prices, [`cat${Date.now()}`]: 0 } })),
+            }))}
+            style={{ padding: "7px 14px", background: "#E0F2FE", color: "#0369A1", border: "1.5px solid #BAE6FD", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, marginTop: 6 }}>
+            + Add Category
+          </button>
+        </Section>
+
         {/* ── §4 MONTHLY PLAN PRICES ──────────────────────────────────── */}
         <Section title="Monthly Plan Prices" icon="💰">
           <p style={{ fontSize: 13, color: "#6B7280", marginBottom: 16 }}>Set prices per plan per vehicle category. Leave at 0 if plan is not available for that category.</p>
