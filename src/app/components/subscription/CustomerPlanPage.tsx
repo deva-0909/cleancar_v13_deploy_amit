@@ -421,7 +421,7 @@ export function CustomerPlanPage() {
 
             {/* Car model input */}
             <div style={{ maxWidth: 480, marginBottom: 20 }}>
-              <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Car model <span style={{ color: "#90A4AE", fontWeight: 400" }}>(helps auto-detect category)</span></label>
+              <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Car model <span style={{ color: "#90A4AE", fontWeight: 400 }}>(helps auto-detect category)</span></label>
               <input
                 value={carModel}
                 onChange={e => setCarModel(e.target.value)}
