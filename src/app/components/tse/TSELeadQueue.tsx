@@ -31,10 +31,12 @@ import {
   Calendar,
   User,
   MapPin,
+  MessageCircle,
 } from "lucide-react";
 import { teleSalesExecutiveService } from "../../services/teleSalesExecutiveService";
 import type { TSELead } from "../../types/teleSalesExecutive.types";
 import { SLA_THRESHOLDS, REFRESH_INTERVALS } from "../../constants/teleSalesExecutive.constants";
+import { TSEWhatsAppModal } from "./TSEWhatsAppModal";
 
 interface TSELeadQueueProps {
   onCallLead: (lead: TSELead) => void;
@@ -44,6 +46,7 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
   const [leads, setLeads] = useState<TSELead[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"ALL" | "NEW" | "CALLBACK" | "URGENT">("ALL");
+  const [whatsAppLead, setWhatsAppLead] = useState<TSELead | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Load leads on mount
@@ -199,8 +202,8 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
       </Card>
 
       {/* Lead Queue Table */}
-      <Card className="p-6">
-        <Table>
+      <Card className="p-6 overflow-x-auto">
+        <Table className="min-w-[900px]">
           <TableHeader>
             <TableRow>
               <TableHead>Priority</TableHead>
@@ -211,7 +214,7 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
               <TableHead>Attempts</TableHead>
               <TableHead>SLA Status</TableHead>
               <TableHead>Est. Value</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="min-w-[200px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -284,14 +287,26 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
                 </TableCell>
 
                 <TableCell>
-                  <Button
-                    size="sm"
-                    onClick={() => onCallLead(lead)}
-                    className="gap-2"
-                  >
-                    <Phone className="w-4 h-4" />
-                    Call Now
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => onCallLead(lead)}
+                      className="gap-1.5 bg-gray-900 hover:bg-gray-700 text-white"
+                    >
+                      <Phone className="w-4 h-4" />
+                      Call Now
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setWhatsAppLead(lead)}
+                      className="gap-1.5 border-green-500 text-green-700 hover:bg-green-50 font-medium"
+                      title="Send WhatsApp message"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      WhatsApp
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -330,6 +345,13 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
           </div>
         </div>
       </Card>
+
+      {/* WhatsApp Message Modal */}
+      <TSEWhatsAppModal
+        lead={whatsAppLead}
+        open={whatsAppLead !== null}
+        onClose={() => setWhatsAppLead(null)}
+      />
     </div>
   );
 }
