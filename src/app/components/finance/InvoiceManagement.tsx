@@ -122,6 +122,32 @@ async function fetchInvoices(
   // Mock delay
   await new Promise((resolve) => setTimeout(resolve, 600));
 
+  // ── Read revenues directly from localStorage (bypasses stale FinanceContext)
+  // FinanceContext loads at mount; if seed ran after mount the context is stale.
+  // Direct localStorage read always gets the freshest data.
+  const allStoredRevenues: any[] = (() => {
+    try {
+      const surRev = JSON.parse(localStorage.getItem("cleancar_CITY-SURAT_revenues")  || "[]");
+      const mumRev = JSON.parse(localStorage.getItem("cleancar_CITY-MUMBAI_revenues") || "[]");
+      const legRev = JSON.parse(localStorage.getItem("cleancar_revenues")              || "[]");
+      const all = [...surRev, ...mumRev];
+      const seen = new Set(all.map((r: any) => r.revenueId));
+      legRev.forEach((r: any) => { if (!seen.has(r.revenueId)) { all.push(r); seen.add(r.revenueId); }});
+      // Merge context revenues (covers revenues added in this session via buy page)
+      revenues.forEach((r: any) => { if (!seen.has(r.revenueId)) { all.push(r); seen.add(r.revenueId); }});
+      return all.length > 0 ? all : revenues;
+    } catch { return revenues; }
+  })();
+
+  // ── Read all subscriptions from localStorage (both cities) for service name lookup
+  const allStoredSubs: any[] = (() => {
+    try {
+      const surSub = JSON.parse(localStorage.getItem("cleancar_CITY-SURAT_subscriptions")  || "[]");
+      const mumSub = JSON.parse(localStorage.getItem("cleancar_CITY-MUMBAI_subscriptions") || "[]");
+      return [...surSub, ...mumSub];
+    } catch { return []; }
+  })();
+
   // ── Read all customers directly from localStorage (both cities, both keys)
   // This is more reliable than the CustomerContext array which may not be
   // fully loaded or may be city-filtered at the time fetchInvoices is called.
@@ -144,7 +170,7 @@ async function fetchInvoices(
     allStoredCustomers.find((c: any) => c.customerId === customerId);
 
   // ── 1. Revenue-derived invoices ──────────────────────────────────────────
-  const liveInvoices = revenues.map(r => {
+  const liveInvoices = allStoredRevenues.map(r => {
     const customer = findCustomer(r.customerId);
     const fromRecord = r.customerName || "";
     const fromJoin   = customer ? `${customer.firstName} ${customer.lastName}`.trim() : "";
@@ -158,13 +184,10 @@ async function fetchInvoices(
       ?? "Unknown Customer";
     const customerName = bestName || r.customerId || "Unknown Customer";
     // Service type: packageName on record > subscription lookup > fallback
-    const sub = (() => {
-      try {
-        const subs: any[] = JSON.parse(localStorage.getItem("cleancar_CITY-SURAT_subscriptions") || "[]");
-        return subs.find((s: any) => s.subscriptionId === r.subscriptionId);
-      } catch { return null; }
-    })();
-    const serviceType = r.packageName || sub?.packageName || (r.type === "One-Time" ? "One-Time Wash" : "Car Wash Subscription");
+    const sub = allStoredSubs.find((s: any) => s.subscriptionId === r.subscriptionId);
+    const serviceType = r.packageName
+      || sub?.packageName
+      || (r.type === "One-Time" ? "One-Time Wash" : "Car Wash Subscription");
     return {
       id: r.invoiceNumber || r.revenueId,
       invoiceNumber: r.invoiceNumber || r.revenueId,

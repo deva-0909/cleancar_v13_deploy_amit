@@ -17,7 +17,7 @@
  *   EMPLOYEE_DATABASE_RECORDS    (auth system)
  */
 
-const SEED_FLAG = "ALL_DATA_SEEDED_V3";
+const SEED_FLAG = "ALL_DATA_SEEDED_V4";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 const NOW   = new Date().toISOString();
@@ -794,10 +794,11 @@ export function seedAllData(): void {
   try {
     if (localStorage.getItem(SEED_FLAG)) return;
 
-    // Clear old seed flags so users with broken V4/V5 data get fresh correct seed
+    // Clear ALL previous seed flags so every browser gets fresh data
     ["HISTORIC_DATA_SEEDED_V1","HISTORIC_DATA_SEEDED_V2","HISTORIC_DATA_SEEDED_V3",
      "HISTORIC_DATA_SEEDED_V4","HISTORIC_DATA_SEEDED_V5","ACC_SEED_V1","ACC_SEED_V2",
-     "ALL_DATA_SEEDED_V3","ALL_DATA_SEEDED_V3"].forEach(f => localStorage.removeItem(f));
+     "ALL_DATA_SEEDED_V1","ALL_DATA_SEEDED_V2","ALL_DATA_SEEDED_V3"
+    ].forEach(f => localStorage.removeItem(f));
 
     // ── 1. EMPLOYEES ─────────────────────────────────────────────────────────
     const existEmp = JSON.parse(localStorage.getItem("EMPLOYEE_DATABASE_RECORDS")||"[]");
@@ -824,6 +825,9 @@ export function seedAllData(): void {
     writeByCityId("attendance_records", ATTENDANCE_RECORDS);
 
     // ── 7. CUSTOMERS ─────────────────────────────────────────────────────────
+    // Force-clear stale customers so real Indian names always replace generic ones
+    ["cleancar_customers","cleancar_CITY-SURAT_customers","cleancar_CITY-MUMBAI_customers"]
+      .forEach(k => localStorage.removeItem(k));
     writeByCityId("customers", CUSTOMERS);
 
     // ── 8. LEADS ─────────────────────────────────────────────────────────────
@@ -833,6 +837,9 @@ export function seedAllData(): void {
     writeByCityId("demos", DEMOS);
 
     // ── 10. SUBSCRIPTIONS ────────────────────────────────────────────────────
+    // Force-clear stale subscriptions so packageName field is always present
+    ["cleancar_subscriptions","cleancar_CITY-SURAT_subscriptions","cleancar_CITY-MUMBAI_subscriptions"]
+      .forEach(k => localStorage.removeItem(k));
     writeByCityId("subscriptions", SUBS);
 
     // ── 11. JOBS ─────────────────────────────────────────────────────────────
@@ -859,6 +866,9 @@ export function seedAllData(): void {
     // ── 15. FINANCE ──────────────────────────────────────────────────────────
     writeByCityId("mrr",      FINANCE_MRR);
     writeByCityId("payables", FINANCE_PAYABLES);
+    // Force-clear stale revenue data so customerName + packageName fields are always fresh
+    ["cleancar_revenues","cleancar_CITY-SURAT_revenues","cleancar_CITY-MUMBAI_revenues"]
+      .forEach(k => localStorage.removeItem(k));
     writeByCityId("revenues", FINANCE_REVENUES);
 
     // ── 16. ADVANCES ─────────────────────────────────────────────────────────
