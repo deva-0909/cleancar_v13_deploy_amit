@@ -1,184 +1,121 @@
 /**
  * Role-Based Redirect Hook
- * Automatically redirects users to their role-specific landing page when role changes
+ * Automatically redirects users to their role-specific landing page when role changes.
  *
- * Usage: Add this hook to RootLayout component
+ * FIX: Always navigate on role change unless already on a path that belongs
+ * to the new role. This covers arbitrary URLs like /sm-app-alliance, /sh-app,
+ * etc. that don't appear in the codebase but may exist in Vercel routing or
+ * user bookmarks.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Role } from "../lib/roleConfig";
 
-interface RoleRedirectConfig {
-  defaultPath: string;
-  allowedPaths?: string[]; // Optional: paths where redirect should NOT happen
-}
-
 /**
- * Role-specific landing pages
+ * Role-specific landing pages and allowed sub-paths.
+ * allowedPaths: if current path starts with any of these, skip redirect.
+ * Empty allowedPaths = no restriction (admin roles can be anywhere).
  */
-const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
-  // Sales roles - Direct to their specific apps
+const ROLE_REDIRECTS: Partial<Record<Role, { defaultPath: string; allowedPrefixes: string[] }>> = {
   TSE: {
     defaultPath: "/tse-app",
-    allowedPaths: ["/tse-app", "/tse-diagnostics", "/leads", "/my-account"],
+    allowedPrefixes: ["/tse-app", "/tse-diagnostics", "/leads", "/my-account", "/hr/"],
   },
   TSM: {
     defaultPath: "/tsm-app",
-    allowedPaths: ["/", "/tsm-app", "/sh-app", "/tele-sales-manager", "/leads", "/customers", "/complaints", "/washer-jobs", "/service-zones", "/hr/professional-leave", "/hr/self-service", "/performance", "/my-account"],
+    allowedPrefixes: ["/tsm-app", "/tele-sales-manager", "/leads", "/customers", "/complaints", "/hr/", "/performance", "/my-account"],
   },
   CCE: {
     defaultPath: "/cce-app",
-    allowedPaths: ["/", "/cce-app", "/customer-care", "/customer-care-executive", "/leads", "/customers", "/complaints", "/my-account"],
+    allowedPrefixes: ["/cce-app", "/customer-care", "/leads", "/customers", "/complaints", "/my-account"],
   },
-
-  // Operations roles - Stay on their apps
   "Car Washer": {
     defaultPath: "/washer-core-screens",
-    allowedPaths: ["/", "/car-washer", "/washer-core-screens", "/cloth-tracking/exchange", "/advance", "/hr/professional-leave", "/hr/self-service", "/performance", "/my-account"],
+    allowedPrefixes: ["/washer-core-screens", "/car-washer", "/cloth-tracking/exchange", "/advance", "/hr/", "/performance", "/my-account"],
   },
   Supervisor: {
     defaultPath: "/supervisor-app/dashboard",
-    allowedPaths: [
-      "/", "/supervisor-app", "/supervisor-app/dashboard", "/supervisor-app/team",
-      "/supervisor-app/audit", "/supervisor-app/cloth", "/supervisor-app/alerts",
-      "/supervisor-app/schedule", "/supervisor-app/leads", "/supervisor-app/incentive",
-      "/supervisor-app/issues", "/supervisor-app/visibility", "/supervisor-app/cover",
-      "/supervisor-app/kpi", "/supervisor-app/btl-assignments",
-      "/supervisor", "/washer-jobs", "/service-zones", "/complaints", "/car-washer",
-      "/inventory", "/cloth-tracking", "/advance", "/hr/professional-leave",
-      "/hr/self-service", "/performance", "/my-account"
-    ],
+    allowedPrefixes: ["/supervisor-app", "/washer-jobs", "/service-zones", "/complaints", "/inventory", "/cloth-tracking", "/advance", "/hr/", "/performance", "/my-account"],
   },
   "Operations Manager": {
     defaultPath: "/operations",
-    allowedPaths: ["/", "/operations", "/washer-jobs", "/service-zones", "/supervisor", "/complaints", "/car-washer", "/hr/professional-leave", "/hr/self-service", "/approvals", "/performance", "/my-account"],
+    allowedPrefixes: ["/operations", "/washer-jobs", "/service-zones", "/supervisor", "/complaints", "/car-washer", "/hr/", "/approvals", "/performance", "/my-account"],
   },
   "Sr Operations Manager": {
     defaultPath: "/operations",
-    allowedPaths: ["/", "/operations", "/washer-jobs", "/service-zones", "/supervisor", "/complaints", "/car-washer", "/hr/professional-leave", "/hr/self-service", "/approvals", "/performance", "/analytics", "/my-account"],
+    allowedPrefixes: ["/operations", "/washer-jobs", "/service-zones", "/supervisor", "/complaints", "/car-washer", "/hr/", "/approvals", "/performance", "/analytics", "/my-account"],
   },
   "Cluster Manager": {
-    // FIX: was "/cluster" which has no route — correct destination is "/cm-app"
     defaultPath: "/cm-app",
-    allowedPaths: ["/", "/cm-app", "/operations", "/washer-jobs", "/service-zones", "/complaints", "/users", "/leads", "/customers", "/finance", "/hr/professional-leave", "/hr/self-service", "/performance", "/analytics", "/my-account"],
+    allowedPrefixes: ["/cm-app", "/operations", "/washer-jobs", "/service-zones", "/complaints", "/users", "/leads", "/customers", "/finance", "/hr/", "/performance", "/analytics", "/my-account"],
   },
   "City Manager": {
     defaultPath: "/city-app",
-    allowedPaths: ["/", "/city-app", "/city", "/complaints", "/users", "/leads", "/customers", "/operations", "/washer-jobs", "/service-zones", "/finance", "/hr/professional-leave", "/hr/self-service", "/performance", "/analytics", "/my-account"],
+    allowedPrefixes: ["/city-app", "/city", "/complaints", "/users", "/leads", "/customers", "/operations", "/washer-jobs", "/service-zones", "/finance", "/hr/", "/performance", "/analytics", "/my-account"],
   },
-
-  // Store/Procurement roles
   "Store Manager": {
     defaultPath: "/store",
-    allowedPaths: ["/store", "/inventory", "/my-account"],
+    allowedPrefixes: ["/store", "/inventory", "/my-account"],
   },
   "Procurement Manager": {
     defaultPath: "/procurement",
-    allowedPaths: ["/procurement", "/store", "/my-account"],
+    allowedPrefixes: ["/procurement", "/store", "/my-account"],
   },
-
-  // Admin roles - No redirect, they need access to everything
-  "Super Admin": {
-    defaultPath: "/",
-    allowedPaths: [], // No restrictions
-  },
-  Admin: {
-    defaultPath: "/",
-    allowedPaths: [],
-  },
-
-  // Support roles
-  // HR, Accounts, Store Manager, Procurement Manager:
-  // Initial redirect handled by RoleRouter (/ → /hr etc.)
-  // DO NOT restrict here — useRoleBasedRedirect was trapping them
-  // on a single path and preventing sub-route navigation.
-  // HR needs /hr/*, Accounts needs /finance/*, etc.
-  HR: {
-    defaultPath: "/hr",
-    allowedPaths: [], // Empty = no restrictions (like Admin)
-  },
-  Accounts: {
-    defaultPath: "/finance",
-    allowedPaths: [], // Empty = no restrictions
-  },
+  // Admin roles: no restriction — they can be anywhere
+  "Super Admin": { defaultPath: "/", allowedPrefixes: [] },
+  Admin:         { defaultPath: "/", allowedPrefixes: [] },
+  HR:            { defaultPath: "/hr", allowedPrefixes: [] },
+  Accounts:      { defaultPath: "/finance", allowedPrefixes: [] },
 };
 
-/**
- * Hook to handle role-based redirects
- *
- * IMPORTANT: This hook ONLY redirects when the ROLE CHANGES and the current
- * path is the previous role's landing page (not a general nav destination).
- *
- * It does NOT maintain an allowedPaths whitelist — that pattern always falls
- * out of sync and silently blocks legitimate navigation.
- *
- * Per-route access control is handled by RouteGuard using the permissionMatrix.
- */
 export function useRoleBasedRedirect(currentRole: Role, enabled: boolean = true) {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // Track previous role to detect role switches
+  const navigate  = useNavigate();
+  const location  = useLocation();
   const prevRoleRef = React.useRef<Role>(currentRole);
 
   useEffect(() => {
     if (!enabled) return;
 
-    const roleConfig = ROLE_REDIRECTS[currentRole];
-    if (!roleConfig) return;
-
-    const prevRole = prevRoleRef.current;
+    const prevRole   = prevRoleRef.current;
     const roleChanged = prevRole !== currentRole;
     prevRoleRef.current = currentRole;
 
-    // Only redirect on role change, not on every navigation
-    // RouteGuard handles per-route access control
     if (!roleChanged) return;
 
+    const config = ROLE_REDIRECTS[currentRole];
+    if (!config) return;
+
+    // Admin / unrestricted roles: no redirect needed
+    if (config.allowedPrefixes.length === 0) return;
+
     const currentPath = location.pathname;
-    const { defaultPath } = roleConfig;
 
-    // On role change: redirect to new role's default path if the user is
-    // currently on the previous role's landing page (or any sub-path of it),
-    // or on "/" or "/login".
-    const prevRoleDefault = ROLE_REDIRECTS[prevRole]?.defaultPath ?? "/";
-    const shouldRedirect =
-      currentPath === "/" ||
-      currentPath === "/login" ||
-      currentPath === prevRoleDefault ||
-      currentPath.startsWith(prevRoleDefault + "/") ||
-      currentPath.startsWith(prevRoleDefault + "?") ||
-      // Also redirect if currently on ANY role-specific app root
-      // (covers cases like /sh-app, /tsm-app, /cce-app when switching away)
-      Object.values(ROLE_REDIRECTS).some(cfg =>
-        cfg && currentPath.startsWith(cfg.defaultPath) && cfg.defaultPath !== "/"
-      );
+    // Check if we're already on a path that belongs to this role
+    const alreadyOnRolePath = config.allowedPrefixes.some(prefix =>
+      currentPath === prefix || currentPath.startsWith(prefix + "/") || currentPath.startsWith(prefix)
+    );
 
-    if (!shouldRedirect) return;
+    if (alreadyOnRolePath) {
+      console.log(`[Role Redirect] Already on allowed path for ${currentRole}: ${currentPath}`);
+      return;
+    }
 
-    console.log(`[Role Redirect] Role changed ${prevRole} → ${currentRole}, navigating to ${defaultPath}`);
-    navigate(defaultPath, { replace: true });
+    // Not on a valid path for this role — redirect to the role's landing page
+    console.log(`[Role Redirect] ${prevRole} → ${currentRole}, redirecting ${currentPath} → ${config.defaultPath}`);
+    navigate(config.defaultPath, { replace: true });
+
   }, [currentRole, navigate, location.pathname, enabled]);
 }
 
-/**
- * Get the default landing page for a role
- */
 export function getRoleDefaultPath(role: Role): string {
   return ROLE_REDIRECTS[role]?.defaultPath || "/";
 }
 
-/**
- * Check if a path is allowed for a role
- */
 export function isPathAllowedForRole(role: Role, path: string): boolean {
-  const roleConfig = ROLE_REDIRECTS[role];
-  if (!roleConfig) return true; // If no config, allow all
-
-  const { allowedPaths = [] } = roleConfig;
-  if (allowedPaths.length === 0) return true; // No restrictions (admin roles)
-
-  return allowedPaths.some((allowedPath) => path.startsWith(allowedPath));
+  const config = ROLE_REDIRECTS[role];
+  if (!config) return true;
+  if (config.allowedPrefixes.length === 0) return true;
+  return config.allowedPrefixes.some(p => path === p || path.startsWith(p + "/") || path.startsWith(p));
 }
