@@ -2,6 +2,13 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/index.css";
 import App from "./app/App";
+import { seedAllData } from "./app/utils/seedAllData";
+
+// ── Run seed SYNCHRONOUSLY before React mounts ────────────────────────────
+// MUST be before createRoot so every Context's useState(() => DataService.get())
+// reads fresh seeded data. Running seed in a useEffect is too late — contexts
+// already captured stale localStorage values during their first render.
+try { seedAllData(); } catch (e) { console.error("Seed failed:", e); }
 import MinimalTest from "./app/MinimalTest";
 import { EmergencyFallback } from "./app/EmergencyFallback";
 
