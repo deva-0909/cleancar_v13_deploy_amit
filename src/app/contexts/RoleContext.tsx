@@ -169,13 +169,13 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   //   3. the hook's useEffect([currentRole]) fires reliably after state update
   const setCurrentRole = useCallback((role: Role) => {
     setCurrentRoleState(role);
-    // Update session role too (for demo role-switching)
+    // Always persist role to session — even in demo mode where no session exists yet.
+    // Previously only wrote back if cc360_session existed, so demo role switches
+    // were lost on refresh (re-initialised to "Super Admin" default every time).
     try {
       const raw = localStorage.getItem("cc360_session");
-      if (raw) {
-        const session = JSON.parse(raw);
-        localStorage.setItem("cc360_session", JSON.stringify({ ...session, role }));
-      }
+      const session = raw ? JSON.parse(raw) : {};
+      localStorage.setItem("cc360_session", JSON.stringify({ ...session, role }));
     } catch (e) {
       // ignore
     }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
+import { Outlet, Link, useLocation, Navigate, useNavigate } from "react-router-dom";
 import {
   Users, BarChart3, UserCircle, Car, ClipboardList,
   AlertCircle, Package, DollarSign, UserCog, Menu, X,
@@ -20,7 +20,6 @@ import {
 } from "../ui/select";
 import { useRole } from "../../contexts/RoleContext";
 import { roleConfigurations, type Role } from "../../lib/roleConfig";
-import { useRoleBasedRedirect } from "../../hooks/useRoleBasedRedirect";
 import { GlobalFilterBar, GlobalFiltersProvider } from "../navigation/GlobalFilterBar";
 import { NotificationDrawer } from "../shared/NotificationDrawer";
 import { buildNavigation, buildQuickActions, type NavEmployee } from "../../utils/navigationBuilder";
@@ -40,6 +39,19 @@ import { ConfirmDialog } from "../shared/ConfirmDialog";
 
 // Navigation is now fully dynamic - built from navigationConfig.ts
 // No hardcoded navigation modules needed here!
+
+// Role → dedicated app route. Roles absent from this map land on "/" (main dashboard).
+const ROLE_HOME_ROUTES: Partial<Record<Role, string>> = {
+  "Supervisor":          "/supervisor-app",
+  "TSM":                 "/tsm-app",
+  "TSE":                 "/tse-app",
+  "CCE":                 "/cce-app",
+  "Sales Head":          "/sh-app",
+  "Sales Manager":       "/sm-app-alliance",
+  "Operations Manager":  "/om-app",
+  "Cluster Manager":     "/cm-app",
+  "City Manager":        "/city-app",
+};
 
 export function RootLayout() {
   const isPreview = import.meta.env.MODE === "development"
@@ -114,6 +126,7 @@ export function RootLayout() {
   const { currentRole, setCurrentRole, currentUser } = useRole();
   const { city } = useCity();
   const location = useLocation();
+  const navigate = useNavigate();
   const {
     collapsed,
     setCollapsed,
@@ -134,18 +147,19 @@ export function RootLayout() {
     cityId: currentUser.cityId || "CITY-SURAT",
   };
 
-  // Auto-redirect users to their role-specific landing page
-  useRoleBasedRedirect(currentRole);
-
-  // Safe role setter - prevents invalid roles from entering state
+  // Safe role setter — validates then navigates to the role's dedicated route.
+  // navigate() here is the single source of truth for role-change routing.
+  // useRoleBasedRedirect is NOT called from here — it would race with this navigate.
   const setSafeRole = useCallback((role: string) => {
     if (roleConfigurations[role as Role]) {
       setCurrentRole(role as Role);
+      navigate(ROLE_HOME_ROUTES[role as Role] ?? "/");
     } else {
       console.error(`❌ Invalid role selected: "${role}". Falling back to Super Admin.`);
       setCurrentRole("Super Admin");
+      navigate("/");
     }
-  }, [setCurrentRole]);
+  }, [setCurrentRole, navigate]);
 
   // Get valid roles from roleConfigurations (single source of truth)
   const validRoles = Object.keys(roleConfigurations) as Role[];
@@ -759,7 +773,10 @@ export function RootLayout() {
         {/* Main Content — key forces remount on every route/role change */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 min-w-0">
           <RouteGuard />
-          <Outlet />
+          {/* Use full hash as key — guarantees remount when hash route changes */}
+          <div key={`${location.pathname}${location.search}${location.hash}__${currentRole}`}>
+            <Outlet />
+          </div>
         </main>
       </div>
 
