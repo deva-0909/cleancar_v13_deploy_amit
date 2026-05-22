@@ -120,17 +120,21 @@ async function fetchInvoices(
   // Mock delay
   await new Promise((resolve) => setTimeout(resolve, 600));
 
-  // Derive invoices from revenue records
+  // ── 1. Revenue-derived invoices ──────────────────────────────────────────
   const liveInvoices = revenues.map(r => {
     const customer = customers.find(c => c.customerId === r.customerId);
+    // Fall back to r.customerName if present (web invoices carry it)
+    const customerName = customer
+      ? `${customer.firstName} ${customer.lastName}`
+      : (r.customerName || "Unknown Customer");
     return {
-      id: r.revenueId,
+      id: r.revenueId || r.invoiceNumber,
       invoiceNumber: r.invoiceNumber || r.revenueId,
       customerId: r.customerId,
-      customerName: customer ? `${customer.firstName} ${customer.lastName}` : "Unknown Customer",
-      serviceType: r.type,
-      invoiceDate: r.receivedDate,
-      dueDate: r.receivedDate,
+      customerName,
+      serviceType: r.type || r.source || "Subscription",
+      invoiceDate: r.receivedDate || r.createdAt?.split("T")[0],
+      dueDate: r.receivedDate || r.createdAt?.split("T")[0],
       subtotal: r.amount,
       taxAmount: 0,
       discountAmount: 0,
@@ -144,8 +148,39 @@ async function fetchInvoices(
     };
   });
 
-  // ✅ FIXED: Always use live invoices — no mock fallback
-  let filtered = [...liveInvoices];
+  // ── 2. Web buy-page invoices (cleancar_web_invoices) ─────────────────────
+  // These are from customers who purchased directly from /buy page.
+  // They are NOT in FinanceContext revenues yet (added by CustomerPlanPage.tsx),
+  // so we read and merge them here.
+  const webInvoiceRaw: any[] = (() => {
+    try { return JSON.parse(localStorage.getItem("cleancar_web_invoices") || "[]"); }
+    catch { return []; }
+  })();
+  const existingIds = new Set(liveInvoices.map(i => i.invoiceNumber));
+  const webInvoices: Invoice[] = webInvoiceRaw
+    .filter((wi: any) => !existingIds.has(wi.invoiceNumber)) // no duplicates
+    .map((wi: any) => ({
+      id: wi.invoiceNumber,
+      invoiceNumber: wi.invoiceNumber,
+      customerId: wi.customerId || "",
+      customerName: wi.customerName || "Web Customer",
+      serviceType: wi.items?.[0]?.name || "Web Subscription",
+      invoiceDate: wi.invoiceDate || wi.createdAt?.split("T")[0] || "",
+      dueDate: wi.invoiceDate || wi.createdAt?.split("T")[0] || "",
+      subtotal: wi.subtotal || 0,
+      taxAmount: (wi.cgst || 0) + (wi.sgst || 0),
+      discountAmount: 0,
+      totalAmount: wi.grandTotal || wi.subtotal || 0,
+      paidAmount: wi.grandTotal || wi.subtotal || 0,
+      balanceDue: 0,
+      status: "PAID" as const,
+      paymentStatus: "COMPLETED" as const,
+      city: wi.cityId || "CITY-SURAT",
+      createdAt: wi.createdAt || "",
+    }));
+
+  // ── 3. Merge and filter ───────────────────────────────────────────────────
+  let filtered = [...liveInvoices, ...webInvoices];
 
   if (filters.city !== "all") {
     filtered = filtered.filter((inv) => inv.city === filters.city);
