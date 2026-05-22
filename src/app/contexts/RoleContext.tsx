@@ -15,7 +15,7 @@
  *   - ProtectedRoute finds real employee → permission check passes
  */
 
-import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from "react";
 import { Role, getRoleConfig, RoleConfig } from "../lib/roleConfig";
 import { logger } from "../services/logger";
 import type { EmployeeRole } from "./OrgContext";
@@ -163,7 +163,11 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // ── Wrapper: update state + optionally persist ───────────────────
-  const setCurrentRole = (role: Role) => {
+  // useCallback makes setCurrentRole a stable reference so:
+  //   1. roleValue useMemo only re-runs when setCurrentRole actually changes (never)
+  //   2. setSafeRole in RootLayout gets a stable dep and doesn't recreate on every render
+  //   3. the hook's useEffect([currentRole]) fires reliably after state update
+  const setCurrentRole = useCallback((role: Role) => {
     setCurrentRoleState(role);
     // Update session role too (for demo role-switching)
     try {
@@ -175,7 +179,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       // ignore
     }
-  };
+  }, []); // stable — setCurrentRoleState from useState is always stable
 
   // ── Build currentUser from session + role ───────────────────────
   const currentUser = useMemo(() => {
@@ -234,7 +238,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   const roleValue = useMemo(() => ({
     currentRole, setCurrentRole, roleConfig, currentUser,
-  }), [currentRole, roleConfig, currentUser]); // setCurrentRole is stable
+  }), [currentRole, roleConfig, currentUser, setCurrentRole]);
 
   return (
     <RoleContext.Provider value={roleValue}>
