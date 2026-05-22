@@ -123,16 +123,22 @@ async function fetchInvoices(
   // ── 1. Revenue-derived invoices ──────────────────────────────────────────
   const liveInvoices = revenues.map(r => {
     const customer = customers.find(c => c.customerId === r.customerId);
-    // Fall back to r.customerName if present (web invoices carry it)
-    const customerName = customer
-      ? `${customer.firstName} ${customer.lastName}`
-      : (r.customerName || "Unknown Customer");
+    const fromContext = customer ? `${customer.firstName} ${customer.lastName}`.trim() : "";
+    // Use revenue record's own customerName first (seeded with real names),
+    // then context join (but skip generic "Customer Sur N" placeholder names),
+    // then customerId as last resort
+    const isGeneric = (n: string) => /^Customer (Sur|Mum)/i.test(n);
+    const customerName =
+      (r.customerName && !isGeneric(r.customerName)) ? r.customerName :
+      (fromContext && !isGeneric(fromContext)) ? fromContext :
+      (r.customerName || r.customerId || "Unknown Customer");
+    const serviceType = r.packageName || (r.type === "One-Time" ? "One-Time Wash" : "Car Wash Subscription");
     return {
       id: r.revenueId || r.invoiceNumber,
       invoiceNumber: r.invoiceNumber || r.revenueId,
       customerId: r.customerId,
       customerName,
-      serviceType: r.type || r.source || "Subscription",
+      serviceType,
       invoiceDate: r.receivedDate || r.createdAt?.split("T")[0],
       dueDate: r.receivedDate || r.createdAt?.split("T")[0],
       subtotal: r.amount,
@@ -402,8 +408,11 @@ export default function InvoiceManagement() {
             invoiceDate: sub.startDate || new Date().toISOString().split("T")[0],
             dueDate,
             customerId: sub.customerId,
-            customerName: customer ? `${customer.firstName} ${customer.lastName}` : "Customer",
-            serviceType: sub.packageType,
+            customerName: (() => {
+              const n = customer ? `${customer.firstName} ${customer.lastName}`.trim() : "";
+              return (n && !/^Customer (Sur|Mum)/i.test(n)) ? n : (sub.customerName || sub.customerId || "Customer");
+            })(),
+            serviceType: sub.packageName || sub.packageType || "Car Wash Subscription",
             subtotal: baseAmount,
             taxAmount: cgst + sgst,
             discountAmount: sub.pricing?.discount || 0,

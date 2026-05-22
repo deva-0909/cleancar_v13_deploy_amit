@@ -17,7 +17,7 @@
  *   EMPLOYEE_DATABASE_RECORDS    (auth system)
  */
 
-const SEED_FLAG = "ALL_DATA_SEEDED_V2";
+const SEED_FLAG = "ALL_DATA_SEEDED_V3";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 const NOW   = new Date().toISOString();
@@ -306,20 +306,64 @@ const PINS_MUM   = ["400001","400002","400003","400004","400005","400006","40000
 const VEHICLES   = ["Maruti Baleno","Honda City","Hyundai Creta","Tata Nexon","Toyota Fortuner","Maruti Swift","Honda Amaze","Kia Seltos"];
 
 const CUSTOMERS: any[] = [];
+
+// Real Indian first and last names for authentic customer data
+const FIRST_NAMES = [
+  "Amit","Priya","Rahul","Sneha","Rajesh","Kavita","Vikram","Meena","Suresh","Anita",
+  "Deepak","Pooja","Mahesh","Sunita","Sanjay","Rekha","Anil","Geeta","Vinod","Usha",
+  "Ravi","Nita","Ajay","Seema","Rohit","Sita","Nitin","Asha","Kiran","Lata",
+  "Hitesh","Bhavna","Jignesh","Hetal","Chirag","Minal","Dhaval","Pallavi","Mitesh","Komal",
+  "Yash","Riya","Dev","Isha","Arjun","Nisha","Veer","Tara","Jay","Pari",
+  "Sunil","Radha","Santosh","Kamla","Mohan","Sarita","Gopal","Pushpa","Satish","Savita",
+  "Milind","Varsha","Shirish","Madhuri","Sachin","Jyoti","Nikhil","Swati","Manish","Smita",
+  "Vijay","Shobha","Girish","Sushma","Aakash","Rashmi","Vishal","Anjali","Manoj","Sunanda",
+  "Harish","Leela","Bharat","Veena","Pramod","Nalini","Ashok","Sudha","Ramesh","Indira",
+  "Kamlesh","Hansa","Naresh","Sarla","Dhiraj","Mamta","Bhavesh","Vimla","Jayesh","Daksha",
+];
+const LAST_NAMES_SUR = [
+  "Patel","Shah","Desai","Mehta","Modi","Joshi","Trivedi","Pandya","Dave","Bhatt",
+  "Parmar","Chauhan","Solanki","Rana","Thakkar","Vyas","Nayak","Kapadia","Gandhi","Shukla",
+  "Doshi","Kothari","Soni","Parekh","Vakil","Majmudar","Amin","Banker","Contractor","Diwan",
+  "Rathod","Vaghela","Jadeja","Zala","Gohil","Makwana","Damor","Baria","Tadvi","Vasava",
+  "Agarwal","Mittal","Gupta","Jain","Khandelwal","Maheshwari","Singhvi","Oswal","Lodha","Saraf",
+];
+const LAST_NAMES_MUM = [
+  "Sharma","Singh","Kumar","Gupta","Verma","Mishra","Yadav","Tiwari","Pandey","Dubey",
+  "Patil","Deshmukh","Jadhav","More","Shinde","Bhosale","Chavan","Pawar","Kamble","Gaikwad",
+  "Nair","Menon","Pillai","Iyer","Krishnan","Subramaniam","Rajan","Gopal","Venkat","Chandran",
+  "D'souza","Fernandes","Pereira","Rodrigues","Lobo","Gomes","Sequeira","Braganza","Noronha","Dias",
+  "Sheikh","Ansari","Khan","Siddiqui","Patel","Shaikh","Qureshi","Merchant","Kapoor","Malhotra",
+];
+const BRANDS_SUR = ["Maruti","Hyundai","Tata","Honda","Toyota","Renault","Kia","Skoda","MG","Citroen"];
+const BRANDS_MUM = ["Maruti","Mahindra","Hyundai","Toyota","Honda","Tata","Volkswagen","Kia","Nissan","Ford"];
+const MODELS_BY_CAT: Record<string,string[]> = {
+  SUV:      ["Creta","Nexon","Venue","XUV300","Seltos","Brezza","Hector","Taigun","Sonet","Carens"],
+  Sedan:    ["City","Verna","Ciaz","Slavia","Virtus","Dzire","Amaze","Tigor","Rapid","Aura"],
+  Hatchback:["Swift","Baleno","i20","Altroz","Punch","Tiago","WagonR","Celerio","Glanza","Jazz"],
+};
+
 function makeCust(i: number, city: "Surat"|"Mumbai") {
   const isMum = city === "Mumbai";
   const areas = isMum ? AREAS_MUM : AREAS_SUR;
   const pins  = isMum ? PINS_MUM  : PINS_SUR;
   const cid   = isMum ? "CITY-MUMBAI" : "CITY-SURAT";
   const idx   = i % areas.length;
+  const firstName = FIRST_NAMES[i % FIRST_NAMES.length];
+  const lastNames = isMum ? LAST_NAMES_MUM : LAST_NAMES_SUR;
+  const lastName  = lastNames[i % lastNames.length];
+  const cat = i%3===0?"SUV":i%3===1?"Sedan":"Hatchback";
+  const brand = isMum ? BRANDS_MUM[i%BRANDS_MUM.length] : BRANDS_SUR[i%BRANDS_SUR.length];
+  const model = MODELS_BY_CAT[cat][i % MODELS_BY_CAT[cat].length];
+  const prefix = isMum ? "MH04" : "GJ05";
+  const regSuffix = String.fromCharCode(65+(i%26)) + String.fromCharCode(65+((i+3)%26)) + String(1000+i).slice(-4);
   return {
     customerId: `CUST-${city.slice(0,3).toUpperCase()}-${String(i+1).padStart(3,"0")}`,
-    firstName: `Customer ${city.slice(0,3)}`,
-    lastName: String(i+1),
-    email: `cust${i+1}${city.slice(0,3).toLowerCase()}@example.com`,
+    firstName,
+    lastName,
+    email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i+1}@example.com`,
     phone: `${isMum?"9900":"9800"}${String(100000+i).slice(-6)}`,
-    address: { line1: `${100+i} Main Road`, area: areas[idx], city, pinCode: pins[idx] },
-    vehicleDetails: { category: i%3===0?"SUV":i%3===1?"Sedan":"Hatchback", brand: VEHICLES[i%VEHICLES.length].split(" ")[0], color:"White", registrationNumber:`${isMum?"MH01":"GJ05"}${String(1000+i)}` },
+    address: { line1: `${100+i} ${["Main Road","Society Block","Residency","Heights","Park"][i%5]}`, area: areas[idx], city, pinCode: pins[idx] },
+    vehicleDetails: { category: cat, brand, model, color:["White","Silver","Grey","Black","Red"][i%5], registrationNumber:`${prefix}${regSuffix}` },
     leadSource: ["Walk-in","WhatsApp","Google Ads","Referral"][i%4],
     status: i%10===9 ? "Churned" : "Active",
     cityId: cid,
@@ -616,13 +660,14 @@ const PM = ["UPI","UPI","UPI","Card","Cash","Bank Transfer"] as const;
 for (const m of MONTHS) {
   const ms = String(m).padStart(2,"0");
   SUBS.filter(s => s.cityId==="CITY-SURAT").slice(0,12).forEach((s,i) => {
-    FINANCE_REVENUES.push({ revenueId:`REV-SUR-SUB-${m}-${String(i+1).padStart(3,"0")}`, customerId:s.customerId, subscriptionId:s.subscriptionId, type:"Subscription", amount:s.pricing.finalPrice, receivedDate:`2026-${ms}-01`, paymentMethod:PM[i%PM.length], invoiceNumber:`INV-SUR-${m}-${String(i+1).padStart(4,"0")}`, status:"Received", cityId:"CITY-SURAT", createdAt:`2026-${ms}-01T09:00:00.000Z` });
+    const revCust = CUSTOMERS.find(c => c.customerId === s.customerId);
+    FINANCE_REVENUES.push({ revenueId:`REV-SUR-SUB-${m}-${String(i+1).padStart(3,"0")}`, customerId:s.customerId, customerName: revCust ? `${revCust.firstName} ${revCust.lastName}` : s.customerId, subscriptionId:s.subscriptionId, packageName:s.packageName, type:"Subscription", amount:s.pricing.finalPrice, receivedDate:`2026-${ms}-01`, paymentMethod:PM[i%PM.length], invoiceNumber:`INV-SUR-${m}-${String(i+1).padStart(4,"0")}`, status:"Received", cityId:"CITY-SURAT", createdAt:`2026-${ms}-01T09:00:00.000Z` });
   });
   for (let day=5; day<=25; day+=5) {
-    FINANCE_REVENUES.push({ revenueId:`REV-SUR-OT-${m}-${day}`, customerId:CUSTOMERS[day%100].customerId, type:"One-Time", amount:499+(day%2===0?200:0), receivedDate:`2026-${ms}-${String(day).padStart(2,"0")}`, paymentMethod:"Cash", invoiceNumber:`INV-SUR-OT-${m}-${day}`, status:"Received", cityId:"CITY-SURAT", createdAt:`2026-${ms}-${String(day).padStart(2,"0")}T10:00:00.000Z` });
+    const otCust = CUSTOMERS[day%100]; FINANCE_REVENUES.push({ revenueId:`REV-SUR-OT-${m}-${day}`, customerId:otCust.customerId, customerName:`${otCust.firstName} ${otCust.lastName}`, packageName:"One-Time Wash", type:"One-Time", amount:499+(day%2===0?200:0), receivedDate:`2026-${ms}-${String(day).padStart(2,"0")}`, paymentMethod:"Cash", invoiceNumber:`INV-SUR-OT-${m}-${day}`, status:"Received", cityId:"CITY-SURAT", createdAt:`2026-${ms}-${String(day).padStart(2,"0")}T10:00:00.000Z` });
   }
   SUBS.filter(s => s.cityId==="CITY-MUMBAI").slice(0,8).forEach((s,i) => {
-    FINANCE_REVENUES.push({ revenueId:`REV-MUM-SUB-${m}-${String(i+1).padStart(3,"0")}`, customerId:s.customerId, subscriptionId:s.subscriptionId, type:"Subscription", amount:s.pricing.finalPrice, receivedDate:`2026-${ms}-01`, paymentMethod:PM[i%PM.length], invoiceNumber:`INV-MUM-${m}-${String(i+1).padStart(4,"0")}`, status:"Received", cityId:"CITY-MUMBAI", createdAt:`2026-${ms}-01T09:00:00.000Z` });
+    const mumRevCust = CUSTOMERS.find(c => c.customerId === s.customerId); FINANCE_REVENUES.push({ revenueId:`REV-MUM-SUB-${m}-${String(i+1).padStart(3,"0")}`, customerId:s.customerId, customerName: mumRevCust ? `${mumRevCust.firstName} ${mumRevCust.lastName}` : s.customerId, subscriptionId:s.subscriptionId, packageName:s.packageName, type:"Subscription", amount:s.pricing.finalPrice, receivedDate:`2026-${ms}-01`, paymentMethod:PM[i%PM.length], invoiceNumber:`INV-MUM-${m}-${String(i+1).padStart(4,"0")}`, status:"Received", cityId:"CITY-MUMBAI", createdAt:`2026-${ms}-01T09:00:00.000Z` });
   });
 }
 
@@ -752,7 +797,7 @@ export function seedAllData(): void {
     // Clear old seed flags so users with broken V4/V5 data get fresh correct seed
     ["HISTORIC_DATA_SEEDED_V1","HISTORIC_DATA_SEEDED_V2","HISTORIC_DATA_SEEDED_V3",
      "HISTORIC_DATA_SEEDED_V4","HISTORIC_DATA_SEEDED_V5","ACC_SEED_V1","ACC_SEED_V2",
-     "ALL_DATA_SEEDED_V2","ALL_DATA_SEEDED_V2"].forEach(f => localStorage.removeItem(f));
+     "ALL_DATA_SEEDED_V3","ALL_DATA_SEEDED_V3"].forEach(f => localStorage.removeItem(f));
 
     // ── 1. EMPLOYEES ─────────────────────────────────────────────────────────
     const existEmp = JSON.parse(localStorage.getItem("EMPLOYEE_DATABASE_RECORDS")||"[]");
