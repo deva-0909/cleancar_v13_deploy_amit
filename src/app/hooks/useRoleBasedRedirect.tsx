@@ -33,6 +33,25 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
     allowedPaths: ["/", "/cce-app", "/customer-care", "/customer-care-executive", "/leads", "/customers", "/complaints", "/my-account"],
   },
 
+  "Sales Head": {
+    defaultPath: "/sh-app",
+    allowedPaths: [
+      "/", "/sh-app", "/leads", "/customers", "/complaints",
+      "/analytics", "/analytics/dashboard",
+      "/hr/professional-leave", "/hr/self-service",
+      "/my-account", "/travel", "/performance",
+    ],
+  },
+
+  "Sales Manager": {
+    defaultPath: "/sm-app-alliance",
+    allowedPaths: [
+      "/", "/sm-app-alliance", "/leads", "/customers",
+      "/hr/professional-leave", "/hr/self-service",
+      "/my-account", "/travel", "/performance",
+    ],
+  },
+
   // Operations roles - Stay on their apps
   "Car Washer": {
     defaultPath: "/washer-core-screens",

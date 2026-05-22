@@ -120,6 +120,8 @@ export function getDefaultRoute(role: string): string {
     "Procurement Manager": "/procurement",
     "Accounts": "/accounts",
     "HR": "/hr",
+    "Sales Head":    "/sh-app",
+    "Sales Manager": "/sm-app-alliance",
   };
   return defaults[role] || "/";
 }
