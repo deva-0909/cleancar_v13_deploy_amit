@@ -191,6 +191,8 @@ import { SupervisorLayout } from "./components/supervisor/SupervisorLayout";
 import { ClusterManagerApp } from "./components/cm/ClusterManagerApp";
 import { CityManagerApp } from "./components/city/CityManagerApp";
 import { TeleSalesManagerApp } from "./components/tsm/TeleSalesManagerApp";
+import { SalesHeadApp } from "./components/sh/SalesHeadApp";
+import { SalesManagerApp } from "./components/sm/SalesManagerApp";
 import { TeleSalesExecutiveApp } from "./components/tse/TeleSalesExecutiveApp";
 import { TSEDiagnostics } from "./components/tse/TSEDiagnostics";
 import { CustomerCareExecutiveApp } from "./components/cce/CustomerCareExecutiveApp";
@@ -217,7 +219,6 @@ import { IncentiveDashboard } from "./components/incentives/IncentiveDashboard";
 import { HRPayrollApproval } from "./components/hr/HRPayrollApproval";
 import { SuperAdminPayrollApproval } from "./components/admin/SuperAdminPayrollApproval";
 import { CityManagement } from "./components/admin/CityManagement";
-import { LiveLocationDashboard } from "./components/field/LiveLocationDashboard";
 import { BusinessRulesPage } from "./components/admin/BusinessRulesPage";
 import { ShiftManagementPage } from "./components/admin/ShiftManagementPage"; // MC-10
 import { AttendanceFraudAlertsPage } from "./components/admin/AttendanceFraudAlertsPage"; // MC-09
@@ -399,7 +400,6 @@ export const router = createBrowserRouter([
       { path: "gst/monitoring", element: <GSTMonitoringModule /> },
       { path: "admin/payroll-approval", element: <SuperAdminPayrollApproval /> },
       { path: "admin/city-management", element: <CityManagement /> },
-      { path: "admin/live-location", element: <LiveLocationDashboard /> },
       { path: "admin/business-rules", element: <BusinessRulesPage /> },
       { path: "admin/shift-management", element: <ShiftManagementPage /> }, // MC-10
       { path: "admin/fraud-alerts", element: <AttendanceFraudAlertsPage /> }, // MC-09
@@ -538,7 +538,6 @@ export const router = createBrowserRouter([
           { path: "visibility", element: <SupervisorAppConnected /> },
           { path: "audit-trail", element: <SupervisorAppConnected /> },
           { path: "kpi-dashboard", element: <SupervisorAppConnected /> },
-          { path: "field-day", element: <SupervisorAppConnected /> },
         ]
       },
 
@@ -556,6 +555,8 @@ export const router = createBrowserRouter([
 
       // Tele Sales Manager App (Production) - Pipeline control tower
       { path: "tsm-app", element: <TeleSalesManagerApp /> },
+      { path: "sh-app", element: <SalesHeadApp /> },
+      { path: "sm-app-alliance", element: <SalesManagerApp /> },
 
       // Tele Sales Executive App (Production) - Sales execution interface
       { path: "tse-app", element: <TeleSalesExecutiveApp /> },

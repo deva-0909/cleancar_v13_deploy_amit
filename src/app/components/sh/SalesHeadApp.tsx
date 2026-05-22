@@ -35,7 +35,7 @@ import {
 import { SalesHeadManagementView } from "./SalesHeadManagementView";
 import { FieldCheckIn } from "../field/FieldCheckIn";
 import { FieldAttendanceAdmin } from "../field/FieldAttendanceAdmin";
-import { Telescope } from "lucide-react";
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
