@@ -36,7 +36,8 @@ export type Module =
   | "reports"
   | "accounts"
   | "store-manager"
-  | "travel";
+  | "travel"
+  | "field-tracking";
 
 // Available actions per module
 export type Action =

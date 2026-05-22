@@ -57,7 +57,8 @@ export function hasPermission(
   const rolePermissions = permissionMatrix[city]?.[employee.role];
 
   if (!rolePermissions) {
-    console.warn(`No permissions found for role "${employee.role}" in city "${city}"`);
+    // Unknown role — show dashboard only so nav doesn't go blank
+    if (module === "dashboard") return action === "view";
     return false;
   }
 
