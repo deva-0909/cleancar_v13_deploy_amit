@@ -101,16 +101,7 @@ interface PaymentSummary {
 // ✅ FIXED: Removed hardcoded mockPayments — real payments come from FinanceContext
 const mockPayments: Payment[] = []; // empty — no fake data
 
-const mockSummary: PaymentSummary = {
-  totalPayments: 4,
-  totalAmount: 18676.0,
-  byMode: [
-    { mode: "UPI", count: 1, amount: 3576.0 },
-    { mode: "CASH", count: 1, amount: 1000.0 },
-    { mode: "CARD", count: 1, amount: 5200.0 },
-    { mode: "BANK_TRANSFER", count: 1, amount: 8900.0 },
-  ],
-};
+// mockSummary removed — summary is now computed from real payment data in loadPayments()
 
 // ============================================================================
 // API FUNCTIONS
@@ -182,11 +173,33 @@ async function fetchPayments(
     createdBy: p.createdBy || "Seed",
   }));
 
+  // Also include payments from web buy-page invoices
+  const webInvoices: any[] = (() => {
+    try { return JSON.parse(localStorage.getItem("cleancar_web_invoices") || "[]"); }
+    catch { return []; }
+  })();
+  const webPayments: Payment[] = webInvoices.map((wi: any, idx: number) => ({
+    id: `WEB-PAY-${wi.invoiceNumber}`,
+    paymentNumber: `WEB-${String(idx + 1).padStart(4, "0")}`,
+    invoiceId: wi.invoiceNumber,
+    invoiceNumber: wi.invoiceNumber,
+    customerName: wi.customerName || "Web Customer",
+    paymentDate: wi.createdAt?.split("T")[0] || "",
+    paymentMode: "UPI" as const,
+    paymentReference: `Razorpay — ${wi.invoiceNumber}`,
+    amount: wi.grandTotal || wi.subtotal || 0,
+    city: wi.cityId || cityId,
+    createdAt: wi.createdAt || "",
+    createdBy: "Web Buy Page",
+  }));
+
   // Merge, deduplicate
   const journalIds = new Set(journalPayments.map(p => p.id));
+  const seededIds  = new Set(seededPayments.map(p => p.id));
   let livePayments: Payment[] = [
     ...journalPayments,
     ...seededPayments.filter(p => !journalIds.has(p.id)),
+    ...webPayments.filter(p => !journalIds.has(p.id) && !seededIds.has(p.id)),
   ];
 
   if (filters.city !== "all") {
@@ -208,13 +221,7 @@ async function fetchPayments(
   return { payments: livePayments, totalCount: livePayments.length, totalAmount, page: 1, pageSize: 100 };
 }
 
-async function fetchPaymentSummary(
-  filters: PaymentFilters
-): Promise<PaymentSummary> {
-  // In production: Replace with real API call
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  return mockSummary;
-}
+// fetchPaymentSummary removed — summary computed inline in loadPayments() from real data
 
 // ============================================================================
 // HELPER FUNCTIONS

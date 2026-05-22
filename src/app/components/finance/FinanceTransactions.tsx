@@ -391,9 +391,121 @@ const getMockTransactions = (cityName: string): FinanceTransaction[] => [
 export function FinanceTransactions() {
   const { city, cityInfo } = useCity();
   const { currentRole } = useRole();
-  // FIX: Finance RBAC — scope data to current user's city
   const { getRevenues, getPayables, canSeeAllCities } = useFinanceForCurrentUser();
-  const [transactions, setTransactions] = useState<FinanceTransaction[]>(() => getMockTransactions(cityInfo.displayName));
+
+  // ── Build real transactions from seeded data ──────────────────────────────
+  // Derives transactions from accounting entries + revenue records so no mock
+  // data is ever shown. Falls back to getMockTransactions only if both stores
+  // are completely empty (first-run before seed runs).
+  function buildLiveTransactions(cityName: string): FinanceTransaction[] {
+    // 1. Accounting entries (sales, purchases, expenses, journals)
+    const entries: any[] = (() => {
+      try { return JSON.parse(localStorage.getItem("cleancar_accounting_entries") || "[]"); }
+      catch { return []; }
+    })();
+    const cityEntries = entries.filter((e: any) =>
+      e.cityId === city || e.city?.toLowerCase() === cityName.toLowerCase()
+    );
+
+    const fromEntries: FinanceTransaction[] = cityEntries.map((e: any) => {
+      const type: TransactionType =
+        e.entryType === "Sales"        ? "REVENUE"
+        : e.entryType === "Purchase"   ? "EXPENSE"
+        : e.entryType === "Expense"    ? "EXPENSE"
+        : e.entryType === "SalesReturn"? "REFUND"
+        : e.entryType === "CreditNote" ? "REFUND"
+        : "REVENUE";
+      const source: TransactionSource =
+        e.createdBy === "Seed"         ? "subscriptionEngine"
+        : e.entryType?.includes("Sal") ? "subscriptionEngine"
+        : e.entryType?.includes("Pay") ? "payrollEngine"
+        : "manualEntry";
+      return {
+        id: e.id,
+        date: e.date,
+        type,
+        source,
+        description: e.narration || e.description || e.entryType,
+        referenceId: e.invoiceNumber || e.voucherNumber || e.id,
+        amount: e.taxableValue || e.totalBillValue || 0,
+        accountDebit: e.debitAccount || "",
+        accountCredit: e.creditAccount || "",
+        status: (e.status === "Posted" || e.status === "POSTED") ? "POSTED" : "PENDING",
+        city: cityName,
+        cluster: "",
+        postedBy: e.createdBy || "System",
+        notes: e.narration || "",
+      };
+    });
+
+    // 2. Revenue records (subscription + one-time + web)
+    const revenues: any[] = (() => {
+      try {
+        const key = `cleancar_CITY-${city.replace("CITY-","")}_revenues`;
+        const cityKey = `cleancar_${city}_revenues`;
+        return JSON.parse(localStorage.getItem(cityKey) || localStorage.getItem(key) || "[]");
+      } catch { return []; }
+    })();
+    const revenueIds = new Set(fromEntries.map(e => e.referenceId));
+    const fromRevenues: FinanceTransaction[] = revenues
+      .filter((r: any) => !revenueIds.has(r.invoiceNumber))
+      .map((r: any) => ({
+        id: r.revenueId,
+        date: r.receivedDate || r.createdAt?.split("T")[0],
+        type: "REVENUE" as TransactionType,
+        source: "subscriptionEngine" as TransactionSource,
+        description: r.type === "One-Time" ? "One-time wash revenue" : "Subscription revenue",
+        referenceId: r.invoiceNumber,
+        amount: r.amount,
+        accountDebit: "1100 - Bank / Razorpay",
+        accountCredit: "4000 - Service Revenue",
+        status: "POSTED" as const,
+        city: cityName,
+        cluster: "",
+        postedBy: "System",
+        notes: `${r.paymentMethod || ""} — ${r.type}`,
+      }));
+
+    // 3. Web invoices (buy page)
+    const webInvoices: any[] = (() => {
+      try { return JSON.parse(localStorage.getItem("cleancar_web_invoices") || "[]"); }
+      catch { return []; }
+    })();
+    const webRevenueIds = new Set([...fromEntries, ...fromRevenues].map(e => e.referenceId));
+    const fromWeb: FinanceTransaction[] = webInvoices
+      .filter((wi: any) => !webRevenueIds.has(wi.invoiceNumber))
+      .map((wi: any) => ({
+        id: wi.invoiceNumber,
+        date: wi.createdAt?.split("T")[0] || wi.invoiceDate,
+        type: "REVENUE" as TransactionType,
+        source: "subscriptionEngine" as TransactionSource,
+        description: `Web subscription — ${wi.customerName}`,
+        referenceId: wi.invoiceNumber,
+        amount: wi.grandTotal || wi.subtotal || 0,
+        accountDebit: "1100 - Razorpay",
+        accountCredit: "4010 - Subscription Revenue",
+        status: "POSTED" as const,
+        city: cityName,
+        cluster: "",
+        postedBy: "Web Buy Page",
+        notes: `${wi.items?.[0]?.name || ""} — ${wi.paymentMethod || ""}`,
+      }));
+
+    const all = [...fromEntries, ...fromRevenues, ...fromWeb];
+    // Sort newest first
+    all.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+
+    // Fall back to mock only if completely empty
+    if (all.length === 0) return getMockTransactions(cityName);
+    return all;
+  }
+
+  const [transactions, setTransactions] = useState<FinanceTransaction[]>(() => buildLiveTransactions(cityInfo.displayName));
+
+  // Reload when city changes
+  useEffect(() => {
+    setTransactions(buildLiveTransactions(cityInfo.displayName));
+  }, [city]); // eslint-disable-line react-hooks/exhaustive-deps
   const [typeFilter, setTypeFilter] = useState<TransactionType | "ALL">("ALL");
   const [sourceFilter, setSourceFilter] = useState<TransactionSource | "ALL">("ALL");
   const [statusFilter, setStatusFilter] = useState<TransactionStatus | "ALL">("ALL");
