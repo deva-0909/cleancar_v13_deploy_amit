@@ -103,6 +103,12 @@ const EMPLOYEES_RAW: any[] = [
   { ...BASE_EMP, id:"EDB-SMGR-SUR1", loginMobile:"9100000025",mobile:"9100000025",fullName:"Nayan Joshi",    firstName:"Nayan",    lastName:"Joshi",                   email:"nayan.joshi@cleancar.com",   designation:"Sales Manager", department:"Sales",  workLocation:"CITY-SURAT",  city:"Surat",  reportingManager:"Priya Nair",   pinCodes:["395001","395002"],                   dateOfJoining:"2025-10-01", ...sal(32000) },
   { ...BASE_EMP, id:"EDB-SMGR-SUR2", loginMobile:"9100000026",mobile:"9100000026",fullName:"Kalpesh Rathod", firstName:"Kalpesh",  lastName:"Rathod",                  email:"kalpesh.rathod@cleancar.com",designation:"Sales Manager", department:"Sales",  workLocation:"CITY-SURAT",  city:"Surat",  reportingManager:"Priya Nair",   pinCodes:["395005","395007"],                   dateOfJoining:"2025-10-15", ...sal(30000) },
   { ...BASE_EMP, id:"EDB-SMGR-SUR3", loginMobile:"9100000027",mobile:"9100000027",fullName:"Amit Trivedi",   firstName:"Amit",     lastName:"Trivedi",                 email:"amit.trivedi@cleancar.com",  designation:"Sales Manager", department:"Sales",  workLocation:"CITY-SURAT",  city:"Surat",  reportingManager:"Ravi Shah",    pinCodes:["395001","395009"],                   dateOfJoining:"2025-11-01", ...sal(29000) },
+  // ── SALES HEAD & SALES MANAGER (Surat) ─────────────────────────────────────
+  { ...BASE_EMP, id:"EDB-SH-SUR1",   loginMobile:"9100000023",mobile:"9100000023",fullName:"Priya Nair",     firstName:"Priya",   lastName:"Nair",   gender:"Female",email:"priya.nair@cleancar.com",    designation:"Sales Head",    department:"Sales",  workLocation:"CITY-SURAT", city:"Surat", reportingManager:"Amit Desai",   pinCodes:["395001","395002","395005","395007"], dateOfJoining:"2025-09-01", ...sal(52000) },
+  { ...BASE_EMP, id:"EDB-SH-SUR2",   loginMobile:"9100000024",mobile:"9100000024",fullName:"Ravi Shah",      firstName:"Ravi",    lastName:"Shah",                  email:"ravi.shah@cleancar.com",     designation:"Sales Head",    department:"Sales",  workLocation:"CITY-SURAT", city:"Surat", reportingManager:"Amit Desai",   pinCodes:["395001","395005","395007"],          dateOfJoining:"2025-09-15", ...sal(50000) },
+  { ...BASE_EMP, id:"EDB-SMGR-SUR1", loginMobile:"9100000025",mobile:"9100000025",fullName:"Nayan Joshi",    firstName:"Nayan",   lastName:"Joshi",                  email:"nayan.joshi@cleancar.com",   designation:"Sales Manager", department:"Sales",  workLocation:"CITY-SURAT", city:"Surat", reportingManager:"Priya Nair",   pinCodes:["395001","395002"],                   dateOfJoining:"2025-10-01", ...sal(32000) },
+  { ...BASE_EMP, id:"EDB-SMGR-SUR2", loginMobile:"9100000026",mobile:"9100000026",fullName:"Kalpesh Rathod", firstName:"Kalpesh", lastName:"Rathod",                 email:"kalpesh.rathod@cleancar.com",designation:"Sales Manager", department:"Sales",  workLocation:"CITY-SURAT", city:"Surat", reportingManager:"Priya Nair",   pinCodes:["395005","395007"],                   dateOfJoining:"2025-10-15", ...sal(30000) },
+  { ...BASE_EMP, id:"EDB-SMGR-SUR3", loginMobile:"9100000027",mobile:"9100000027",fullName:"Amit Trivedi",   firstName:"Amit",    lastName:"Trivedi",                email:"amit.trivedi@cleancar.com",  designation:"Sales Manager", department:"Sales",  workLocation:"CITY-SURAT", city:"Surat", reportingManager:"Ravi Shah",    pinCodes:["395001","395009"],                   dateOfJoining:"2025-11-01", ...sal(29000) },
   // ── MUMBAI ────────────────────────────────────────────────────────────────
   { ...BASE_EMP, id:"EDB-CM-MUM",   loginMobile:"9200000001",mobile:"9200000001",fullName:"Ananya Singh",   firstName:"Ananya",   lastName:"Singh",  gender:"Female", email:"ananya@cleancar.com",   designation:"City Manager",        department:"Operations",     workLocation:"CITY-MUMBAI", city:"Mumbai", reportingManager:"Rajesh Patel",pinCodes:["400001","400002","400003"], dateOfJoining:"2025-08-15", ...sal(75000) },
   { ...BASE_EMP, id:"EDB-OM-MUM1",  loginMobile:"9200000002",mobile:"9200000002",fullName:"Kiran More",     firstName:"Kiran",    lastName:"More",   gender:"Female", email:"kiran@cleancar.com",    designation:"Operations Manager",  department:"Operations",     workLocation:"CITY-MUMBAI", city:"Mumbai", reportingManager:"Ananya Singh",pinCodes:["400001","400002"],   dateOfJoining:"2025-09-15", ...sal(42000) },
@@ -980,6 +986,185 @@ export function seedAllData(): void {
     if (!localStorage.getItem("sh_tce_statuses")) {
       localStorage.setItem("sh_tce_statuses", JSON.stringify(SH_TCE_PERF));
     }
+
+    // ── 27. SM MODULE — per-SM leads with real customer IDs ──────────────────────
+    // These leads are visible in SH app pipeline, come from SM locations,
+    // and are attributed to real customers seeded in CUSTOMERS array.
+    const SM_LEADS_SEED = [
+      { id:"SH-L-001", customerName:"Vikram Singh",   phone:"+91 98765 43219", vehicleType:"4W", vehicleCategory:"SUV",     source:"SM-Alliance-Supervisor", status:"New",         assignedTo:null,          ageMinutes:35,  estimatedValue:1999, smId:"EDB-SMGR-SUR1", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT" },
+      { id:"SH-L-002", customerName:"Sneha Mehta",    phone:"+91 98765 43220", vehicleType:"4W", vehicleCategory:"Hatchback",source:"SM-Alliance-QR",         status:"Contacted",   assignedTo:"EDB-TSE-SUR1",ageMinutes:62,  estimatedValue:1499, smId:"EDB-SMGR-SUR1", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT" },
+      { id:"SH-L-003", customerName:"Rohan Patel",    phone:"+91 98765 43221", vehicleType:"4W", vehicleCategory:"Sedan",   source:"SM-Alliance-WhatsApp",   status:"Demo Booked", assignedTo:"EDB-TSE-SUR1",ageMinutes:15,  estimatedValue:999,  smId:"EDB-SMGR-SUR1", smLocationName:"Reliance Corporate Park",  cityId:"CITY-SURAT" },
+      { id:"SH-L-004", customerName:"Meera Desai",    phone:"+91 98765 43222", vehicleType:"4W", vehicleCategory:"Sedan",   source:"SM-Alliance-QR",         status:"Contacted",   assignedTo:"EDB-TSE-SUR2",ageMinutes:90,  estimatedValue:699,  smId:"EDB-SMGR-SUR2", smLocationName:"Ghod Dod RWA",            cityId:"CITY-SURAT" },
+      { id:"SH-L-005", customerName:"Arjun Shah",     phone:"+91 98765 43223", vehicleType:"4W", vehicleCategory:"SUV",     source:"SM-Alliance-Supervisor", status:"New",         assignedTo:null,          ageMinutes:125, estimatedValue:1999, smId:"EDB-SMGR-SUR2", smLocationName:"HP Petrol Pump - Vesu",   cityId:"CITY-SURAT" },
+      { id:"SH-L-006", customerName:"Kavya Joshi",    phone:"+91 98765 43224", vehicleType:"4W", vehicleCategory:"Hatchback",source:"SM-Alliance-QR",         status:"Converted",   assignedTo:"EDB-TSE-SUR1",ageMinutes:480, estimatedValue:1499, smId:"EDB-SMGR-SUR1", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT", convertedAt:minsAgoSM(60) },
+      { id:"SH-L-007", customerName:"Pradeep Gupta",  phone:"+91 98765 43225", vehicleType:"4W", vehicleCategory:"SUV",     source:"Digital-Inbound",        status:"Contacted",   assignedTo:"EDB-TSE-SUR2",ageMinutes:22,  estimatedValue:1699, smId:null,             smLocationName:null,                      cityId:"CITY-SURAT" },
+      { id:"SH-L-008", customerName:"Nita Varma",     phone:"+91 98765 43226", vehicleType:"4W", vehicleCategory:"Hatchback",source:"SM-Alliance-Supervisor", status:"No Response", assignedTo:"EDB-TSE-SUR1",ageMinutes:360, estimatedValue:999,  smId:"EDB-SMGR-SUR3", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT" },
+    ];
+    if (!localStorage.getItem("sh_leads")) {
+      localStorage.setItem("sh_leads", JSON.stringify(SM_LEADS_SEED));
+    }
+
+    // ── 28. BUY PAGE → SYSTEM SYNC: Seed 5 web-purchased subscriptions ─────────
+    // These simulate customers who purchased from /buy page.
+    // Data flows into: cleancar_web_invoices, cc360_subscriptions (via DataService SUBSCRIPTIONS key),
+    // CUSTOMERS (via DataService CUSTOMERS key), FINANCE_REVENUES, SH pipeline
+    const now = new Date();
+    const dAgo = (d: number) => new Date(now.getTime() - d*86400000).toISOString();
+    const WEB_CUSTOMERS = [
+      { customerId:"WEBCUST-001", firstName:"Hetal",    lastName:"Shah",   phone:"9723456781", email:"hetal@example.com",  vehicle:"Maruti Swift",   reg:"GJ05AA1234", category:"hatchback", plan:"Water Wash",     amount:999,  cityId:"CITY-SURAT", pincode:"395007", address:"A-12 Vesu Residency, Surat", daysAgo:5  },
+      { customerId:"WEBCUST-002", firstName:"Jigar",    lastName:"Patel",  phone:"9823456782", email:"jigar@example.com",  vehicle:"Hyundai Creta",  reg:"GJ05BB5678", category:"suv",       plan:"Shampoo Wash",   amount:1699, cityId:"CITY-SURAT", pincode:"395009", address:"B-7 Adajan Heights, Surat",  daysAgo:12 },
+      { customerId:"WEBCUST-003", firstName:"Minal",    lastName:"Desai",  phone:"9623456783", email:"minal@example.com",  vehicle:"Toyota Fortuner",reg:"GJ05CC9012", category:"luxury",    plan:"Shampoo + Wax",  amount:2999, cityId:"CITY-SURAT", pincode:"395005", address:"C-3 Citylight Road, Surat",  daysAgo:2  },
+      { customerId:"WEBCUST-004", firstName:"Rakesh",   lastName:"Thakkar",phone:"9523456784", email:"rakesh@example.com", vehicle:"Tata Nexon",     reg:"GJ05DD3456", category:"suv",       plan:"Water Wash",     amount:1099, cityId:"CITY-SURAT", pincode:"395007", address:"D-15 Pal Village, Surat",    daysAgo:20 },
+      { customerId:"WEBCUST-005", firstName:"Sneha",    lastName:"Agarwal",phone:"9423456785", email:"sneha@example.com",  vehicle:"Baleno",         reg:"GJ05EE7890", category:"hatchback", plan:"Shampoo Wash",   amount:1499, cityId:"CITY-SURAT", pincode:"395005", address:"E-9 Piplod Township, Surat", daysAgo:8  },
+    ];
+
+    const existingWebInvoices: any[] = JSON.parse(localStorage.getItem("cleancar_web_invoices") || "[]");
+    const existingWebIds = new Set(existingWebInvoices.map((i: any) => i.invoiceNumber));
+
+    WEB_CUSTOMERS.forEach((wc) => {
+      const invNum = `INV-WEB-${wc.daysAgo.toString().padStart(2,"0")}-${wc.customerId}`;
+      if (existingWebIds.has(invNum)) return; // don't duplicate
+
+      const purchasedAt = dAgo(wc.daysAgo);
+      const grossAmount = wc.amount;
+      const cgst = +(grossAmount * 0.09).toFixed(2);
+      const sgst = +(grossAmount * 0.09).toFixed(2);
+      const grandTotal = +(grossAmount * 1.18).toFixed(2);
+
+      const invoice = {
+        invoiceNumber:   invNum,
+        invoiceDate:     new Date(purchasedAt).toLocaleDateString("en-IN"),
+        customerName:    `${wc.firstName} ${wc.lastName}`,
+        customerId:      wc.customerId,
+        customerPhone:   wc.phone,
+        customerEmail:   wc.email,
+        vehicleReg:      wc.reg,
+        vehicleCategory: wc.category,
+        address:         wc.address,
+        pincode:         wc.pincode,
+        items:           [{ name: `${wc.plan} — Monthly Subscription (${wc.category})`, qty: 1, rate: grossAmount, amount: grossAmount }],
+        subtotal:        grossAmount,
+        cgst,
+        sgst,
+        grandTotal,
+        paymentMethod:   "Razorpay (UPI)",
+        subscriptionId:  `SUB-WEB-${wc.customerId}`,
+        cityId:          wc.cityId,
+        createdAt:       purchasedAt,
+        status:          "PAID",
+        source:          "web-buy-page",
+      };
+      existingWebInvoices.push(invoice);
+    });
+    localStorage.setItem("cleancar_web_invoices", JSON.stringify(existingWebInvoices));
+
+    // Sync web customers into CUSTOMERS DataService key
+    const customersDSKey = `cleancar_CITY-SURAT_customers`;
+    const existingCustDS: any[] = JSON.parse(localStorage.getItem(customersDSKey) || "[]");
+    const existingCustIds = new Set(existingCustDS.map((c: any) => c.customerId));
+    WEB_CUSTOMERS.forEach(wc => {
+      if (existingCustIds.has(wc.customerId)) return;
+      existingCustDS.push({
+        customerId:     wc.customerId,
+        firstName:      wc.firstName,
+        lastName:       wc.lastName,
+        email:          wc.email,
+        phone:          wc.phone,
+        city:           "Surat",
+        cityId:         wc.cityId,
+        address:        { line1: wc.address, area: wc.pincode, city: "Surat", pinCode: wc.pincode },
+        vehicleDetails: { category: wc.category, brand: wc.vehicle.split(" ")[0], color: "", registrationNumber: wc.reg },
+        leadSource:     "Website — Buy Page",
+        status:         "Active",
+        tags:           ["web-signup"],
+        createdAt:      dAgo(wc.daysAgo),
+        updatedAt:      dAgo(wc.daysAgo),
+      });
+    });
+    localStorage.setItem(customersDSKey, JSON.stringify(existingCustDS));
+
+    // Sync web subscriptions into SUBSCRIPTIONS DataService key
+    const subsDSKey = `cleancar_CITY-SURAT_subscriptions`;
+    const existingSubsDS: any[] = JSON.parse(localStorage.getItem(subsDSKey) || "[]");
+    const existingSubIds = new Set(existingSubsDS.map((s: any) => s.subscriptionId));
+    WEB_CUSTOMERS.forEach(wc => {
+      const subId = `SUB-WEB-${wc.customerId}`;
+      if (existingSubIds.has(subId)) return;
+      const startDate = dAgo(wc.daysAgo).split("T")[0];
+      const renewalDate = dAgo(wc.daysAgo - 30).split("T")[0];
+      existingSubsDS.push({
+        subscriptionId: subId,
+        customerId:     wc.customerId,
+        packageType:    wc.plan.includes("Wax") ? "Premium" : wc.plan.includes("Shampoo") ? "Standard" : "Basic",
+        packageName:    wc.plan,
+        frequency:      "Daily",
+        status:         "Active",
+        startDate,
+        renewalDate,
+        pricing:        { basePrice: wc.amount, discount: 0, finalPrice: wc.amount, currency: "INR" },
+        serviceDetails: { vehicleType: wc.category, addOns: [], preferredTimeSlot: "Morning (7am – 9am)" },
+        billingCycle:   "Monthly",
+        paymentStatus:  "Paid",
+        cityId:         wc.cityId,
+        source:         "web-buy-page",
+        createdAt:      dAgo(wc.daysAgo),
+      });
+    });
+    localStorage.setItem(subsDSKey, JSON.stringify(existingSubsDS));
+
+    // Sync web revenues into FINANCE_REVENUES DataService key
+    const revKey = `cleancar_CITY-SURAT_revenues`;
+    const existingRevs: any[] = JSON.parse(localStorage.getItem(revKey) || "[]");
+    const existingRevIds = new Set(existingRevs.map((r: any) => r.invoiceNumber));
+    WEB_CUSTOMERS.forEach(wc => {
+      const invNum = `INV-WEB-${wc.daysAgo.toString().padStart(2,"0")}-${wc.customerId}`;
+      if (existingRevIds.has(invNum)) return;
+      existingRevs.push({
+        revenueId:      `REV-WEB-${wc.customerId}`,
+        customerId:     wc.customerId,
+        subscriptionId: `SUB-WEB-${wc.customerId}`,
+        type:           "Subscription",
+        amount:         wc.amount,
+        receivedDate:   dAgo(wc.daysAgo).split("T")[0],
+        paymentMethod:  "Razorpay",
+        invoiceNumber:  invNum,
+        status:         "Received",
+        cityId:         wc.cityId,
+        source:         "web-buy-page",
+        createdAt:      dAgo(wc.daysAgo),
+      });
+    });
+    localStorage.setItem(revKey, JSON.stringify(existingRevs));
+
+    // ── 29. SH MODULE — sh_leads with SM attribution for web customers ─────────
+    // Leads from buy page attributed to SM alliance locations appear in SH pipeline
+    const existingSHLeads: any[] = JSON.parse(localStorage.getItem("sh_leads") || "[]");
+    const existingSHIds = new Set(existingSHLeads.map((l: any) => l.id));
+    const WEB_SH_LEADS = [
+      { id:"SH-L-W01", customerName:"Hetal Shah",     phone:"9723456781", vehicleType:"4W", vehicleCategory:"Hatchback", source:"SM-Alliance-QR",   status:"Converted", assignedTo:"EDB-TSE-SUR1", ageMinutes:7200, estimatedValue:999,  smId:"EDB-SMGR-SUR1", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT", convertedAt:dAgo(5),  invoiceNumber:"INV-WEB-05-WEBCUST-001" },
+      { id:"SH-L-W02", customerName:"Jigar Patel",    phone:"9823456782", vehicleType:"4W", vehicleCategory:"SUV",       source:"SM-Alliance-Supervisor",status:"Converted",assignedTo:"EDB-TSE-SUR2",ageMinutes:17280,estimatedValue:1699, smId:"EDB-SMGR-SUR1", smLocationName:"Reliance Corporate Park", cityId:"CITY-SURAT", convertedAt:dAgo(12), invoiceNumber:"INV-WEB-12-WEBCUST-002" },
+      { id:"SH-L-W03", customerName:"Minal Desai",    phone:"9623456783", vehicleType:"4W", vehicleCategory:"Luxury",    source:"Digital-Inbound",  status:"Converted", assignedTo:"EDB-TSE-SUR1", ageMinutes:2880, estimatedValue:2999, smId:null,             smLocationName:null,                      cityId:"CITY-SURAT", convertedAt:dAgo(2),  invoiceNumber:"INV-WEB-02-WEBCUST-003" },
+      { id:"SH-L-W04", customerName:"Rakesh Thakkar", phone:"9523456784", vehicleType:"4W", vehicleCategory:"SUV",       source:"SM-Alliance-QR",   status:"Converted", assignedTo:"EDB-TSE-SUR2", ageMinutes:28800,estimatedValue:1099, smId:"EDB-SMGR-SUR2", smLocationName:"HP Petrol Pump - Vesu",   cityId:"CITY-SURAT", convertedAt:dAgo(20), invoiceNumber:"INV-WEB-20-WEBCUST-004" },
+      { id:"SH-L-W05", customerName:"Sneha Agarwal",  phone:"9423456785", vehicleType:"4W", vehicleCategory:"Hatchback", source:"SM-Alliance-WhatsApp",status:"Converted",assignedTo:"EDB-TSE-SUR1",ageMinutes:11520,estimatedValue:1499, smId:"EDB-SMGR-SUR3", smLocationName:"Piplod Township Society", cityId:"CITY-SURAT", convertedAt:dAgo(8),  invoiceNumber:"INV-WEB-08-WEBCUST-005" },
+    ];
+    WEB_SH_LEADS.forEach(l => { if (!existingSHIds.has(l.id)) existingSHLeads.push(l); });
+    localStorage.setItem("sh_leads", JSON.stringify(existingSHLeads));
+
+    // ── 30. SM LOCATIONS — update conversion counts from web customers ─────────
+    // Reflect the web-purchased customers in the SM location conversion counts
+    // so SM gate status and SH visibility are accurate.
+    try {
+      const smLocs: any[] = JSON.parse(localStorage.getItem("sm_locations") || "[]");
+      if (smLocs.length > 0) {
+        // Update LOC-001 (Adajan Heights) +2 conversions (Hetal + Jigar)
+        const loc1 = smLocs.find((l: any) => l.id === "LOC-001");
+        if (loc1) { loc1.conversionsMTD = Math.max(loc1.conversionsMTD, 9); loc1.payingCustomers = Math.max(loc1.payingCustomers, 14); }
+        // Update LOC-003 (HP Petrol Pump) +1 conversion (Rakesh)
+        const loc3 = smLocs.find((l: any) => l.id === "LOC-003");
+        if (loc3) { loc3.conversionsMTD = Math.max(loc3.conversionsMTD, 3); loc3.payingCustomers = Math.max(loc3.payingCustomers, 3); loc3.status = "Active"; }
+        localStorage.setItem("sm_locations", JSON.stringify(smLocs));
+      }
+    } catch (_) {}
 
     localStorage.setItem(SEED_FLAG, "true");
     console.log(`[seedAllData] ✅ Complete seed done:\n` +
