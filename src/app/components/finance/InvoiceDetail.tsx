@@ -137,81 +137,250 @@ interface RefundFormData {
 // MOCK DATA
 // ============================================================================
 
-const mockInvoiceDetail: InvoiceDetail = {
-  id: "inv_001",
-  invoiceNumber: "INV-2026-001",
-  customerId: "cust_123",
-  customerName: "Rajesh Patel",
-  customerEmail: "rajesh.patel@example.com",
-  customerPhone: "+91 98765 43210",
-  customerAddress: "123, MG Road, Surat, Gujarat - 395001",
-  serviceId: "svc_456",
-  serviceType: "AC Service",
-  invoiceDate: "2026-04-15",
-  dueDate: "2026-04-30",
-  subtotal: 2500.0,
-  taxAmount: 450.0,
-  taxableValue: 2500.0,
-  cgstRate: 9,
-  cgstAmount: 225.0,
-  sgstRate: 9,
-  sgstAmount: 225.0,
-  igstRate: 0,
-  igstAmount: 0.0,
-  isInterState: false,
-  discountAmount: 0.0,
-  totalAmount: 2950.0,
-  paidAmount: 0.0,
-  balanceDue: 2950.0,
-  status: "UNPAID",
-  paymentStatus: "PENDING",
-  city: "Surat",
-  cluster: "West Zone",
-  createdAt: "2026-04-15T10:30:00Z",
-  createdBy: "admin@example.com",
-  revenueTransactionId: "txn_revenue_001",
-  lineItems: [
-    {
-      id: "line_001",
-      lineNumber: 1,
-      description: "AC Service - 1.5 Ton Split AC",
-      quantity: 1,
-      unitPrice: 1500.0,
-      lineTotal: 1500.0,
-      serviceReference: "UNIT-AC-001",
-    },
-    {
-      id: "line_002",
-      lineNumber: 2,
-      description: "Gas Refill - R32 Refrigerant",
-      quantity: 1,
-      unitPrice: 800.0,
-      lineTotal: 800.0,
-      serviceReference: "UNIT-AC-001",
-    },
-    {
-      id: "line_003",
-      lineNumber: 3,
-      description: "Filter Replacement",
-      quantity: 2,
-      unitPrice: 100.0,
-      lineTotal: 200.0,
-    },
-  ],
-  payments: [],
-};
-
 // ============================================================================
 // API FUNCTIONS
 // ============================================================================
 
+/**
+ * Build a real InvoiceDetail from all localStorage stores.
+ * Lookup order:
+ *   1. cleancar_web_invoices          (buy-page purchases — richest data)
+ *   2. cleancar_CITY-SURAT_revenues   (seeded subscription & one-time revenues)
+ *   3. cleancar_accounting_entries    (accounting entries with GST breakdown)
+ *   4. cleancar_CITY-SURAT_subscriptions  (to enrich plan name / vehicle)
+ *   5. cleancar_CITY-SURAT_customers      (to enrich customer contact details)
+ */
 async function fetchInvoiceDetail(invoiceId: string): Promise<InvoiceDetail> {
-  // In production: Replace with real API call
-  // const response = await fetch(`/api/invoices/${invoiceId}`);
-  // return await response.json();
+  await new Promise(resolve => setTimeout(resolve, 400));
 
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  return mockInvoiceDetail;
+  const safe = (key: string) => {
+    try { return JSON.parse(localStorage.getItem(key) || "[]"); } catch { return []; }
+  };
+
+  const revenues: any[]     = [...safe("cleancar_CITY-SURAT_revenues"), ...safe("cleancar_CITY-MUMBAI_revenues")];
+  const webInvoices: any[]  = safe("cleancar_web_invoices");
+  const accEntries: any[]   = safe("cleancar_accounting_entries");
+  const subscriptions: any[]= [...safe("cleancar_CITY-SURAT_subscriptions"), ...safe("cleancar_CITY-MUMBAI_subscriptions")];
+  const customers: any[]    = [...safe("cleancar_CITY-SURAT_customers"), ...safe("cleancar_CITY-MUMBAI_customers")];
+
+  // Helper: find customer record
+  const findCustomer = (customerId: string) =>
+    customers.find((c: any) => c.customerId === customerId || c.id === customerId);
+
+  // Helper: build line items from plan name
+  const lineItemsFromPlan = (planName: string, amount: number, vehicleCategory?: string): InvoiceLineItem[] => {
+    const cat = vehicleCategory || "Vehicle";
+    const catLabel = cat === "hatchback" ? "Hatchback / Compact Sedan"
+      : cat === "suv" ? "SUV / Sedan / MUV"
+      : cat === "luxury" ? "Luxury / Large SUV"
+      : cat;
+
+    if (planName?.toLowerCase().includes("wax") || planName?.toLowerCase().includes("premium")) {
+      return [
+        { id: "li-1", lineNumber: 1, description: `Shampoo + Wax Monthly Car Wash — ${catLabel}`, quantity: 30, unitPrice: +(amount * 0.85 / 30).toFixed(2), lineTotal: +(amount * 0.85).toFixed(2) },
+        { id: "li-2", lineNumber: 2, description: "Monthly Interior Deep Vacuum (4×)", quantity: 4, unitPrice: +(amount * 0.10 / 4).toFixed(2), lineTotal: +(amount * 0.10).toFixed(2) },
+        { id: "li-3", lineNumber: 3, description: "Monthly Full Hand Wax Polish (1×)", quantity: 1, unitPrice: +(amount * 0.05).toFixed(2), lineTotal: +(amount * 0.05).toFixed(2) },
+      ];
+    }
+    if (planName?.toLowerCase().includes("shampoo") || planName?.toLowerCase().includes("standard")) {
+      return [
+        { id: "li-1", lineNumber: 1, description: `Shampoo Wash Monthly Car Wash — ${catLabel}`, quantity: 30, unitPrice: +(amount * 0.88 / 30).toFixed(2), lineTotal: +(amount * 0.88).toFixed(2) },
+        { id: "li-2", lineNumber: 2, description: "Microfibre Dry + Glass Polish (weekly)", quantity: 4, unitPrice: +(amount * 0.08 / 4).toFixed(2), lineTotal: +(amount * 0.08).toFixed(2) },
+        { id: "li-3", lineNumber: 3, description: "Weekly Tyre Dressing (4×)", quantity: 4, unitPrice: +(amount * 0.04 / 4).toFixed(2), lineTotal: +(amount * 0.04).toFixed(2) },
+      ];
+    }
+    // Water Wash / Basic / default
+    return [
+      { id: "li-1", lineNumber: 1, description: `Water Wash Monthly Car Wash — ${catLabel}`, quantity: 30, unitPrice: +(amount * 0.85 / 30).toFixed(2), lineTotal: +(amount * 0.85).toFixed(2) },
+      { id: "li-2", lineNumber: 2, description: "Monthly Underbody Flush (1×)", quantity: 1, unitPrice: +(amount * 0.10).toFixed(2), lineTotal: +(amount * 0.10).toFixed(2) },
+      { id: "li-3", lineNumber: 3, description: "Wheel Rim & Tyre Spray (daily)", quantity: 1, unitPrice: +(amount * 0.05).toFixed(2), lineTotal: +(amount * 0.05).toFixed(2) },
+    ];
+  };
+
+  // ── 1. Web invoice (buy-page) ────────────────────────────────────────────
+  const webInv = webInvoices.find(
+    (w: any) => w.invoiceNumber === invoiceId || w.subscriptionId === invoiceId
+  );
+  if (webInv) {
+    const cgst = webInv.cgst || +(webInv.subtotal * 0.09).toFixed(2);
+    const sgst = webInv.sgst || +(webInv.subtotal * 0.09).toFixed(2);
+    const planName = webInv.items?.[0]?.name || "Car Wash Subscription";
+    const lineItems: InvoiceLineItem[] = webInv.items?.map((item: any, idx: number) => ({
+      id: `li-${idx+1}`, lineNumber: idx+1,
+      description: item.name, quantity: item.qty || 1,
+      unitPrice: item.rate || 0, lineTotal: item.amount || 0,
+    })) || lineItemsFromPlan(planName, webInv.subtotal, webInv.vehicleCategory);
+    return {
+      id: webInv.invoiceNumber,
+      invoiceNumber: webInv.invoiceNumber,
+      customerId: webInv.customerId || "",
+      customerName: webInv.customerName || "",
+      customerEmail: webInv.customerEmail || "",
+      customerPhone: webInv.customerPhone || "",
+      customerAddress: webInv.address || "",
+      serviceType: "Car Wash Subscription — Web",
+      invoiceDate: webInv.invoiceDate || webInv.createdAt?.split("T")[0] || "",
+      dueDate: webInv.invoiceDate || webInv.createdAt?.split("T")[0] || "",
+      subtotal: webInv.subtotal,
+      taxableValue: webInv.subtotal,
+      taxAmount: cgst + sgst,
+      cgstRate: 9, cgstAmount: cgst,
+      sgstRate: 9, sgstAmount: sgst,
+      igstRate: 0, igstAmount: 0,
+      isInterState: false,
+      discountAmount: 0,
+      totalAmount: webInv.grandTotal || webInv.subtotal,
+      paidAmount: webInv.grandTotal || webInv.subtotal,
+      balanceDue: 0,
+      status: "PAID",
+      paymentStatus: "COMPLETED",
+      city: webInv.cityId?.replace("CITY-","") || "Surat",
+      cluster: "",
+      createdAt: webInv.createdAt || "",
+      createdBy: "Web Buy Page",
+      revenueTransactionId: webInv.subscriptionId || webInv.invoiceNumber,
+      lineItems,
+      payments: [{
+        id: `PAY-${webInv.invoiceNumber}`,
+        paymentNumber: `PAY-${webInv.invoiceNumber}`,
+        paymentDate: webInv.createdAt?.split("T")[0] || "",
+        paymentMode: webInv.paymentMethod || "Razorpay",
+        paymentReference: webInv.invoiceNumber,
+        amount: webInv.grandTotal || webInv.subtotal,
+        createdAt: webInv.createdAt || "",
+        createdBy: "Razorpay Gateway",
+      }],
+    };
+  }
+
+  // ── 2. Revenue record ────────────────────────────────────────────────────
+  const rev = revenues.find(
+    (r: any) => r.revenueId === invoiceId || r.invoiceNumber === invoiceId
+  );
+  if (rev) {
+    const customer = findCustomer(rev.customerId);
+    const sub = subscriptions.find((s: any) => s.subscriptionId === rev.subscriptionId);
+    const planName = sub?.packageName || (rev.type === "One-Time" ? "One-Time Wash" : "Car Wash Subscription");
+    const vehicleCat = sub?.serviceDetails?.vehicleType || customer?.vehicleDetails?.category || "";
+    const taxableVal = rev.amount;
+    const cgst = +(taxableVal * 0.09).toFixed(2);
+    const sgst = +(taxableVal * 0.09).toFixed(2);
+    const grandTotal = +(taxableVal * 1.18).toFixed(2);
+    const customerName = customer ? `${customer.firstName} ${customer.lastName}`.trim() : (rev.customerName || "Customer");
+    const address = customer?.address ? `${customer.address.line1 || ""}, ${customer.address.area || ""}, ${customer.address.city || ""} - ${customer.address.pinCode || ""}` : "";
+    const lineItems = lineItemsFromPlan(planName, taxableVal, vehicleCat);
+    const paid = rev.status === "Received";
+    return {
+      id: rev.revenueId,
+      invoiceNumber: rev.invoiceNumber || rev.revenueId,
+      customerId: rev.customerId,
+      customerName,
+      customerEmail: customer?.email || "",
+      customerPhone: customer?.phone || "",
+      customerAddress: address,
+      serviceType: `${planName}${vehicleCat ? " — " + vehicleCat : ""}`,
+      invoiceDate: rev.receivedDate || rev.createdAt?.split("T")[0] || "",
+      dueDate: rev.receivedDate || rev.createdAt?.split("T")[0] || "",
+      subtotal: taxableVal,
+      taxableValue: taxableVal,
+      taxAmount: cgst + sgst,
+      cgstRate: 9, cgstAmount: cgst,
+      sgstRate: 9, sgstAmount: sgst,
+      igstRate: 0, igstAmount: 0,
+      isInterState: false,
+      discountAmount: 0,
+      totalAmount: grandTotal,
+      paidAmount: paid ? grandTotal : 0,
+      balanceDue: paid ? 0 : grandTotal,
+      status: paid ? "PAID" : "UNPAID",
+      paymentStatus: paid ? "COMPLETED" : "PENDING",
+      city: rev.cityId?.replace("CITY-","") || "Surat",
+      cluster: "",
+      createdAt: rev.createdAt || rev.receivedDate + "T00:00:00Z",
+      createdBy: "System",
+      revenueTransactionId: rev.revenueId,
+      lineItems,
+      payments: paid ? [{
+        id: `PAY-${rev.revenueId}`,
+        paymentNumber: `PAY-${rev.invoiceNumber || rev.revenueId}`,
+        paymentDate: rev.receivedDate || rev.createdAt?.split("T")[0] || "",
+        paymentMode: rev.paymentMethod || "UPI",
+        paymentReference: rev.invoiceNumber || rev.revenueId,
+        amount: grandTotal,
+        createdAt: rev.createdAt || "",
+        createdBy: "System",
+      }] : [],
+    };
+  }
+
+  // ── 3. Accounting entry ──────────────────────────────────────────────────
+  const entry = accEntries.find(
+    (e: any) => e.id === invoiceId || e.invoiceNumber === invoiceId || e.voucherNumber === invoiceId
+  );
+  if (entry) {
+    const taxableVal = entry.taxableValue || entry.totalBillValue || 0;
+    const cgst = entry.cgst || +(taxableVal * 0.09).toFixed(2);
+    const sgst = entry.sgst || +(taxableVal * 0.09).toFixed(2);
+    const grandTotal = entry.totalBillValue || +(taxableVal * 1.18).toFixed(2);
+    const planName = entry.narration?.includes("renewal") ? "Subscription Renewal"
+      : entry.narration?.includes("One-time") ? "One-Time Wash"
+      : entry.narration?.includes("ubscription") ? "Car Wash Subscription"
+      : entry.narration || entry.entryType;
+    const lineItems: InvoiceLineItem[] = [{
+      id: "li-1", lineNumber: 1,
+      description: planName,
+      quantity: 1,
+      unitPrice: taxableVal,
+      lineTotal: taxableVal,
+      serviceReference: entry.invoiceNumber || entry.voucherNumber,
+    }];
+    return {
+      id: entry.id,
+      invoiceNumber: entry.invoiceNumber || entry.voucherNumber || entry.id,
+      customerId: entry.customerId || "",
+      customerName: entry.vendorName || entry.customerName || "Customer",
+      customerEmail: "",
+      customerPhone: "",
+      customerAddress: entry.city ? `${entry.city}, Gujarat` : "",
+      serviceType: planName,
+      invoiceDate: entry.date,
+      dueDate: entry.date,
+      subtotal: taxableVal,
+      taxableValue: taxableVal,
+      taxAmount: cgst + sgst,
+      cgstRate: entry.gstRate ? entry.gstRate / 2 : 9,
+      cgstAmount: cgst,
+      sgstRate: entry.gstRate ? entry.gstRate / 2 : 9,
+      sgstAmount: sgst,
+      igstRate: 0, igstAmount: 0,
+      isInterState: false,
+      discountAmount: 0,
+      totalAmount: grandTotal,
+      paidAmount: entry.status === "Posted" ? grandTotal : 0,
+      balanceDue: entry.status === "Posted" ? 0 : grandTotal,
+      status: entry.status === "Posted" ? "PAID" : "UNPAID",
+      paymentStatus: entry.status === "Posted" ? "COMPLETED" : "PENDING",
+      city: entry.city || "Surat",
+      cluster: "",
+      createdAt: entry.createdAt || entry.date + "T00:00:00Z",
+      createdBy: entry.createdBy || "System",
+      revenueTransactionId: entry.id,
+      lineItems,
+      payments: entry.status === "Posted" ? [{
+        id: `PAY-${entry.id}`,
+        paymentNumber: `PAY-${entry.voucherNumber || entry.id}`,
+        paymentDate: entry.date,
+        paymentMode: entry.paymentMode || "Bank",
+        paymentReference: entry.voucherNumber || entry.id,
+        amount: grandTotal,
+        createdAt: entry.createdAt || entry.date + "T00:00:00Z",
+        createdBy: entry.createdBy || "System",
+      }] : [],
+    };
+  }
+
+  // ── 4. Not found ─────────────────────────────────────────────────────────
+  throw new Error(`Invoice "${invoiceId}" not found. It may have been created before the current session or under a different city.`);
 }
 
 async function recordPayment(
