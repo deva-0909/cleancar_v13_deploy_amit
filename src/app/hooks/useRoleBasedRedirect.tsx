@@ -26,30 +26,11 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
   },
   TSM: {
     defaultPath: "/tsm-app",
-    allowedPaths: ["/", "/tsm-app", "/tele-sales-manager", "/leads", "/customers", "/complaints", "/washer-jobs", "/service-zones", "/hr/professional-leave", "/hr/self-service", "/performance", "/my-account"],
+    allowedPaths: ["/", "/tsm-app", "/sh-app", "/tele-sales-manager", "/leads", "/customers", "/complaints", "/washer-jobs", "/service-zones", "/hr/professional-leave", "/hr/self-service", "/performance", "/my-account"],
   },
   CCE: {
     defaultPath: "/cce-app",
     allowedPaths: ["/", "/cce-app", "/customer-care", "/customer-care-executive", "/leads", "/customers", "/complaints", "/my-account"],
-  },
-
-  "Sales Head": {
-    defaultPath: "/sh-app",
-    allowedPaths: [
-      "/", "/sh-app", "/leads", "/customers", "/complaints",
-      "/analytics", "/analytics/dashboard",
-      "/hr/professional-leave", "/hr/self-service",
-      "/my-account", "/travel", "/performance",
-    ],
-  },
-
-  "Sales Manager": {
-    defaultPath: "/sm-app-alliance",
-    allowedPaths: [
-      "/", "/sm-app-alliance", "/leads", "/customers",
-      "/hr/professional-leave", "/hr/self-service",
-      "/my-account", "/travel", "/performance",
-    ],
   },
 
   // Operations roles - Stay on their apps
@@ -64,7 +45,7 @@ const ROLE_REDIRECTS: Partial<Record<Role, RoleRedirectConfig>> = {
       "/supervisor-app/audit", "/supervisor-app/cloth", "/supervisor-app/alerts",
       "/supervisor-app/schedule", "/supervisor-app/leads", "/supervisor-app/incentive",
       "/supervisor-app/issues", "/supervisor-app/visibility", "/supervisor-app/cover",
-      "/supervisor-app/kpi",
+      "/supervisor-app/kpi", "/supervisor-app/btl-assignments",
       "/supervisor", "/washer-jobs", "/service-zones", "/complaints", "/car-washer",
       "/inventory", "/cloth-tracking", "/advance", "/hr/professional-leave",
       "/hr/self-service", "/performance", "/my-account"
@@ -159,13 +140,21 @@ export function useRoleBasedRedirect(currentRole: Role, enabled: boolean = true)
     const currentPath = location.pathname;
     const { defaultPath } = roleConfig;
 
-    // On role change: if the user is on "/" or the previous role's default path,
-    // redirect to new role's default path
+    // On role change: redirect to new role's default path if the user is
+    // currently on the previous role's landing page (or any sub-path of it),
+    // or on "/" or "/login".
     const prevRoleDefault = ROLE_REDIRECTS[prevRole]?.defaultPath ?? "/";
     const shouldRedirect =
       currentPath === "/" ||
+      currentPath === "/login" ||
       currentPath === prevRoleDefault ||
-      currentPath === "/login";
+      currentPath.startsWith(prevRoleDefault + "/") ||
+      currentPath.startsWith(prevRoleDefault + "?") ||
+      // Also redirect if currently on ANY role-specific app root
+      // (covers cases like /sh-app, /tsm-app, /cce-app when switching away)
+      Object.values(ROLE_REDIRECTS).some(cfg =>
+        cfg && currentPath.startsWith(cfg.defaultPath) && cfg.defaultPath !== "/"
+      );
 
     if (!shouldRedirect) return;
 
