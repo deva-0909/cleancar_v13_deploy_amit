@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Outlet, Link, useLocation, Navigate } from "react-router-dom";
+import { Outlet, Link, useLocation, Navigate, useNavigate } from "react-router-dom";
 import {
   Users, BarChart3, UserCircle, Car, ClipboardList,
   AlertCircle, Package, DollarSign, UserCog, Menu, X,
@@ -40,6 +40,20 @@ import { ConfirmDialog } from "../shared/ConfirmDialog";
 
 // Navigation is now fully dynamic - built from navigationConfig.ts
 // No hardcoded navigation modules needed here!
+
+// Maps each role to its dedicated app route.
+// Roles not listed here land on "/" (the main dashboard).
+const ROLE_HOME_ROUTES: Partial<Record<Role, string>> = {
+  "Supervisor":          "/supervisor-app",
+  "TSM":                 "/tsm-app",
+  "TSE":                 "/tse-app",
+  "CCE":                 "/cce-app",
+  "Sales Head":          "/sh-app",
+  "Sales Manager":       "/sm-app-alliance",
+  "Operations Manager":  "/om-app",
+  "Cluster Manager":     "/cm-app",
+  "City Manager":        "/city-app",
+};
 
 export function RootLayout() {
   const isPreview = import.meta.env.MODE === "development"
@@ -114,6 +128,7 @@ export function RootLayout() {
   const { currentRole, setCurrentRole, currentUser } = useRole();
   const { city } = useCity();
   const location = useLocation();
+  const navigate = useNavigate();
   const {
     collapsed,
     setCollapsed,
@@ -137,15 +152,23 @@ export function RootLayout() {
   // Auto-redirect users to their role-specific landing page
   useRoleBasedRedirect(currentRole);
 
-  // Safe role setter - prevents invalid roles from entering state
+  // Safe role setter — validates role then navigates to its dedicated route.
+  // This fixes two bugs in one:
+  //   1. Wrong screen shown: previously only called setCurrentRole(), leaving the
+  //      URL unchanged, so the old route component kept rendering regardless of
+  //      which role was selected.
+  //   2. URL not updating: navigate() pushes the correct path so the address bar
+  //      and the rendered component are always in sync.
   const setSafeRole = useCallback((role: string) => {
     if (roleConfigurations[role as Role]) {
       setCurrentRole(role as Role);
+      navigate(ROLE_HOME_ROUTES[role as Role] ?? "/");
     } else {
       console.error(`❌ Invalid role selected: "${role}". Falling back to Super Admin.`);
       setCurrentRole("Super Admin");
+      navigate("/");
     }
-  }, [setCurrentRole]);
+  }, [setCurrentRole, navigate]);
 
   // Get valid roles from roleConfigurations (single source of truth)
   const validRoles = Object.keys(roleConfigurations) as Role[];
