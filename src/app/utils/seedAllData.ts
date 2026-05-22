@@ -870,6 +870,74 @@ export function seedAllData(): void {
       localStorage.setItem(key, JSON.stringify([...existP, ...SEED_PAYMENTS.filter(p=>!existPIds.has(p.id) && p.city === cid)]));
     });
 
+    // ── 24. BTL ASSIGNMENTS (for Supervisor BTL Activity Mode) ───────────────
+    const SEED_BTL_ASSIGNMENTS = [
+      {
+        assignmentId: "BTLASS-SEED-001",
+        locationId: "LOC-VB-001", locationName: "Vesu Bhumi Society",
+        locationType: "society", locationGpsPin: { lat: 21.1450, lng: 72.7800 },
+        locationAddress: "Vesu, Surat 395007", locationContactName: "Rajesh Shah",
+        locationContactMobile: "9876541230", locationStatus: "Active",
+        smId: "SM-DEMO-001", smName: "Demo Sales Manager",
+        supervisorId: "DEMO-SUP-001", supervisorName: "Demo Supervisor",
+        scheduledDay: "Monday", scheduledTimeSlot: "7am–9am",
+        proposedActivityType: "Stall + QR display",
+        briefingNotes: "Meet Mr. Rajesh at Gate 2. Bring 2 standees and 50 QR flyers. Peak footfall 7:30–8:30am when residents leave for work. Parking available inside.",
+        briefingUpdatedAt: new Date(Date.now() - 2*24*60*60*1000).toISOString(),
+        status: "Confirmed", confirmedAt: new Date(Date.now() - 1*24*60*60*1000).toISOString(),
+        sessions: [], createdAt: new Date(Date.now() - 7*24*60*60*1000).toISOString(),
+        approvedAt: new Date(Date.now() - 7*24*60*60*1000).toISOString(), cityId: "CITY-SURAT",
+      },
+      {
+        assignmentId: "BTLASS-SEED-002",
+        locationId: "LOC-HP-001", locationName: "HP Petrol Pump — Adajan",
+        locationType: "petrol_pump", locationGpsPin: { lat: 21.1892, lng: 72.8150 },
+        locationAddress: "Adajan Road, Surat 395009", locationContactName: "Vijay Patel",
+        locationContactMobile: "9823456710", locationStatus: "Active",
+        smId: "SM-DEMO-001", smName: "Demo Sales Manager",
+        supervisorId: "DEMO-SUP-001", supervisorName: "Demo Supervisor",
+        scheduledDay: "Wednesday", scheduledTimeSlot: "5am–7am",
+        proposedActivityType: "QR display at kiosk counter",
+        briefingNotes: "Vijay has already placed the standee at the counter. Just check QR is still there. Can also talk to waiting customers at the pump. Very busy between 5:30–6:30am.",
+        briefingUpdatedAt: new Date(Date.now() - 3*24*60*60*1000).toISOString(),
+        status: "Upcoming",
+        sessions: [
+          {
+            sessionId: "SES-PAST-001", assignmentId: "BTLASS-SEED-002",
+            gpsAtStart: { lat: 21.1895, lng: 72.8148 }, gpsDistanceAtStart: 38,
+            gpsValidated: true, sessionStart: new Date(Date.now() - 7*24*60*60*1000).toISOString(),
+            sessionEnd: new Date(Date.now() - 7*24*60*60*1000 + 2*60*60*1000).toISOString(),
+            leadsSubmitted: 4, btlActivityId: "BTL-ACT-PAST-001",
+            status: "Completed", smId: "SM-DEMO-001", locationId: "LOC-HP-001",
+          },
+        ],
+        createdAt: new Date(Date.now() - 14*24*60*60*1000).toISOString(),
+        approvedAt: new Date(Date.now() - 14*24*60*60*1000).toISOString(), cityId: "CITY-SURAT",
+      },
+      {
+        assignmentId: "BTLASS-SEED-003",
+        locationId: "LOC-CR-001", locationName: "Citylight Corporate Park",
+        locationType: "corporate", locationGpsPin: { lat: 21.1602, lng: 72.8501 },
+        locationAddress: "Citylight Road, Surat 395005", locationContactName: "Meena Joshi",
+        locationContactMobile: "9712345678", locationStatus: "At Risk",
+        smId: "SM-DEMO-001", smName: "Demo Sales Manager",
+        supervisorId: "DEMO-SUP-001", supervisorName: "Demo Supervisor",
+        scheduledDay: "Friday", scheduledTimeSlot: "9am–11am",
+        proposedActivityType: "Table top display in reception",
+        briefingNotes: "Meena is the HR manager. Confirm visit 1 day before. Need to sign in at reception. QR to be placed at the visitor lounge table. Employees interested in SUV wash plans.",
+        status: "Upcoming", sessions: [],
+        createdAt: new Date(Date.now() - 10*24*60*60*1000).toISOString(),
+        approvedAt: new Date(Date.now() - 10*24*60*60*1000).toISOString(), cityId: "CITY-SURAT",
+      },
+    ];
+    const btlAssignKey = "cleancar_btl_assignments";
+    const existingBTL: any[] = JSON.parse(localStorage.getItem(btlAssignKey)||"[]");
+    const existBTLIds = new Set(existingBTL.map((a:any)=>a.assignmentId));
+    localStorage.setItem(btlAssignKey, JSON.stringify([
+      ...existingBTL,
+      ...SEED_BTL_ASSIGNMENTS.filter(a=>!existBTLIds.has(a.assignmentId))
+    ]));
+
     localStorage.setItem(SEED_FLAG, "true");
     console.log(`[seedAllData] ✅ Complete seed done:\n` +
       `  Employees: ${EMPLOYEES.length} | Payroll: ${PAYROLL_RUNS.length} | Attendance: ${ATTENDANCE_RECORDS.length}\n` +

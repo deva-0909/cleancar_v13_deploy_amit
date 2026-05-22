@@ -18,6 +18,7 @@ import { ClothManagementScreenV2 } from "./ClothManagementScreenV2";
 import { SupervisorMaterialManagement } from "./SupervisorMaterialManagement";
 import { BTLLeadScreen, LeadPipelineView } from "./BTLLeadScreen";
 import { BTLLeadScreenSimple } from "./BTLLeadScreenSimple";
+import { BTLAssignmentsScreen } from "./BTLAssignmentsScreen";
 import { IncentiveTrackerScreen } from "./IncentiveTrackerScreen";
 import { EscalationScreen } from "./EscalationScreen";
 import { EscalationScreenSimple } from "./EscalationScreenSimple";
@@ -27,7 +28,6 @@ import { AuditTrailScreen } from "./AuditTrailScreen";
 import { DailyFlowScreen } from "./DailyFlowScreen";
 import { KPIDashboardScreen } from "./KPIDashboardScreen";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { FieldCheckIn } from "../field/FieldCheckIn";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -99,6 +99,7 @@ export function SupervisorAppConnected() {
     "/supervisor-app/audit":        "audit",
     "/supervisor-app/cloth":        "cloth",
     "/supervisor-app/leads":        "leads",
+    "/supervisor-app/btl-assignments": "btl-assignments",
     "/supervisor-app/incentive":    "incentive",
     "/supervisor-app/issues":       "issues",
     "/supervisor-app/alerts":       "alerts",
@@ -106,24 +107,23 @@ export function SupervisorAppConnected() {
     "/supervisor-app/visibility":   "visibility",
     "/supervisor-app/audit-trail":  "audit-trail",
     "/supervisor-app/kpi-dashboard":"kpi-dashboard",
-    "/supervisor-app/field-day":    "field-day",
   };
   const SCREEN_TO_PATH: Record<string, string> = {
-    "dashboard":    "/supervisor-app",
-    "team":         "/supervisor-app/team",
-    "audit":        "/supervisor-app/audit",
-    "cloth":        "/supervisor-app/cloth",
-    "leads":        "/supervisor-app/leads",
-    "incentive":    "/supervisor-app/incentive",
-    "issues":       "/supervisor-app/issues",
-    "alerts":       "/supervisor-app/alerts",
-    "cover":        "/supervisor-app/cover",
-    "visibility":   "/supervisor-app/visibility",
-    "audit-trail":  "/supervisor-app/audit-trail",
-    "audit-flow":   "/supervisor-app/audit",
-    "audit-result": "/supervisor-app/audit",
-    "kpi-dashboard":"/supervisor-app/kpi-dashboard",
-    "field-day":    "/supervisor-app/field-day",
+    "dashboard":       "/supervisor-app",
+    "team":            "/supervisor-app/team",
+    "audit":           "/supervisor-app/audit",
+    "cloth":           "/supervisor-app/cloth",
+    "leads":           "/supervisor-app/leads",
+    "btl-assignments": "/supervisor-app/btl-assignments",
+    "incentive":       "/supervisor-app/incentive",
+    "issues":          "/supervisor-app/issues",
+    "alerts":          "/supervisor-app/alerts",
+    "cover":           "/supervisor-app/cover",
+    "visibility":      "/supervisor-app/visibility",
+    "audit-trail":     "/supervisor-app/audit-trail",
+    "audit-flow":      "/supervisor-app/audit",
+    "audit-result":    "/supervisor-app/audit",
+    "kpi-dashboard":   "/supervisor-app/kpi-dashboard",
   };
   const currentScreen = useMemo(
     () => PATH_TO_SCREEN[location.pathname] ?? "dashboard",
@@ -547,7 +547,8 @@ export function SupervisorAppConnected() {
     vehicleType: any,
     location: { lat: number; lng: number; address: string },
     interestLevel: any,
-    gpsLocation: { lat: number; lng: number }
+    gpsLocation: { lat: number; lng: number },
+    btlContext?: { smId: string; locationId: string; btlActivityId: string; sessionId: string }
   ) => {
     const leadData = btlLeadService.submitLead(
       name,
@@ -557,7 +558,8 @@ export function SupervisorAppConnected() {
       interestLevel,
       gpsLocation,
       "SUP-001",
-      "Supervisor 1"
+      "Supervisor 1",
+      btlContext
     );
     // Refresh leads list
     setBtlLeads(btlLeadService.getSupervisorLeadsWithTracking("SUP-001"));
@@ -977,14 +979,14 @@ export function SupervisorAppConnected() {
               <TabsTrigger value="leads" className="text-xs sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2 min-h-[36px] cursor-pointer">
                 Leads
               </TabsTrigger>
+              <TabsTrigger value="btl-assignments" className="text-xs sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2 min-h-[36px] cursor-pointer">
+                BTL Assign
+              </TabsTrigger>
               <TabsTrigger value="incentive" className="text-xs sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2 min-h-[36px] cursor-pointer">
                 Incentive
               </TabsTrigger>
               <TabsTrigger value="issues" className="text-xs sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2 min-h-[36px] cursor-pointer">
                 Issues
-              </TabsTrigger>
-              <TabsTrigger value="field-day" className="text-xs sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2 min-h-[36px] cursor-pointer border-l-2 border-green-400">
-                📍 Field Day
               </TabsTrigger>
               <TabsTrigger value="visibility" className="text-xs sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2 min-h-[36px] cursor-pointer">
                 Visibility
@@ -1074,18 +1076,8 @@ export function SupervisorAppConnected() {
           </TabsContent>
 
           {/* Screen 5: Team Schedule */}
-          <TabsContent value="schedule" className="mt-0 p-4">
-            <Card>
-              <CardContent className="p-8 text-center">
-                <h3 className="text-lg font-bold mb-2">Team Schedule & Cars</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  {schedule.length} washers • {summary.totalUnitsCompleted} units completed
-                </p>
-                <p className="text-xs text-gray-500">
-                  Full schedule view with job reassignment and cover management
-                </p>
-              </CardContent>
-            </Card>
+          <TabsContent value="schedule" className="mt-0">
+            <DailyFlowScreen stages={dailyFlowData} summary={dailyFlowSummary} />
           </TabsContent>
 
           {/* Screen 6: BTL Leads */}
@@ -1098,14 +1090,17 @@ export function SupervisorAppConnected() {
             />
           </TabsContent>
 
+          {/* Screen: BTL Assignments */}
+          <TabsContent value="btl-assignments" className="mt-0">
+            <BTLAssignmentsScreen
+              supervisorId={currentUser?.employeeId || "SUP-001"}
+              supervisorName={currentUser?.name || "Supervisor"}
+            />
+          </TabsContent>
+
           {/* Screen 7: Incentive */}
           <TabsContent value="incentive" className="mt-0">
             <IncentiveTrackerScreen dashboard={incentiveDashboard} />
-          </TabsContent>
-
-          {/* Field Day — Check-in / Check-out with GPS tracking */}
-          <TabsContent value="field-day" className="mt-0 p-4">
-            <FieldCheckIn />
           </TabsContent>
 
           {/* Screen 8: Issues */}

@@ -82,6 +82,15 @@ export interface BTLLead {
   incentive70Paid: boolean;
   incentive30Paid: boolean;
   totalIncentive: number;
+
+  // ── BTL Activity Mode attribution (Sales Manager Module v2.0 §14) ──────────
+  // Populated only when lead is submitted inside an active BTL session
+  smId?: string;            // Sales Manager whose tie-up location this was
+  locationId?: string;      // SM's registered tie-up location ID
+  btlActivityId?: string;   // Unique session activity ID (groups all leads in one session)
+  sessionId?: string;       // BTL session ID
+  gpsValidated?: boolean;   // Was Supervisor within 500m at session start?
+  gpsDistanceAtStart?: number; // Metres from location pin at session activation
 }
 
 export interface LeadValidation {
@@ -265,6 +274,7 @@ class BTLLeadService {
         capturedDate: new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000),
         supervisorId: "SUP-001",
         supervisorName: "Supervisor 1",
+        createdBy: "SUP-001",
         gpsLocation: { lat: 21.1702, lng: 72.8311 },
         source: "BTL",
         conversionDate: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000),
@@ -286,6 +296,7 @@ class BTLLeadService {
         capturedDate: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000),
         supervisorId: "SUP-001",
         supervisorName: "Supervisor 1",
+        createdBy: "SUP-001",
         gpsLocation: { lat: 21.1702, lng: 72.8311 },
         source: "BTL",
         isDuplicate: false,
@@ -306,6 +317,7 @@ class BTLLeadService {
         capturedDate: new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000),
         supervisorId: "SUP-001",
         supervisorName: "Supervisor 1",
+        createdBy: "SUP-001",
         gpsLocation: { lat: 21.1702, lng: 72.8311 },
         source: "BTL",
         conversionDate: new Date(today.getTime() - 10 * 24 * 60 * 60 * 1000),
@@ -328,6 +340,7 @@ class BTLLeadService {
         capturedDate: new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000),
         supervisorId: "SUP-001",
         supervisorName: "Supervisor 1",
+        createdBy: "SUP-001",
         gpsLocation: { lat: 21.1702, lng: 72.8311 },
         source: "BTL",
         disqualificationReason: "Not interested",
@@ -680,7 +693,14 @@ class BTLLeadService {
     interestLevel: InterestLevel,
     gpsLocation: { lat: number; lng: number },
     supervisorId: string,
-    supervisorName: string
+    supervisorName: string,
+    // BTL Activity Mode attribution — only present when a session is active
+    btlContext?: {
+      smId: string;
+      locationId: string;
+      btlActivityId: string;
+      sessionId: string;
+    }
   ): { success: boolean; leadId?: string; error?: string } {
     // Validate first
     const validation = this.validateLead(
@@ -747,7 +767,7 @@ class BTLLeadService {
       createdAt: timestamp,
       updatedAt: timestamp,
       sla: "2h remaining",              // Standard SLA for new leads
-      notes: `BTL lead captured by ${supervisorName}. Interest: ${interestLevel}. GPS: ${gpsLocation.lat.toFixed(4)}, ${gpsLocation.lng.toFixed(4)}. ${tseAssignment.message}`
+      notes: `BTL lead captured by ${supervisorName}. Interest: ${interestLevel}. GPS: ${gpsLocation.lat.toFixed(4)}, ${gpsLocation.lng.toFixed(4)}. ${tseAssignment.message}${btlContext ? ` | SM: ${btlContext.smId} | Location: ${btlContext.locationId} | Activity: ${btlContext.btlActivityId}` : ""}`
     };
 
     // Persist to localStorage under the same key CustomerContext reads from
@@ -800,6 +820,13 @@ class BTLLeadService {
       incentive70Paid: false,
       incentive30Paid: false,
       totalIncentive: this.BASE_INCENTIVE,
+      // BTL Activity Mode attribution
+      ...(btlContext ? {
+        smId:          btlContext.smId,
+        locationId:    btlContext.locationId,
+        btlActivityId: btlContext.btlActivityId,
+        sessionId:     btlContext.sessionId,
+      } : {}),
     });
 
     // ✅ EMIT LEAD_CREATED EVENT for analytics and notifications
