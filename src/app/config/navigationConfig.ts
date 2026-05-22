@@ -110,48 +110,6 @@ export const NAV_CONFIG: NavItem[] = [
     ]
   },
 
-  // SALES HEAD APP
-  {
-    label: "Sales Head",
-    path: "/sh-app",
-    icon: Crown,
-    module: "crm",
-    match: "exact",
-    description: "Sales Head workspace — team coaching, lead pipeline, incentives",
-    children: [
-      { label: "Command Dashboard", path: "/sh-app?tab=dashboard", icon: LayoutDashboard, module: "crm", match: "exact" },
-      { label: "Lead Pipeline",     path: "/sh-app?tab=pipeline",  icon: ListTree,        module: "crm", match: "exact" },
-      { label: "TCE Performance",   path: "/sh-app?tab=tce",       icon: Users,           module: "crm", match: "exact" },
-      { label: "My Closures",       path: "/sh-app?tab=personal",  icon: Target,          module: "crm", match: "exact" },
-      { label: "Incentives",        path: "/sh-app?tab=incentive", icon: TrendingUp,      module: "crm", match: "exact" },
-      { label: "Reports",           path: "/sh-app?tab=reports",   icon: BarChart,        module: "crm", match: "exact" },
-      { label: "My Leaves",          path: "/hr/professional-leave", icon: Calendar,        module: "leave", match: "prefix" },
-      { label: "My Payslip",         path: "/hr/self-service",       icon: IdCard,          module: "payroll-self-service", match: "prefix" },
-      { label: "My Account",         path: "/my-account",            icon: User,            module: "dashboard", match: "prefix" },
-    ]
-  },
-
-  // SALES MANAGER APP
-  {
-    label: "Sales Manager",
-    path: "/sm-app-alliance",
-    icon: Building2,
-    module: "crm",
-    match: "exact",
-    description: "Sales Manager workspace — alliance management, locations, BTL",
-    children: [
-      { label: "Alliance Dashboard", path: "/sm-app-alliance?tab=dashboard",  icon: MapPin,      module: "crm", match: "exact" },
-      { label: "My Locations",       path: "/sm-app-alliance?tab=detail",     icon: Building2,   module: "crm", match: "exact" },
-      { label: "Submit Location",    path: "/sm-app-alliance?tab=submit",     icon: PlusCircle,  module: "crm", match: "exact" },
-      { label: "Block Deals",        path: "/sm-app-alliance?tab=block",      icon: Package,     module: "crm", match: "exact" },
-      { label: "Incentives",         path: "/sm-app-alliance?tab=incentive",  icon: TrendingUp,  module: "crm", match: "exact" },
-      { label: "BTL Expenses",       path: "/sm-app-alliance?tab=expenses",   icon: Receipt,     module: "crm", match: "exact" },
-      { label: "My Leaves",           path: "/hr/professional-leave",          icon: Calendar,    module: "leave", match: "prefix" },
-      { label: "My Payslip",          path: "/hr/self-service",                icon: IdCard,      module: "payroll-self-service", match: "prefix" },
-      { label: "My Account",          path: "/my-account",                     icon: User,        module: "dashboard", match: "prefix" },
-    ]
-  },
-
   // CCE - Customer Care Executive App
   {
     label: "CCE App",
@@ -349,7 +307,8 @@ export const NAV_CONFIG: NavItem[] = [
     match: "exact", // Parent uses exact match
     description: "System configuration and settings",
     children: [
-      { label: "City Management", path: "/admin/city-management", icon: MapPin, module: "admin", match: "prefix" },
+      { label: "Live Location", path: "/admin/live-location", icon: Navigation, module: "dashboard", match: "prefix" },
+  { label: "City Management", path: "/admin/city-management", icon: MapPin, module: "admin", match: "prefix" },
       { label: "Business Rules", path: "/admin/business-rules", icon: Settings, module: "admin", match: "prefix" },
       { label: "Shift Management", path: "/admin/shift-management", icon: Clock, module: "admin", match: "prefix" },
       { label: "Fraud Alerts", path: "/admin/fraud-alerts", icon: AlertCircle, module: "admin", match: "prefix" },

@@ -2,7 +2,7 @@
  * fieldTrackingService.ts
  *
  * Manages field attendance (check-in / check-out) and GPS trail
- * for Sales Head and Sales Manager.
+ * for Sales Head, Sales Manager, and Supervisor.
  *
  * Rules:
  *   1. Check-in = selfie + GPS captured → attendance starts
@@ -35,7 +35,7 @@ export interface FieldSession {
   id: string;
   employeeId: string;
   employeeName: string;
-  role: "Sales Head" | "Sales Manager";
+  role: "Sales Head" | "Sales Manager" | "Supervisor";
   date: string;                // YYYY-MM-DD
   checkInTime: string;         // ISO
   checkInSelfieBase64: string; // data:image/jpeg;base64,...
@@ -104,6 +104,37 @@ function upsertSession(session: FieldSession): void {
   saveSessions([...all, session]);
 }
 
+// ── Roles that require field tracking ─────────────────────────────────────────
+
+export const FIELD_TRACKING_ROLES = [
+  "Sales Head",
+  "Sales Manager",
+  "Supervisor",
+] as const;
+
+export type FieldTrackingRole = typeof FIELD_TRACKING_ROLES[number];
+
+export function isFieldTrackingRole(role: string): role is FieldTrackingRole {
+  return FIELD_TRACKING_ROLES.includes(role as FieldTrackingRole);
+}
+
+// ── Live location snapshot (for Super Admin view) ──────────────────────────────
+
+export interface LiveLocation {
+  employeeId: string;
+  employeeName: string;
+  role: string;
+  lat: number;
+  lng: number;
+  accuracy: number;
+  lastUpdated: string;       // ISO
+  sessionId: string;
+  isCheckedIn: boolean;
+  totalDistanceKm: number;
+  elapsedMinutes: number;
+}
+
+
 // ── Service class ─────────────────────────────────────────────────────────────
 
 class FieldTrackingService {
@@ -150,7 +181,7 @@ class FieldTrackingService {
   async checkIn(params: {
     employeeId: string;
     employeeName: string;
-    role: "Sales Head" | "Sales Manager";
+    role: "Sales Head" | "Sales Manager" | "Supervisor";
     selfieBase64: string;
   }): Promise<{ ok: boolean; error?: string }> {
 
@@ -389,5 +420,55 @@ class FieldTrackingService {
     });
   }
 }
+
+  // ── Live location query (Super Admin) ─────────────────────────────────────
+
+  /** Returns last known location for every active field session */
+  getLiveLocations(): LiveLocation[] {
+    const sessions = loadSessions();
+    const active = sessions.filter(s => !s.checkOutTime);
+    return active.map(s => {
+      const last = s.trail[s.trail.length - 1] ?? s.checkInLocation;
+      const elapsedMs = Date.now() - new Date(s.checkInTime).getTime();
+      return {
+        employeeId:     s.employeeId,
+        employeeName:   s.employeeName,
+        role:           s.role,
+        lat:            last.lat,
+        lng:            last.lng,
+        accuracy:       last.accuracy,
+        lastUpdated:    last.ts,
+        sessionId:      s.id,
+        isCheckedIn:    true,
+        totalDistanceKm: s.totalDistanceKm,
+        elapsedMinutes: Math.round(elapsedMs / 60000),
+      };
+    });
+  }
+
+  /** Last known location for a specific employee (including completed sessions today) */
+  getLastKnownLocation(employeeId: string): LiveLocation | null {
+    const today = new Date().toISOString().slice(0, 10);
+    const sessions = this.getSessionsForEmployee(employeeId, 5)
+      .filter(s => s.date === today);
+    if (!sessions.length) return null;
+    const s = sessions[0];
+    const last = s.trail[s.trail.length - 1] ?? s.checkInLocation;
+    return {
+      employeeId: s.employeeId,
+      employeeName: s.employeeName,
+      role: s.role,
+      lat: last.lat,
+      lng: last.lng,
+      accuracy: last.accuracy,
+      lastUpdated: last.ts,
+      sessionId: s.id,
+      isCheckedIn: !s.checkOutTime,
+      totalDistanceKm: s.totalDistanceKm,
+      elapsedMinutes: Math.round(
+        (new Date(s.checkOutTime ?? new Date()).getTime() - new Date(s.checkInTime).getTime()) / 60000
+      ),
+    };
+  }
 
 export const fieldTrackingService = new FieldTrackingService();

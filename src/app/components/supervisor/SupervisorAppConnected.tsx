@@ -27,6 +27,7 @@ import { AuditTrailScreen } from "./AuditTrailScreen";
 import { DailyFlowScreen } from "./DailyFlowScreen";
 import { KPIDashboardScreen } from "./KPIDashboardScreen";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { FieldCheckIn } from "../field/FieldCheckIn";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -105,6 +106,7 @@ export function SupervisorAppConnected() {
     "/supervisor-app/visibility":   "visibility",
     "/supervisor-app/audit-trail":  "audit-trail",
     "/supervisor-app/kpi-dashboard":"kpi-dashboard",
+    "/supervisor-app/field-day":    "field-day",
   };
   const SCREEN_TO_PATH: Record<string, string> = {
     "dashboard":    "/supervisor-app",
@@ -121,6 +123,7 @@ export function SupervisorAppConnected() {
     "audit-flow":   "/supervisor-app/audit",
     "audit-result": "/supervisor-app/audit",
     "kpi-dashboard":"/supervisor-app/kpi-dashboard",
+    "field-day":    "/supervisor-app/field-day",
   };
   const currentScreen = useMemo(
     () => PATH_TO_SCREEN[location.pathname] ?? "dashboard",
@@ -980,6 +983,9 @@ export function SupervisorAppConnected() {
               <TabsTrigger value="issues" className="text-xs sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2 min-h-[36px] cursor-pointer">
                 Issues
               </TabsTrigger>
+              <TabsTrigger value="field-day" className="text-xs sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2 min-h-[36px] cursor-pointer border-l-2 border-green-400">
+                📍 Field Day
+              </TabsTrigger>
               <TabsTrigger value="visibility" className="text-xs sm:text-sm px-2 sm:px-4 py-1.5 sm:py-2 min-h-[36px] cursor-pointer">
                 Visibility
               </TabsTrigger>
@@ -1095,6 +1101,11 @@ export function SupervisorAppConnected() {
           {/* Screen 7: Incentive */}
           <TabsContent value="incentive" className="mt-0">
             <IncentiveTrackerScreen dashboard={incentiveDashboard} />
+          </TabsContent>
+
+          {/* Field Day — Check-in / Check-out with GPS tracking */}
+          <TabsContent value="field-day" className="mt-0 p-4">
+            <FieldCheckIn />
           </TabsContent>
 
           {/* Screen 8: Issues */}

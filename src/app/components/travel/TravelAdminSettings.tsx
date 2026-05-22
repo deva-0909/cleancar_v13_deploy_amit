@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRole } from "../../contexts/RoleContext";
 import { useEmployee } from "../../contexts/EmployeeContext";
 import { useCity } from "../../contexts/CityContext";
+import { isFieldTrackingRole, FIELD_TRACKING_ROLES } from "../../services/fieldTrackingService";
 import { travelReimbursementService, type VehicleType, type TravelExceptionPolicy } from "../../services/travelReimbursementService";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -45,7 +46,8 @@ export function TravelAdminSettings({ cityManagerMode = false }: Props) {
   const togglePermission = (emp: typeof cityEmps[0]) => {
     const isEnabled = travelReimbursementService.isEmployeeEnabled(emp.id);
     const perm = permissions.find(p => p.employeeId === emp.id);
-    travelReimbursementService.setPermission(
+    // Field tracking is auto-activated for Sales Head, Sales Manager, Supervisor
+          travelReimbursementService.setPermission(
       emp.id, emp.fullName, emp.designation, city,
       (perm?.vehicleType as VehicleType) || "2W",
       !isEnabled, currentUser?.name || "Manager"
