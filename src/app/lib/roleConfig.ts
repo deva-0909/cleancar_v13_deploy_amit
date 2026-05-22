@@ -619,16 +619,7 @@ export const roleConfigurations: Record<Role, RoleConfig> = {
   },
   "Sales Head": {
     name: "Sales Head",
-    modules: [
-      "dashboard",
-      "crm",
-      "leads",
-      "customers",
-      "complaints",
-      "leave",
-      "performance",
-      "analytics",
-    ],
+    modules: ["dashboard","crm","leads","customers","complaints","leave","performance","analytics"],
     dashboardType: "sales",
     canApprove: true,
     canCreate: true,
@@ -638,31 +629,18 @@ export const roleConfigurations: Record<Role, RoleConfig> = {
     canSeeAuditTrail: false,
     workingHours: { start: "10:00", end: "19:00" },
     reportsTo: ["City Manager", "Super Admin", "Admin"],
-    targets: {
-      daily: { calls: 20 },
-      monthly: { conversions: 10, teamConversions: 75 }
-    },
+    targets: { daily: { calls: 20 }, monthly: { conversions: 10, teamConversions: 75 } },
     canApproveLeaves: true,
     canSeeTeamLeaves: true,
     canManageOnboarding: false,
     canProcessExitSettlement: false,
     canRaiseMaterialRequisition: false,
     canApproveRequisitions: false,
-    dataGranularity: "TEAM",
-    showRawData: true,
-    showAggregatedView: true,
   },
 
   "Sales Manager": {
     name: "Sales Manager",
-    modules: [
-      "dashboard",
-      "crm",
-      "leads",
-      "customers",
-      "leave",
-      "performance",
-    ],
+    modules: ["dashboard","crm","leads","customers","leave","performance"],
     dashboardType: "sales",
     canApprove: false,
     canCreate: true,
@@ -672,18 +650,13 @@ export const roleConfigurations: Record<Role, RoleConfig> = {
     canSeeAuditTrail: false,
     workingHours: { start: "08:00", end: "18:30" },
     reportsTo: ["Sales Head", "City Manager", "Super Admin"],
-    targets: {
-      monthly: { locations: 5, leads: 30, conversions: 5 }
-    },
+    targets: { monthly: { locations: 5, leads: 30, conversions: 5 } },
     canApproveLeaves: false,
     canSeeTeamLeaves: false,
     canManageOnboarding: false,
     canProcessExitSettlement: false,
     canRaiseMaterialRequisition: false,
     canApproveRequisitions: false,
-    dataGranularity: "INDIVIDUAL",
-    showRawData: true,
-    showAggregatedView: false,
   },
 
   "Marketing Agency": {

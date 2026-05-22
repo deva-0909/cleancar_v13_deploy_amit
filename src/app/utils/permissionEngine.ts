@@ -57,7 +57,7 @@ export function hasPermission(
   const rolePermissions = permissionMatrix[city]?.[employee.role];
 
   if (!rolePermissions) {
-    // Unknown role — show dashboard only so nav doesn't go blank
+    // Unknown role — show dashboard only so nav never goes completely blank
     if (module === "dashboard") return action === "view";
     return false;
   }

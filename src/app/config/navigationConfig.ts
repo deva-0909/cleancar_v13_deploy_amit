@@ -110,6 +110,20 @@ export const NAV_CONFIG: NavItem[] = [
     ]
   },
 
+  // CCE - Customer Care Executive App
+  {
+    label: "CCE App",
+    path: "/cce-app",
+    icon: MessageSquare,
+    module: "crm",
+    match: "exact",
+    description: "Customer Care Executive workspace",
+    children: [
+      { label: "Complaint Queue", path: "/cce-app?tab=complaints", icon: AlertCircle, module: "crm", match: "exact" },
+      { label: "Performance", path: "/cce-app?tab=performance", icon: BarChart, module: "crm", match: "exact" },
+    ]
+  },
+
   // SALES HEAD APP
   {
     label: "Sales Head",
@@ -123,8 +137,10 @@ export const NAV_CONFIG: NavItem[] = [
       { label: "Lead Pipeline",     path: "/sh-app?tab=pipeline",  icon: ListTree,        module: "crm", match: "exact" },
       { label: "TCE Performance",   path: "/sh-app?tab=tce",       icon: Users,           module: "crm", match: "exact" },
       { label: "My Closures",       path: "/sh-app?tab=personal",  icon: Target,          module: "crm", match: "exact" },
+      { label: "Team View",         path: "/sh-app?tab=team",      icon: BarChart,        module: "crm", match: "exact" },
       { label: "Incentives",        path: "/sh-app?tab=incentive", icon: TrendingUp,      module: "crm", match: "exact" },
-      { label: "Reports",           path: "/sh-app?tab=reports",   icon: BarChart,        module: "crm", match: "exact" },
+      { label: "Field Day",         path: "/sh-app?tab=field",     icon: MapPin,          module: "crm", match: "exact" },
+      { label: "Reports",           path: "/sh-app?tab=reports",   icon: BarChart3,       module: "crm", match: "exact" },
     ]
   },
 
@@ -142,21 +158,8 @@ export const NAV_CONFIG: NavItem[] = [
       { label: "Submit Location",    path: "/sm-app-alliance?tab=submit",     icon: PlusCircle,  module: "crm", match: "exact" },
       { label: "Block Deals",        path: "/sm-app-alliance?tab=block",      icon: Package,     module: "crm", match: "exact" },
       { label: "Incentives",         path: "/sm-app-alliance?tab=incentive",  icon: TrendingUp,  module: "crm", match: "exact" },
+      { label: "Field Day",          path: "/sm-app-alliance?tab=field",      icon: MapPin,      module: "crm", match: "exact" },
       { label: "BTL Expenses",       path: "/sm-app-alliance?tab=expenses",   icon: Receipt,     module: "crm", match: "exact" },
-    ]
-  },
-
-  // CCE - Customer Care Executive App
-  {
-    label: "CCE App",
-    path: "/cce-app",
-    icon: MessageSquare,
-    module: "crm",
-    match: "exact",
-    description: "Customer Care Executive workspace",
-    children: [
-      { label: "Complaint Queue", path: "/cce-app?tab=complaints", icon: AlertCircle, module: "crm", match: "exact" },
-      { label: "Performance", path: "/cce-app?tab=performance", icon: BarChart, module: "crm", match: "exact" },
     ]
   },
 

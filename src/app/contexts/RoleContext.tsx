@@ -93,7 +93,8 @@ const VALID_ROLES: Role[] = [
   "Super Admin", "Admin", "City Manager", "Cluster Manager",
   "Sr Operations Manager", "Operations Manager", "Manager",
   "Supervisor", "Car Washer", "TSM", "TSE", "CCE",
-  "Store Manager", "Procurement Manager", "Accounts", "HR", "Sales Head", "Sales Manager",
+  "Store Manager", "Procurement Manager", "Accounts", "HR",
+  "Sales Head", "Sales Manager",
 ];
 function isValidRole(r: string): r is Role {
   return VALID_ROLES.includes(r as Role);
@@ -117,8 +118,8 @@ const DEFAULT_EMPLOYEE_IDS: Record<Role, string> = {
   "Procurement Manager":  "EMP-014",
   "Accounts":             "EMP-015",
   "HR":                   "EMP-016",
-  "Sales Head":           "EMP-017",
-  "Sales Manager":        "EMP-018",
+  "Sales Head":           "EMP-SH-001",
+  "Sales Manager":        "EMP-SM-001",
 };
 
 const DEFAULT_NAMES: Record<Role, string> = {
