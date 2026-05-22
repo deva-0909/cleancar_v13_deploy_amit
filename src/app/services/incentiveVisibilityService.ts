@@ -1,23 +1,20 @@
 /**
  * incentiveVisibilityService.ts
  *
- * Super Admin can activate or deactivate the Incentive screen
- * for any role or individual employee. This is the single source
- * of truth — SalesManagerApp and SalesHeadApp both read from here
- * before rendering the Incentives tab.
+ * Super Admin controls:
+ *  1. Which ROLES have an incentive tab in their app (the "incentive-eligible" list)
+ *  2. Per-role: visible or hidden for ALL employees in that role
+ *  3. Per-employee: override that beats the role default
  *
  * Storage key: cc360_incentive_visibility
- * Shape:
- *   {
- *     roles: { [role: string]: boolean }          // per-role default
- *     employees: { [employeeId: string]: boolean } // per-employee override (highest priority)
- *     updatedAt: string
- *     updatedBy: string
- *   }
  */
 
 export interface IncentiveVisibilityConfig {
+  /** Roles that have an incentive tab at all (admin can add/remove) */
+  incentiveRoles: string[];
+  /** Per-role default: true = visible, false = hidden */
   roles: Record<string, boolean>;
+  /** Per-employee override (beats role default) */
   employees: Record<string, boolean>;
   updatedAt: string;
   updatedBy: string;
@@ -25,8 +22,31 @@ export interface IncentiveVisibilityConfig {
 
 const STORAGE_KEY = "cc360_incentive_visibility";
 
-// All roles that have an incentive tab in their app
-const INCENTIVE_ROLES = [
+/** All roles defined in the system (must match roleConfig.ts Role type) */
+export const ALL_SYSTEM_ROLES: string[] = [
+  "Super Admin",
+  "Admin",
+  "City Manager",
+  "Cluster Manager",
+  "Sr Operations Manager",
+  "Operations Manager",
+  "Manager",
+  "Supervisor",
+  "Car Washer",
+  "TSM",
+  "TSE",
+  "CCE",
+  "Store Manager",
+  "Procurement Manager",
+  "Accounts",
+  "HR",
+  "Sales Head",
+  "Sales Manager",
+  "Marketing Agency",
+];
+
+/** Roles that have incentive tabs by default (first-run default) */
+const DEFAULT_INCENTIVE_ROLES: string[] = [
   "Sales Manager",
   "Sales Head",
   "TSM",
@@ -36,28 +56,41 @@ const INCENTIVE_ROLES = [
   "CCE",
 ];
 
-const DEFAULT_CONFIG: IncentiveVisibilityConfig = {
-  roles: Object.fromEntries(INCENTIVE_ROLES.map((r) => [r, true])),
-  employees: {},
-  updatedAt: new Date().toISOString(),
-  updatedBy: "System",
-};
+function buildDefaultConfig(): IncentiveVisibilityConfig {
+  return {
+    incentiveRoles: [...DEFAULT_INCENTIVE_ROLES],
+    roles: Object.fromEntries(DEFAULT_INCENTIVE_ROLES.map(r => [r, true])),
+    employees: {},
+    updatedAt: new Date().toISOString(),
+    updatedBy: "System",
+  };
+}
 
 class IncentiveVisibilityService {
   private read(): IncentiveVisibilityConfig {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { ...DEFAULT_CONFIG };
+      if (!raw) return buildDefaultConfig();
       const parsed = JSON.parse(raw);
-      // Merge with defaults so newly added roles are always present
+
+      // Migrate legacy configs that don't have incentiveRoles
+      const incentiveRoles: string[] = parsed.incentiveRoles ?? DEFAULT_INCENTIVE_ROLES;
+
+      // Ensure every incentive role has a default
+      const roles: Record<string, boolean> = {};
+      for (const r of incentiveRoles) {
+        roles[r] = parsed.roles?.[r] ?? true;
+      }
+
       return {
-        roles: { ...DEFAULT_CONFIG.roles, ...parsed.roles },
+        incentiveRoles,
+        roles,
         employees: parsed.employees || {},
         updatedAt: parsed.updatedAt || new Date().toISOString(),
         updatedBy: parsed.updatedBy || "System",
       };
     } catch {
-      return { ...DEFAULT_CONFIG };
+      return buildDefaultConfig();
     }
   }
 
@@ -65,34 +98,53 @@ class IncentiveVisibilityService {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
   }
 
-  /** Get the full config (for the admin UI) */
   getConfig(): IncentiveVisibilityConfig {
     return this.read();
   }
 
-  /** All roles that have incentive tabs */
+  /** Roles currently in the incentive-eligible list */
   getAllRoles(): string[] {
-    return INCENTIVE_ROLES;
+    return this.read().incentiveRoles;
   }
 
-  /**
-   * Check if the incentive screen is visible for a given role + employee.
-   * Employee-level overrides beat role-level defaults.
-   */
+  /** All roles in the system (for the "add role" dropdown) */
+  getAllSystemRoles(): string[] {
+    return ALL_SYSTEM_ROLES;
+  }
+
+  /** Is the incentive screen visible for this role + optional employee? */
   isVisible(role: string, employeeId?: string): boolean {
     const config = this.read();
-    // Employee-level override (highest priority)
+    if (!config.incentiveRoles.includes(role)) return false;
     if (employeeId && employeeId in config.employees) {
       return config.employees[employeeId];
     }
-    // Role-level default
     return config.roles[role] ?? true;
   }
 
-  /**
-   * Super Admin: set visibility for an entire role.
-   * Affects all employees of that role unless they have a personal override.
-   */
+  /** Add a role to the incentive-eligible list */
+  addRole(role: string, updatedBy: string): void {
+    const config = this.read();
+    if (!config.incentiveRoles.includes(role)) {
+      config.incentiveRoles.push(role);
+      config.roles[role] = true; // default visible when added
+    }
+    config.updatedAt = new Date().toISOString();
+    config.updatedBy = updatedBy;
+    this.write(config);
+  }
+
+  /** Remove a role from the incentive-eligible list entirely */
+  removeRole(role: string, updatedBy: string): void {
+    const config = this.read();
+    config.incentiveRoles = config.incentiveRoles.filter(r => r !== role);
+    delete config.roles[role];
+    config.updatedAt = new Date().toISOString();
+    config.updatedBy = updatedBy;
+    this.write(config);
+  }
+
+  /** Set visibility (show/hide) for all employees in a role */
   setRoleVisibility(role: string, visible: boolean, updatedBy: string): void {
     const config = this.read();
     config.roles[role] = visible;
@@ -101,9 +153,7 @@ class IncentiveVisibilityService {
     this.write(config);
   }
 
-  /**
-   * Super Admin: set visibility for a specific employee (overrides role default).
-   */
+  /** Set visibility override for a specific employee */
   setEmployeeVisibility(employeeId: string, visible: boolean, updatedBy: string): void {
     const config = this.read();
     config.employees[employeeId] = visible;
@@ -112,9 +162,7 @@ class IncentiveVisibilityService {
     this.write(config);
   }
 
-  /**
-   * Super Admin: remove an employee-level override (falls back to role default).
-   */
+  /** Remove employee override (falls back to role default) */
   clearEmployeeOverride(employeeId: string, updatedBy: string): void {
     const config = this.read();
     delete config.employees[employeeId];
@@ -123,10 +171,10 @@ class IncentiveVisibilityService {
     this.write(config);
   }
 
-  /** Reset everything to defaults */
+  /** Reset everything to factory defaults */
   reset(updatedBy: string): void {
     this.write({
-      ...DEFAULT_CONFIG,
+      ...buildDefaultConfig(),
       updatedAt: new Date().toISOString(),
       updatedBy,
     });
