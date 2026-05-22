@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { formatCurrency } from "../../lib/formatters";
+import { formatCurrency as _fmt } from "../../lib/formatters";
+// Invoices must always show exact amounts — never compact (₹1.1K → ₹1,099)
+const formatCurrency = (v: number | null | undefined) => _fmt(v, { compact: false, decimals: 2 });
 import {
   FileText,
   DollarSign,
@@ -120,21 +122,51 @@ async function fetchInvoices(
   // Mock delay
   await new Promise((resolve) => setTimeout(resolve, 600));
 
+  // ── Read all customers directly from localStorage (both cities, both keys)
+  // This is more reliable than the CustomerContext array which may not be
+  // fully loaded or may be city-filtered at the time fetchInvoices is called.
+  const allStoredCustomers: any[] = (() => {
+    try {
+      const surCity  = JSON.parse(localStorage.getItem("cleancar_CITY-SURAT_customers")  || "[]");
+      const mumCity  = JSON.parse(localStorage.getItem("cleancar_CITY-MUMBAI_customers") || "[]");
+      const surLeg   = JSON.parse(localStorage.getItem("cleancar_customers")              || "[]");
+      // Merge, dedupe by customerId, city-namespaced takes priority
+      const all = [...surCity, ...mumCity];
+      const seen = new Set(all.map((c: any) => c.customerId));
+      surLeg.forEach((c: any) => { if (!seen.has(c.customerId)) { all.push(c); seen.add(c.customerId); }});
+      // Also merge context customers (covers new customers added in-session)
+      customers.forEach((c: any) => { if (!seen.has(c.customerId)) { all.push(c); seen.add(c.customerId); }});
+      return all;
+    } catch { return customers; }
+  })();
+
+  const findCustomer = (customerId: string) =>
+    allStoredCustomers.find((c: any) => c.customerId === customerId);
+
   // ── 1. Revenue-derived invoices ──────────────────────────────────────────
   const liveInvoices = revenues.map(r => {
-    const customer = customers.find(c => c.customerId === r.customerId);
-    const fromContext = customer ? `${customer.firstName} ${customer.lastName}`.trim() : "";
-    // Use revenue record's own customerName first (seeded with real names),
-    // then context join (but skip generic "Customer Sur N" placeholder names),
-    // then customerId as last resort
-    const isGeneric = (n: string) => /^Customer (Sur|Mum)/i.test(n);
-    const customerName =
-      (r.customerName && !isGeneric(r.customerName)) ? r.customerName :
-      (fromContext && !isGeneric(fromContext)) ? fromContext :
-      (r.customerName || r.customerId || "Unknown Customer");
-    const serviceType = r.packageName || (r.type === "One-Time" ? "One-Time Wash" : "Car Wash Subscription");
+    const customer = findCustomer(r.customerId);
+    const fromRecord = r.customerName || "";
+    const fromJoin   = customer ? `${customer.firstName} ${customer.lastName}`.trim() : "";
+    // Reject generic placeholder names from old seed data
+    const isGeneric  = (n: string) => !n || /^Customer (Sur|Mum|Cus)/i.test(n) || /^CUST-/.test(n);
+    const bestName = (!isGeneric(fromRecord) ? fromRecord : null)
+      ?? (!isGeneric(fromJoin) ? fromJoin : null)
+      ?? fromRecord
+      ?? fromJoin
+      ?? r.customerId
+      ?? "Unknown Customer";
+    const customerName = bestName || r.customerId || "Unknown Customer";
+    // Service type: packageName on record > subscription lookup > fallback
+    const sub = (() => {
+      try {
+        const subs: any[] = JSON.parse(localStorage.getItem("cleancar_CITY-SURAT_subscriptions") || "[]");
+        return subs.find((s: any) => s.subscriptionId === r.subscriptionId);
+      } catch { return null; }
+    })();
+    const serviceType = r.packageName || sub?.packageName || (r.type === "One-Time" ? "One-Time Wash" : "Car Wash Subscription");
     return {
-      id: r.revenueId || r.invoiceNumber,
+      id: r.invoiceNumber || r.revenueId,
       invoiceNumber: r.invoiceNumber || r.revenueId,
       customerId: r.customerId,
       customerName,
@@ -142,11 +174,11 @@ async function fetchInvoices(
       invoiceDate: r.receivedDate || r.createdAt?.split("T")[0],
       dueDate: r.receivedDate || r.createdAt?.split("T")[0],
       subtotal: r.amount,
-      taxAmount: 0,
+      taxAmount: parseFloat((r.amount * 0.18).toFixed(2)),
       discountAmount: 0,
-      totalAmount: r.amount,
-      paidAmount: r.status === "Received" ? r.amount : 0,
-      balanceDue: r.status === "Received" ? 0 : r.amount,
+      totalAmount: parseFloat((r.amount * 1.18).toFixed(2)),
+      paidAmount: r.status === "Received" ? parseFloat((r.amount * 1.18).toFixed(2)) : 0,
+      balanceDue: r.status === "Received" ? 0 : parseFloat((r.amount * 1.18).toFixed(2)),
       status: r.status === "Received" ? "PAID" as const : r.status === "Pending" ? "UNPAID" as const : "CANCELLED" as const,
       paymentStatus: r.status === "Received" ? "COMPLETED" as const : "PENDING" as const,
       city: r.cityId,
