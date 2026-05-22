@@ -81,19 +81,48 @@ export interface SMExpenseClaim {
   status: "Draft" | "Submitted" | "Approved" | "Rejected" | "Paid";
 }
 
+// ── Employee DB helpers ───────────────────────────────────────────────────────
+
+function getEmployeeDB(): any[] {
+  try {
+    const raw = localStorage.getItem("EMPLOYEE_DATABASE_RECORDS");
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function supById(id: string): { id: string; name: string } {
+  const db = getEmployeeDB();
+  const e  = db.find((x: any) => x.id === id);
+  return e ? { id: e.id, name: e.fullName } : { id, name: id };
+}
+
+function smById(id: string): { id: string; name: string } {
+  const db = getEmployeeDB();
+  const e  = db.find((x: any) => x.id === id);
+  return e ? { id: e.id, name: e.fullName } : { id, name: id };
+}
+
 // ── Seed helpers ──────────────────────────────────────────────────────────────
 
 const minsAgo = (n: number) => new Date(Date.now() - n * 60 * 1000).toISOString();
 const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
 
 function seedLocations(): SMLocation[] {
+  // If seedAllData has already written sm_locations, use those (they have real IDs).
+  // This seed function only fires if localStorage has nothing — i.e. very first load.
+  // Supervisors and SMs use real seeded employee IDs so any lookup in the employee DB works.
+  const sup1 = supById("EDB-SUP-SUR1");
+  const sup2 = supById("EDB-SUP-SUR2");
+  const sm1  = smById("EDB-SMGR-SUR1");
+  const sm2  = smById("EDB-SMGR-SUR2");
+
   return [
     {
       id: "LOC-001", name: "Adajan Heights Society", type: "Society",
       address: "Adajan, Surat", gpsLat: 21.2154, gpsLng: 72.7872,
       contactPerson: "Mr. Mehta (Secretary)", contactPhone: "+91 98765 11111",
       status: "Active", approvedDate: daysAgo(45), qrCodeActive: true,
-      supervisorId: "SUP-001", supervisorName: "Vijay Kumar",
+      supervisorId: sup1.id, supervisorName: sup1.name,
       leadsMTD: 18, leadsMTDM1: 12, leadsMTDM2: 4, leadsMTDM3: 2,
       conversionsMTD: 7, conversionRatePct: 39, payingCustomers: 12,
       lastSupervisorActivity: minsAgo(180), activationBonusStatus: "paid",
@@ -104,7 +133,7 @@ function seedLocations(): SMLocation[] {
       address: "Ring Road, Surat", gpsLat: 21.2048, gpsLng: 72.8358,
       contactPerson: "HR Dept — Anita Shah", contactPhone: "+91 98765 22222",
       status: "Active", approvedDate: daysAgo(30), qrCodeActive: true,
-      supervisorId: "SUP-002", supervisorName: "Mohan Das",
+      supervisorId: sup2.id, supervisorName: sup2.name,
       leadsMTD: 9, leadsMTDM1: 6, leadsMTDM2: 3, leadsMTDM3: 0,
       conversionsMTD: 4, conversionRatePct: 44, payingCustomers: 7,
       lastSupervisorActivity: minsAgo(360), activationBonusStatus: "triggered",
@@ -115,7 +144,7 @@ function seedLocations(): SMLocation[] {
       address: "Vesu, Surat", gpsLat: 21.1622, gpsLng: 72.7889,
       contactPerson: "Rajesh Patel (Owner)", contactPhone: "+91 98765 33333",
       status: "At Risk", approvedDate: daysAgo(25), qrCodeActive: true,
-      supervisorId: "SUP-001", supervisorName: "Vijay Kumar",
+      supervisorId: sup1.id, supervisorName: sup1.name,
       leadsMTD: 3, leadsMTDM1: 3, leadsMTDM2: 0, leadsMTDM3: 0,
       conversionsMTD: 1, conversionRatePct: 33, payingCustomers: 2,
       lastSupervisorActivity: minsAgo(2880), activationBonusStatus: "pending",
@@ -126,7 +155,7 @@ function seedLocations(): SMLocation[] {
       address: "Ghod Dod Road, Surat", gpsLat: 21.1930, gpsLng: 72.8052,
       contactPerson: "President RWA - Mr. Iyer", contactPhone: "+91 98765 44444",
       status: "Active Prospect", approvedDate: daysAgo(8), qrCodeActive: true,
-      supervisorId: "SUP-003", supervisorName: "Sanjay Rane",
+      supervisorId: sup2.id, supervisorName: sup2.name,
       leadsMTD: 0, leadsMTDM1: 0, leadsMTDM2: 0, leadsMTDM3: 0,
       conversionsMTD: 0, conversionRatePct: 0, payingCustomers: 0,
       lastSupervisorActivity: "", activationBonusStatus: "pending",
@@ -137,7 +166,7 @@ function seedLocations(): SMLocation[] {
       address: "VIP Road, Surat", gpsLat: 21.2178, gpsLng: 72.8340,
       contactPerson: "Mall Manager", contactPhone: "+91 98765 55555",
       status: "Inactive", approvedDate: daysAgo(60), qrCodeActive: false,
-      supervisorId: "SUP-002", supervisorName: "Mohan Das",
+      supervisorId: sup2.id, supervisorName: sup2.name,
       leadsMTD: 0, leadsMTDM1: 0, leadsMTDM2: 0, leadsMTDM3: 0,
       conversionsMTD: 0, conversionRatePct: 0, payingCustomers: 8,
       lastSupervisorActivity: minsAgo(8640), activationBonusStatus: "paid",

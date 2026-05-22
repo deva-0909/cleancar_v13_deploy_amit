@@ -516,8 +516,7 @@ export function SalesManagerApp() {
   const gate    = salesManagerService.getGateStatus();
   const alerts  = salesManagerService.getAlerts().filter(a => a.actionRequired);
 
-  // Reads from incentiveVisibilityService — Super Admin controls this per role/employee.
-  // Employee-level override beats role default (set via /admin/incentive-visibility).
+  // Super Admin can toggle this per role or per employee via /admin/incentive-visibility
   const showIncentiveTab = incentiveVisibilityService.isVisible(
     "Sales Manager",
     currentUser?.employeeId

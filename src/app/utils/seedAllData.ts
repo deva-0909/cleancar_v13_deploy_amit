@@ -17,7 +17,7 @@
  *   EMPLOYEE_DATABASE_RECORDS    (auth system)
  */
 
-const SEED_FLAG = "ALL_DATA_SEEDED_V3";
+const SEED_FLAG = "ALL_DATA_SEEDED_V2";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 const NOW   = new Date().toISOString();
@@ -97,10 +97,6 @@ const EMPLOYEES_RAW: any[] = [
   { ...BASE_EMP, id:"EDB-HR-SUR1",  loginMobile:"9100000020",mobile:"9100000020",fullName:"Rekha Solanki",  firstName:"Rekha",    lastName:"Solanki",gender:"Female", email:"rekha@cleancar.com",    designation:"HR",                  department:"Human Resources",workLocation:"CITY-SURAT",  city:"Surat",  reportingManager:"Kavita Shah", pinCodes:["395001"], dateOfJoining:"2025-08-01", ...sal(30000) },
   { ...BASE_EMP, id:"EDB-ACC-SUR1", loginMobile:"9100000021",mobile:"9100000021",fullName:"Chirag Doshi",   firstName:"Chirag",   lastName:"Doshi",    email:"chirag@cleancar.com",   designation:"Accounts",            department:"Finance",        workLocation:"CITY-SURAT",  city:"Surat",  reportingManager:"Kavita Shah", pinCodes:["395001"], dateOfJoining:"2025-08-01", ...sal(32000) },
   { ...BASE_EMP, id:"EDB-SM-SUR1",  loginMobile:"9100000022",mobile:"9100000022",fullName:"Nayan Desai",    firstName:"Nayan",    lastName:"Desai",    email:"nayan@cleancar.com",    designation:"Store Manager",       department:"Inventory",      workLocation:"CITY-SURAT",  city:"Surat",  reportingManager:"Amit Desai",  pinCodes:["395001"], dateOfJoining:"2025-09-01", ...sal(28000) },
-  // ── SURAT ALLIANCE SALES TEAM ─────────────────────────────────────────────
-  { ...BASE_EMP, id:"EDB-SH-SUR1",   loginMobile:"9100000023",mobile:"9100000023",fullName:"Rahul Singhania", firstName:"Rahul",    lastName:"Singhania", email:"rahul.sh@cleancar.com",  designation:"Sales Head",          department:"Sales",          workLocation:"CITY-SURAT",  city:"Surat",  reportingManager:"Amit Desai",  pinCodes:["395001","395002","395007"], dateOfJoining:"2025-09-01", ...sal(38000) },
-  { ...BASE_EMP, id:"EDB-SMGR-SUR1", loginMobile:"9100000024",mobile:"9100000024",fullName:"Nayan Joshi",     firstName:"Nayan",    lastName:"Joshi",     email:"nayan.sm@cleancar.com",  designation:"Sales Manager",       department:"Sales",          workLocation:"CITY-SURAT",  city:"Surat",  reportingManager:"Rahul Singhania",pinCodes:["395001","395005"], dateOfJoining:"2025-10-01", ...sal(28000) },
-  { ...BASE_EMP, id:"EDB-SMGR-SUR2", loginMobile:"9100000025",mobile:"9100000025",fullName:"Kalpesh Rathod",  firstName:"Kalpesh",  lastName:"Rathod",    email:"kalpesh.sm@cleancar.com",designation:"Sales Manager",       department:"Sales",          workLocation:"CITY-SURAT",  city:"Surat",  reportingManager:"Rahul Singhania",pinCodes:["395002","395007"], dateOfJoining:"2025-10-15", ...sal(27000) },
   // ── MUMBAI ────────────────────────────────────────────────────────────────
   { ...BASE_EMP, id:"EDB-CM-MUM",   loginMobile:"9200000001",mobile:"9200000001",fullName:"Ananya Singh",   firstName:"Ananya",   lastName:"Singh",  gender:"Female", email:"ananya@cleancar.com",   designation:"City Manager",        department:"Operations",     workLocation:"CITY-MUMBAI", city:"Mumbai", reportingManager:"Rajesh Patel",pinCodes:["400001","400002","400003"], dateOfJoining:"2025-08-15", ...sal(75000) },
   { ...BASE_EMP, id:"EDB-OM-MUM1",  loginMobile:"9200000002",mobile:"9200000002",fullName:"Kiran More",     firstName:"Kiran",    lastName:"More",   gender:"Female", email:"kiran@cleancar.com",    designation:"Operations Manager",  department:"Operations",     workLocation:"CITY-MUMBAI", city:"Mumbai", reportingManager:"Ananya Singh",pinCodes:["400001","400002"],   dateOfJoining:"2025-09-15", ...sal(42000) },
@@ -112,9 +108,6 @@ const EMPLOYEES_RAW: any[] = [
   { ...BASE_EMP, id:"EDB-CCE-MUM1", loginMobile:"9200000008",mobile:"9200000008",fullName:"Nisha Kapoor",   firstName:"Nisha",    lastName:"Kapoor", gender:"Female", email:"nisha@cleancar.com",    designation:"CCE",                 department:"Customer Care",  workLocation:"CITY-MUMBAI", city:"Mumbai", reportingManager:"Ananya Singh",pinCodes:["400001","400002"],  dateOfJoining:"2025-09-15", ...sal(21000) },
   { ...BASE_EMP, id:"EDB-ACC-MUM1", loginMobile:"9200000009",mobile:"9200000009",fullName:"Suhas Kadam",    firstName:"Suhas",    lastName:"Kadam",    email:"suhas@cleancar.com",    designation:"Accounts",            department:"Finance",        workLocation:"CITY-MUMBAI", city:"Mumbai", reportingManager:"Ananya Singh",pinCodes:["400001"],           dateOfJoining:"2025-09-01", ...sal(33000) },
   { ...BASE_EMP, id:"EDB-HR-MUM1",  loginMobile:"9200000010",mobile:"9200000010",fullName:"Shilpa Jadhav",  firstName:"Shilpa",   lastName:"Jadhav", gender:"Female", email:"shilpa@cleancar.com",   designation:"HR",                  department:"Human Resources",workLocation:"CITY-MUMBAI", city:"Mumbai", reportingManager:"Ananya Singh",pinCodes:["400001"],           dateOfJoining:"2025-09-01", ...sal(31000) },
-  // ── MUMBAI ALLIANCE SALES TEAM ────────────────────────────────────────────
-  { ...BASE_EMP, id:"EDB-SH-MUM1",   loginMobile:"9200000011",mobile:"9200000011",fullName:"Preethi Nair",    firstName:"Preethi",  lastName:"Nair",  gender:"Female", email:"preethi.sh@cleancar.com", designation:"Sales Head",          department:"Sales",          workLocation:"CITY-MUMBAI", city:"Mumbai", reportingManager:"Ananya Singh",pinCodes:["400001","400002","400003"], dateOfJoining:"2025-09-01", ...sal(40000) },
-  { ...BASE_EMP, id:"EDB-SMGR-MUM1", loginMobile:"9200000012",mobile:"9200000012",fullName:"Roshan Fernandes",firstName:"Roshan",   lastName:"Fernandes",email:"roshan.sm@cleancar.com", designation:"Sales Manager",       department:"Sales",          workLocation:"CITY-MUMBAI", city:"Mumbai", reportingManager:"Preethi Nair",pinCodes:["400001","400002"], dateOfJoining:"2025-10-01", ...sal(30000) },
 ];
 
 // Map to Employee interface (employeeId, phone, role, joiningDate)
@@ -143,13 +136,9 @@ const SALARY_STRUCTURES: any[] = [
   { structureId:"SS-TSM-SUR",       name:"TSM - Surat",              description:"TSM fixed + commission",     type:"hybrid",   components:{ basic:14000, hra:7000,  allowances:1600, deductions:2800 }, applicableRoles:["TSM"],               cityId:"CITY-SURAT",  createdAt:NOW },
   { structureId:"SS-MGMT-SUR",      name:"Management - Surat",       description:"Senior management fixed",    type:"fixed",    components:{ basic:28800, hra:14400, allowances:1600, deductions:5600 }, applicableRoles:["City Manager","Cluster Manager","Admin","Super Admin","HR","Accounts","Store Manager"], cityId:"CITY-SURAT", createdAt:NOW },
   { structureId:"SS-CCE-SUR",       name:"CCE - Surat",              description:"CCE fixed",                  type:"fixed",    components:{ basic:8000,  hra:4000,  allowances:1600, deductions:1400 }, applicableRoles:["CCE"],               cityId:"CITY-SURAT",  createdAt:NOW },
-  { structureId:"SS-SH-SUR",        name:"Sales Head - Surat",        description:"SH fixed + performance bonus",type:"hybrid",   components:{ basic:15200, hra:7600,  allowances:1600, deductions:3000 }, applicableRoles:["Sales Head"],        cityId:"CITY-SURAT",  createdAt:NOW },
-  { structureId:"SS-SMGR-SUR",      name:"Sales Manager - Surat",     description:"SM fixed + alliance incentive",type:"hybrid",  components:{ basic:11200, hra:5600,  allowances:1600, deductions:2200 }, applicableRoles:["Sales Manager"],     cityId:"CITY-SURAT",  createdAt:NOW },
   { structureId:"SS-WASHER-MUM",    name:"Car Washer - Mumbai",      description:"Standard washer structure",   type:"per_car",  components:{ basic:7200,  hra:3600,  allowances:1600, deductions:1400 }, applicableRoles:["Car Washer"],         cityId:"CITY-MUMBAI", createdAt:NOW },
   { structureId:"SS-MGMT-MUM",      name:"Management - Mumbai",      description:"Senior management fixed",    type:"fixed",    components:{ basic:30000, hra:15000, allowances:1600, deductions:5800 }, applicableRoles:["City Manager","Operations Manager","HR","Accounts","CCE","TSM","TSE"], cityId:"CITY-MUMBAI", createdAt:NOW },
   { structureId:"SS-SUPERVISOR-MUM",name:"Supervisor - Mumbai",      description:"Supervisor fixed + incentive",type:"hybrid",  components:{ basic:12000, hra:6000,  allowances:1600, deductions:2200 }, applicableRoles:["Supervisor"],         cityId:"CITY-MUMBAI", createdAt:NOW },
-  { structureId:"SS-SH-MUM",        name:"Sales Head - Mumbai",      description:"SH fixed + performance bonus",type:"hybrid",  components:{ basic:16000, hra:8000,  allowances:1600, deductions:3200 }, applicableRoles:["Sales Head"],         cityId:"CITY-MUMBAI", createdAt:NOW },
-  { structureId:"SS-SMGR-MUM",      name:"Sales Manager - Mumbai",   description:"SM fixed + alliance incentive",type:"hybrid", components:{ basic:12000, hra:6000,  allowances:1600, deductions:2400 }, applicableRoles:["Sales Manager"],      cityId:"CITY-MUMBAI", createdAt:NOW },
 ];
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -162,15 +151,6 @@ const INCENTIVE_PLANS: any[] = [
   { planId:"IP-REV-SHARE-SUR",  name:"Supervisor Revenue Share — Surat", type:"revenue_share", description:"3% of team revenue",              rules:{ revenueSharePercentage:3 },           applicableRoles:["Supervisor"],  payoutCycle:"monthly", minPayout:1000, maxPayout:8000, isActive:true, cityId:"CITY-SURAT",  city:"Surat",  createdAt:NOW },
   { planId:"IP-PER-CAR-MUM",    name:"Per Car Incentive — Mumbai",   type:"per_car",       description:"₹18 per car washed above daily quota", rules:{ perCarAmount:18 },                 applicableRoles:["Car Washer"],  payoutCycle:"monthly", minPayout:500,  maxPayout:6000,  isActive:true, cityId:"CITY-MUMBAI", city:"Mumbai", createdAt:NOW },
   { planId:"IP-TARGET-TSE-MUM", name:"TSE Target Incentive — Mumbai",type:"target_based",  description:"Monthly subscription target",          rules:{ targetCars:15, targetAmount:18000, achievementBonus:2000 }, applicableRoles:["TSE"], payoutCycle:"monthly", minPayout:0, maxPayout:10000, isActive:true, cityId:"CITY-MUMBAI", city:"Mumbai", createdAt:NOW },
-  // Sales Head — coaching bonus + personal conversion incentive
-  { planId:"IP-SH-COACHING-SUR", name:"Sales Head Coaching Bonus — Surat", type:"milestone",   description:"Coaching bonus when all TCEs hit gate", rules:{ gate1Bonus:1000, gate2Bonus:2000, gate3Bonus:3500, qualityBonus:500, slaBonus:500, zeroChurnBonus:1000, planMixBonus:500 }, applicableRoles:["Sales Head"], payoutCycle:"monthly", minPayout:0, maxPayout:8000, isActive:true, cityId:"CITY-SURAT",  city:"Surat",  createdAt:NOW },
-  { planId:"IP-SH-PERSONAL-SUR", name:"Sales Head Personal Incentive — Surat", type:"target_based", description:"Personal closure target incentive",    rules:{ targetConversions:10, perConversionFee:350, gate:10 }, applicableRoles:["Sales Head"], payoutCycle:"monthly", minPayout:0, maxPayout:5000, isActive:true, cityId:"CITY-SURAT",  city:"Surat",  createdAt:NOW },
-  { planId:"IP-SH-COACHING-MUM", name:"Sales Head Coaching Bonus — Mumbai",type:"milestone",   description:"Coaching bonus when all TCEs hit gate", rules:{ gate1Bonus:1200, gate2Bonus:2200, gate3Bonus:4000, qualityBonus:600, slaBonus:600, zeroChurnBonus:1200, planMixBonus:600 }, applicableRoles:["Sales Head"], payoutCycle:"monthly", minPayout:0, maxPayout:9000, isActive:true, cityId:"CITY-MUMBAI", city:"Mumbai", createdAt:NOW },
-  // Sales Manager — per-conversion + activation + block bonus
-  { planId:"IP-SM-PERCONV-SUR",  name:"Sales Manager Per-Conversion Fee — Surat",  type:"per_conversion", description:"Per-conversion fee (gate-locked)",    rules:{ slab1:{ min:1, max:10, fee:350 }, slab2:{ min:11, max:20, fee:500 }, slab3:{ min:21, max:30, fee:700 }, slab4:{ min:31, fee:1000 }, locationGate:5, leadGate:30, conversionGate:5 }, applicableRoles:["Sales Manager"], payoutCycle:"monthly", minPayout:0, maxPayout:20000, isActive:true, cityId:"CITY-SURAT",  city:"Surat",  createdAt:NOW },
-  { planId:"IP-SM-ACTIVATION-SUR",name:"Sales Manager Activation Bonus — Surat",   type:"milestone",      description:"₹500 per 5 paying customers milestone",rules:{ bonusPerMilestone:500, customersPerMilestone:5 }, applicableRoles:["Sales Manager"], payoutCycle:"monthly", minPayout:0, maxPayout:5000, isActive:true, cityId:"CITY-SURAT",  city:"Surat",  createdAt:NOW },
-  { planId:"IP-SM-BLOCK-SUR",    name:"Sales Manager Block Bonus — Surat",          type:"milestone",      description:"Block deal bonus — vehicle count tiers",rules:{ tier1:{ vehicles:10, bonus:3500 }, tier2:{ vehicles:20, bonus:7500 }, trancheM3:50, trancheM6:25, trancheM12:25 }, applicableRoles:["Sales Manager"], payoutCycle:"milestone", minPayout:0, maxPayout:15000, isActive:true, cityId:"CITY-SURAT",  city:"Surat",  createdAt:NOW },
-  { planId:"IP-SM-PERCONV-MUM",  name:"Sales Manager Per-Conversion Fee — Mumbai",  type:"per_conversion", description:"Per-conversion fee (gate-locked)",    rules:{ slab1:{ min:1, max:10, fee:400 }, slab2:{ min:11, max:20, fee:550 }, slab3:{ min:21, max:30, fee:750 }, slab4:{ min:31, fee:1100 }, locationGate:5, leadGate:30, conversionGate:5 }, applicableRoles:["Sales Manager"], payoutCycle:"monthly", minPayout:0, maxPayout:22000, isActive:true, cityId:"CITY-MUMBAI", city:"Mumbai", createdAt:NOW },
 ];
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -758,9 +738,11 @@ export function seedAllData(): void {
     if (localStorage.getItem(SEED_FLAG)) return;
 
     // Clear old seed flags so users with broken V4/V5 data get fresh correct seed
-    [  "HISTORIC_DATA_SEEDED_V1","HISTORIC_DATA_SEEDED_V2","HISTORIC_DATA_SEEDED_V3",
+    ["HISTORIC_DATA_SEEDED_V1","HISTORIC_DATA_SEEDED_V2","HISTORIC_DATA_SEEDED_V3",
      "HISTORIC_DATA_SEEDED_V4","HISTORIC_DATA_SEEDED_V5","ACC_SEED_V1","ACC_SEED_V2",
-     "ALL_DATA_SEEDED_V1","ALL_DATA_SEEDED_V2","ALL_DATA_SEEDED_V3"].forEach(f => localStorage.removeItem(f));
+    ["HISTORIC_DATA_SEEDED_V1","HISTORIC_DATA_SEEDED_V2","HISTORIC_DATA_SEEDED_V3",
+     "HISTORIC_DATA_SEEDED_V4","HISTORIC_DATA_SEEDED_V5","ACC_SEED_V1","ACC_SEED_V2",
+     "ALL_DATA_SEEDED_V1","ALL_DATA_SEEDED_V2"].forEach(f => localStorage.removeItem(f));
 
     // ── 1. EMPLOYEES ─────────────────────────────────────────────────────────
     const existEmp = JSON.parse(localStorage.getItem("EMPLOYEE_DATABASE_RECORDS")||"[]");
@@ -958,123 +940,42 @@ export function seedAllData(): void {
       ...SEED_BTL_ASSIGNMENTS.filter(a=>!existBTLIds.has(a.assignmentId))
     ]));
 
-    // ── 24. SM MODULE — locations, block deals, alerts, expenses ─────────────
-    // Seeds sm_locations and sm_block_deals only if not already set by service.
-    // Uses real seeded employee IDs (EDB-SMGR-SUR1, EDB-SH-SUR1) so SM module
-    // data is in sync with the employee database.
+    // ── 25. SM MODULE — sm_locations with real employee IDs ──────────────────
+    // Uses real supervisor IDs (EDB-SUP-SUR1/SUR2) and SM IDs (EDB-SMGR-SUR1/SUR2)
+    // so salesManagerService lookups in EMPLOYEE_DATABASE_RECORDS always resolve.
     const minsAgoSM = (n: number) => new Date(Date.now() - n * 60_000).toISOString();
     const daysAgoSM = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
 
     const SM_LOCATIONS_SEED = [
-      { id:"LOC-001", smId:"EDB-SMGR-SUR1", smName:"Nayan Joshi", name:"Adajan Heights Society", type:"Society", address:"Adajan, Surat", gpsLat:21.2154, gpsLng:72.7872, contactPerson:"Mr. Mehta (Secretary)", contactPhone:"+91 98765 11111", status:"Active", approvedDate:daysAgoSM(45), qrCodeActive:true, supervisorId:"EDB-SUP-SUR1", supervisorName:"Harish Solanki", leadsMTD:18, leadsMTDM1:12, leadsMTDM2:4, leadsMTDM3:2, conversionsMTD:7, conversionRatePct:39, payingCustomers:12, lastSupervisorActivity:minsAgoSM(180), activationBonusStatus:"paid", previousPayingMilestone:10 },
-      { id:"LOC-002", smId:"EDB-SMGR-SUR1", smName:"Nayan Joshi", name:"Reliance Corporate Park", type:"Corporate", address:"Ring Road, Surat", gpsLat:21.2048, gpsLng:72.8358, contactPerson:"HR Dept — Anita Shah", contactPhone:"+91 98765 22222", status:"Active", approvedDate:daysAgoSM(30), qrCodeActive:true, supervisorId:"EDB-SUP-SUR2", supervisorName:"Bhavesh Modi", leadsMTD:9, leadsMTDM1:6, leadsMTDM2:3, leadsMTDM3:0, conversionsMTD:4, conversionRatePct:44, payingCustomers:7, lastSupervisorActivity:minsAgoSM(360), activationBonusStatus:"triggered", previousPayingMilestone:5 },
-      { id:"LOC-003", smId:"EDB-SMGR-SUR1", smName:"Nayan Joshi", name:"HP Petrol Pump - Vesu", type:"Petrol Pump", address:"Vesu, Surat", gpsLat:21.1622, gpsLng:72.7889, contactPerson:"Rajesh Patel (Owner)", contactPhone:"+91 98765 33333", status:"At Risk", approvedDate:daysAgoSM(25), qrCodeActive:true, supervisorId:"EDB-SUP-SUR1", supervisorName:"Harish Solanki", leadsMTD:3, leadsMTDM1:3, leadsMTDM2:0, leadsMTDM3:0, conversionsMTD:1, conversionRatePct:33, payingCustomers:2, lastSupervisorActivity:minsAgoSM(2880), activationBonusStatus:"pending", previousPayingMilestone:0 },
-      { id:"LOC-004", smId:"EDB-SMGR-SUR2", smName:"Kalpesh Rathod", name:"Ghod Dod RWA", type:"RWA", address:"Ghod Dod Road, Surat", gpsLat:21.1930, gpsLng:72.8052, contactPerson:"President RWA - Mr. Iyer", contactPhone:"+91 98765 44444", status:"Active Prospect", approvedDate:daysAgoSM(8), qrCodeActive:true, supervisorId:"EDB-SUP-SUR2", supervisorName:"Bhavesh Modi", leadsMTD:0, leadsMTDM1:0, leadsMTDM2:0, leadsMTDM3:0, conversionsMTD:0, conversionRatePct:0, payingCustomers:0, lastSupervisorActivity:"", activationBonusStatus:"pending", previousPayingMilestone:0 },
-      { id:"LOC-005", smId:"EDB-SMGR-SUR2", smName:"Kalpesh Rathod", name:"VIP Road Mall", type:"Shop-in-Shop", address:"VIP Road, Surat", gpsLat:21.2178, gpsLng:72.8340, contactPerson:"Mall Manager", contactPhone:"+91 98765 55555", status:"Inactive", approvedDate:daysAgoSM(60), qrCodeActive:false, supervisorId:"EDB-SUP-SUR2", supervisorName:"Bhavesh Modi", leadsMTD:0, leadsMTDM1:0, leadsMTDM2:0, leadsMTDM3:0, conversionsMTD:0, conversionRatePct:0, payingCustomers:8, lastSupervisorActivity:minsAgoSM(8640), activationBonusStatus:"paid", previousPayingMilestone:5 },
-      { id:"LOC-006", smId:"EDB-SMGR-SUR2", smName:"Kalpesh Rathod", name:"Piplod Township Society", type:"Society", address:"Piplod, Surat", gpsLat:21.1512, gpsLng:72.7802, contactPerson:"Secretary", contactPhone:"+91 98765 66666", status:"Pending Approval", qrCodeActive:false, supervisorId:null, supervisorName:null, leadsMTD:0, leadsMTDM1:0, leadsMTDM2:0, leadsMTDM3:0, conversionsMTD:0, conversionRatePct:0, payingCustomers:0, lastSupervisorActivity:"", activationBonusStatus:"pending", previousPayingMilestone:0 },
+      { id:"LOC-001", smId:"EDB-SMGR-SUR1", smName:"Nayan Joshi",    name:"Adajan Heights Society",   type:"Society",      address:"Adajan, Surat",         gpsLat:21.2154, gpsLng:72.7872, contactPerson:"Mr. Mehta (Secretary)", contactPhone:"+91 98765 11111", status:"Active",           approvedDate:daysAgoSM(45), qrCodeActive:true,  supervisorId:"EDB-SUP-SUR1", supervisorName:"Harish Solanki", leadsMTD:18, leadsMTDM1:12, leadsMTDM2:4, leadsMTDM3:2, conversionsMTD:7, conversionRatePct:39, payingCustomers:12, lastSupervisorActivity:minsAgoSM(180), activationBonusStatus:"paid",     previousPayingMilestone:10 },
+      { id:"LOC-002", smId:"EDB-SMGR-SUR1", smName:"Nayan Joshi",    name:"Reliance Corporate Park",  type:"Corporate",    address:"Ring Road, Surat",      gpsLat:21.2048, gpsLng:72.8358, contactPerson:"HR Dept — Anita Shah",  contactPhone:"+91 98765 22222", status:"Active",           approvedDate:daysAgoSM(30), qrCodeActive:true,  supervisorId:"EDB-SUP-SUR2", supervisorName:"Bhavesh Modi",   leadsMTD:9,  leadsMTDM1:6,  leadsMTDM2:3, leadsMTDM3:0, conversionsMTD:4, conversionRatePct:44, payingCustomers:7,  lastSupervisorActivity:minsAgoSM(360), activationBonusStatus:"triggered",previousPayingMilestone:5  },
+      { id:"LOC-003", smId:"EDB-SMGR-SUR1", smName:"Nayan Joshi",    name:"HP Petrol Pump - Vesu",    type:"Petrol Pump",  address:"Vesu, Surat",           gpsLat:21.1622, gpsLng:72.7889, contactPerson:"Rajesh Patel (Owner)",  contactPhone:"+91 98765 33333", status:"At Risk",          approvedDate:daysAgoSM(25), qrCodeActive:true,  supervisorId:"EDB-SUP-SUR1", supervisorName:"Harish Solanki", leadsMTD:3,  leadsMTDM1:3,  leadsMTDM2:0, leadsMTDM3:0, conversionsMTD:1, conversionRatePct:33, payingCustomers:2,  lastSupervisorActivity:minsAgoSM(2880),activationBonusStatus:"pending",  previousPayingMilestone:0  },
+      { id:"LOC-004", smId:"EDB-SMGR-SUR2", smName:"Kalpesh Rathod", name:"Ghod Dod RWA",             type:"RWA",          address:"Ghod Dod Road, Surat",  gpsLat:21.1930, gpsLng:72.8052, contactPerson:"President RWA - Mr. Iyer",contactPhone:"+91 98765 44444",status:"Active Prospect",  approvedDate:daysAgoSM(8),  qrCodeActive:true,  supervisorId:"EDB-SUP-SUR2", supervisorName:"Bhavesh Modi",   leadsMTD:0,  leadsMTDM1:0,  leadsMTDM2:0, leadsMTDM3:0, conversionsMTD:0, conversionRatePct:0,  payingCustomers:0,  lastSupervisorActivity:"",             activationBonusStatus:"pending",  previousPayingMilestone:0  },
+      { id:"LOC-005", smId:"EDB-SMGR-SUR2", smName:"Kalpesh Rathod", name:"VIP Road Mall",            type:"Shop-in-Shop", address:"VIP Road, Surat",       gpsLat:21.2178, gpsLng:72.8340, contactPerson:"Mall Manager",          contactPhone:"+91 98765 55555", status:"Inactive",         approvedDate:daysAgoSM(60), qrCodeActive:false, supervisorId:"EDB-SUP-SUR2", supervisorName:"Bhavesh Modi",   leadsMTD:0,  leadsMTDM1:0,  leadsMTDM2:0, leadsMTDM3:0, conversionsMTD:0, conversionRatePct:0,  payingCustomers:8,  lastSupervisorActivity:minsAgoSM(8640),activationBonusStatus:"paid",     previousPayingMilestone:5  },
+      { id:"LOC-006", smId:"EDB-SMGR-SUR2", smName:"Kalpesh Rathod", name:"Piplod Township Society",  type:"Society",      address:"Piplod, Surat",         gpsLat:21.1512, gpsLng:72.7802, contactPerson:"Secretary",             contactPhone:"+91 98765 66666", status:"Pending Approval",                         qrCodeActive:false, supervisorId:null,            supervisorName:null,             leadsMTD:0,  leadsMTDM1:0,  leadsMTDM2:0, leadsMTDM3:0, conversionsMTD:0, conversionRatePct:0,  payingCustomers:0,  lastSupervisorActivity:"",             activationBonusStatus:"pending",  previousPayingMilestone:0  },
     ];
     const SM_BLOCK_DEALS_SEED = [
-      { id:"BLK-001", locationId:"LOC-001", locationName:"Adajan Heights Society", smId:"EDB-SMGR-SUR1", vehicleCount:14, packageType:"Water Wash", commitmentTerm:12, status:"Active", approvedDate:daysAgoSM(40), activeVehicles:12, phase1Paid:true, phase1Amount:3500, phase2Amount:1750, phase2CheckDate:daysAgoSM(-150), phase2Status:"pending", additionalVehicles:2 },
-      { id:"BLK-002", locationId:"LOC-002", locationName:"Reliance Corporate Park", smId:"EDB-SMGR-SUR1", vehicleCount:22, packageType:"Shampoo Wash", commitmentTerm:6, status:"Approved", approvedDate:daysAgoSM(5), activeVehicles:0, phase1Paid:false, phase1Amount:7500, phase2Amount:3750, phase2CheckDate:daysAgoSM(-90), phase2Status:"pending", additionalVehicles:0 },
+      { id:"BD-001", locationId:"LOC-001", locationName:"Adajan Heights Society",  smId:"EDB-SMGR-SUR1", vehicleCount:12, packageType:"Water + Shampoo",   commitmentTerm:3,  status:"Active",   approvedDate:daysAgoSM(30), activeVehicles:10, phase1Paid:true,  phase1Amount:3750, phase2Amount:3125, phase2CheckDate:daysAgoSM(-60), phase2Status:"pending", additionalVehicles:2 },
+      { id:"BD-002", locationId:"LOC-002", locationName:"Reliance Corporate Park", smId:"EDB-SMGR-SUR1", vehicleCount:22, packageType:"Shampoo Wash",       commitmentTerm:6,  status:"Approved", approvedDate:daysAgoSM(5),  activeVehicles:0,  phase1Paid:false, phase1Amount:7500, phase2Amount:3750, phase2CheckDate:daysAgoSM(-90), phase2Status:"pending", additionalVehicles:0 },
     ];
-    if (!localStorage.getItem("sm_locations"))    localStorage.setItem("sm_locations",    JSON.stringify(SM_LOCATIONS_SEED));
-    if (!localStorage.getItem("sm_block_deals"))  localStorage.setItem("sm_block_deals",  JSON.stringify(SM_BLOCK_DEALS_SEED));
+    // Only seed if not already present (so user-added data isn't wiped)
+    if (!localStorage.getItem("sm_locations"))   localStorage.setItem("sm_locations",   JSON.stringify(SM_LOCATIONS_SEED));
+    if (!localStorage.getItem("sm_block_deals")) localStorage.setItem("sm_block_deals", JSON.stringify(SM_BLOCK_DEALS_SEED));
 
-    // ── 25. SH MODULE — TCE performance linked to real TSE employees ──────────
-    // SalesHeadService reads from salesHeadService.ts seed functions.
-    // We pre-populate sh_tce_performance with real employee IDs so SH dashboard
-    // shows actual names from the seeded employee database.
+    // ── 26. SH MODULE — sh_tce_performance with real TSE employee IDs ─────────
+    // SalesHeadService reads sh_tce_performance first before falling back to seedTCEStatuses().
+    // Using real IDs ensures the SH app TCE list is in sync with the employee directory.
     const SH_TCE_PERF = [
-      { id:"EDB-TSE-SUR1", name:"Pooja Sharma",  closuresMTD:28, gateColor:"AMBER", slaCompliancePct:88, planMixPct:65, churnCount30d:1, lastCallTime:minsAgoSM(18), incentiveForecast:4200, status:"ACTIVE" },
-      { id:"EDB-TSE-SUR2", name:"Ankit Trivedi", closuresMTD:14, gateColor:"RED",   slaCompliancePct:72, planMixPct:48, churnCount30d:3, lastCallTime:minsAgoSM(95), incentiveForecast:1800, status:"ON_CALL" },
+      { id:"EDB-TSE-SUR1", name:"Pooja Sharma",  closuresMTD:28, gateColor:"AMBER", slaCompliancePct:88, planMixPct:65, churnCount30d:1, lastCallTime:minsAgoSM(18), incentiveForecast:4200, status:"ON_CALL" },
+      { id:"EDB-TSE-SUR2", name:"Ankit Trivedi", closuresMTD:14, gateColor:"RED",   slaCompliancePct:72, planMixPct:48, churnCount30d:3, lastCallTime:minsAgoSM(95), incentiveForecast:1800, status:"ACTIVE"  },
     ];
-    if (!localStorage.getItem("sh_tce_performance")) localStorage.setItem("sh_tce_performance", JSON.stringify(SH_TCE_PERF));
-
-    // ── 26. CUSTOMER PURCHASE → INVOICE JOURNEY ──────────────────────────────
-    // Shows the complete lifecycle: Lead → Demo → Subscription → Invoice → Payment
-    // Covers 3 package types across different vehicle categories.
-    // All customer IDs reference real seeded CUSTOMERS array.
-    const CUST_JOURNEY = [
-      // Journey A: Basic (Water Wash) — daily frequency — UPI payment
-      {
-        journeyId: "CJ-001", customerId: CUSTOMERS[0].customerId,
-        customerName: CUSTOMERS[0].fullName || CUSTOMERS[0].name || "Customer A",
-        stage: "Completed",
-        steps: [
-          { step:"Lead Created",        date:d(2,3),  actor:"TSE",      note:"Inbound call — interested in daily wash" },
-          { step:"Demo Scheduled",      date:d(2,5),  actor:"TSE",      note:"Demo booked 9 AM slot" },
-          { step:"Demo Completed",      date:d(2,5),  actor:"Washer",   note:"Satisfied — wants Water Wash daily" },
-          { step:"Package Selected",    date:d(2,6),  actor:"TSE",      note:"Basic Plan — Water Wash — Hatchback — ₹999/mo" },
-          { step:"Subscription Created",date:d(2,6),  actor:"System",   note:"SUB-SUR-0001 created, billing monthly" },
-          { step:"Invoice Generated",   date:d(2,6),  actor:"System",   note:"INV-SUR-2-0001 — ₹999 + 18% GST = ₹1,178.82" },
-          { step:"Payment Received",    date:d(2,6),  actor:"Customer", note:"UPI — ₹1,178.82 — REF: UPI2026020600001" },
-          { step:"Service Started",     date:d(2,7),  actor:"Washer",   note:"First wash completed — quality score 92" },
-          { step:"Month 2 Renewal",     date:d(3,6),  actor:"System",   note:"Auto-renewal — INV-SUR-3-0001 — ₹999" },
-          { step:"Month 3 Renewal",     date:d(4,6),  actor:"System",   note:"Auto-renewal — INV-SUR-4-0001 — ₹999" },
-        ],
-        package: { type:"Basic", planName:"Water Wash", vehicleCategory:"Hatchback / Compact Sedan", frequency:"Daily", basePrice:999, gst:179.82, finalPrice:1178.82, billingCycle:"Monthly" },
-        subscriptionId:"SUB-SUR-0001", invoiceId:"INV-SUR-2-0001", cityId:"CITY-SURAT",
-      },
-      // Journey B: Standard (Shampoo Wash) — alternate days — Card payment — with upgrade
-      {
-        journeyId: "CJ-002", customerId: CUSTOMERS[4].customerId,
-        customerName: CUSTOMERS[4].fullName || CUSTOMERS[4].name || "Customer B",
-        stage: "Upgraded",
-        steps: [
-          { step:"Lead Created",        date:d(2,10), actor:"SM",       note:"QR code scan at Adajan Heights — LOC-001" },
-          { step:"Demo Scheduled",      date:d(2,12), actor:"TSE",      note:"Demo booked 11 AM slot" },
-          { step:"Demo Completed",      date:d(2,12), actor:"Washer",   note:"Customer liked shampoo result" },
-          { step:"Package Selected",    date:d(2,13), actor:"TSE",      note:"Standard Plan — Shampoo Wash — SUV — ₹1,399/mo" },
-          { step:"Subscription Created",date:d(2,13), actor:"System",   note:"SUB-SUR-0004 created, billing monthly" },
-          { step:"Invoice Generated",   date:d(2,13), actor:"System",   note:"INV-SUR-2-0004 — ₹1,399 + GST = ₹1,650.82" },
-          { step:"Payment Received",    date:d(2,13), actor:"Customer", note:"Credit Card — ₹1,650.82" },
-          { step:"Service Started",     date:d(2,14), actor:"Washer",   note:"First wash — alternate days schedule" },
-          { step:"Upgrade Request",     date:d(3,10), actor:"Customer", note:"Wants Shampoo+Wax — called CCE" },
-          { step:"Upgrade Processed",   date:d(3,11), actor:"CCE",      note:"Upgraded to Premium — price diff ₹600 collected" },
-          { step:"Revised Invoice",     date:d(3,11), actor:"System",   note:"INV-SUR-3-0004R — ₹1,999 + GST from next cycle" },
-        ],
-        package: { type:"Standard", planName:"Shampoo Wash", vehicleCategory:"SUV / MUV / Sedan", frequency:"Alternate Days", basePrice:1399, gst:251.82, finalPrice:1650.82, billingCycle:"Monthly" },
-        upgradedPackage: { type:"Premium", planName:"Shampoo+Wax", basePrice:1999, gst:359.82, finalPrice:2358.82 },
-        subscriptionId:"SUB-SUR-0004", invoiceId:"INV-SUR-2-0004", cityId:"CITY-SURAT",
-      },
-      // Journey C: Block Deal — 12 vehicles — Society — phased bonus to SM
-      {
-        journeyId: "CJ-003", customerId: "CUST-BLOCK-001",
-        customerName: "Adajan Heights Society (Block)",
-        stage: "Block Active",
-        steps: [
-          { step:"Location Activated",  date:d(2,1),  actor:"SM",       note:"LOC-001 approved — Harish Solanki assigned as Supervisor" },
-          { step:"Block Deal Proposed", date:d(2,15), actor:"SM",       note:"Secretary agreed — 14 vehicles, 12-month Water Wash" },
-          { step:"Sales Head Approval", date:d(2,16), actor:"Sales Head",note:"Block deal BLK-001 approved — Rahul Singhania" },
-          { step:"Block Invoice Raised",date:d(2,17), actor:"System",   note:"BINV-001 — 14 vehicles × ₹999 = ₹13,986 + GST" },
-          { step:"Phase 1 Payment",     date:d(2,17), actor:"Customer", note:"₹13,986 received — NEFT — ref NEFT20260217001" },
-          { step:"SM Bonus Phase 1",    date:d(2,20), actor:"Payroll",  note:"₹3,500 block bonus paid to Nayan Joshi (EDB-SMGR-SUR1)" },
-          { step:"Service Started",     date:d(2,18), actor:"Washer",   note:"12 active vehicles started — 2 pending onboarding" },
-          { step:"M3 Tranche Check",    date:d(5,17), actor:"System",   note:"M3 check — 12/14 vehicles still active — ₹1,750 tranche due" },
-          { step:"Monthly Invoices",    date:d(3,1),  actor:"System",   note:"Mar renewals auto-generated per vehicle" },
-        ],
-        package: { type:"Block", planName:"Water Wash — Block 14 vehicles", vehicleCategory:"Mixed", frequency:"Daily", basePrice:999, vehicleCount:14, totalMonthly:13986, gst:2517.48, billingCycle:"Annual Block" },
-        subscriptionId:"BLK-001", invoiceId:"BINV-001", cityId:"CITY-SURAT",
-        smId:"EDB-SMGR-SUR1", smName:"Nayan Joshi", locationId:"LOC-001",
-      },
-      // Journey D: One-Time — Non-Member — Walk-in — Cash payment
-      {
-        journeyId: "CJ-004", customerId: CUSTOMERS[10].customerId,
-        customerName: CUSTOMERS[10].fullName || CUSTOMERS[10].name || "Customer D",
-        stage: "Completed",
-        steps: [
-          { step:"Walk-in Customer",    date:d(3,15), actor:"Washer",   note:"Customer drove in — no prior lead — one-time wash" },
-          { step:"Service Done",        date:d(3,15), actor:"Washer",   note:"Shampoo Wash — SUV — ₹499 cash" },
-          { step:"Invoice Generated",   date:d(3,15), actor:"System",   note:"INV-SUR-OT-3-1 — ₹499 + GST = ₹588.82" },
-          { step:"Cash Collected",      date:d(3,15), actor:"Washer",   note:"₹588.82 collected — deposited to Supervisor" },
-          { step:"TSE Follow-Up",       date:d(3,16), actor:"TSE",      note:"Called customer — interested in subscription" },
-          { step:"Converted to Sub",    date:d(3,17), actor:"TSE",      note:"Signed up Standard plan — see CJ-002 pattern" },
-        ],
-        package: { type:"One-Time Non-Member", planName:"Shampoo Wash — One Time", vehicleCategory:"SUV / MUV / Sedan", frequency:"One-Time", basePrice:499, gst:89.82, finalPrice:588.82, billingCycle:"One-Time" },
-        subscriptionId:null, invoiceId:"INV-SUR-OT-3-1", cityId:"CITY-SURAT",
-      },
-    ];
-    localStorage.setItem("cc360_customer_journeys", JSON.stringify(CUST_JOURNEY));
+    if (!localStorage.getItem("sh_tce_performance")) {
+      localStorage.setItem("sh_tce_performance", JSON.stringify(SH_TCE_PERF));
+    }
+    // Also seed sh_tce_statuses (what SalesHeadService.STORE_KEYS.TCE_STATUSES reads)
+    if (!localStorage.getItem("sh_tce_statuses")) {
+      localStorage.setItem("sh_tce_statuses", JSON.stringify(SH_TCE_PERF));
+    }
 
     localStorage.setItem(SEED_FLAG, "true");
     console.log(`[seedAllData] ✅ Complete seed done:\n` +

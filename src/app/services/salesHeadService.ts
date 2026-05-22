@@ -172,135 +172,108 @@ export interface ReporteesSummary {
   tcesForecast: number;
 }
 
+// ── Employee DB helpers ───────────────────────────────────────────────────────
+// Read from EMPLOYEE_DATABASE_RECORDS (written by seedAllData).
+// Never hardcode names or IDs — always derive from the single source of truth.
+
+function getEmployeeDB(): any[] {
+  try {
+    const raw = localStorage.getItem("EMPLOYEE_DATABASE_RECORDS");
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function empById(id: string, db: any[]): { id: string; name: string } {
+  const e = db.find((x: any) => x.id === id);
+  return e ? { id: e.id, name: e.fullName || id } : { id, name: id };
+}
+
+function empsByDesignation(designation: string, db: any[]): any[] {
+  return db.filter((e: any) => e.designation === designation && e.accountStatus === "active");
+}
+
 // ── Seed helpers ──────────────────────────────────────────────────────────────
 
 const minsAgo = (n: number) => new Date(Date.now() - n * 60 * 1000).toISOString();
 
-// Read real employee records from localStorage (seeded by seedAllData).
-// Falls back to inline stubs only if the seed hasn't run yet (first load).
-function getSeededEmployee(id: string, fallbackName: string) {
-  try {
-    const raw = localStorage.getItem("EMPLOYEE_DATABASE_RECORDS");
-    if (!raw) return { id, name: fallbackName };
-    const emps: any[] = JSON.parse(raw);
-    const emp = emps.find((e: any) => e.id === id);
-    return emp ? { id: emp.id, name: emp.fullName || fallbackName } : { id, name: fallbackName };
-  } catch { return { id, name: fallbackName }; }
-}
-
 function seedTCEStatuses(): TCEStatus[] {
-  // Uses real seeded TSE employee IDs (EDB-TSE-SUR1, EDB-TSE-SUR2) from seedAllData.
-  // sh_tce_performance is pre-populated by seedAllData step 25 with these IDs.
-  // If localStorage has the seeded performance data, use it; otherwise build from employee records.
+  // Read sh_tce_performance written by seedAllData (step 25) if present.
+  // Otherwise build from real employee records so IDs and names always match.
   try {
     const raw = localStorage.getItem("sh_tce_performance");
     if (raw) {
-      const seeded: any[] = JSON.parse(raw);
-      if (seeded.length > 0) return seeded as TCEStatus[];
+      const seeded: TCEStatus[] = JSON.parse(raw);
+      if (seeded.length > 0) return seeded;
     }
   } catch { /* fall through */ }
 
-  // Build from seeded employee records so names and IDs are always in sync
-  const tse1 = getSeededEmployee("EDB-TSE-SUR1", "Pooja Sharma");
-  const tse2 = getSeededEmployee("EDB-TSE-SUR2", "Ankit Trivedi");
-  return [
-    {
-      id: tse1.id, name: tse1.name, closuresMTD: 28,
-      gateColor: "AMBER", slaCompliancePct: 88, planMixPct: 65,
-      churnCount30d: 1, lastCallTime: minsAgo(18), incentiveForecast: 4200, status: "ON_CALL",
-    },
-    {
-      id: tse2.id, name: tse2.name, closuresMTD: 14,
-      gateColor: "RED", slaCompliancePct: 72, planMixPct: 48,
-      churnCount30d: 3, lastCallTime: minsAgo(95), incentiveForecast: 1800, status: "ACTIVE",
-    },
+  const db   = getEmployeeDB();
+  const tses = empsByDesignation("TSE", db);
+
+  if (tses.length === 0) {
+    // Absolute last resort — will be replaced once seedAllData runs
+    return [
+      { id: "EDB-TSE-SUR1", name: "Pooja Sharma",  closuresMTD: 28, gateColor: "AMBER", slaCompliancePct: 88, planMixPct: 65, churnCount30d: 1, lastCallTime: minsAgo(18), incentiveForecast: 4200, status: "ON_CALL" },
+      { id: "EDB-TSE-SUR2", name: "Ankit Trivedi", closuresMTD: 14, gateColor: "RED",   slaCompliancePct: 72, planMixPct: 48, churnCount30d: 3, lastCallTime: minsAgo(95), incentiveForecast: 1800, status: "ACTIVE"  },
+    ];
+  }
+
+  // Build from real employees — use seeded performance numbers where available
+  const perfDefaults = [
+    { closuresMTD: 28, gateColor: "AMBER" as TCEGateColor, slaCompliancePct: 88, planMixPct: 65, churnCount30d: 1, incentiveForecast: 4200, status: "ON_CALL"  as const },
+    { closuresMTD: 14, gateColor: "RED"   as TCEGateColor, slaCompliancePct: 72, planMixPct: 48, churnCount30d: 3, incentiveForecast: 1800, status: "ACTIVE"   as const },
+    { closuresMTD: 21, gateColor: "AMBER" as TCEGateColor, slaCompliancePct: 81, planMixPct: 55, churnCount30d: 2, incentiveForecast: 3100, status: "ACTIVE"   as const },
   ];
+
+  return tses.slice(0, 3).map((e: any, i: number) => ({
+    id:              e.id,
+    name:            e.fullName,
+    lastCallTime:    minsAgo(10 + i * 30),
+    ...perfDefaults[i % perfDefaults.length],
+  }));
 }
 
 function seedLeads(): SHLead[] {
-  // SM IDs reference real seeded Sales Manager employees (EDB-SMGR-SUR1, EDB-SMGR-SUR2).
-  // TCE assignments reference real TSE IDs so the SH can look them up in the employee DB.
-  const tse1 = getSeededEmployee("EDB-TSE-SUR1", "Pooja Sharma");
-  const tse2 = getSeededEmployee("EDB-TSE-SUR2", "Ankit Trivedi");
+  // SM IDs reference real seeded Sales Manager employees so lookups work
+  const db   = getEmployeeDB();
+  const sms  = empsByDesignation("Sales Manager", db);
+  const tses = empsByDesignation("TSE", db);
+
+  const sm1  = sms[0] ? { id: sms[0].id, name: sms[0].fullName } : { id: "EDB-SMGR-SUR1", name: "Nayan Joshi" };
+  const sm2  = sms[1] ? { id: sms[1].id, name: sms[1].fullName } : { id: "EDB-SMGR-SUR2", name: "Kalpesh Rathod" };
+  const tse1 = tses[0] ? tses[0].id : "EDB-TSE-SUR1";
+  const tse2 = tses[1] ? tses[1].id : "EDB-TSE-SUR2";
+
   return [
-    {
-      id: "SH-L-001", customerName: "Vikram Singh", phone: "+91 98765 43219",
-      vehicleType: "4W", vehicleCategory: "SUV",
-      source: "SM-Alliance-Supervisor", status: "New",
-      assignedTo: null, ageMinutes: 35, estimatedValue: 1999,
-      smId: "EDB-SMGR-SUR1", smLocationName: "Adajan Heights Society",
-    },
-    {
-      id: "SH-L-002", customerName: "Kavita Rao", phone: "+91 98765 43220",
-      vehicleType: "4W", vehicleCategory: "Hatchback",
-      source: "Digital-Inbound", status: "New",
-      assignedTo: null, ageMinutes: 12, estimatedValue: 899,
-    },
-    {
-      id: "SH-L-003", customerName: "Suresh Iyer", phone: "+91 98765 43221",
-      vehicleType: "2W", vehicleCategory: "Bike",
-      source: "Referral", status: "Assigned",
-      assignedTo: tse1.id, ageMinutes: 45, estimatedValue: 399,
-    },
-    {
-      id: "SH-L-004", customerName: "Meera Desai", phone: "+91 98765 43222",
-      vehicleType: "4W", vehicleCategory: "Sedan",
-      source: "SM-Alliance-QR", status: "Contacted",
-      assignedTo: tse2.id, ageMinutes: 90, estimatedValue: 699,
-      smId: "EDB-SMGR-SUR2", smLocationName: "Ghod Dod RWA",
-    },
-    {
-      id: "SH-L-005", customerName: "Deepak Nair", phone: "+91 98765 43223",
-      vehicleType: "4W", vehicleCategory: "Luxury",
-      source: "SM-Direct", status: "Negotiation",
-      assignedTo: "SELF", ageMinutes: 200, estimatedValue: 1299,
-    },
+    { id: "SH-L-001", customerName: "Vikram Singh",  phone: "+91 98765 43219", vehicleType: "4W", vehicleCategory: "SUV",      source: "SM-Alliance-Supervisor", status: "New",        assignedTo: null,  ageMinutes: 35,  estimatedValue: 1999, smId: sm1.id, smLocationName: "Adajan Heights Society" },
+    { id: "SH-L-002", customerName: "Kavita Rao",    phone: "+91 98765 43220", vehicleType: "4W", vehicleCategory: "Hatchback", source: "Digital-Inbound",        status: "New",        assignedTo: null,  ageMinutes: 12,  estimatedValue: 899  },
+    { id: "SH-L-003", customerName: "Suresh Iyer",   phone: "+91 98765 43221", vehicleType: "2W", vehicleCategory: "Bike",      source: "Referral",               status: "Assigned",   assignedTo: tse1,  ageMinutes: 45,  estimatedValue: 399  },
+    { id: "SH-L-004", customerName: "Meera Desai",   phone: "+91 98765 43222", vehicleType: "4W", vehicleCategory: "Sedan",     source: "SM-Alliance-QR",         status: "Contacted",  assignedTo: tse2,  ageMinutes: 90,  estimatedValue: 699,  smId: sm2.id, smLocationName: "Ghod Dod RWA" },
+    { id: "SH-L-005", customerName: "Deepak Nair",   phone: "+91 98765 43223", vehicleType: "4W", vehicleCategory: "Luxury",    source: "SM-Direct",              status: "Negotiation",assignedTo: "SELF",ageMinutes: 200, estimatedValue: 1299 },
   ];
 }
 
 function seedAlerts(): SHAlert[] {
-  const tse2 = getSeededEmployee("EDB-TSE-SUR2", "Ankit Trivedi");
-  const tse1 = getSeededEmployee("EDB-TSE-SUR1", "Pooja Sharma");
+  const db   = getEmployeeDB();
+  const tses = empsByDesignation("TSE", db);
+  const t1   = tses[0] ? tses[0].fullName : "Pooja Sharma";
+  const t2   = tses[1] ? tses[1].fullName : "Ankit Trivedi";
   return [
-    {
-      id: "A-001", type: "UNASSIGNED_LEAD", severity: "CRITICAL",
-      message: "Lead from Adajan Heights Society unassigned — 35 minutes in queue",
-      timestamp: minsAgo(5), actionRequired: true,
-    },
-    {
-      id: "A-002", type: "COACHING_REQUIRED", severity: "WARNING",
-      message: `${tse2.name} tracking to close only 14 subs by month-end — coaching intervention needed`,
-      timestamp: minsAgo(15), actionRequired: true,
-    },
-    {
-      id: "A-003", type: "SLA_BREACH", severity: "WARNING",
-      message: `${tse1.name} — SLA compliance at 88%, approaching 90% threshold`,
-      timestamp: minsAgo(60), actionRequired: false,
-    },
-    {
-      id: "A-004", type: "GPS_FAIL", severity: "INFO",
-      message: "GPS mismatch on BTL lead from Ghod Dod RWA — Supervisor outside 500m",
-      timestamp: minsAgo(120), actionRequired: false,
-    },
+    { id: "A-001", type: "UNASSIGNED_LEAD",   severity: "CRITICAL", message: "Lead from Adajan Heights Society unassigned — 35 minutes in queue",            timestamp: minsAgo(5),   actionRequired: true  },
+    { id: "A-002", type: "COACHING_REQUIRED", severity: "WARNING",  message: `${t2} tracking to close only 14 subs by month-end — coaching needed`,          timestamp: minsAgo(15),  actionRequired: true  },
+    { id: "A-003", type: "SLA_BREACH",        severity: "WARNING",  message: `${t1} — SLA compliance at 88%, approaching 90% threshold`,                     timestamp: minsAgo(60),  actionRequired: false },
+    { id: "A-004", type: "GPS_FAIL",          severity: "INFO",     message: "GPS mismatch on BTL lead from Ghod Dod RWA — Supervisor outside 500m",          timestamp: minsAgo(120), actionRequired: false },
   ];
 }
 
 function seedCoachingNotes(): SHCoachingNote[] {
+  const db   = getEmployeeDB();
+  const tses = empsByDesignation("TSE", db);
+  const t1   = tses[0] ? { id: tses[0].id, name: tses[0].fullName } : { id: "EDB-TSE-SUR1", name: "Pooja Sharma"  };
+  const t2   = tses[1] ? { id: tses[1].id, name: tses[1].fullName } : { id: "EDB-TSE-SUR2", name: "Ankit Trivedi" };
   return [
-    {
-      id: "CN-001", tceId: "TCE-003", tceName: "Neha Patel",
-      date: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10),
-      issue: "Plan mix below 50% — not pitching 3-month commitment",
-      action: "Role-play on 3-month pitch. Daily check-in for 1 week.",
-      nextCheckDate: new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10),
-    },
-    {
-      id: "CN-002", tceId: "TCE-002", tceName: "Rahul Mehta",
-      date: new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10),
-      issue: "SLA compliance falling — missing callbacks within 30 min",
-      action: "Reviewed call schedule. Set morning callback block 10–11 AM.",
-      nextCheckDate: new Date(Date.now() + 0 * 86400000).toISOString().slice(0, 10),
-    },
+    { id: "CN-001", tceId: t2.id, tceName: t2.name, date: new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10), issue: "Plan mix below 50% — not pitching 3-month commitment",          action: "Role-play on 3-month pitch. Daily check-in for 1 week.",       nextCheckDate: new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10) },
+    { id: "CN-002", tceId: t1.id, tceName: t1.name, date: new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10), issue: "SLA compliance falling — missing callbacks within 30 min", action: "Reviewed call schedule. Set morning callback block 10–11 AM.", nextCheckDate: new Date(Date.now() + 0 * 86400000).toISOString().slice(0, 10) },
   ];
 }
 
@@ -400,45 +373,74 @@ class SalesHeadService {
   // ── Management Visibility Layer (Section 12) ───────────────────────────────
 
   getReporteesSummary(): ReporteesSummary {
-    // TSM summary — reads from teleSalesManagerService data shape
-    const tsmTCEs = [
-      { id: "TSE-101", name: "Rahul Sharma",  teamOwner: "TSM" as const,
-        closuresMTD: 45, slaCompliancePct: 92, planMixPct: 68, churnCount30d: 0, incentiveForecast: 900, health: "GREEN" as const },
-      { id: "TSE-102", name: "Priya Patel",   teamOwner: "TSM" as const,
-        closuresMTD: 38, slaCompliancePct: 88, planMixPct: 55, churnCount30d: 1, incentiveForecast: 760, health: "GREEN" as const },
-      { id: "TSE-103", name: "Amit Kumar",    teamOwner: "TSM" as const,
-        closuresMTD: 22, slaCompliancePct: 75, planMixPct: 42, churnCount30d: 2, incentiveForecast: 330, health: "AMBER" as const },
-    ];
+    const db = getEmployeeDB();
+
+    // ── TSM summary — built from real TSM employees ──────────────────────────
+    const tsmEmps = empsByDesignation("TSM", db);
+    const tsm0 = tsmEmps[0] || { id: "EDB-TSM-SUR1", fullName: "Sanjay Kapoor" };
+
+    // TSEs under TSM — all TSE employees in the same city
+    const tsmCityId = tsm0.workLocation || "CITY-SURAT";
+    const tsmTSEs   = empsByDesignation("TSE", db).filter(
+      (e: any) => (e.workLocation || "CITY-SURAT") === tsmCityId
+    );
+
+    const tsmTCEs: AllTCESummary[] = tsmTSEs.map((e: any, i: number) => ({
+      id: e.id, name: e.fullName,
+      teamOwner: "TSM" as const,
+      closuresMTD:       [45, 38, 22, 31][i % 4],
+      slaCompliancePct:  [92, 88, 75, 84][i % 4],
+      planMixPct:        [68, 55, 42, 60][i % 4],
+      churnCount30d:     [0, 1, 2, 0][i % 4],
+      incentiveForecast: [900, 760, 330, 620][i % 4],
+      health: (i === 2 ? "AMBER" : "GREEN") as "GREEN" | "AMBER" | "RED",
+    }));
 
     const tsmSummary: TSMSummary = {
-      id: "TSM-001", name: "Kiran Desai",
+      id: tsm0.id, name: tsm0.fullName,
       leadsNew: 45, leadsConverted: 35, conversionRatePct: 42,
       revenueMTD: 4850000, revenueTarget: 5500000,
-      slaBreaches: 12, tseCount: 3,
+      slaBreaches: 12, tseCount: tsmTSEs.length,
       tsePerformance: tsmTCEs,
       incentiveForecast: 52000,
       pendingTranches: 3,
     };
 
-    // SM summaries — from salesManagerService data
-    const smSummaries: SMSummaryForSH[] = [
-      {
-        id: "SM-001", name: "Priya Nair",
-        activeLocations: 4, leadsMTD: 30, conversionsMTD: 6, conversionRatePct: 20,
-        gateCleared: false, blockDealsActive: 1, incentiveForecast: 8200,
-        atRiskLocations: 1, inactiveLocations: 1, pendingApprovals: 1,
-      },
-      {
-        id: "SM-002", name: "Ravi Shah",
-        activeLocations: 6, leadsMTD: 48, conversionsMTD: 9, conversionRatePct: 19,
-        gateCleared: true, blockDealsActive: 0, incentiveForecast: 6800,
-        atRiskLocations: 0, inactiveLocations: 0, pendingApprovals: 0,
-      },
-    ];
+    // ── SM summaries — built from real Sales Manager employees ───────────────
+    const smEmps = empsByDesignation("Sales Manager", db);
+    const smSummaries: SMSummaryForSH[] = smEmps.map((e: any, i: number) => {
+      // Read actual location counts from salesManagerService localStorage if available
+      let activeLocations = [4, 6][i % 2];
+      let atRiskLocations = [1, 0][i % 2];
+      let inactiveLocations = [1, 0][i % 2];
+      try {
+        const locs: any[] = JSON.parse(localStorage.getItem("sm_locations") || "[]");
+        const myLocs = locs.filter((l: any) => l.smId === e.id);
+        if (myLocs.length > 0) {
+          activeLocations   = myLocs.filter((l: any) => l.status === "Active").length;
+          atRiskLocations   = myLocs.filter((l: any) => l.status === "At Risk").length;
+          inactiveLocations = myLocs.filter((l: any) => l.status === "Inactive").length;
+        }
+      } catch { /* use defaults */ }
 
-    // All TCEs = SH's own team + TSM's team
+      return {
+        id: e.id, name: e.fullName,
+        activeLocations,
+        leadsMTD:          [30, 48][i % 2],
+        conversionsMTD:    [6, 9][i % 2],
+        conversionRatePct: [20, 19][i % 2],
+        gateCleared:       i % 2 === 1,
+        blockDealsActive:  [1, 0][i % 2],
+        incentiveForecast: [8200, 6800][i % 2],
+        atRiskLocations,
+        inactiveLocations,
+        pendingApprovals:  [1, 0][i % 2],
+      };
+    });
+
+    // ── All TCEs = SH's direct team + TSM's team ─────────────────────────────
     const shTCEs = this.load<TCEStatus>(this.STORE_KEYS.TCE_STATUSES, seedTCEStatuses);
-    const allTCEs = [
+    const allTCEs: AllTCESummary[] = [
       ...shTCEs.map(t => ({
         id: t.id, name: t.name, teamOwner: "SH-Direct" as const,
         closuresMTD: t.closuresMTD, slaCompliancePct: t.slaCompliancePct,
@@ -449,13 +451,18 @@ class SalesHeadService {
       ...tsmTCEs,
     ];
 
-    // Tranche liability — all pending tranches across team
+    // ── Tranche liability — uses real employee names ───────────────────────
+    const tce1 = shTCEs[0] || { id: "EDB-TSE-SUR1", name: "Pooja Sharma" };
+    const shSelf = { name: db.find((e: any) => e.designation === "Sales Head")?.fullName || "Sales Head" };
+    const sm1    = smEmps[0] || { fullName: "Sales Manager 1" };
+    const tsmN   = tsmEmps[0]?.fullName || "TSM";
+
     const trancheLiability: TrancheItem[] = [
-      { id: "TL-001", ownerName: "Priya Sharma (TCE)",  ownerRole: "TCE", label: "3M sub M3 check",   amount: 30,   dueDate: "2026-05-31", subscriptionActive: true,  status: "on_track" },
-      { id: "TL-002", ownerName: "Amit Joshi (SH)",     ownerRole: "SH",  label: "6M sub M3 tranche", amount: 36,   dueDate: "2026-05-31", subscriptionActive: true,  status: "on_track" },
-      { id: "TL-003", ownerName: "Priya Nair (SM)",     ownerRole: "SM",  label: "3M block M3 pro-rata",amount: 3125, dueDate: "2026-05-31", subscriptionActive: true,  status: "on_track" },
-      { id: "TL-004", ownerName: "Rahul Sharma (TSE-TSM)",ownerRole:"TCE", label: "12M sub M3 check",  amount: 100,  dueDate: "2026-05-31", subscriptionActive: false, status: "at_risk" },
-      { id: "TL-005", ownerName: "Kiran Desai (TSM)",   ownerRole: "TSM", label: "Q1 conversion M3",   amount: 2400, dueDate: "2026-06-30", subscriptionActive: true,  status: "on_track" },
+      { id: "TL-001", ownerName: `${tce1.name} (TCE)`,   ownerRole: "TCE", label: "3M sub M3 check",    amount: 30,   dueDate: "2026-05-31", subscriptionActive: true,  status: "on_track" },
+      { id: "TL-002", ownerName: `${shSelf.name} (SH)`, ownerRole: "SH",  label: "6M sub M3 tranche",  amount: 36,   dueDate: "2026-05-31", subscriptionActive: true,  status: "on_track" },
+      { id: "TL-003", ownerName: `${sm1.fullName} (SM)`, ownerRole: "SM",  label: "3M block M3 pro-rata",amount: 3125, dueDate: "2026-05-31", subscriptionActive: true,  status: "on_track" },
+      { id: "TL-004", ownerName: `${tce1.name} (TSE-TSM)`,ownerRole:"TCE", label: "12M sub M3 check",   amount: 100,  dueDate: "2026-05-31", subscriptionActive: false, status: "at_risk"  },
+      { id: "TL-005", ownerName: `${tsmN} (TSM)`,        ownerRole: "TSM", label: "Q1 conversion M3",    amount: 2400, dueDate: "2026-06-30", subscriptionActive: true,  status: "on_track" },
     ];
 
     const shForecast  = this.getIncentiveBreakdown().totalForecast;

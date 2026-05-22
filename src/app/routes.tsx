@@ -224,6 +224,7 @@ import { ShiftManagementPage } from "./components/admin/ShiftManagementPage"; //
 import { AttendanceFraudAlertsPage } from "./components/admin/AttendanceFraudAlertsPage"; // MC-09
 import { PermissionManagementPage } from "./components/admin/PermissionManagementPage"; // MC-11
 import { RolePermissionManager } from "./components/admin/RolePermissionManager"; // MC-11 Enhanced
+import { IncentiveVisibilityAdmin } from "./components/admin/IncentiveVisibilityAdmin"; // Super Admin incentive screen control
 import { RoleSuggestionsPage } from "./components/hr/RoleSuggestionsPage"; // MC-12
 import { HRIntelligenceDashboard } from "./components/hr/HRIntelligenceDashboard";
 import { AccountsPayrollProcessing } from "./components/accounts/AccountsPayrollProcessing";
@@ -405,6 +406,7 @@ export const router = createBrowserRouter([
       { path: "admin/fraud-alerts", element: <AttendanceFraudAlertsPage /> }, // MC-09
       { path: "admin/permissions", element: <PermissionManagementPage /> }, // MC-11
       { path: "admin/role-permissions", element: <RolePermissionManager /> }, // MC-11 Enhanced: Base role overrides + custom sub-roles
+      { path: "admin/incentive-visibility", element: <IncentiveVisibilityAdmin /> }, // Super Admin: show/hide incentive tab per role/employee
       { path: "hr/role-suggestions", element: <RoleSuggestionsPage /> }, // MC-12
       { path: "hr/intelligence-dashboard", element: <HRIntelligenceDashboard /> },
       { path: "store-manager", element: <StoreManagerModule /> },

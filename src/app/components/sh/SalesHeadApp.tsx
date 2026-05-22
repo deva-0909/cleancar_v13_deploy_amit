@@ -32,6 +32,8 @@ import {
   type TCEStatus, type SHLead, type SHAlert, type TCEGateColor,
   type SHIncentiveBreakdown,
 } from "../../services/salesHeadService";
+import { incentiveVisibilityService } from "../../services/incentiveVisibilityService";
+import { useRole } from "../../contexts/RoleContext";
 import { SalesHeadManagementView } from "./SalesHeadManagementView";
 import { FieldCheckIn } from "../field/FieldCheckIn";
 import { FieldAttendanceAdmin } from "../field/FieldAttendanceAdmin";
@@ -553,7 +555,14 @@ function Reports() {
 
 export function SalesHeadApp() {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const { currentUser } = useRole();
   const metrics = salesHeadService.getCommandMetrics();
+
+  // Super Admin can toggle this per role or per employee via /admin/incentive-visibility
+  const showIncentiveTab = incentiveVisibilityService.isVisible(
+    "Sales Head",
+    currentUser?.employeeId
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -588,9 +597,11 @@ export function SalesHeadApp() {
             <TabsTrigger value="assign" className="text-xs gap-1">
               <ClipboardList className="w-3 h-3 hidden sm:block" />Assign
             </TabsTrigger>
-            <TabsTrigger value="incentive" className="text-xs gap-1">
-              <Award className="w-3 h-3 hidden sm:block" />Incentives
-            </TabsTrigger>
+            {showIncentiveTab && (
+              <TabsTrigger value="incentive" className="text-xs gap-1">
+                <Award className="w-3 h-3 hidden sm:block" />Incentives
+              </TabsTrigger>
+            )}
             <TabsTrigger value="reports" className="text-xs gap-1">
               <BarChart3 className="w-3 h-3 hidden sm:block" />Reports
             </TabsTrigger>
@@ -617,9 +628,11 @@ export function SalesHeadApp() {
           <TabsContent value="assign">
             <LeadPipeline />
           </TabsContent>
-          <TabsContent value="incentive">
-            <IncentiveTracker />
-          </TabsContent>
+          {showIncentiveTab && (
+            <TabsContent value="incentive">
+              <IncentiveTracker />
+            </TabsContent>
+          )}
           <TabsContent value="reports">
             <Reports />
           </TabsContent>
