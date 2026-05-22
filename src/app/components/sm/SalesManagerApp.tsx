@@ -36,6 +36,8 @@ import {
   salesManagerService,
   type SMLocation, type SMBlockDeal, type LocationStatus,
 } from "../../services/salesManagerService";
+import { incentiveVisibilityService } from "../../services/incentiveVisibilityService";
+import { useRole } from "../../contexts/RoleContext";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -510,8 +512,16 @@ function SMPayrollView() {
 
 export function SalesManagerApp() {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const { currentUser } = useRole();
   const gate    = salesManagerService.getGateStatus();
   const alerts  = salesManagerService.getAlerts().filter(a => a.actionRequired);
+
+  // Reads from incentiveVisibilityService — Super Admin controls this per role/employee.
+  // Employee-level override beats role default (set via /admin/incentive-visibility).
+  const showIncentiveTab = incentiveVisibilityService.isVisible(
+    "Sales Manager",
+    currentUser?.employeeId
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -548,9 +558,11 @@ export function SalesManagerApp() {
             <TabsTrigger value="block" className="text-xs gap-1">
               <Package className="w-3 h-3 hidden sm:block" />Block Deals
             </TabsTrigger>
-            <TabsTrigger value="incentive" className="text-xs gap-1">
-              <Award className="w-3 h-3 hidden sm:block" />Incentives
-            </TabsTrigger>
+            {showIncentiveTab && (
+              <TabsTrigger value="incentive" className="text-xs gap-1">
+                <Award className="w-3 h-3 hidden sm:block" />Incentives
+              </TabsTrigger>
+            )}
             <TabsTrigger value="expenses" className="text-xs gap-1">
               <Receipt className="w-3 h-3 hidden sm:block" />Expenses
             </TabsTrigger>
@@ -582,9 +594,11 @@ export function SalesManagerApp() {
           <TabsContent value="block">
             <BlockSubscriptions />
           </TabsContent>
-          <TabsContent value="incentive">
-            <IncentiveTracker />
-          </TabsContent>
+          {showIncentiveTab && (
+            <TabsContent value="incentive">
+              <IncentiveTracker />
+            </TabsContent>
+          )}
           <TabsContent value="expenses">
             <BTLExpenses />
           </TabsContent>

@@ -176,34 +176,59 @@ export interface ReporteesSummary {
 
 const minsAgo = (n: number) => new Date(Date.now() - n * 60 * 1000).toISOString();
 
+// Read real employee records from localStorage (seeded by seedAllData).
+// Falls back to inline stubs only if the seed hasn't run yet (first load).
+function getSeededEmployee(id: string, fallbackName: string) {
+  try {
+    const raw = localStorage.getItem("EMPLOYEE_DATABASE_RECORDS");
+    if (!raw) return { id, name: fallbackName };
+    const emps: any[] = JSON.parse(raw);
+    const emp = emps.find((e: any) => e.id === id);
+    return emp ? { id: emp.id, name: emp.fullName || fallbackName } : { id, name: fallbackName };
+  } catch { return { id, name: fallbackName }; }
+}
+
 function seedTCEStatuses(): TCEStatus[] {
+  // Uses real seeded TSE employee IDs (EDB-TSE-SUR1, EDB-TSE-SUR2) from seedAllData.
+  // sh_tce_performance is pre-populated by seedAllData step 25 with these IDs.
+  // If localStorage has the seeded performance data, use it; otherwise build from employee records.
+  try {
+    const raw = localStorage.getItem("sh_tce_performance");
+    if (raw) {
+      const seeded: any[] = JSON.parse(raw);
+      if (seeded.length > 0) return seeded as TCEStatus[];
+    }
+  } catch { /* fall through */ }
+
+  // Build from seeded employee records so names and IDs are always in sync
+  const tse1 = getSeededEmployee("EDB-TSE-SUR1", "Pooja Sharma");
+  const tse2 = getSeededEmployee("EDB-TSE-SUR2", "Ankit Trivedi");
   return [
     {
-      id: "TCE-001", name: "Priya Sharma", closuresMTD: 42,
-      gateColor: "AMBER", slaCompliancePct: 91, planMixPct: 65,
-      churnCount30d: 1, lastCallTime: minsAgo(8), incentiveForecast: 840, status: "ON_CALL",
+      id: tse1.id, name: tse1.name, closuresMTD: 28,
+      gateColor: "AMBER", slaCompliancePct: 88, planMixPct: 65,
+      churnCount30d: 1, lastCallTime: minsAgo(18), incentiveForecast: 4200, status: "ON_CALL",
     },
     {
-      id: "TCE-002", name: "Rahul Mehta", closuresMTD: 29,
-      gateColor: "AMBER", slaCompliancePct: 87, planMixPct: 52,
-      churnCount30d: 0, lastCallTime: minsAgo(3), incentiveForecast: 580, status: "ACTIVE",
-    },
-    {
-      id: "TCE-003", name: "Neha Patel", closuresMTD: 18,
-      gateColor: "RED", slaCompliancePct: 78, planMixPct: 44,
-      churnCount30d: 2, lastCallTime: minsAgo(25), incentiveForecast: 270, status: "ACTIVE",
+      id: tse2.id, name: tse2.name, closuresMTD: 14,
+      gateColor: "RED", slaCompliancePct: 72, planMixPct: 48,
+      churnCount30d: 3, lastCallTime: minsAgo(95), incentiveForecast: 1800, status: "ACTIVE",
     },
   ];
 }
 
 function seedLeads(): SHLead[] {
+  // SM IDs reference real seeded Sales Manager employees (EDB-SMGR-SUR1, EDB-SMGR-SUR2).
+  // TCE assignments reference real TSE IDs so the SH can look them up in the employee DB.
+  const tse1 = getSeededEmployee("EDB-TSE-SUR1", "Pooja Sharma");
+  const tse2 = getSeededEmployee("EDB-TSE-SUR2", "Ankit Trivedi");
   return [
     {
       id: "SH-L-001", customerName: "Vikram Singh", phone: "+91 98765 43219",
       vehicleType: "4W", vehicleCategory: "SUV",
       source: "SM-Alliance-Supervisor", status: "New",
       assignedTo: null, ageMinutes: 35, estimatedValue: 1999,
-      smId: "SM-001", smLocationName: "Adajan Society",
+      smId: "EDB-SMGR-SUR1", smLocationName: "Adajan Heights Society",
     },
     {
       id: "SH-L-002", customerName: "Kavita Rao", phone: "+91 98765 43220",
@@ -215,14 +240,14 @@ function seedLeads(): SHLead[] {
       id: "SH-L-003", customerName: "Suresh Iyer", phone: "+91 98765 43221",
       vehicleType: "2W", vehicleCategory: "Bike",
       source: "Referral", status: "Assigned",
-      assignedTo: "TCE-001", ageMinutes: 45, estimatedValue: 399,
+      assignedTo: tse1.id, ageMinutes: 45, estimatedValue: 399,
     },
     {
-      id: "SH-L-004", customerName: "Meera Joshi", phone: "+91 98765 43222",
+      id: "SH-L-004", customerName: "Meera Desai", phone: "+91 98765 43222",
       vehicleType: "4W", vehicleCategory: "Sedan",
       source: "SM-Alliance-QR", status: "Contacted",
-      assignedTo: "TCE-002", ageMinutes: 90, estimatedValue: 699,
-      smId: "SM-002", smLocationName: "Corporate Park B",
+      assignedTo: tse2.id, ageMinutes: 90, estimatedValue: 699,
+      smId: "EDB-SMGR-SUR2", smLocationName: "Ghod Dod RWA",
     },
     {
       id: "SH-L-005", customerName: "Deepak Nair", phone: "+91 98765 43223",
@@ -234,25 +259,27 @@ function seedLeads(): SHLead[] {
 }
 
 function seedAlerts(): SHAlert[] {
+  const tse2 = getSeededEmployee("EDB-TSE-SUR2", "Ankit Trivedi");
+  const tse1 = getSeededEmployee("EDB-TSE-SUR1", "Pooja Sharma");
   return [
     {
       id: "A-001", type: "UNASSIGNED_LEAD", severity: "CRITICAL",
-      message: "Lead from Adajan Society unassigned — 35 minutes in queue",
+      message: "Lead from Adajan Heights Society unassigned — 35 minutes in queue",
       timestamp: minsAgo(5), actionRequired: true,
     },
     {
       id: "A-002", type: "COACHING_REQUIRED", severity: "WARNING",
-      message: "Neha Patel tracking to close only 14 subs by month-end — coaching intervention needed",
+      message: `${tse2.name} tracking to close only 14 subs by month-end — coaching intervention needed`,
       timestamp: minsAgo(15), actionRequired: true,
     },
     {
       id: "A-003", type: "SLA_BREACH", severity: "WARNING",
-      message: "Rahul Mehta — SLA compliance at 87%, below 90% target",
+      message: `${tse1.name} — SLA compliance at 88%, approaching 90% threshold`,
       timestamp: minsAgo(60), actionRequired: false,
     },
     {
       id: "A-004", type: "GPS_FAIL", severity: "INFO",
-      message: "GPS mismatch on BTL lead from Corporate Park B — Supervisor outside 500m",
+      message: "GPS mismatch on BTL lead from Ghod Dod RWA — Supervisor outside 500m",
       timestamp: minsAgo(120), actionRequired: false,
     },
   ];

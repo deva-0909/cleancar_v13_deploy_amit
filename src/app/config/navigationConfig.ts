@@ -21,7 +21,7 @@ import {
   FileSearch, BarChart2, Layers, Coins,
   PlusCircle, MinusCircle, FileBarChart, Brain, ShieldCheck, LayoutDashboard,
   Building2, CheckCircle2, ClipboardCheck, GitCompare, FileOutput, ReceiptText,
-  Upload, BookOpen, List, Scale, Zap, Car, Percent, User
+  Upload, BookOpen, List, Scale, Zap, Car, Percent, User, Eye
 } from "lucide-react";
 
 export interface NavItem {
@@ -352,6 +352,7 @@ export const NAV_CONFIG: NavItem[] = [
       { label: "Fraud Alerts", path: "/admin/fraud-alerts", icon: AlertCircle, module: "admin", match: "prefix" },
       { label: "Permissions", path: "/admin/permissions", icon: ShieldCheck, module: "admin", match: "prefix" },
       { label: "Role & Permissions", path: "/admin/role-permissions", icon: ShieldCheck, module: "admin", match: "prefix" },
+      { label: "Incentive Visibility", path: "/admin/incentive-visibility", icon: Eye, module: "admin", match: "prefix" },
       { label: "Subscription Plans", path: "/subscription/plan-management", icon: Package, module: "admin", match: "prefix" },
       { label: "Plan Page Editor", path: "/admin/plan-page-editor", icon: MousePointerClick, module: "admin", match: "prefix" },
       { label: "Comm. Templates", path: "/settings/communication-templates", icon: Mail, module: "admin", match: "prefix" },
