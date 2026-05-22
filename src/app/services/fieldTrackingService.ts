@@ -419,7 +419,6 @@ class FieldTrackingService {
       );
     });
   }
-}
 
   // ── Live location query (Super Admin) ─────────────────────────────────────
 
@@ -470,5 +469,7 @@ class FieldTrackingService {
       ),
     };
   }
+
+}
 
 export const fieldTrackingService = new FieldTrackingService();
