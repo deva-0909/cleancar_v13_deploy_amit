@@ -66,6 +66,10 @@ export interface Revenue {
   status: "Received" | "Pending" | "Failed";
   cityId: string; // ✅ REQUIRED: Multi-city isolation (was optional, now required)
   createdAt: string;
+  // ── Denormalised fields for display (populated by seedAllData) ────────────
+  customerName?: string;  // Stored directly so invoice list never needs a join
+  packageName?: string;   // e.g. "Water Wash", "Shampoo Wash", "Shampoo+Wax"
+  source?: string;        // "web-buy-page" | "subscription" | "one-time"
 }
 
 export interface LedgerEntry {
