@@ -78,7 +78,7 @@ export function useRoleBasedRedirect(currentRole: Role, enabled: boolean = true)
   useEffect(() => {
     if (!enabled) return;
 
-    const prevRole   = prevRoleRef.current;
+    const prevRole    = prevRoleRef.current;
     const roleChanged = prevRole !== currentRole;
     prevRoleRef.current = currentRole;
 
@@ -87,26 +87,28 @@ export function useRoleBasedRedirect(currentRole: Role, enabled: boolean = true)
     const config = ROLE_REDIRECTS[currentRole];
     if (!config) return;
 
-    // Admin / unrestricted roles: no redirect needed
+    // Admin/unrestricted roles (empty allowedPrefixes): no redirect needed
     if (config.allowedPrefixes.length === 0) return;
 
     const currentPath = location.pathname;
 
-    // Check if we're already on a path that belongs to this role
+    // Only skip redirect if already on a path that belongs to this specific role
     const alreadyOnRolePath = config.allowedPrefixes.some(prefix =>
-      currentPath === prefix || currentPath.startsWith(prefix + "/") || currentPath.startsWith(prefix)
+      currentPath === prefix ||
+      currentPath.startsWith(prefix + "/") ||
+      currentPath.startsWith(prefix)
     );
 
-    if (alreadyOnRolePath) {
-      console.log(`[Role Redirect] Already on allowed path for ${currentRole}: ${currentPath}`);
-      return;
-    }
+    if (alreadyOnRolePath) return;
 
-    // Not on a valid path for this role — redirect to the role's landing page
-    console.log(`[Role Redirect] ${prevRole} → ${currentRole}, redirecting ${currentPath} → ${config.defaultPath}`);
+    // Always navigate — covers any URL including ones not in routes.tsx
+    console.log(`[Role Redirect] ${prevRole} → ${currentRole}: ${currentPath} → ${config.defaultPath}`);
     navigate(config.defaultPath, { replace: true });
 
-  }, [currentRole, navigate, location.pathname, enabled]);
+  // ⚠️ IMPORTANT: currentRole must be the ONLY dependency that triggers this.
+  // Including location.pathname would cause redirect loops.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentRole]);
 }
 
 export function getRoleDefaultPath(role: Role): string {
