@@ -24,7 +24,7 @@ import {
   ClipboardList, Award, BarChart3,
   AlertTriangle, Clock, Phone, MessageCircle,
   CheckCircle2, Circle, TrendingUp, TrendingDown,
-  RefreshCw, ChevronRight,
+  RefreshCw, ChevronRight, MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -32,6 +32,10 @@ import {
   type TCEStatus, type SHLead, type SHAlert, type TCEGateColor,
   type SHIncentiveBreakdown,
 } from "../../services/salesHeadService";
+import { SalesHeadManagementView } from "./SalesHeadManagementView";
+import { FieldCheckIn } from "../field/FieldCheckIn";
+import { FieldAttendanceAdmin } from "../field/FieldAttendanceAdmin";
+import { Telescope } from "lucide-react";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -568,7 +572,7 @@ export function SalesHeadApp() {
 
       <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-7 w-full mb-6 overflow-x-auto">
+          <TabsList className="grid grid-cols-9 min-w-max w-full mb-6 overflow-x-auto">
             <TabsTrigger value="dashboard" className="text-xs gap-1">
               <LayoutDashboard className="w-3 h-3 hidden sm:block" />Dashboard
             </TabsTrigger>
@@ -589,6 +593,12 @@ export function SalesHeadApp() {
             </TabsTrigger>
             <TabsTrigger value="reports" className="text-xs gap-1">
               <BarChart3 className="w-3 h-3 hidden sm:block" />Reports
+            </TabsTrigger>
+            <TabsTrigger value="field" className="text-xs gap-1 border-l-2 border-green-300">
+              <MapPin className="w-3 h-3 hidden sm:block" />Field Day
+            </TabsTrigger>
+            <TabsTrigger value="team" className="text-xs gap-1 border-l-2 border-purple-300">
+              <Users className="w-3 h-3 hidden sm:block" />Team View
             </TabsTrigger>
           </TabsList>
 
@@ -612,6 +622,20 @@ export function SalesHeadApp() {
           </TabsContent>
           <TabsContent value="reports">
             <Reports />
+          </TabsContent>
+          <TabsContent value="field">
+            <FieldCheckIn />
+          </TabsContent>
+          <TabsContent value="team">
+            <div className="space-y-6">
+              <SalesHeadManagementView />
+              <div className="border-t pt-6">
+                <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-green-600" />Field Attendance — Team Sessions
+                </h2>
+                <FieldAttendanceAdmin />
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

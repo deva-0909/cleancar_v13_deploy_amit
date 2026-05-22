@@ -15,6 +15,7 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { FieldCheckIn } from "../field/FieldCheckIn";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
@@ -444,6 +445,67 @@ function BTLExpenses() {
   );
 }
 
+
+// ── SM Payroll Preview ────────────────────────────────────────────────────────
+
+function SMPayrollView() {
+  const month = new Date().toISOString().slice(0, 7);
+  const preview = salesManagerService.getPayrollPreview(month);
+
+  return (
+    <div className="space-y-6">
+      <Card className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200">
+        <p className="text-sm text-gray-600">Net Take-Home This Month (Projected)</p>
+        <p className="text-4xl font-bold text-green-700 mt-1">
+          ₹{(preview.totalM1 - Math.abs(preview.payrollLineItems.filter(l=>l.type==="deduction").reduce((s,l)=>s+l.amount,0))).toLocaleString()}
+        </p>
+        <p className="text-xs text-gray-400 mt-1">After statutory deductions · Recalculated nightly</p>
+      </Card>
+
+      <Card className="p-5">
+        <h3 className="font-semibold mb-4">Payroll Line Items</h3>
+        <div className="space-y-2">
+          {preview.payrollLineItems.map((item, i) => (
+            <div key={i} className={`flex items-center justify-between py-2 border-b last:border-0 text-sm`}>
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${
+                  item.type === "fixed" ? "bg-blue-500" :
+                  item.type === "variable" ? "bg-green-500" : "bg-red-400"
+                }`} />
+                <span className="text-gray-800">{item.label}</span>
+                <span className={`text-xs px-1.5 py-0.5 rounded ${
+                  item.type === "fixed" ? "bg-blue-100 text-blue-700" :
+                  item.type === "variable" ? "bg-green-100 text-green-700" :
+                  "bg-red-100 text-red-700"
+                }`}>{item.type}</span>
+              </div>
+              <span className={`font-bold ${item.amount < 0 ? "text-red-600" : "text-gray-900"}`}>
+                {item.amount < 0 ? "-" : ""}₹{Math.abs(item.amount).toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <h3 className="font-semibold mb-3 text-sm">Pending Future Tranches</h3>
+        {preview.perConversion.futureTransches.length > 0 ? (
+          <div className="space-y-2">
+            {preview.perConversion.futureTransches.slice(0, 8).map((t, i) => (
+              <div key={i} className="flex justify-between text-sm p-2 bg-gray-50 rounded">
+                <span className="text-gray-700">{t.term}M closure — M{t.checkMonth} check · {t.dueDate}</span>
+                <span className="font-semibold">₹{t.amount}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-400">No future tranches pending.</p>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 // ── Main App ──────────────────────────────────────────────────────────────────
 
 export function SalesManagerApp() {
@@ -470,7 +532,7 @@ export function SalesManagerApp() {
 
       <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-7 w-full mb-6 overflow-x-auto">
+          <TabsList className="grid grid-cols-9 min-w-max w-full mb-6 overflow-x-auto">
             <TabsTrigger value="dashboard" className="text-xs gap-1">
               <MapPin className="w-3 h-3 hidden sm:block" />Alliance
             </TabsTrigger>
@@ -491,6 +553,12 @@ export function SalesManagerApp() {
             </TabsTrigger>
             <TabsTrigger value="expenses" className="text-xs gap-1">
               <Receipt className="w-3 h-3 hidden sm:block" />Expenses
+            </TabsTrigger>
+            <TabsTrigger value="field" className="text-xs gap-1 border-l-2 border-teal-300">
+              <MapPin className="w-3 h-3 hidden sm:block" />Field Day
+            </TabsTrigger>
+            <TabsTrigger value="payroll" className="text-xs gap-1 border-l-2 border-green-300">
+              <TrendingUp className="w-3 h-3 hidden sm:block" />Payroll
             </TabsTrigger>
           </TabsList>
 
@@ -519,6 +587,12 @@ export function SalesManagerApp() {
           </TabsContent>
           <TabsContent value="expenses">
             <BTLExpenses />
+          </TabsContent>
+          <TabsContent value="field">
+            <FieldCheckIn />
+          </TabsContent>
+          <TabsContent value="payroll">
+            <SMPayrollView />
           </TabsContent>
         </Tabs>
       </div>
