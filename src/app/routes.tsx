@@ -109,6 +109,7 @@ import { JournalEntry } from "./components/accounts/JournalEntry";
 import { AccountsDashboard } from "./components/accounts/AccountsDashboard";
 import { AccountingTransactionList } from "./components/accounts/AccountingTransactionList";
 import { AccountsLedger } from "./components/accounts/AccountsLedger";
+import { PartyLedger } from "./components/accounts/PartyLedger";
 import { TrialBalance } from "./components/accounts/TrialBalance";
 import { BalanceSheet } from "./components/accounts/BalanceSheet";
 import { LedgerMaster } from "./components/accounts/LedgerMaster";
@@ -379,6 +380,7 @@ export const router = createBrowserRouter([
       { path: "accounts/dashboard", element: <AccountsDashboard /> },
       { path: "accounts/transactions", element: <AccountingTransactionList /> },
       { path: "accounts/ledger", element: <AccountsLedger /> },
+      { path: "accounts/party-ledger", element: <PartyLedger /> },
       { path: "accounts/ledger-master", element: <LedgerMaster /> },
       { path: "accounts/razorpay-flow", element: <RazorpayFlow /> },
       { path: "accounts/trial-balance", element: <TrialBalance /> },

@@ -821,7 +821,14 @@ function HRModule() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockEmployees.map((emp) => {
+                    {(() => {
+                      // mockEmployees was undefined — read from real employee service
+                      const liveEmps: any[] = (() => {
+                        try { return JSON.parse(localStorage.getItem("EMPLOYEE_DATABASE_RECORDS") || "[]"); }
+                        catch { return []; }
+                      })();
+                      return liveEmps;
+                    })().map((emp: any) => {
                       const docs = emp.documents || [];
                       const verified = docs.filter(d => d.status === "Verified").length;
                       const pending = docs.filter(d => d.status === "Pending").length;
@@ -830,8 +837,8 @@ function HRModule() {
 
                       return (
                         <TableRow key={emp.id}>
-                          <TableCell className="font-medium">{emp.name}</TableCell>
-                          <TableCell><Badge variant="outline">{emp.role}</Badge></TableCell>
+                          <TableCell className="font-medium">{emp.fullName || emp.name || emp.id}</TableCell>
+                          <TableCell><Badge variant="outline">{emp.designation || emp.role || "—"}</Badge></TableCell>
                           <TableCell>
                             <Badge variant="secondary">{verified}</Badge>
                           </TableCell>

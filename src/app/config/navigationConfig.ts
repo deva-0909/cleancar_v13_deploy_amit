@@ -277,6 +277,7 @@ export const NAV_CONFIG: NavItem[] = [
       { label: "Journal Entry",      path: "/accounts/journal-entry",    icon: BookOpen,        module: "accounts", match: "prefix" },
       { label: "Transaction List",   path: "/accounts/transactions",     icon: List,            module: "accounts", match: "prefix" },
       { label: "Ledger",             path: "/accounts/ledger",           icon: BookUser,        module: "accounts", match: "prefix" },
+      { label: "Party Ledger",       path: "/accounts/party-ledger",     icon: Users,           module: "accounts", match: "prefix" },
       { label: "Ledger Master",      path: "/accounts/ledger-master",    icon: Layers,          module: "accounts", match: "prefix" },
       { label: "Razorpay Flow",      path: "/accounts/razorpay-flow",    icon: Zap,             module: "accounts", match: "prefix" },
       { label: "Trial Balance",      path: "/accounts/trial-balance",    icon: Scale,           module: "accounts", match: "prefix" },

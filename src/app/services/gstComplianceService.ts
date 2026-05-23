@@ -12,6 +12,72 @@ export type TransactionStatus = "Draft" | "Validated" | "Flagged" | "Approved" |
 export type GSTType = "B2B" | "B2C" | "B2CL" | "EXPORT";
 export type SupplyType = "Regular" | "RCM" | "SEZ" | "Deemed Export";
 
+// Legal entity types — determine TDS applicability
+export type LegalEntityType =
+  | "Proprietorship"
+  | "Partnership"
+  | "LLP"
+  | "Pvt Ltd"
+  | "Public Ltd"
+  | "OPC"
+  | "Trust / NGO"
+  | "HUF"
+  | "Government"
+  | "Not Applicable";
+
+// TDS configuration per entity type
+export interface TDSEntityConfig {
+  entityType: LegalEntityType;
+  // TDS rate applies to individuals/non-companies (proprietorship, partnership, HUF) vs companies (Pvt Ltd, LLP etc.)
+  isCompany: boolean;
+  // Whether TDS is generally applicable on vendor payments
+  tdsApplicable: boolean;
+}
+
+export const TDS_ENTITY_CONFIG: TDSEntityConfig[] = [
+  { entityType: "Proprietorship",  isCompany: false, tdsApplicable: true  },
+  { entityType: "Partnership",     isCompany: false, tdsApplicable: true  },
+  { entityType: "LLP",             isCompany: true,  tdsApplicable: true  },
+  { entityType: "Pvt Ltd",         isCompany: true,  tdsApplicable: true  },
+  { entityType: "Public Ltd",      isCompany: true,  tdsApplicable: true  },
+  { entityType: "OPC",             isCompany: true,  tdsApplicable: true  },
+  { entityType: "Trust / NGO",     isCompany: false, tdsApplicable: true  },
+  { entityType: "HUF",             isCompany: false, tdsApplicable: true  },
+  { entityType: "Government",      isCompany: true,  tdsApplicable: false }, // Govt depts exempt
+  { entityType: "Not Applicable",  isCompany: false, tdsApplicable: false },
+];
+
+// TDS override record — applies during validFrom..validTill period
+export interface TDSOverride {
+  id: string;
+  overrideRate: number;           // e.g. 0 for nil deduction certificate
+  tdsSection: string;             // e.g. "194C", "194J"
+  reason: string;                 // e.g. "Lower deduction certificate u/s 197"
+  certificateNumber: string;
+  supportingDocumentBase64: string; // uploaded doc
+  supportingDocumentName: string;
+  validFrom: string;              // ISO date
+  validTill: string;              // ISO date
+  approvedBy?: string;
+  approvedAt?: string;
+  createdBy: string;
+  createdAt: string;
+  status: "Pending Approval" | "Approved" | "Rejected" | "Expired";
+}
+
+// Mandatory compliance documents
+export interface VendorDocument {
+  id: string;
+  type: "GST Certificate" | "PAN Certificate" | "TDS Override" | "Other";
+  fileName: string;
+  fileBase64: string;
+  uploadedBy: string;
+  uploadedAt: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
+  status: "Pending Verification" | "Verified" | "Rejected";
+}
+
 export interface GSTVendor {
   id: string;
   name: string;
@@ -40,6 +106,24 @@ export interface GSTVendor {
   approvedAt?: string;
   status: "Active" | "Inactive" | "Blacklisted";
   notes: string;
+
+  // ── NEW: Legal entity & TDS fields ─────────────────────────────────────
+  legalEntityType?: LegalEntityType;    // Proprietorship / Pvt Ltd / LLP etc.
+  tdsApplicable?: boolean;              // computed from entityType
+  tdsDefaultSection?: string;           // default TDS section for this vendor
+  tdsDefaultRate?: number;              // rate derived from entity type (company vs individual)
+  tdsOverrides?: TDSOverride[];         // time-bound overrides with supporting docs
+
+  // ── NEW: Mandatory compliance documents ───────────────────────────────
+  gstCertificate?: VendorDocument;      // MANDATORY — GST registration certificate
+  panCertificate?: VendorDocument;      // MANDATORY — PAN card copy
+
+  // ── NEW: Approval workflow ─────────────────────────────────────────────
+  approvalStatus?: "Pending" | "Approved" | "Rejected";
+  approvalNotes?: string;
+  submittedBy?: string;
+  submittedAt?: string;
+  approvalRequiredBy?: string;          // role that must approve
 }
 
 export interface GSTCustomer {

@@ -1,12 +1,60 @@
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { Building2, Plus, Search, Download, X, Check, AlertCircle, Edit2, Ban, CheckCircle } from "lucide-react";
-import { gstComplianceService, type GSTVendor, type VendorRiskLevel } from "../../services/gstComplianceService";
+import { Building2, Plus, Search, Download, X, Check, AlertCircle, Edit2, Ban, CheckCircle, Upload, Shield, Calendar, FileText, Clock } from "lucide-react";
+import { gstComplianceService, type GSTVendor, type VendorRiskLevel, type LegalEntityType, type TDSOverride, type VendorDocument, TDS_ENTITY_CONFIG } from "../../services/gstComplianceService";
+import { useRole } from "../../contexts/RoleContext";
 import { showExportMenu } from "../../utils/gstExportUtils";
 import { GST_STATE_OPTIONS, GST_STATES } from "../../services/accountingEntryService";
 
+// Legal entity types
+const LEGAL_ENTITY_TYPES: LegalEntityType[] = [
+  "Proprietorship", "Partnership", "LLP", "Pvt Ltd",
+  "Public Ltd", "OPC", "Trust / NGO", "HUF", "Government", "Not Applicable"
+];
+
+// TDS sections most used for vendor payments
+const TDS_SECTIONS = [
+  { section: "194C", label: "194C — Contractor/Sub-contractor" },
+  { section: "194J", label: "194J — Professional/Technical Fees" },
+  { section: "194I", label: "194I — Rent (Land/Building)" },
+  { section: "194I(a)", label: "194I(a) — Rent (Plant/Machinery)" },
+  { section: "194H", label: "194H — Commission/Brokerage" },
+  { section: "194A", label: "194A — Interest" },
+  { section: "194Q", label: "194Q — Purchase of Goods" },
+  { section: "192",  label: "192 — Salary" },
+  { section: "N/A",  label: "Not Applicable" },
+];
+
+// Derive TDS rate from entity type + section
+function getTDSRate(entityType: LegalEntityType | undefined, section: string): number {
+  if (!entityType || entityType === "Not Applicable" || entityType === "Government") return 0;
+  const cfg = TDS_ENTITY_CONFIG.find(c => c.entityType === entityType);
+  const isCompany = cfg?.isCompany ?? false;
+  const rateMap: Record<string, { individual: number; company: number }> = {
+    "194C":    { individual: 1,   company: 2   },
+    "194J":    { individual: 10,  company: 10  },
+    "194J(b)": { individual: 2,   company: 2   },
+    "194I":    { individual: 10,  company: 10  },
+    "194I(a)": { individual: 2,   company: 2   },
+    "194H":    { individual: 5,   company: 5   },
+    "194A":    { individual: 10,  company: 10  },
+    "194Q":    { individual: 0.1, company: 0.1 },
+    "192":     { individual: 0,   company: 0   },
+    "N/A":     { individual: 0,   company: 0   },
+  };
+  const rates = rateMap[section];
+  if (!rates) return 0;
+  return isCompany ? rates.company : rates.individual;
+}
+
+// Roles that can approve vendor master changes
+const MANAGER_ROLES = ["Super Admin", "Admin", "Accounts", "City Manager", "Cluster Manager"];
+
 export function GSTVendorMaster() {
+  const { currentRole, currentUser } = useRole();
+  const isManager = MANAGER_ROLES.includes(currentRole || "");
   const [vendors, setVendors] = useState<GSTVendor[]>(gstComplianceService.getVendors());
+  const [pendingApprovals, setPendingApprovals] = useState<GSTVendor[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterState, setFilterState] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -228,6 +276,9 @@ function VendorForm({ vendor, onSave, onClose }: {
   onSave: (v: GSTVendor) => void;
   onClose: () => void;
 }) {
+  const { currentRole, currentUser } = useRole();
+  const isManagerForm = MANAGER_ROLES.includes(currentRole || "");
+
   const [formData, setFormData] = useState<Partial<GSTVendor>>(vendor || {
     id: crypto.randomUUID(),
     name: "",
@@ -248,15 +299,29 @@ function VendorForm({ vendor, onSave, onClose }: {
     riskScore: 0,
     riskLevel: "Medium",
     filingStatus: "Unknown",
-    createdBy: "Current User",
+    createdBy: currentUser?.name || "User",
     createdAt: new Date().toISOString(),
     status: "Active",
-    notes: ""
+    notes: "",
+    // New fields
+    legalEntityType: undefined,
+    tdsApplicable: false,
+    tdsDefaultSection: "",
+    tdsDefaultRate: 0,
+    tdsOverrides: [],
+    gstCertificate: undefined,
+    panCertificate: undefined,
+    approvalStatus: undefined,
   });
 
   const [gstinError, setGstinError] = useState("");
-  const [gstinValid, setGstinValid] = useState(false);
-  const [requiresApproval, setRequiresApproval] = useState(true);
+  const [gstinValid, setGstinValid] = useState(!!vendor?.gstinValidated);
+  const [showTDSOverrideForm, setShowTDSOverrideForm] = useState(false);
+  const [overrideForm, setOverrideForm] = useState({
+    overrideRate: 0, tdsSection: formData.tdsDefaultSection || "",
+    reason: "", certificateNumber: "", validFrom: "", validTill: "",
+    supportingDocumentBase64: "", supportingDocumentName: "",
+  });
 
   const handleGSTINBlur = () => {
     if (!formData.gstin) return;
@@ -279,10 +344,111 @@ function VendorForm({ vendor, onSave, onClose }: {
     }
   };
 
+  const handleEntityTypeChange = (entityType: LegalEntityType) => {
+    const cfg = TDS_ENTITY_CONFIG.find(c => c.entityType === entityType);
+    const section = formData.tdsDefaultSection || "194C";
+    const rate = getTDSRate(entityType, section);
+    setFormData(prev => ({
+      ...prev,
+      legalEntityType: entityType,
+      tdsApplicable: cfg?.tdsApplicable ?? false,
+      tdsDefaultRate: rate,
+    }));
+  };
+
+  const handleSectionChange = (section: string) => {
+    const rate = getTDSRate(formData.legalEntityType, section);
+    setFormData(prev => ({ ...prev, tdsDefaultSection: section, tdsDefaultRate: rate }));
+  };
+
+  const handleDocumentUpload = (
+    field: "gstCertificate" | "panCertificate",
+    file: File
+  ) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const doc: VendorDocument = {
+        id: crypto.randomUUID(),
+        type: field === "gstCertificate" ? "GST Certificate" : "PAN Certificate",
+        fileName: file.name,
+        fileBase64: (reader.result as string).split(",")[1] || "",
+        uploadedBy: currentUser?.name || "User",
+        uploadedAt: new Date().toISOString(),
+        status: "Pending Verification",
+      };
+      setFormData(prev => ({ ...prev, [field]: doc }));
+      toast.success(`${doc.type} uploaded — pending verification`);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleOverrideDocUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      setOverrideForm(prev => ({
+        ...prev,
+        supportingDocumentBase64: (reader.result as string).split(",")[1] || "",
+        supportingDocumentName: file.name,
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddOverride = () => {
+    if (!overrideForm.validFrom || !overrideForm.validTill || !overrideForm.certificateNumber) {
+      toast.error("Valid From, Valid Till, and Certificate Number are required for TDS override.");
+      return;
+    }
+    if (!overrideForm.supportingDocumentBase64) {
+      toast.error("Please upload the supporting document (lower deduction certificate).");
+      return;
+    }
+    const override: TDSOverride = {
+      id: crypto.randomUUID(),
+      overrideRate: overrideForm.overrideRate,
+      tdsSection: overrideForm.tdsSection || formData.tdsDefaultSection || "N/A",
+      reason: overrideForm.reason,
+      certificateNumber: overrideForm.certificateNumber,
+      supportingDocumentBase64: overrideForm.supportingDocumentBase64,
+      supportingDocumentName: overrideForm.supportingDocumentName,
+      validFrom: overrideForm.validFrom,
+      validTill: overrideForm.validTill,
+      createdBy: currentUser?.name || "User",
+      createdAt: new Date().toISOString(),
+      status: isManagerForm ? "Approved" : "Pending Approval",
+    };
+    setFormData(prev => ({ ...prev, tdsOverrides: [...(prev.tdsOverrides || []), override] }));
+    setShowTDSOverrideForm(false);
+    setOverrideForm({ overrideRate:0, tdsSection:"", reason:"", certificateNumber:"", validFrom:"", validTill:"", supportingDocumentBase64:"", supportingDocumentName:"" });
+    toast.success(isManagerForm ? "TDS override added and approved." : "TDS override added — pending approval.");
+  };
+
+  // Get the active TDS rate for today considering overrides
+  const getEffectiveTDSRate = () => {
+    const today = new Date().toISOString().split("T")[0];
+    const activeOverride = (formData.tdsOverrides || []).find(o =>
+      o.status === "Approved" && o.validFrom <= today && o.validTill >= today
+    );
+    if (activeOverride) return { rate: activeOverride.overrideRate, source: `Override (${activeOverride.tdsSection}) · ${activeOverride.certificateNumber}` };
+    return { rate: formData.tdsDefaultRate || 0, source: "Standard rate" };
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!gstinValid) {
       toast.error("Please fix GSTIN validation errors");
+      return;
+    }
+    if (!formData.gstCertificate) {
+      toast.error("GST Certificate upload is mandatory.");
+      return;
+    }
+    if (!formData.panCertificate) {
+      toast.error("PAN Certificate upload is mandatory.");
+      return;
+    }
+    if (!formData.legalEntityType) {
+      toast.error("Legal entity type is mandatory.");
       return;
     }
     onSave(formData as GSTVendor);
@@ -352,6 +518,288 @@ function VendorForm({ vendor, onSave, onClose }: {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
               />
             </div>
+
+            {/* ── LEGAL ENTITY TYPE ─────────────────────────────────────── */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Legal Entity Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                required
+                value={formData.legalEntityType || ""}
+                onChange={e => handleEntityTypeChange(e.target.value as LegalEntityType)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="">Select entity type</option>
+                {LEGAL_ENTITY_TYPES.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+              {formData.legalEntityType && (
+                <p className="text-xs mt-1 text-gray-500">
+                  {TDS_ENTITY_CONFIG.find(c => c.entityType === formData.legalEntityType)?.isCompany
+                    ? "Company rate applies" : "Individual/Non-company rate applies"}
+                  {" · TDS "}
+                  {TDS_ENTITY_CONFIG.find(c => c.entityType === formData.legalEntityType)?.tdsApplicable
+                    ? "applicable" : "not applicable"}
+                </p>
+              )}
+            </div>
+
+            {/* ── TDS SECTION & RATE (only if applicable) ──────────────── */}
+            {formData.tdsApplicable && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Default TDS Section
+                  </label>
+                  <select
+                    value={formData.tdsDefaultSection || ""}
+                    onChange={e => handleSectionChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  >
+                    <option value="">Select section</option>
+                    {TDS_SECTIONS.map(s => (
+                      <option key={s.section} value={s.section}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Default TDS Rate (%)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.tdsDefaultRate || 0}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg text-sm"
+                    />
+                    <span className="text-xs text-gray-400 whitespace-nowrap">Auto-calculated</span>
+                  </div>
+                  {(() => { const e = getEffectiveTDSRate(); return (
+                    <p className="text-xs mt-1 font-medium text-blue-700">
+                      Effective today: {e.rate}% · {e.source}
+                    </p>
+                  ); })()}
+                </div>
+              </>
+            )}
+
+            {/* ── MANDATORY DOCUMENTS ──────────────────────────────────── */}
+            <div className="col-span-2 mt-2">
+              <div className="flex items-center gap-2 mb-3">
+                <Shield className="w-4 h-4 text-indigo-600" />
+                <h3 className="font-semibold text-gray-800 text-sm">Mandatory Compliance Documents</h3>
+                <span className="text-xs text-red-500">* Both required before saving</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {/* GST Certificate */}
+                <div className={`border-2 rounded-lg p-3 ${formData.gstCertificate ? "border-green-400 bg-green-50" : "border-dashed border-red-300 bg-red-50"}`}>
+                  <label className="block text-xs font-semibold text-gray-700 mb-2">
+                    GST Registration Certificate <span className="text-red-500">*</span>
+                  </label>
+                  {formData.gstCertificate ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-green-600" />
+                        <span className="text-xs text-green-700 font-medium">{formData.gstCertificate.fileName}</span>
+                      </div>
+                      <div className="flex gap-1">
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">✓ Uploaded</span>
+                        <label className="cursor-pointer text-xs text-blue-600 hover:underline">
+                          Replace
+                          <input type="file" accept=".pdf,.jpg,.png" className="hidden"
+                            onChange={e => e.target.files?.[0] && handleDocumentUpload("gstCertificate", e.target.files[0])} />
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center gap-2 cursor-pointer py-2">
+                      <Upload className="w-5 h-5 text-red-400" />
+                      <span className="text-xs text-red-600">Click to upload GST certificate</span>
+                      <span className="text-xs text-gray-400">PDF, JPG or PNG</span>
+                      <input type="file" accept=".pdf,.jpg,.png" className="hidden"
+                        onChange={e => e.target.files?.[0] && handleDocumentUpload("gstCertificate", e.target.files[0])} />
+                    </label>
+                  )}
+                </div>
+
+                {/* PAN Certificate */}
+                <div className={`border-2 rounded-lg p-3 ${formData.panCertificate ? "border-green-400 bg-green-50" : "border-dashed border-red-300 bg-red-50"}`}>
+                  <label className="block text-xs font-semibold text-gray-700 mb-2">
+                    PAN Card Copy <span className="text-red-500">*</span>
+                  </label>
+                  {formData.panCertificate ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-green-600" />
+                        <span className="text-xs text-green-700 font-medium">{formData.panCertificate.fileName}</span>
+                      </div>
+                      <div className="flex gap-1">
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">✓ Uploaded</span>
+                        <label className="cursor-pointer text-xs text-blue-600 hover:underline">
+                          Replace
+                          <input type="file" accept=".pdf,.jpg,.png" className="hidden"
+                            onChange={e => e.target.files?.[0] && handleDocumentUpload("panCertificate", e.target.files[0])} />
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center gap-2 cursor-pointer py-2">
+                      <Upload className="w-5 h-5 text-red-400" />
+                      <span className="text-xs text-red-600">Click to upload PAN copy</span>
+                      <span className="text-xs text-gray-400">PDF, JPG or PNG</span>
+                      <input type="file" accept=".pdf,.jpg,.png" className="hidden"
+                        onChange={e => e.target.files?.[0] && handleDocumentUpload("panCertificate", e.target.files[0])} />
+                    </label>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── TDS OVERRIDE SECTION ─────────────────────────────────── */}
+            {formData.tdsApplicable && (
+              <div className="col-span-2 mt-2">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-amber-600" />
+                    <h3 className="font-semibold text-gray-800 text-sm">TDS Rate Overrides</h3>
+                    <span className="text-xs text-gray-400">(e.g. Nil/lower deduction certificates)</span>
+                  </div>
+                  <button type="button" onClick={() => setShowTDSOverrideForm(true)}
+                    className="text-xs px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700">
+                    + Add Override
+                  </button>
+                </div>
+
+                {/* Existing overrides */}
+                {(formData.tdsOverrides || []).length > 0 && (
+                  <div className="space-y-2 mb-3">
+                    {(formData.tdsOverrides || []).map(ov => {
+                      const today = new Date().toISOString().split("T")[0];
+                      const isActive = ov.status === "Approved" && ov.validFrom <= today && ov.validTill >= today;
+                      return (
+                        <div key={ov.id}
+                          className={`p-3 rounded-lg border text-xs ${isActive ? "bg-green-50 border-green-300" : "bg-gray-50 border-gray-200"}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-3">
+                                <span className="font-semibold">{ov.tdsSection} — {ov.overrideRate}% (override)</span>
+                                {isActive && <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded font-medium">ACTIVE NOW</span>}
+                                <span className={`px-2 py-0.5 rounded ${ov.status === "Approved" ? "bg-green-100 text-green-700" : ov.status === "Pending Approval" ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                                  {ov.status}
+                                </span>
+                              </div>
+                              <div className="text-gray-500">
+                                Cert: {ov.certificateNumber} · {ov.reason}
+                              </div>
+                              <div className="text-gray-400 flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                Valid: {new Date(ov.validFrom).toLocaleDateString("en-IN")} to {new Date(ov.validTill).toLocaleDateString("en-IN")}
+                              </div>
+                              {ov.supportingDocumentName && (
+                                <div className="text-blue-600 flex items-center gap-1">
+                                  <FileText className="w-3 h-3" />
+                                  {ov.supportingDocumentName}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Override form */}
+                {showTDSOverrideForm && (
+                  <div className="border-2 border-amber-300 bg-amber-50 rounded-lg p-4 space-y-3">
+                    <h4 className="font-semibold text-amber-900 text-sm">Add TDS Rate Override</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">TDS Section</label>
+                        <select value={overrideForm.tdsSection}
+                          onChange={e => setOverrideForm(p=>({...p,tdsSection:e.target.value}))}
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm">
+                          <option value="">Select section</option>
+                          {TDS_SECTIONS.map(s=><option key={s.section} value={s.section}>{s.label}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Override Rate (%)</label>
+                        <input type="number" step="0.01" min="0" max="100"
+                          value={overrideForm.overrideRate}
+                          onChange={e=>setOverrideForm(p=>({...p,overrideRate:parseFloat(e.target.value)||0}))}
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Valid From <span className="text-red-500">*</span></label>
+                        <input type="date" value={overrideForm.validFrom}
+                          onChange={e=>setOverrideForm(p=>({...p,validFrom:e.target.value}))}
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Valid Till <span className="text-red-500">*</span></label>
+                        <input type="date" value={overrideForm.validTill}
+                          onChange={e=>setOverrideForm(p=>({...p,validTill:e.target.value}))}
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Certificate Number <span className="text-red-500">*</span></label>
+                        <input type="text" value={overrideForm.certificateNumber}
+                          onChange={e=>setOverrideForm(p=>({...p,certificateNumber:e.target.value}))}
+                          placeholder="e.g. NIL/CERT/2025-26/001"
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Reason</label>
+                        <input type="text" value={overrideForm.reason}
+                          onChange={e=>setOverrideForm(p=>({...p,reason:e.target.value}))}
+                          placeholder="e.g. Lower deduction certificate u/s 197"
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm" />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Supporting Document <span className="text-red-500">*</span>
+                          <span className="ml-1 text-gray-400 font-normal">(Lower deduction certificate, Form 13, etc.)</span>
+                        </label>
+                        {overrideForm.supportingDocumentName ? (
+                          <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-300 rounded">
+                            <FileText className="w-4 h-4 text-green-600" />
+                            <span className="text-sm text-green-700">{overrideForm.supportingDocumentName}</span>
+                            <label className="ml-auto text-xs text-blue-600 cursor-pointer hover:underline">
+                              Replace
+                              <input type="file" accept=".pdf,.jpg,.png" className="hidden" onChange={e=>e.target.files?.[0] && handleOverrideDocUpload(e.target.files[0])} />
+                            </label>
+                          </div>
+                        ) : (
+                          <label className="flex items-center gap-2 px-3 py-2 border-dashed border-2 border-amber-300 rounded cursor-pointer hover:bg-amber-50">
+                            <Upload className="w-4 h-4 text-amber-600" />
+                            <span className="text-sm text-amber-700">Upload supporting document</span>
+                            <input type="file" accept=".pdf,.jpg,.png" className="hidden" onChange={e=>e.target.files?.[0] && handleOverrideDocUpload(e.target.files[0])} />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                    {!isManagerForm && (
+                      <p className="text-xs text-amber-700 bg-amber-100 px-3 py-2 rounded">
+                        ⚠ This override will require manager approval before it takes effect.
+                      </p>
+                    )}
+                    <div className="flex gap-2 justify-end">
+                      <button type="button" onClick={()=>setShowTDSOverrideForm(false)}
+                        className="px-3 py-1.5 border border-gray-300 text-sm rounded hover:bg-gray-50">Cancel</button>
+                      <button type="button" onClick={handleAddOverride}
+                        className="px-4 py-1.5 bg-amber-600 text-white text-sm rounded hover:bg-amber-700">
+                        Add Override
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -452,33 +900,26 @@ function VendorForm({ vendor, onSave, onClose }: {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
-            <input
-              type="checkbox"
-              id="approval"
-              checked={requiresApproval}
-              onChange={e => setRequiresApproval(e.target.checked)}
-              className="w-4 h-4 text-blue-600"
-            />
-            <label htmlFor="approval" className="text-sm text-gray-700">
-              Requires manager approval before activation
-            </label>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-            >
-              {vendor ? "Update" : "Add"} Vendor
-            </button>
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 mt-4">
+            {!isManagerForm && (
+              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-2">
+                <Clock className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-blue-800">This submission will require manager approval</p>
+                  <p className="text-xs text-blue-600">The vendor will remain Inactive until an Accounts Manager reviews and approves all documents.</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-3">
+              <button type="button" onClick={onClose}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+                Cancel
+              </button>
+              <button type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                {vendor ? "Update Vendor" : isManagerForm ? "Save & Approve" : "Submit for Approval"}
+              </button>
+            </div>
           </div>
         </form>
       </div>

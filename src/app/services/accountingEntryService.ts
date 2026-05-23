@@ -462,9 +462,13 @@ class AccountingEntryService {
 
   getLedgers(cityId?: string): LedgerMaster[] {
     const all: LedgerMaster[] = JSON.parse(localStorage.getItem(this.LEDGER_KEY) || "[]");
-    // Ensure system ledgers always exist
-    const withSystem = this.ensureSystemLedgers(all, cityId || "CITY-SURAT");
-    return cityId ? withSystem.filter(l => l.cityId === cityId || l.isSystem) : withSystem;
+    // Ensure system ledgers always exist for the requested city
+    const effectiveCityId = cityId || "CITY-SURAT";
+    const withSystem = this.ensureSystemLedgers(all, effectiveCityId);
+    // FIX: filter system ledgers by city too — prevents Mumbai ledgers bleeding into Surat view
+    return cityId
+      ? withSystem.filter(l => l.cityId === cityId)
+      : withSystem;
   }
 
   private ensureSystemLedgers(existing: LedgerMaster[], cityId: string): LedgerMaster[] {
@@ -601,8 +605,8 @@ class AccountingEntryService {
     return this.getLedgers(cityId).filter(l => l.accountHead === accountHead);
   }
 
-  getLedgerBalance(ledgerId: string): LedgerBalance {
-    const ledger = this.getLedgers().find(l => l.id === ledgerId);
+  getLedgerBalance(ledgerId: string, cityId?: string): LedgerBalance {
+    const ledger = this.getLedgers(cityId || "CITY-SURAT").find(l => l.id === ledgerId);
 
     // --- Accounting entries (direct debit/credit account IDs) ---
     const accEntries = this.getEntries().filter(e =>

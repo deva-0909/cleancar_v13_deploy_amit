@@ -45,7 +45,11 @@ export function AccountsLedger() {
 
     return ledgerEntries.map((entry) => {
       const isDebit = entry.debitAccount === selectedLedgerId;
-      const amount = entry.totalBillValue;
+      // FIX: totalBillValue is the GST-inclusive amount; fall back to taxableValue
+      // for entries that only have taxableValue (e.g. RCM, non-GST entries)
+      const amount = (entry.totalBillValue && entry.totalBillValue > 0)
+        ? entry.totalBillValue
+        : (entry.taxableValue || 0);
       runningBalance += isDebit ? amount : -amount;
       return {
         ...entry,
@@ -62,11 +66,11 @@ export function AccountsLedger() {
   const totalDebit = ledgerWithBalance.reduce((sum, e) => sum + e.debit, 0);
   const totalCredit = ledgerWithBalance.reduce((sum, e) => sum + e.credit, 0);
 
-  // Get ledger balance info
+  // Get ledger balance info — pass city so it doesn't mix Mumbai/Surat ledgers
   const ledgerBalance = useMemo(() => {
     if (!selectedLedgerId) return null;
-    return accountingEntryService.getLedgerBalance(selectedLedgerId);
-  }, [selectedLedgerId]);
+    return accountingEntryService.getLedgerBalance(selectedLedgerId, city);
+  }, [selectedLedgerId, city]);
 
   // Quick search: find customer ledgers
   const handleCustomerSearch = (searchTerm: string) => {
@@ -287,7 +291,10 @@ export function AccountsLedger() {
                 </td>
                 <td className="px-4 py-3 text-right text-red-600">₹{totalDebit.toFixed(2)}</td>
                 <td className="px-4 py-3 text-right text-green-600">₹{totalCredit.toFixed(2)}</td>
-                <td className="px-4 py-3 text-right">₹{closingBalance.toFixed(2)}</td>
+                <td className="px-4 py-3 text-right">
+                  ₹{Math.abs(closingBalance).toFixed(2)}&nbsp;
+                  <span className="text-xs text-gray-500">{closingBalance >= 0 ? "Dr" : "Cr"}</span>
+                </td>
               </tr>
             </tbody>
           </table>

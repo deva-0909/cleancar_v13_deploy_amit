@@ -423,7 +423,7 @@ export function AccountingEntry() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Voucher Number
+                  Serial Number
                   <span className="ml-1 text-xs text-gray-500 font-normal">(Auto-generated)</span>
                 </label>
                 <input
