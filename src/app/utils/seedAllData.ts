@@ -17,7 +17,7 @@
  *   EMPLOYEE_DATABASE_RECORDS    (auth system)
  */
 
-const SEED_FLAG = "ALL_DATA_SEEDED_V5";
+const SEED_FLAG = "ALL_DATA_SEEDED_V6";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 const NOW   = new Date().toISOString();
@@ -797,7 +797,8 @@ export function seedAllData(): void {
     // Clear ALL previous seed flags so every browser gets fresh data
     ["HISTORIC_DATA_SEEDED_V1","HISTORIC_DATA_SEEDED_V2","HISTORIC_DATA_SEEDED_V3",
      "HISTORIC_DATA_SEEDED_V4","HISTORIC_DATA_SEEDED_V5","ACC_SEED_V1","ACC_SEED_V2",
-     "ALL_DATA_SEEDED_V1","ALL_DATA_SEEDED_V2","ALL_DATA_SEEDED_V3","ALL_DATA_SEEDED_V4"
+     "ALL_DATA_SEEDED_V1","ALL_DATA_SEEDED_V2","ALL_DATA_SEEDED_V3","ALL_DATA_SEEDED_V4",
+     "ALL_DATA_SEEDED_V5"
     ].forEach(f => localStorage.removeItem(f));
 
     // ── 1. EMPLOYEES ─────────────────────────────────────────────────────────
@@ -878,16 +879,14 @@ export function seedAllData(): void {
     writeByCityId("cloth_tracking", CLOTH);
 
     // ── 18. ACCOUNTING LEDGERS ───────────────────────────────────────────────
-    const existLedgers: any[] = JSON.parse(localStorage.getItem("cleancar_ledger_masters")||"[]");
-    const existLedgerIds = new Set(existLedgers.map((l:any)=>l.id));
-    localStorage.setItem("cleancar_ledger_masters",
-      JSON.stringify([...existLedgers, ...LEDGERS.filter(l=>!existLedgerIds.has(l.id))]));
+    // Force-clear stale SYS-... duplicate system ledgers; seed writes canonical LM-... IDs
+    localStorage.removeItem("cleancar_ledger_masters");
+    localStorage.setItem("cleancar_ledger_masters", JSON.stringify(LEDGERS));
 
     // ── 19. ACCOUNTING ENTRIES ───────────────────────────────────────────────
-    const existEntries: any[] = JSON.parse(localStorage.getItem("cleancar_accounting_entries")||"[]");
-    const existEntryIds = new Set(existEntries.map((e:any)=>e.id));
-    localStorage.setItem("cleancar_accounting_entries",
-      JSON.stringify([...existEntries, ...ACC_ENTRIES.filter(e=>!existEntryIds.has(e.id))]));
+    // Force-clear so entries always match the canonical ledger IDs from LEDGERS[]
+    localStorage.removeItem("cleancar_accounting_entries");
+    localStorage.setItem("cleancar_accounting_entries", JSON.stringify(ACC_ENTRIES));
 
     // ── 20. JOURNAL ENTRIES ──────────────────────────────────────────────────
     const existJournals: any[] = JSON.parse(localStorage.getItem("cleancar_journal_entries")||"[]");

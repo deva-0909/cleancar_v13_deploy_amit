@@ -384,10 +384,22 @@ class AccountingEntryService {
   getByDateRange(from: string, to: string, cityId?: string): AccountingEntry[] {
     return this.getAllEntries(cityId).filter(e => e.date >= from && e.date <= to);
   }
-  // Get entries where a specific LEDGER ID appears as debit or credit
+  // Get entries where a specific LEDGER ID appears as debit or credit.
+  // Also resolves by name cross-reference so system ledger IDs (SYS-...) can
+  // match entries that reference seeded ledger IDs (LM-...) for the same account.
   getLedgerEntries(ledgerId: string, cityId?: string): AccountingEntry[] {
+    // Build a set of all IDs that refer to the same account name
+    const ledger = this.getLedgers(cityId).find(l => l.id === ledgerId);
+    const relatedIds = new Set<string>([ledgerId]);
+    if (ledger) {
+      // Find any other ledgers with the same name and city (e.g. seed ID + system ID)
+      this.getLedgers(cityId)
+        .filter(l => l.name.trim().toLowerCase() === ledger.name.trim().toLowerCase()
+                  && l.cityId === ledger.cityId)
+        .forEach(l => relatedIds.add(l.id));
+    }
     return this.getAllEntries(cityId).filter(
-      e => e.debitAccount === ledgerId || e.creditAccount === ledgerId
+      e => relatedIds.has(e.debitAccount) || relatedIds.has(e.creditAccount)
     );
   }
 
@@ -576,9 +588,17 @@ class AccountingEntryService {
     let updated = [...existing];
     let changed = false;
     for (const sl of systemLedgers) {
-      const exists = existing.find(e => e.name === sl.name && e.cityId === cityId);
+      // Check by name + city regardless of isSystem flag.
+      // This prevents creating a duplicate system ledger when the seed has already
+      // created one with the same name but a different ID (e.g. LM-AXB-SUR vs SYS-Axis-Bank-CITY-SURAT).
+      const exists = existing.find(e =>
+        e.cityId === cityId &&
+        e.name.trim().toLowerCase() === sl.name.trim().toLowerCase()
+      );
       if (!exists) {
-        updated.push({ ...sl, id: `SYS-${sl.name.replace(/\s+/g,"-")}-${cityId}` });
+        // Use stable, predictable ID so entries can reference it
+        const stableId = `SYS-${sl.name.replace(/[^a-zA-Z0-9]/g, "-").replace(/-+/g,"-")}-${cityId}`;
+        updated.push({ ...sl, id: stableId });
         changed = true;
       }
     }

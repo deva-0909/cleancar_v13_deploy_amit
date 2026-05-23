@@ -23,17 +23,15 @@ export function AccountsLedger() {
     return accountingEntryService.getLedgers(city).find(l => l.id === selectedLedgerId);
   }, [selectedLedgerId, city]);
 
-  // Get ledger entries for selected ledger
+  // Get ledger entries for selected ledger — uses name cross-reference so
+  // SYS-... IDs and LM-... IDs for the same account both show the same entries
   const ledgerEntries = useMemo(() => {
     if (!selectedLedgerId) return [];
     const from = dateFrom || "1900-01-01";
     const to = dateTo || "2099-12-31";
-    const allEntries = accountingEntryService.getAllEntries(city);
-    return allEntries
-      .filter((e) =>
-        (e.debitAccount === selectedLedgerId || e.creditAccount === selectedLedgerId) &&
-        e.date >= from && e.date <= to
-      )
+    return accountingEntryService
+      .getLedgerEntries(selectedLedgerId, city)
+      .filter(e => e.date >= from && e.date <= to)
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [selectedLedgerId, dateFrom, dateTo, city]);
 
