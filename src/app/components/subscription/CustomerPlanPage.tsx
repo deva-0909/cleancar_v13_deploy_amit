@@ -106,10 +106,10 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
     swift:"hatchback", baleno:"hatchback", i20:"hatchback", tiago:"hatchback",
     dzire:"hatchback", alto:"hatchback", wagon:"hatchback", figo:"hatchback",
     polo:"hatchback", jazz:"hatchback", amaze:"hatchback", tigor:"hatchback",
-    creta:"suv", innova:"suv", ertiga:"suv", thar:"suv", xuv300:"suv", scorpio:"suv", scorpioclassic:"suv",
+    creta:"suv", innova:"suv", ertiga:"suv", thar:"suv", xuv300:"suv",
     seltos:"suv", venue:"suv", nexon:"suv", ecosport:"suv", city:"suv",
     ciaz:"suv", verna:"suv", brezza:"suv", kushaq:"suv", slavia:"suv",
-    fortuner:"luxury", xuv700:"luxury", meridian:"luxury",
+    fortuner:"luxury", xuv700:"luxury", meridian:"luxury", scorpio:"luxury",
     endeavour:"luxury", harrier:"luxury", safari:"luxury", gloster:"luxury",
     hilux:"luxury", crysta:"luxury",
   },
@@ -241,6 +241,8 @@ export function CustomerPlanPage() {
 
   // Step 4 state
   const [addons, setAddons] = useState<string[]>([]);
+  // Addon repeat frequency: addonId → "1x" | "2x" | "3x" | "4x"
+  const [addonFreq, setAddonFreq] = useState<Record<string, string>>({});
 
   // Step 5 state
   const [custName, setCustName] = useState("");
@@ -249,6 +251,9 @@ export function CustomerPlanPage() {
   const [custReg, setCustReg] = useState("");
   const [custAddress, setCustAddress] = useState("");
   const [prefTime, setPrefTime] = useState("");
+  // One-time booking: specific date + time
+  const [oneTimeDate, setOneTimeDate] = useState("");
+  const [oneTimeHour, setOneTimeHour] = useState("");
   const [parking, setParking] = useState<"dedicated" | "random">("dedicated");
   const [notifyPref, setNotifyPref] = useState<"whatsapp" | "email" | "both">("whatsapp");
 
@@ -263,7 +268,129 @@ export function CustomerPlanPage() {
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [generatedInvoice, setGeneratedInvoice] = useState<any>(null);
 
-  // Contexts for data sync
+  // ── HOLIDAY + SLOT ENGINE ────────────────────────────────────────────────
+
+  // Public holidays from leave management engine
+  const PUBLIC_HOLIDAYS: string[] = useMemo(() => {
+    try {
+      const stored = localStorage.getItem("cleancar_public_holidays");
+      if (stored) return JSON.parse(stored) as string[]; // ["YYYY-MM-DD", ...]
+    } catch {}
+    // Fallback: national + Gujarat gazetted holidays 2026
+    return [
+      "2026-01-26","2026-03-25","2026-04-06","2026-04-14",
+      "2026-04-15","2026-05-01","2026-08-15","2026-10-02",
+      "2026-10-20","2026-11-01","2026-12-25",
+    ];
+  }, []);
+
+  const isHoliday = (date: Date): boolean => {
+    const d = date.toISOString().slice(0, 10);
+    return date.getDay() === 0 || PUBLIC_HOLIDAYS.includes(d); // Sunday or gazetted holiday
+  };
+
+  const isWorkingDay = (date: Date): boolean => !isHoliday(date);
+
+  // Next working day (skips Sundays + public holidays)
+  const nextWorkingDay = (from: Date): Date => {
+    const d = new Date(from);
+    d.setDate(d.getDate() + 1);
+    while (!isWorkingDay(d)) d.setDate(d.getDate() + 1);
+    return d;
+  };
+
+  /**
+   * Slot availability rules:
+   *
+   * Booking context → available slots
+   * ─────────────────────────────────────────────────────────────────
+   * Before 10 AM on a working day   → today, ALL slots 5 AM – 9 PM
+   * 10 AM – 4 PM on a working day   → today, slots that are ≥ 4 hours away
+   * After 4 PM on a working day     → NEXT working day, from 1 PM – 9 PM
+   * On a Sunday or public holiday   → NEXT working day, from 1 PM – 9 PM
+   */
+  const getOneTimeSlots = (dateStr: string): string[] => {
+    if (!dateStr) return [];
+    const now = new Date();
+    const nowHour = now.getHours();
+    const selectedDate = new Date(dateStr + "T00:00:00");
+    const todayStr = now.toISOString().slice(0, 10);
+    const isToday = dateStr === todayStr;
+
+    const slots: string[] = [];
+    for (let h = 5; h <= 21; h++) {
+      const padH = String(h).padStart(2, "0") + ":00";
+
+      if (isToday) {
+        if (nowHour < 10) {
+          // Before 10 AM: slots from 12 noon – 9 PM only
+          if (h >= 12) slots.push(padH);
+        } else if (nowHour >= 10 && nowHour < 16) {
+          // 10 AM–4 PM: only slots ≥ 4 hours from now
+          if (h >= nowHour + 4) slots.push(padH);
+        }
+        // After 4 PM (or 6:30 PM) on today → no same-day slots (next working day only)
+      } else {
+        // Future date: apply NWD minimum-hour rule where applicable
+        const { nextOnly, nwdMinHour } = nowCutoffInfo();
+        const nwdStr = nextWorkingDay(now).toISOString().slice(0, 10);
+        if (nextOnly && dateStr === nwdStr) {
+          // Next working day after cutoff → from nwdMinHour onwards
+          if (h >= nwdMinHour) slots.push(padH);
+        } else {
+          // Any other future date → all slots 5 AM–9 PM
+          slots.push(padH);
+        }
+      }
+    }
+    return slots;
+  };
+
+  /**
+   * Cutoff rules (working day):
+   *   Before 10:00     → today from 12:00 noon
+   *   10:00 – 15:59    → today, slots ≥ 4h from now
+   *   16:00 – 18:29    → next working day from 18:00 (6 PM)
+   *   18:30 or later   → next working day from 13:00 (1 PM)
+   *   Sunday / Holiday → next working day from 13:00 (1 PM)
+   */
+  const nowCutoffInfo = (): { nextOnly: boolean; nwdMinHour: number } => {
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const totalMins = h * 60 + m;
+    if (isHoliday(now) || totalMins >= 18 * 60 + 30) {
+      return { nextOnly: true, nwdMinHour: 13 };   // after 6:30 PM or holiday
+    }
+    if (totalMins >= 16 * 60) {
+      return { nextOnly: true, nwdMinHour: 18 };   // 4:00 PM – 6:29 PM
+    }
+    return { nextOnly: false, nwdMinHour: 13 };    // before 4 PM, today available
+  };
+
+  // Min selectable date for the date picker
+  const minOneTimeDate = useMemo((): string => {
+    const { nextOnly } = nowCutoffInfo();
+    if (nextOnly) return nextWorkingDay(new Date()).toISOString().slice(0, 10);
+    return new Date().toISOString().slice(0, 10);
+  }, [PUBLIC_HOLIDAYS]);
+
+  // When date changes: reset hour; pre-select NWD minimum if applicable
+  const handleOneTimeDateChange = (dateStr: string) => {
+    setOneTimeDate(dateStr);
+    const { nextOnly, nwdMinHour } = nowCutoffInfo();
+    const nwdStr = nextWorkingDay(new Date()).toISOString().slice(0, 10);
+    if (nextOnly && dateStr === nwdStr) {
+      setOneTimeHour(`${String(nwdMinHour).padStart(2, "0")}:00`);
+    } else {
+      setOneTimeHour("");
+    }
+  };
+
+  // Determines if selected plan is one-time
+  const isOneTime = planMode === "pack" && selectedPack === "onetime";
+
+  // ── Contexts for data sync
   const { recordRevenue } = useFinance();
   const { addCustomer, customers } = useCustomers();
   const { createSubscription } = useCustomerSubscriptions();
@@ -320,7 +447,8 @@ export function CustomerPlanPage() {
   const step1Ok = !!activeCat && carModel.trim().length >= 2;
   const step2Ok = pincodeStatus !== null;
   const step3Ok = planMode === "monthly" ? !!selectedPlan : !!selectedPack;
-  const step5Ok = custName && custMobile && custAddress;
+  const step5Ok = custName && custMobile && custAddress &&
+    (isOneTime ? !!oneTimeDate && !!oneTimeHour : !!prefTime);
   const consentOk = consentTerms && consentRefund && consentCancel;
 
   const goTo = (n: number) => { setStep(n); window.scrollTo({ top: 0, behavior: "smooth" }); };
@@ -385,7 +513,10 @@ export function CustomerPlanPage() {
         packageName: planMode === "monthly"
           ? (planObj?.name || selectedPlan || "Plan")
           : (packObj?.name || selectedPack || "Pack"),
-        frequency: "Daily",
+                  frequency: isOneTime ? "One-Time" :
+            selectedPack === "biweekly" ? "2x/month" :
+            selectedPack === "3x" ? "3x/month" :
+            selectedPack === "weekly" ? "4x/month" : "Daily",
         status: "Active",
         startDate: now.toISOString().split("T")[0],
         renewalDate: renewalDate.toISOString().split("T")[0],
@@ -398,7 +529,9 @@ export function CustomerPlanPage() {
         serviceDetails: {
           vehicleType: activeCat || "hatchback",
           addOns: addons,
-          preferredTimeSlot: prefTime,
+          preferredTimeSlot: isOneTime
+            ? `${oneTimeDate} ${oneTimeHour}`
+            : prefTime,
         },
         billingCycle: "Monthly",
         paymentStatus: "Paid",
@@ -889,6 +1022,29 @@ export function CustomerPlanPage() {
                     );
                   })}
                 </div>
+                {/* Frequency / one-time notice */}
+                {selectedPack === "onetime" && (
+                  <div style={{ background: "#FFF3E0", border: "1px solid #FFCC80", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#E65100", marginBottom: 24, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <span style={{ fontSize: 18 }}>⚠️</span>
+                    <div>
+                      <strong>One-Time Service Only</strong><br />
+                      This is a single wash. It will <strong>not repeat</strong>. For regular service, choose a monthly subscription or a repeat pack.
+                    </div>
+                  </div>
+                )}
+                {selectedPack && selectedPack !== "onetime" && (
+                  <div style={{ background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#2E7D32", marginBottom: 24, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <span style={{ fontSize: 18 }}>🔁</span>
+                    <div>
+                      <strong>Repeat Service</strong> — {
+                        selectedPack === "biweekly" ? "Your car will be washed 2 times per month." :
+                        selectedPack === "3x" ? "Your car will be washed 3 times per month." :
+                        selectedPack === "weekly" ? "Your car will be washed 4 times per month (every week)." : ""
+                      }<br />
+                      <span style={{ fontWeight: 400 }}>You can change or pause frequency anytime.</span>
+                    </div>
+                  </div>
+                )}
                 <div style={{ background: "#E3F2FD", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#1565C0", marginBottom: 24 }}>
                   💡 <strong>Same ₹200 base price</strong> for all vehicle categories. Volume discount applied automatically. No lock-in.
                 </div>
@@ -926,7 +1082,45 @@ export function CustomerPlanPage() {
                         <div style={{ fontSize: 11, color: "#4A5568" }}>{addon.unit}</div>
                       </div>
                     </div>
-                    <div style={{ fontSize: 12, color: "#4A5568" }}>{addon.description}</div>
+                    <div style={{ fontSize: 12, color: "#4A5568", marginBottom: selected ? 12 : 0 }}>{addon.description}</div>
+                    {/* Frequency selector — only shown when addon is selected */}
+                    {selected && (
+                      <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#1565C0", marginBottom: 6 }}>
+                          How often? <span style={{ fontWeight: 400, color: "#4A5568" }}>(per month)</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          {(["1x","2x","3x","4x"] as const).map(freq => (
+                            <button key={freq}
+                              onClick={e => { e.stopPropagation(); setAddonFreq(prev => ({ ...prev, [addon.id]: freq })); }}
+                              style={{ padding: "5px 14px", borderRadius: 20, border: `2px solid ${addonFreq[addon.id] === freq ? "#2196F3" : "#E3EEF7"}`,
+                                background: addonFreq[addon.id] === freq ? "#2196F3" : "#fff",
+                                color: addonFreq[addon.id] === freq ? "#fff" : "#4A5568",
+                                fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>
+                              {freq}
+                            </button>
+                          ))}
+                          <button
+                            onClick={e => { e.stopPropagation(); setAddonFreq(prev => ({ ...prev, [addon.id]: "one-time" })); }}
+                            style={{ padding: "5px 14px", borderRadius: 20, border: `2px solid ${addonFreq[addon.id] === "one-time" ? "#FF6D00" : "#E3EEF7"}`,
+                              background: addonFreq[addon.id] === "one-time" ? "#FF6D00" : "#fff",
+                              color: addonFreq[addon.id] === "one-time" ? "#fff" : "#4A5568",
+                              fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>
+                            One-time only
+                          </button>
+                        </div>
+                        {addonFreq[addon.id] === "one-time" && (
+                          <p style={{ fontSize: 11, color: "#E65100", marginTop: 6 }}>
+                            ⚠️ This add-on will be applied once only and will not repeat.
+                          </p>
+                        )}
+                        {!addonFreq[addon.id] && (
+                          <p style={{ fontSize: 11, color: "#F59E0B", marginTop: 6 }}>
+                            Please select how often you'd like this add-on.
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -958,13 +1152,91 @@ export function CustomerPlanPage() {
                     style={{ width: "100%", padding: "12px 16px", border: "2px solid #E3EEF7", borderRadius: 12, fontFamily: "'DM Sans',sans-serif", fontSize: 15, outline: "none" }} />
                 </div>
               ))}
-              <div>
-                <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 6, color: "#0D1B2A" }}>Preferred wash time</label>
-                <select value={prefTime} onChange={e => setPrefTime(e.target.value)}
-                  style={{ width: "100%", padding: "12px 16px", border: "2px solid #E3EEF7", borderRadius: 12, fontFamily: "'DM Sans',sans-serif", fontSize: 15, outline: "none", appearance: "none" }}>
-                  <option value="">Select a slot</option>
-                  {cfg.timeSlots.map(t => <option key={t}>{t}</option>)}
-                </select>
+              <div style={{ gridColumn: "1 / -1" }}>
+                {/* ── SMART TIME SLOT SELECTOR ── */}
+                {isOneTime ? (
+                  /* ONE-TIME: date picker + hourly slots (5am–9pm, 4h advance rule) */
+                  <div style={{ background: "#FFF8E1", border: "2px solid #FFB300", borderRadius: 14, padding: "18px 20px" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#E65100", marginBottom: 4, display: "flex", gap: 8, alignItems: "center" }}>
+                      <span>🕐</span> Schedule Your One-Time Wash
+                    </div>
+                    <p style={{ fontSize: 12, color: "#7B5800", marginBottom: 16, lineHeight: 1.5 }}>
+                      Select a date and time. Slots available 5 AM – 9 PM.
+                      Must be booked at least 4 hours in advance.
+                      Bookings after 4 PM or on Sundays / holidays show next working day from 1 PM.
+                    </p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                      <div>
+                        <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6, color: "#0D1B2A" }}>Date *</label>
+                        <input type="date" value={oneTimeDate}
+                          min={minOneTimeDate}
+                          onChange={e => handleOneTimeDateChange(e.target.value)}
+                          style={{ width: "100%", padding: "12px 16px", border: "2px solid #FFB300", borderRadius: 12, fontFamily: "'DM Sans',sans-serif", fontSize: 15, outline: "none" }} />
+                      </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6, color: "#0D1B2A" }}>Time Slot *</label>
+                        <select value={oneTimeHour} onChange={e => setOneTimeHour(e.target.value)}
+                          disabled={!oneTimeDate}
+                          style={{ width: "100%", padding: "12px 16px", border: `2px solid ${oneTimeDate ? "#FFB300" : "#E3EEF7"}`, borderRadius: 12, fontFamily: "'DM Sans',sans-serif", fontSize: 15, outline: "none", appearance: "none", background: oneTimeDate ? "#fff" : "#f5f5f5" }}>
+                          <option value="">Select time</option>
+                          {oneTimeDate && getOneTimeSlots(oneTimeDate).map(h => (
+                            <option key={h} value={h}>
+                              {parseInt(h) < 12 ? `${h} AM` : parseInt(h) === 12 ? "12:00 PM" : `${String(parseInt(h) - 12).padStart(2,"0")}:00 PM`}
+                            </option>
+                          ))}
+                          {oneTimeDate && getOneTimeSlots(oneTimeDate).length === 0 && (
+                            <option value="" disabled>No slots available — select next day</option>
+                          )}
+                        </select>
+                      </div>
+                    </div>
+                    {oneTimeDate && oneTimeHour && (
+                      <div style={{ marginTop: 14, background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#2E7D32" }}>
+                        ✅ Your wash is scheduled for <strong>{new Date(oneTimeDate).toLocaleDateString("en-IN", { weekday:"long", day:"numeric", month:"long" })}</strong> at <strong>{parseInt(oneTimeHour) < 12 ? oneTimeHour + " AM" : parseInt(oneTimeHour) === 12 ? "12:00 PM" : (parseInt(oneTimeHour) - 12) + ":00 PM"}</strong>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* SUBSCRIPTION / REPEAT: 2-hour window preference */
+                  <div style={{ background: "#E3F2FD", border: "2px solid #90CAF9", borderRadius: 14, padding: "18px 20px" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#1565C0", marginBottom: 4, display: "flex", gap: 8, alignItems: "center" }}>
+                      <span>🕐</span> Preferred Wash Window
+                    </div>
+                    <p style={{ fontSize: 12, color: "#4A5568", marginBottom: 14, lineHeight: 1.5 }}>
+                      Choose a 2-hour window for your daily / repeat wash.
+                      Our washer will arrive within this window every service day.
+                    </p>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+                      {[
+                        { id: "05:00–07:00", label: "5 AM – 7 AM", icon: "🌅", note: "Early bird" },
+                        { id: "06:00–08:00", label: "6 AM – 8 AM", icon: "☀️",  note: "Most popular" },
+                        { id: "07:00–09:00", label: "7 AM – 9 AM", icon: "🌤️",  note: "Before office" },
+                        { id: "08:00–10:00", label: "8 AM – 10 AM",icon: "🏙️",  note: "Weekend friendly" },
+                        { id: "17:00–19:00", label: "5 PM – 7 PM", icon: "🌆",  note: "Evening" },
+                        { id: "18:00–20:00", label: "6 PM – 8 PM", icon: "🌇",  note: "After office" },
+                      ].map(slot => (
+                        <div key={slot.id} onClick={() => setPrefTime(slot.id)}
+                          style={{ border: `2px solid ${prefTime === slot.id ? "#2196F3" : "#E3EEF7"}`,
+                            borderRadius: 12, padding: "12px 14px", cursor: "pointer",
+                            background: prefTime === slot.id ? "#E3F2FD" : "#fff",
+                            transition: "all 0.15s" }}>
+                          <div style={{ fontSize: 20, marginBottom: 4 }}>{slot.icon}</div>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: "#0D1B2A" }}>{slot.label}</div>
+                          <div style={{ fontSize: 11, color: "#4A5568" }}>{slot.note}</div>
+                          {prefTime === slot.id && <div style={{ fontSize: 11, color: "#1565C0", fontWeight: 600, marginTop: 4 }}>✓ Selected</div>}
+                        </div>
+                      ))}
+                    </div>
+                    {prefTime && (
+                      <div style={{ marginTop: 14, background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#2E7D32" }}>
+                        ✅ Your washer will arrive between <strong>{prefTime}</strong> on every service day.
+                      </div>
+                    )}
+                    {!prefTime && (
+                      <p style={{ fontSize: 12, color: "#F59E0B", marginTop: 12 }}>Please select your preferred 2-hour window.</p>
+                    )}
+                  </div>
+                )}
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={{ display: "block", fontSize: 14, fontWeight: 600, marginBottom: 6, color: "#0D1B2A" }}>Full address *</label>
@@ -1047,7 +1319,7 @@ export function CustomerPlanPage() {
                 ["Washes/month", planMode === "monthly" ? "30" : String(cfg.packs.find(p => p.id === selectedPack)?.perLabel?.split("·")[0].trim() || "1")],
                 ["Name", custName],
                 ["WhatsApp", custMobile],
-                ["Address", `${custAddress}${prefTime ? " · " + prefTime : ""}`],
+                ["Address", `${custAddress}${isOneTime ? (oneTimeDate && oneTimeHour ? " · " + oneTimeDate + " " + oneTimeHour : "") : prefTime ? " · " + prefTime : ""}`],
                 ["Parking", parking === "dedicated" ? "Dedicated parking" : "Open / Society parking"],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "12px 20px", borderBottom: "1px solid #E3EEF7", fontSize: 14 }}>
