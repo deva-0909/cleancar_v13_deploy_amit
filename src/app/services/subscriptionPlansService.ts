@@ -1,16 +1,15 @@
 /**
  * Subscription Plans Service
- * Central service for all subscription plan data and calculations
+ * Central service for all subscription plan data and calculations.
  *
- * ⚠️ CURRENT STATE: Using mock/sample data for demonstration
- * 🔄 PRODUCTION READY: All methods have database/API endpoint patterns
- * 📝 TO INTEGRATE: Replace mock data with actual database queries
+ * SOURCE OF TRUTH: src/app/data/subscriptionPlans.ts
+ * All plan names, prices, add-ons, combos, and vehicle categories are
+ * defined there. This service reads from that file only — never from
+ * constants/subscriptionPlans.constants.ts for plan data.
  *
- * Architecture Principle:
- * - 100% dynamic data - no hardcoded plan values in UI
- * - All pricing calculated from base_monthly_price
- * - Admin-editable discount rates
- * - Single source of truth for all plan data
+ * constants/subscriptionPlans.constants.ts now contains only:
+ * - ROLE_PERMISSIONS (permission engine config)
+ * - PLAN_TIER_COLORS (UI display only)
  *
  * @module subscriptionPlansService
  */
@@ -29,14 +28,14 @@ import type {
 } from "../types/subscriptionPlans.types";
 
 import {
-  VEHICLE_CATEGORIES,
+  VEHICLE_CATEGORIES_CONFIG,
   PLAN_BASE_PRICES,
   PLAN_TIER_NAMES,
   BILLING_DURATIONS,
   WASHES_PER_MONTH,
   ADDON_SERVICES,
   COMBO_OFFERS,
-} from "../constants/subscriptionPlans.constants";
+} from "../data/subscriptionPlans";
 
 class SubscriptionPlansService {
   // ============================================
@@ -48,7 +47,7 @@ class SubscriptionPlansService {
    * In production: GET /api/vehicle-categories
    */
   getVehicleCategories(vehicleType?: "4W" | "2W"): VehicleCategory[] {
-    const categories: VehicleCategory[] = Object.entries(VEHICLE_CATEGORIES).map(
+    const categories: VehicleCategory[] = Object.entries(VEHICLE_CATEGORIES_CONFIG).map(
       ([key, value], index) => ({
         id: `vc-${index + 1}`,
         name: key as VehicleCategoryName,
@@ -236,11 +235,11 @@ class SubscriptionPlansService {
     let features: Partial<PlanFeature>[] = [];
 
     switch (tierName) {
-      case "WATER_WASH":
+      case "SHINE":
         features = [...commonEveryWash, ...commonMonthly];
         break;
 
-      case "WATER_SHAMPOO":
+      case "PROTECT":
         features = [
           ...commonEveryWash,
           {
@@ -259,7 +258,7 @@ class SubscriptionPlansService {
         ];
         break;
 
-      case "WATER_SHAMPOO_WAX":
+      case "ELITE":
         features = [
           ...commonEveryWash,
           {
@@ -297,6 +296,28 @@ class SubscriptionPlansService {
           },
         ];
         break;
+
+      case "ELITE_2W":
+        features = [
+          ...commonEveryWash,
+          {
+            featureName: "Bike/scooter shampoo wash",
+            frequency: "EVERY_WASH" as const,
+          },
+          {
+            featureName: "Spoke & rim scrub",
+            frequency: "WEEKLY" as const,
+          },
+          {
+            featureName: "Engine bay surface wipe",
+            frequency: "MONTHLY" as const,
+          },
+          {
+            featureName: "Full body spray wax / liquid polish",
+            frequency: "MONTHLY" as const,
+          },
+        ];
+        break;
     }
 
     return features.map((feature, index) => ({
@@ -324,9 +345,9 @@ class SubscriptionPlansService {
       description: addon.description,
       price: addon.price,
       billingType: addon.billingType,
-      bestPairedWith: addon.bestPairedWith,
+      bestPairedWith: addon.bestPairedWith as PlanTierName[],
       marginPercent: addon.marginPercent,
-      isActive: addon.isOperationallyConfirmed, // Only show if operationally confirmed
+      isActive: addon.isOperationallyConfirmed,
       isOperationallyConfirmed: addon.isOperationallyConfirmed,
       sortOrder: index,
     })).filter((addon) => includeInactive || addon.isActive);

@@ -13,7 +13,7 @@ export type PlanType =
   | "SHINE"
   | "PROTECT"
   | "ELITE"
-  | "ELITE"
+  | "ELITE_2W"
   | "One-Time Member"
   | "One-Time Non-Member";
 
@@ -108,7 +108,7 @@ export const CURRENT_PLAN_VERSION: PlanVersion = {
       "SHINE": 1199,
       "PROTECT": 1599,
       "ELITE": 1999,
-      "ELITE": "NA",
+      "ELITE_2W": "NA",
       "One-Time Member": 250,
       "One-Time Non-Member": 299,
     },
@@ -116,7 +116,7 @@ export const CURRENT_PLAN_VERSION: PlanVersion = {
       "SHINE": 1499,
       "PROTECT": 1999,
       "ELITE": 2499,
-      "ELITE": "NA",
+      "ELITE_2W": "NA",
       "One-Time Member": 300,
       "One-Time Non-Member": 349,
     },
@@ -124,7 +124,7 @@ export const CURRENT_PLAN_VERSION: PlanVersion = {
       "SHINE": 1999,
       "PROTECT": 2699,
       "ELITE": 3499,
-      "ELITE": "NA",
+      "ELITE_2W": "NA",
       "One-Time Member": 400,
       "One-Time Non-Member": 449,
     },
@@ -132,7 +132,7 @@ export const CURRENT_PLAN_VERSION: PlanVersion = {
       "SHINE": 299,
       "PROTECT": 499,
       "ELITE": "NA",
-      "ELITE": 799,
+      "ELITE_2W": 799,
       "One-Time Member": 120,
       "One-Time Non-Member": 149,
     },
@@ -140,7 +140,7 @@ export const CURRENT_PLAN_VERSION: PlanVersion = {
       "SHINE": 399,
       "PROTECT": 699,
       "ELITE": "NA",
-      "ELITE": 999,
+      "ELITE_2W": 999,
       "One-Time Member": 150,
       "One-Time Non-Member": 179,
     },
@@ -148,7 +148,7 @@ export const CURRENT_PLAN_VERSION: PlanVersion = {
       "SHINE": "NA",
       "PROTECT": "NA",
       "ELITE": "NA",
-      "ELITE": 699,
+      "ELITE_2W": 699,
       "One-Time Member": 100,
       "One-Time Non-Member": 129,
     },
@@ -209,8 +209,8 @@ export const CURRENT_PLAN_VERSION: PlanVersion = {
       ],
       bestFor: "Complete vehicle care - exterior shine + interior cleanliness",
     },
-    "ELITE": {
-      planName: "ELITE",
+    "ELITE_2W": {
+      planName: "ELITE (2-Wheeler)",
       tagline: "Premium 2-Wheeler Care. Complete shine and protection for bikes and scooters.",
       included: [
         "Full body water rinse (pressure gun)",
@@ -671,7 +671,7 @@ export const PLAN_TYPES: PlanType[] = [
   "SHINE",
   "PROTECT",
   "ELITE",
-  "ELITE",
+  "ELITE_2W",
   "One-Time Member",
   "One-Time Non-Member",
 ];
@@ -681,7 +681,7 @@ export const SUBSCRIPTION_PLANS: PlanType[] = [
   "SHINE",
   "PROTECT",
   "ELITE",
-  "ELITE",
+  "ELITE_2W",
 ];
 
 // Vehicle examples for each category
@@ -694,8 +694,194 @@ export const VEHICLE_EXAMPLES: Record<VehicleCategory, string[]> = {
   "2W - Scooter": ["Activa", "Jupiter", "Dio", "NTorq", "Burgman"],
 };
 
-// Cost per wash calculation (26 washes per month)
+// ============================================================
+// SERVICE COMPATIBILITY LAYER
+// Single source of truth for subscriptionPlansService.
+// These replace the equivalent exports from
+// constants/subscriptionPlans.constants.ts which is now
+// deprecated for all plan-data concerns.
+// ============================================================
+
+/** Standard number of washes per month */
 export const WASHES_PER_MONTH = 26;
+
+/** Currency */
+export const CURRENCY = "INR" as const;
+export const CURRENCY_SYMBOL = "₹";
+
+/** Billing duration discount rates */
+export const DEFAULT_DURATION_DISCOUNTS = {
+  MONTHLY:     0,
+  QUARTERLY:   5,
+  HALF_YEARLY: 10,
+  NINE_MONTHS: 12,
+  ANNUAL:      15,
+} as const;
+
+/** Billing duration configs — used by subscriptionPlansService.calculateDurationPrices() */
+export const BILLING_DURATIONS = [
+  { type: "MONTHLY"     as const, label: "Monthly",     months: 1,  discountPercent: DEFAULT_DURATION_DISCOUNTS.MONTHLY },
+  { type: "QUARTERLY"   as const, label: "Quarterly",   months: 3,  discountPercent: DEFAULT_DURATION_DISCOUNTS.QUARTERLY },
+  { type: "HALF_YEARLY" as const, label: "Half-Yearly", months: 6,  discountPercent: DEFAULT_DURATION_DISCOUNTS.HALF_YEARLY },
+  { type: "NINE_MONTHS" as const, label: "9 Months",    months: 9,  discountPercent: DEFAULT_DURATION_DISCOUNTS.NINE_MONTHS },
+  { type: "ANNUAL"      as const, label: "Annual",      months: 12, discountPercent: DEFAULT_DURATION_DISCOUNTS.ANNUAL },
+] as const;
+
+/**
+ * Plan tier display names — single source of truth.
+ * Maps the new SHINE/PROTECT/ELITE naming to human-readable labels.
+ * WATER_WASH / SHAMPOO_WASH / SHAMPOO_WAX keys are retired — do not add back.
+ */
+export const PLAN_TIER_NAMES = {
+  SHINE:    "SHINE — Chamakti Subah",
+  PROTECT:  "PROTECT — Raksha Plan",
+  ELITE:    "ELITE — Raja Seva",
+  ELITE_2W: "ELITE (2-Wheeler)",
+} as const;
+
+/**
+ * Vehicle category configs — used by subscriptionPlansService.getVehicleCategories().
+ * Keys match VehicleCategoryName in types/subscriptionPlans.types.ts.
+ */
+export const VEHICLE_CATEGORIES_CONFIG = {
+  HATCHBACK_COMPACT_SEDAN: {
+    displayName: "Hatchback / Compact Sedan",
+    examples:    ["Swift", "i20", "Baleno", "Dzire", "Tiago"],
+    type:        "4W" as const,
+  },
+  SUV_MUV_SEDAN: {
+    displayName: "SUV / MUV / Sedan",
+    examples:    ["Creta", "Innova", "City", "Thar", "Ertiga"],
+    type:        "4W" as const,
+  },
+  LUXURY_LARGE_SUV: {
+    displayName: "Luxury / Large SUV",
+    examples:    ["Fortuner", "XUV700", "Meridian", "Scorpio N"],
+    type:        "4W" as const,
+  },
+  STANDARD_COMMUTER_BIKE: {
+    displayName: "Standard / Commuter Bike",
+    examples:    ["Splendor", "Passion", "CT100", "HF Deluxe"],
+    type:        "2W" as const,
+  },
+  SPORTS_PREMIUM_BIKE: {
+    displayName: "Sports / Premium Bike",
+    examples:    ["Pulsar", "Apache", "Dominar", "Duke", "R15"],
+    type:        "2W" as const,
+  },
+  SCOOTER: {
+    displayName: "Scooter",
+    examples:    ["Activa", "Jupiter", "Dio", "NTorq", "Burgman"],
+    type:        "2W" as const,
+  },
+} as const;
+
+/**
+ * Plan base prices — derived from CURRENT_PLAN_VERSION.pricingMatrix so there
+ * is exactly one place where prices are defined.
+ * subscriptionPlansService reads this instead of the old constants file.
+ */
+export const PLAN_BASE_PRICES = {
+  HATCHBACK_COMPACT_SEDAN: {
+    SHINE:    CURRENT_PLAN_VERSION.pricingMatrix["Hatchback / Compact Sedan"]["SHINE"],
+    PROTECT:  CURRENT_PLAN_VERSION.pricingMatrix["Hatchback / Compact Sedan"]["PROTECT"],
+    ELITE:    CURRENT_PLAN_VERSION.pricingMatrix["Hatchback / Compact Sedan"]["ELITE"],
+  },
+  SUV_MUV_SEDAN: {
+    SHINE:    CURRENT_PLAN_VERSION.pricingMatrix["SUV / MUV / Sedan"]["SHINE"],
+    PROTECT:  CURRENT_PLAN_VERSION.pricingMatrix["SUV / MUV / Sedan"]["PROTECT"],
+    ELITE:    CURRENT_PLAN_VERSION.pricingMatrix["SUV / MUV / Sedan"]["ELITE"],
+  },
+  LUXURY_LARGE_SUV: {
+    SHINE:    CURRENT_PLAN_VERSION.pricingMatrix["Luxury / Large SUV"]["SHINE"],
+    PROTECT:  CURRENT_PLAN_VERSION.pricingMatrix["Luxury / Large SUV"]["PROTECT"],
+    ELITE:    CURRENT_PLAN_VERSION.pricingMatrix["Luxury / Large SUV"]["ELITE"],
+  },
+  STANDARD_COMMUTER_BIKE: {
+    SHINE:    CURRENT_PLAN_VERSION.pricingMatrix["2W - Standard / Commuter Bike"]["SHINE"],
+    PROTECT:  CURRENT_PLAN_VERSION.pricingMatrix["2W - Standard / Commuter Bike"]["PROTECT"],
+    ELITE_2W: CURRENT_PLAN_VERSION.pricingMatrix["2W - Standard / Commuter Bike"]["ELITE_2W"],
+  },
+  SPORTS_PREMIUM_BIKE: {
+    SHINE:    CURRENT_PLAN_VERSION.pricingMatrix["2W - Sports / Premium Bike"]["SHINE"],
+    PROTECT:  CURRENT_PLAN_VERSION.pricingMatrix["2W - Sports / Premium Bike"]["PROTECT"],
+    ELITE_2W: CURRENT_PLAN_VERSION.pricingMatrix["2W - Sports / Premium Bike"]["ELITE_2W"],
+  },
+  SCOOTER: {
+    ELITE_2W: CURRENT_PLAN_VERSION.pricingMatrix["2W - Scooter"]["ELITE_2W"],
+  },
+} as const;
+
+/**
+ * Add-on services — re-exported under the name subscriptionPlansService expects.
+ * ADD_ON_SERVICES is the canonical list; ADDON_SERVICES_COMPAT is the alias.
+ * subscriptionPlansService imports ADDON_SERVICES — point it here.
+ */
+export const ADDON_SERVICES = ADD_ON_SERVICES.map(a => ({
+  ...a,
+  billingType:               a.billing === "Per visit" ? "PER_VISIT" as const : "PER_MONTH" as const,
+  isOperationallyConfirmed:  a.isActive,
+  price:                     typeof a.pricing["4W"] === "number" ? a.pricing["4W"] as number : 0,
+  bestPairedWith:            a.bestPairedWith as string[],
+}));
+
+/**
+ * Combo offers — re-exported for subscriptionPlansService compat.
+ * Uses the dynamically generated COMBO_OFFERS from this file (already live).
+ */
+export { COMBO_OFFERS };
+
+/** Validation constants */
+export const MIN_BASE_PRICE      = 100;
+export const MAX_BASE_PRICE      = 10000;
+export const MIN_DISCOUNT_PERCENT = 0;
+export const MAX_DISCOUNT_PERCENT = 50;
+export const MIN_MARGIN_PERCENT   = 0;
+export const MAX_MARGIN_PERCENT   = 100;
+
+/** UI constants — display only, no plan data */
+export const BEST_VALUE_BADGE = "Best Value";
+export const PLANS_PER_ROW    = 3;
+
+export const PLAN_TIER_COLORS = {
+  SHINE:    { bg: "bg-blue-50",   border: "border-blue-200",   text: "text-blue-700"   },
+  PROTECT:  { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700" },
+  ELITE:    { bg: "bg-green-50",  border: "border-green-200",  text: "text-green-700"  },
+  ELITE_2W: { bg: "bg-amber-50",  border: "border-amber-200",  text: "text-amber-700"  },
+} as const;
+
+export const ROLE_PERMISSIONS = {
+  SUPER_ADMIN: {
+    canCreatePlan: true,  canEditPlan: true,  canEditPricing: true,
+    canEditFeatures: true, canEditDurationDiscounts: true,
+    canDisablePlan: true, canDeletePlan: true,
+    canManageAddons: true, canManageCombos: true, canViewAuditLog: true,
+  },
+  ADMIN: {
+    canCreatePlan: true,  canEditPlan: true,  canEditPricing: true,
+    canEditFeatures: true, canEditDurationDiscounts: false,
+    canDisablePlan: true, canDeletePlan: false,
+    canManageAddons: true, canManageCombos: true, canViewAuditLog: true,
+  },
+  MANAGER: {
+    canCreatePlan: false, canEditPlan: false, canEditPricing: false,
+    canEditFeatures: false, canEditDurationDiscounts: false,
+    canDisablePlan: false, canDeletePlan: false,
+    canManageAddons: false, canManageCombos: false, canViewAuditLog: false,
+  },
+  VIEWER: {
+    canCreatePlan: false, canEditPlan: false, canEditPricing: false,
+    canEditFeatures: false, canEditDurationDiscounts: false,
+    canDisablePlan: false, canDeletePlan: false,
+    canManageAddons: false, canManageCombos: false, canViewAuditLog: false,
+  },
+} as const;
+
+export const SERVICE_FREQUENCIES = {
+  EVERY_WASH: "Every Wash (Daily)",
+  WEEKLY:     "Weekly (1x per week)",
+  MONTHLY:    "Monthly (1x per month)",
+} as const;
 
 export function calculateCostPerWash(monthlyPrice: number): number {
   return monthlyPrice / WASHES_PER_MONTH;

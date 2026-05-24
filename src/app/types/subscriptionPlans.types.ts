@@ -25,12 +25,16 @@ export type VehicleCategoryName =
   | "SPORTS_PREMIUM_BIKE"
   | "SCOOTER";
 
-/** Plan tier names */
+/**
+ * Plan tier names — SHINE / PROTECT / ELITE are the canonical names.
+ * WATER_WASH / SHAMPOO_WASH / SHAMPOO_WAX / SHAMPOO_POLISH are retired.
+ * ELITE_2W is the 2-wheeler premium plan (separate from 4W ELITE).
+ */
 export type PlanTierName =
-  | "WATER_WASH"
-  | "SHAMPOO_WASH"
-  | "SHAMPOO_WAX"
-  | "SHAMPOO_POLISH";
+  | "SHINE"
+  | "PROTECT"
+  | "ELITE"
+  | "ELITE_2W";
 
 /** Service frequency types */
 export type ServiceFrequency = "EVERY_WASH" | "WEEKLY" | "MONTHLY";
