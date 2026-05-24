@@ -171,29 +171,34 @@ async function fetchInvoiceDetail(invoiceId: string): Promise<InvoiceDetail> {
   const lineItemsFromPlan = (planName: string, amount: number, vehicleCategory?: string): InvoiceLineItem[] => {
     const cat = vehicleCategory || "Vehicle";
     const catLabel = cat === "hatchback" ? "Hatchback / Compact Sedan"
-      : cat === "suv" ? "SUV / Sedan / MUV"
+      : cat === "suv" ? "SUV / MUV / Sedan"
       : cat === "luxury" ? "Luxury / Large SUV"
       : cat;
+    const name = planName?.toUpperCase() || "";
 
-    if (planName?.toLowerCase().includes("wax") || planName?.toLowerCase().includes("premium")) {
+    // ELITE — Raja Seva: daily wash + weekly shampoo + fortnightly dash + monthly wax + engine bay
+    if (name.includes("ELITE") || name.includes("WAX") || name.includes("PREMIUM")) {
       return [
-        { id: "li-1", lineNumber: 1, description: `Shampoo + Wax Monthly Car Wash — ${catLabel}`, quantity: 30, unitPrice: +(amount * 0.85 / 30).toFixed(2), lineTotal: +(amount * 0.85).toFixed(2) },
-        { id: "li-2", lineNumber: 2, description: "Monthly Interior Deep Vacuum (4×)", quantity: 4, unitPrice: +(amount * 0.10 / 4).toFixed(2), lineTotal: +(amount * 0.10).toFixed(2) },
-        { id: "li-3", lineNumber: 3, description: "Monthly Full Hand Wax Polish (1×)", quantity: 1, unitPrice: +(amount * 0.05).toFixed(2), lineTotal: +(amount * 0.05).toFixed(2) },
+        { id: "li-1", lineNumber: 1, description: `ELITE — Daily Exterior Water Wash (30×) — ${catLabel}`, quantity: 30, unitPrice: +(amount * 0.72 / 30).toFixed(2), lineTotal: +(amount * 0.72).toFixed(2) },
+        { id: "li-2", lineNumber: 2, description: "Weekly Shampoo Wash (4×/month)", quantity: 4, unitPrice: +(amount * 0.12 / 4).toFixed(2), lineTotal: +(amount * 0.12).toFixed(2) },
+        { id: "li-3", lineNumber: 3, description: "Fortnightly Dashboard & Console Deep Clean (2×/month)", quantity: 2, unitPrice: +(amount * 0.08 / 2).toFixed(2), lineTotal: +(amount * 0.08).toFixed(2) },
+        { id: "li-4", lineNumber: 4, description: "Monthly Full Hand Wax Polish (1×/month)", quantity: 1, unitPrice: +(amount * 0.06).toFixed(2), lineTotal: +(amount * 0.06).toFixed(2) },
+        { id: "li-5", lineNumber: 5, description: "Monthly Engine Bay Dry Blow (1×/month — no water)", quantity: 1, unitPrice: +(amount * 0.02).toFixed(2), lineTotal: +(amount * 0.02).toFixed(2) },
       ];
     }
-    if (planName?.toLowerCase().includes("shampoo") || planName?.toLowerCase().includes("standard")) {
+    // PROTECT — Raksha Plan: daily wash + fortnightly interior vacuum & shampoo + monthly fragrance & tyre
+    if (name.includes("PROTECT") || name.includes("SHAMPOO") || name.includes("STANDARD")) {
       return [
-        { id: "li-1", lineNumber: 1, description: `Shampoo Wash Monthly Car Wash — ${catLabel}`, quantity: 30, unitPrice: +(amount * 0.88 / 30).toFixed(2), lineTotal: +(amount * 0.88).toFixed(2) },
-        { id: "li-2", lineNumber: 2, description: "Microfibre Dry + Glass Polish (weekly)", quantity: 4, unitPrice: +(amount * 0.08 / 4).toFixed(2), lineTotal: +(amount * 0.08).toFixed(2) },
-        { id: "li-3", lineNumber: 3, description: "Weekly Tyre Dressing (4×)", quantity: 4, unitPrice: +(amount * 0.04 / 4).toFixed(2), lineTotal: +(amount * 0.04).toFixed(2) },
+        { id: "li-1", lineNumber: 1, description: `PROTECT — Daily Exterior Water Wash (30×) — ${catLabel}`, quantity: 30, unitPrice: +(amount * 0.75 / 30).toFixed(2), lineTotal: +(amount * 0.75).toFixed(2) },
+        { id: "li-2", lineNumber: 2, description: "Fortnightly Interior Vacuum & Mat Clean + Shampoo Wash (2×/month)", quantity: 2, unitPrice: +(amount * 0.16 / 2).toFixed(2), lineTotal: +(amount * 0.16).toFixed(2) },
+        { id: "li-3", lineNumber: 3, description: "Monthly Car Fragrance + Tyre Dressing (all 4 tyres)", quantity: 1, unitPrice: +(amount * 0.09).toFixed(2), lineTotal: +(amount * 0.09).toFixed(2) },
       ];
     }
-    // Water Wash / Basic / default
+    // SHINE — Chamakti Subah: daily wash + weekly tyre spray + monthly shampoo & underbody
     return [
-      { id: "li-1", lineNumber: 1, description: `Water Wash Monthly Car Wash — ${catLabel}`, quantity: 30, unitPrice: +(amount * 0.85 / 30).toFixed(2), lineTotal: +(amount * 0.85).toFixed(2) },
-      { id: "li-2", lineNumber: 2, description: "Monthly Underbody Flush (1×)", quantity: 1, unitPrice: +(amount * 0.10).toFixed(2), lineTotal: +(amount * 0.10).toFixed(2) },
-      { id: "li-3", lineNumber: 3, description: "Wheel Rim & Tyre Spray (daily)", quantity: 1, unitPrice: +(amount * 0.05).toFixed(2), lineTotal: +(amount * 0.05).toFixed(2) },
+      { id: "li-1", lineNumber: 1, description: `SHINE — Daily Exterior Water Wash + Microfibre Dry (30×) — ${catLabel}`, quantity: 30, unitPrice: +(amount * 0.82 / 30).toFixed(2), lineTotal: +(amount * 0.82).toFixed(2) },
+      { id: "li-2", lineNumber: 2, description: "Weekly Wheel Rim & Tyre Spray (4×/month)", quantity: 4, unitPrice: +(amount * 0.10 / 4).toFixed(2), lineTotal: +(amount * 0.10).toFixed(2) },
+      { id: "li-3", lineNumber: 3, description: "Monthly Shampoo Wash + Underbody Flush + Windshield Clean (1×)", quantity: 1, unitPrice: +(amount * 0.08).toFixed(2), lineTotal: +(amount * 0.08).toFixed(2) },
     ];
   };
 

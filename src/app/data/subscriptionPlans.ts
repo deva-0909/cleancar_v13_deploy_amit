@@ -10,10 +10,10 @@ export type VehicleCategory =
   | "2W - Scooter";
 
 export type PlanType =
-  | "Water Wash"
-  | "Shampoo Wash"
-  | "Shampoo+Wax"
-  | "Shampoo+Polish"
+  | "SHINE"
+  | "PROTECT"
+  | "ELITE"
+  | "ELITE"
   | "One-Time Member"
   | "One-Time Non-Member";
 
@@ -105,57 +105,57 @@ export const CURRENT_PLAN_VERSION: PlanVersion = {
   status: "Active",
   pricingMatrix: {
     "Hatchback / Compact Sedan": {
-      "Water Wash": 699,
-      "Shampoo Wash": 1299,
-      "Shampoo+Wax": 1999,
-      "Shampoo+Polish": "NA",
+      "SHINE": 1199,
+      "PROTECT": 1599,
+      "ELITE": 1999,
+      "ELITE": "NA",
       "One-Time Member": 250,
       "One-Time Non-Member": 299,
     },
     "SUV / MUV / Sedan": {
-      "Water Wash": 899,
-      "Shampoo Wash": 1699,
-      "Shampoo+Wax": 2699,
-      "Shampoo+Polish": "NA",
+      "SHINE": 1499,
+      "PROTECT": 1999,
+      "ELITE": 2499,
+      "ELITE": "NA",
       "One-Time Member": 300,
       "One-Time Non-Member": 349,
     },
     "Luxury / Large SUV": {
-      "Water Wash": 1099,
-      "Shampoo Wash": "NA",
-      "Shampoo+Wax": 2999,
-      "Shampoo+Polish": "NA",
+      "SHINE": 1999,
+      "PROTECT": 2699,
+      "ELITE": 3499,
+      "ELITE": "NA",
       "One-Time Member": 400,
       "One-Time Non-Member": 449,
     },
     "2W - Standard / Commuter Bike": {
-      "Water Wash": 299,
-      "Shampoo Wash": 499,
-      "Shampoo+Wax": "NA",
-      "Shampoo+Polish": 799,
+      "SHINE": 299,
+      "PROTECT": 499,
+      "ELITE": "NA",
+      "ELITE": 799,
       "One-Time Member": 120,
       "One-Time Non-Member": 149,
     },
     "2W - Sports / Premium Bike": {
-      "Water Wash": 399,
-      "Shampoo Wash": 699,
-      "Shampoo+Wax": "NA",
-      "Shampoo+Polish": 999,
+      "SHINE": 399,
+      "PROTECT": 699,
+      "ELITE": "NA",
+      "ELITE": 999,
       "One-Time Member": 150,
       "One-Time Non-Member": 179,
     },
     "2W - Scooter": {
-      "Water Wash": "NA",
-      "Shampoo Wash": "NA",
-      "Shampoo+Wax": "NA",
-      "Shampoo+Polish": 699,
+      "SHINE": "NA",
+      "PROTECT": "NA",
+      "ELITE": "NA",
+      "ELITE": 699,
       "One-Time Member": 100,
       "One-Time Non-Member": 129,
     },
   },
   deliverables: {
-    "Water Wash": {
-      planName: "Water Wash",
+    "SHINE": {
+      planName: "SHINE",
       tagline: "Essential Daily Cleaning. Perfect for routine maintenance.",
       included: [
         "Full exterior water rinse (pressure gun)",
@@ -175,8 +175,8 @@ export const CURRENT_PLAN_VERSION: PlanVersion = {
       ],
       bestFor: "Daily basic maintenance and dust removal",
     },
-    "Shampoo Wash": {
-      planName: "Shampoo Wash",
+    "PROTECT": {
+      planName: "PROTECT",
       tagline: "Deep Cleaning with Foam Shampoo. Most popular choice.",
       included: [
         "Everything in Water Wash",
@@ -191,8 +191,8 @@ export const CURRENT_PLAN_VERSION: PlanVersion = {
       ],
       bestFor: "Regular professional cleaning with enhanced finish",
     },
-    "Shampoo+Wax": {
-      planName: "Shampoo+Wax",
+    "ELITE": {
+      planName: "ELITE",
       tagline: "Complete Care with Wax Protection. Premium exterior & interior service.",
       included: [
         "Everything in Shampoo Wash",
@@ -209,8 +209,8 @@ export const CURRENT_PLAN_VERSION: PlanVersion = {
       ],
       bestFor: "Complete vehicle care - exterior shine + interior cleanliness",
     },
-    "Shampoo+Polish": {
-      planName: "Shampoo+Polish",
+    "ELITE": {
+      planName: "ELITE",
       tagline: "Premium 2-Wheeler Care. Complete shine and protection for bikes and scooters.",
       included: [
         "Full body water rinse (pressure gun)",
@@ -281,7 +281,7 @@ export const ADD_ON_SERVICES: AddOnService[] = [
       "4W": 199,
       "2W": "NA",
     },
-    bestPairedWith: ["Water Wash", "Shampoo Wash"],
+    bestPairedWith: ["SHINE", "PROTECT"],
     estimatedMargin: 77.9, // Actual EBITDA: ₹155/₹199 = 77.9%
     isActive: true,
     category: "Cleaning",
@@ -295,7 +295,7 @@ export const ADD_ON_SERVICES: AddOnService[] = [
       "4W": 149,
       "2W": 99,
     },
-    bestPairedWith: ["Water Wash", "Shampoo Wash"],
+    bestPairedWith: ["SHINE", "PROTECT"],
     estimatedMargin: 79.9, // Actual EBITDA: 4W ₹119/₹149 = 79.9%
     isActive: true,
     category: "Cleaning",
@@ -309,7 +309,7 @@ export const ADD_ON_SERVICES: AddOnService[] = [
       "4W": 99,
       "2W": 49,
     },
-    bestPairedWith: ["Water Wash"],
+    bestPairedWith: ["SHINE"],
     estimatedMargin: 79.8, // Actual EBITDA: ₹79/₹99 = 79.8%
     isActive: true,
     category: "Protection",
@@ -323,7 +323,7 @@ export const ADD_ON_SERVICES: AddOnService[] = [
       "4W": 349,
       "2W": 249,
     },
-    bestPairedWith: ["Shampoo Wash", "Shampoo+Wax"],
+    bestPairedWith: ["PROTECT", "ELITE"],
     estimatedMargin: 77.1, // Actual EBITDA: ₹269/₹349 = 77.1%
     isActive: true,
     category: "Protection",
@@ -337,7 +337,7 @@ export const ADD_ON_SERVICES: AddOnService[] = [
       "4W": 599,
       "2W": 399,
     },
-    bestPairedWith: ["Shampoo Wash"],
+    bestPairedWith: ["PROTECT"],
     estimatedMargin: 74.9, // Actual EBITDA: ₹449/₹599 = 74.9%
     isActive: true,
     category: "Protection",
@@ -351,7 +351,7 @@ export const ADD_ON_SERVICES: AddOnService[] = [
       "4W": 799,
       "2W": "NA",
     },
-    bestPairedWith: ["Shampoo Wash", "Shampoo+Wax"],
+    bestPairedWith: ["PROTECT", "ELITE"],
     estimatedMargin: 74.9, // Actual EBITDA: ₹599/₹799 = 74.9%
     isActive: false, // ⚠ PENDING OPERATIONAL CONFIRMATION
     category: "Maintenance",
@@ -365,11 +365,11 @@ function generateComboOffers(): ComboOffer[] {
     return price === "NA" ? 0 : price as number;
   };
 
-  const hatchbackShampoo = getPriceFromMatrix("Hatchback / Compact Sedan", "Shampoo Wash");
-  const hatchbackWax = getPriceFromMatrix("Hatchback / Compact Sedan", "Shampoo+Wax");
-  const suvShampoo = getPriceFromMatrix("SUV / MUV / Sedan", "Shampoo Wash");
-  const suvWax = getPriceFromMatrix("SUV / MUV / Sedan", "Shampoo+Wax");
-  const bikePolish = getPriceFromMatrix("2W - Standard / Commuter Bike", "Shampoo+Polish");
+  const hatchbackShampoo = getPriceFromMatrix("Hatchback / Compact Sedan", "PROTECT");
+  const hatchbackWax = getPriceFromMatrix("Hatchback / Compact Sedan", "ELITE");
+  const suvShampoo = getPriceFromMatrix("SUV / MUV / Sedan", "PROTECT");
+  const suvWax = getPriceFromMatrix("SUV / MUV / Sedan", "ELITE");
+  const bikePolish = getPriceFromMatrix("2W - Standard / Commuter Bike", "ELITE");
 
   const combo1Total = hatchbackShampoo + bikePolish;
   const combo1Price = Math.round(combo1Total * 0.905); // 9.5% discount
@@ -397,12 +397,12 @@ function generateComboOffers(): ComboOffer[] {
       planCombination: {
         vehicle1: {
           category: "Hatchback / Compact Sedan",
-          plan: "Shampoo Wash",
+          plan: "PROTECT",
           individualPrice: hatchbackShampoo,
         },
         vehicle2: {
           category: "2W - Standard / Commuter Bike",
-          plan: "Shampoo+Polish",
+          plan: "ELITE",
           individualPrice: bikePolish,
         },
       },
@@ -419,12 +419,12 @@ function generateComboOffers(): ComboOffer[] {
       planCombination: {
         vehicle1: {
           category: "SUV / MUV / Sedan",
-          plan: "Shampoo Wash",
+          plan: "PROTECT",
           individualPrice: suvShampoo,
         },
         vehicle2: {
           category: "Hatchback / Compact Sedan",
-          plan: "Shampoo Wash",
+          plan: "PROTECT",
           individualPrice: hatchbackShampoo,
         },
       },
@@ -441,7 +441,7 @@ function generateComboOffers(): ComboOffer[] {
       planCombination: {
         vehicle1: {
           category: "Hatchback / Compact Sedan",
-          plan: "Shampoo+Wax",
+          plan: "ELITE",
           individualPrice: hatchbackWax,
         },
       },
@@ -458,7 +458,7 @@ function generateComboOffers(): ComboOffer[] {
       planCombination: {
         vehicle1: {
           category: "SUV / MUV / Sedan",
-          plan: "Shampoo+Wax",
+          plan: "ELITE",
           individualPrice: suvWax,
         },
       },
@@ -475,7 +475,7 @@ function generateComboOffers(): ComboOffer[] {
       planCombination: {
         vehicle1: {
           category: "Hatchback / Compact Sedan",
-          plan: "Shampoo Wash",
+          plan: "PROTECT",
           individualPrice: combo5Total,
         },
       },
@@ -492,7 +492,7 @@ function generateComboOffers(): ComboOffer[] {
       planCombination: {
         vehicle1: {
           category: "SUV / MUV / Sedan",
-          plan: "Shampoo Wash",
+          plan: "PROTECT",
           individualPrice: combo6Total,
         },
       },
@@ -668,20 +668,20 @@ export const VEHICLE_CATEGORIES: VehicleCategory[] = [
 
 // Plan types list
 export const PLAN_TYPES: PlanType[] = [
-  "Water Wash",
-  "Shampoo Wash",
-  "Shampoo+Wax",
-  "Shampoo+Polish",
+  "SHINE",
+  "PROTECT",
+  "ELITE",
+  "ELITE",
   "One-Time Member",
   "One-Time Non-Member",
 ];
 
 // Subscription plans (all plans in new structure)
 export const SUBSCRIPTION_PLANS: PlanType[] = [
-  "Water Wash",
-  "Shampoo Wash",
-  "Shampoo+Wax",
-  "Shampoo+Polish",
+  "SHINE",
+  "PROTECT",
+  "ELITE",
+  "ELITE",
 ];
 
 // Vehicle examples for each category

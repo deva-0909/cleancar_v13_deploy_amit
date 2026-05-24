@@ -123,7 +123,7 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
   monthlyPlans: [
     {
       id: "water",
-      name: "Water Wash",
+      name: "SHINE",
       icon: "💧",
       tagline: "Clean every day, essentials done right",
       features: [
@@ -134,11 +134,11 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
         { text: "Shampoo foam wash", included: false },
         { text: "Interior vacuum", included: false },
       ],
-      prices: { hatchback: 999, suv: 1099, luxury: 1499 },
+      prices: { hatchback: 1199, suv: 1499, luxury: 1999 },
     },
     {
       id: "shampoo",
-      name: "Shampoo Wash",
+      name: "PROTECT",
       icon: "🧴",
       tagline: "Deep clean with professional shampoo",
       popular: true,
@@ -150,7 +150,7 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
         { text: "Monthly underbody flush", included: true },
         { text: "Interior vacuum", included: false },
       ],
-      prices: { hatchback: 1499, suv: 1699, luxury: 1999 },
+      prices: { hatchback: 1599, suv: 1999, luxury: 2699 },
     },
     {
       id: "wax",
@@ -165,11 +165,11 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
         { text: "Monthly full hand wax polish", included: true },
         { text: "Door sill & boot area clean", included: true },
       ],
-      prices: { hatchback: 1999, suv: 2699, luxury: 2999 },
+      prices: { hatchback: 1999, suv: 2499, luxury: 3499 },
     },
   ],
   packs: [
-    { id: "onetime",  name: "One-Time Wash", icon: "1️⃣", price: 200, perLabel: "per wash",                    discount: "Standard rate" },
+    { id: "onetime",  name: "One-Time Wash", icon: "1️⃣", price: 199, perLabel: "per wash (Hatchback)",                    discount: "Standard rate" },
     { id: "biweekly", name: "Bi-Weekly",     icon: "🔁", price: 372, perLabel: "2× per month · ₹186/wash",    discount: "7% off" },
     { id: "3x",       name: "3× per Month",  icon: "3️⃣", price: 552, perLabel: "3× per month · ₹184/wash",    discount: "8% off" },
     { id: "weekly",   name: "Weekly",        icon: "📅", price: 720, perLabel: "4× per month · ₹180/wash",    discount: "10% off" },
@@ -181,12 +181,12 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
     { id: "12month",  term: "12 Months",      discountLabel: "18% off",     perk: "Renewal + vacuum + tyre dressing monthly + priority slots.", highlight: "best" },
   ],
   addons: [
-    { id: "vacuum",   name: "Interior Deep Vacuum",      price: 199, unit: "per visit", description: "Seats, mats, footwells, boot area. Full interior clean." },
+    { id: "vacuum",   name: "Interior Deep Vacuum",      price: 299, unit: "per visit", description: "Seats, mats, footwells, boot area. Full interior clean." },
     { id: "dashboard",name: "Dashboard & Console Clean", price: 149, unit: "per visit", description: "Dashboard, centre console, door pads — dust-free finish." },
     { id: "tyre",     name: "Tyre Dressing",             price: 99,  unit: "per visit", description: "Shine and protect all 4 tyres. Makes them look brand new." },
     { id: "glass",    name: "Glass Coating (RainX)",     price: 349, unit: "per month", description: "Applied once/month on all glass. Repels rain, better visibility." },
     { id: "waxpolish",name: "One-time Wax Polish",       price: 599, unit: "per visit", description: "For Water/Shampoo plan users wanting full wax protection occasionally." },
-    { id: "antirust", name: "Underbody Anti-rust Spray", price: 799, unit: "per visit", description: "Protective coating for underbody. Recommended quarterly." },
+    { id: "antirust", name: "Underbody Anti-Rust Spray", price: 499, unit: "per visit", description: "Protective coating for underbody. Recommended quarterly." },
   ],
   timeSlots: [
     "Early morning (5am – 7am)",
