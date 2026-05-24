@@ -17,7 +17,7 @@
  *   EMPLOYEE_DATABASE_RECORDS    (auth system)
  */
 
-const SEED_FLAG = "ALL_DATA_SEEDED_V6";
+const SEED_FLAG = "ALL_DATA_SEEDED_V7";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 const NOW   = new Date().toISOString();
@@ -403,7 +403,7 @@ for (const city of ["Surat","Mumbai"] as const) {
         assignedTo: tse,
         cityId:     cid, city,
         vehicleCategory: i%3===0?"SUV":i%3===1?"Sedan":"Hatchback",
-        planOfInterest: ["Water Wash","Shampoo Wash","Shampoo+Wax"][i%3],
+        planOfInterest: ["SHINE","PROTECT","ELITE"][i%3],
         createdAt:  new Date(2026,m-1,1+(i%28)).toISOString(),
         followUpDate: new Date(2026,m-1,5+(i%20)).toISOString(),
         convertedAt: stage==="Converted" ? new Date(2026,m-1,15+(i%10)).toISOString() : undefined,
@@ -441,9 +441,9 @@ for (let i = 0; i < 30; i++) {
     demoType: i%3===0 ? "One-Time Service Demo" : "Subscription Package Demo",
     demoDate: d(m, day),
     demoTimeSlot: DEMO_TIME_SLOTS[i%4],
-    planName: ["Water Wash","Shampoo Wash","Shampoo+Wax"][i%3],
-    planPrice: [699,1299,1999][i%3],
-    planOfInterest: ["Water Wash","Shampoo Wash","Shampoo+Wax"][i%3],
+    planName: ["SHINE","PROTECT","ELITE"][i%3],
+    planPrice: [1199,1599,1999][i%3],
+    planOfInterest: ["SHINE","PROTECT","ELITE"][i%3],
     tseScheduled: true,
     tseScheduledBy: isSur ? "EDB-TSE-SUR1" : "EDB-TSE-MUM1",
     tseScheduledAt: iso(m, day-1),
@@ -485,16 +485,16 @@ for (let i = 0; i < 30; i++) {
 // 10. SUBSCRIPTIONS — 120 records
 // ═════════════════════════════════════════════════════════════════════════════
 const PKG_MAP: Record<string,string> = {
-  "Water Wash":"Basic","Shampoo Wash":"Standard","Shampoo+Wax":"Premium"
+  "SHINE":"Basic","PROTECT":"Standard","ELITE":"Premium"
 };
 const PLAN_PRICES: Record<string,number> = {
-  "Basic":999,"Standard":1299,"Premium":1999
+  "SHINE":1199,"PROTECT":1599,"ELITE":1999
 };
 const SUBS: any[] = [];
 for (let i = 0; i < 120; i++) {
   const isSur  = i < 80;
   const cust   = CUSTOMERS[isSur ? i%100 : 100+(i%100)];
-  const pkgKey = ["Water Wash","Shampoo Wash","Shampoo+Wax"][i%3];
+  const pkgKey = ["SHINE","PROTECT","ELITE"][i%3];
   const pkg    = PKG_MAP[pkgKey];
   const price  = PLAN_PRICES[pkg];
   const disc   = i%5===0 ? 100 : 0;
@@ -737,7 +737,7 @@ for (const m of MONTHS) {
   // Surat — subscription sales
   [1150,1150,1499,1150,1999,1150,1150,1499,1150,1499,1150,1999].forEach((base,i)=>{
     const g=gst18(base);
-    ACC_ENTRIES.push({ id:`ACC-${String(accSeq++).padStart(5,"0")}`, voucherNumber:`SAL/SURAT/25-26/${String(accSeq).padStart(4,"0")}`, entryType:"Sales", date:`2026-${ms}-01`, gstEntryType:"B2B", ...g, invoiceNumber:`SUB-SUR-${m}-${i+1}`, hsnSacCode:"998519", debitAccount:"LM-RZP-SUR", creditAccount:"LM-SUBREV-SUR", paymentMode:"Bank", isRCM:false, narration:`Subscription — ${["Water Wash","Shampoo Wash","Shampoo+Wax"][i%3]}`, city:"Surat", cityId:"CITY-SURAT", financialYear:FY, createdBy:"Seed", createdAt:`2026-${ms}-01T10:00:00.000Z`, status:"Posted", changeHistory:[] });
+    ACC_ENTRIES.push({ id:`ACC-${String(accSeq++).padStart(5,"0")}`, voucherNumber:`SAL/SURAT/25-26/${String(accSeq).padStart(4,"0")}`, entryType:"Sales", date:`2026-${ms}-01`, gstEntryType:"B2B", ...g, invoiceNumber:`SUB-SUR-${m}-${i+1}`, hsnSacCode:"998519", debitAccount:"LM-RZP-SUR", creditAccount:"LM-SUBREV-SUR", paymentMode:"Bank", isRCM:false, narration:`Subscription — ${["SHINE","PROTECT","ELITE"][i%3]}`, city:"Surat", cityId:"CITY-SURAT", financialYear:FY, createdBy:"Seed", createdAt:`2026-${ms}-01T10:00:00.000Z`, status:"Posted", changeHistory:[] });
   });
   // Surat — one-time washes
   [5,9,13,17,21].forEach((day,i)=>{ const g=gst18(499+(i%2===0?200:0)); ACC_ENTRIES.push({ id:`ACC-${String(accSeq++).padStart(5,"0")}`, voucherNumber:`SAL/SURAT/25-26/${String(accSeq).padStart(4,"0")}`, entryType:"Sales", date:`2026-${ms}-${String(day).padStart(2,"0")}`, gstEntryType:"Unregistered", ...g, invoiceNumber:`OT-SUR-${m}-${i+1}`, hsnSacCode:"998519", debitAccount:"LM-CASH-SUR", creditAccount:"LM-OT-SUR", paymentMode:"Cash", isRCM:false, narration:"One-time wash", city:"Surat", cityId:"CITY-SURAT", financialYear:FY, createdBy:"Seed", createdAt:`2026-${ms}-${String(day).padStart(2,"0")}T10:00:00.000Z`, status:"Posted", changeHistory:[] });});
@@ -798,7 +798,7 @@ export function seedAllData(): void {
     ["HISTORIC_DATA_SEEDED_V1","HISTORIC_DATA_SEEDED_V2","HISTORIC_DATA_SEEDED_V3",
      "HISTORIC_DATA_SEEDED_V4","HISTORIC_DATA_SEEDED_V5","ACC_SEED_V1","ACC_SEED_V2",
      "ALL_DATA_SEEDED_V1","ALL_DATA_SEEDED_V2","ALL_DATA_SEEDED_V3","ALL_DATA_SEEDED_V4",
-     "ALL_DATA_SEEDED_V5"
+     "ALL_DATA_SEEDED_V5","ALL_DATA_SEEDED_V6"
     ].forEach(f => localStorage.removeItem(f));
 
     // ── 1. EMPLOYEES ─────────────────────────────────────────────────────────
@@ -1020,7 +1020,7 @@ export function seedAllData(): void {
     ];
     const SM_BLOCK_DEALS_SEED = [
       { id:"BD-001", locationId:"LOC-001", locationName:"Adajan Heights Society",  smId:"EDB-SMGR-SUR1", vehicleCount:12, packageType:"Water + Shampoo",   commitmentTerm:3,  status:"Active",   approvedDate:daysAgoSM(30), activeVehicles:10, phase1Paid:true,  phase1Amount:3750, phase2Amount:3125, phase2CheckDate:daysAgoSM(-60), phase2Status:"pending", additionalVehicles:2 },
-      { id:"BD-002", locationId:"LOC-002", locationName:"Reliance Corporate Park", smId:"EDB-SMGR-SUR1", vehicleCount:22, packageType:"Shampoo Wash",       commitmentTerm:6,  status:"Approved", approvedDate:daysAgoSM(5),  activeVehicles:0,  phase1Paid:false, phase1Amount:7500, phase2Amount:3750, phase2CheckDate:daysAgoSM(-90), phase2Status:"pending", additionalVehicles:0 },
+      { id:"BD-002", locationId:"LOC-002", locationName:"Reliance Corporate Park", smId:"EDB-SMGR-SUR1", vehicleCount:22, packageType:"PROTECT",       commitmentTerm:6,  status:"Approved", approvedDate:daysAgoSM(5),  activeVehicles:0,  phase1Paid:false, phase1Amount:7500, phase2Amount:3750, phase2CheckDate:daysAgoSM(-90), phase2Status:"pending", additionalVehicles:0 },
     ];
     // Only seed if not already present (so user-added data isn't wiped)
     if (!localStorage.getItem("sm_locations"))   localStorage.setItem("sm_locations",   JSON.stringify(SM_LOCATIONS_SEED));
@@ -1045,12 +1045,12 @@ export function seedAllData(): void {
     // These leads are visible in SH app pipeline, come from SM locations,
     // and are attributed to real customers seeded in CUSTOMERS array.
     const SM_LEADS_SEED = [
-      { id:"SH-L-001", customerName:"Vikram Singh",   phone:"+91 98765 43219", vehicleType:"4W", vehicleCategory:"SUV",     source:"SM-Alliance-Supervisor", status:"New",         assignedTo:null,          ageMinutes:35,  estimatedValue:1999, smId:"EDB-SMGR-SUR1", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT" },
-      { id:"SH-L-002", customerName:"Sneha Mehta",    phone:"+91 98765 43220", vehicleType:"4W", vehicleCategory:"Hatchback",source:"SM-Alliance-QR",         status:"Contacted",   assignedTo:"EDB-TSE-SUR1",ageMinutes:62,  estimatedValue:1499, smId:"EDB-SMGR-SUR1", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT" },
-      { id:"SH-L-003", customerName:"Rohan Patel",    phone:"+91 98765 43221", vehicleType:"4W", vehicleCategory:"Sedan",   source:"SM-Alliance-WhatsApp",   status:"Demo Booked", assignedTo:"EDB-TSE-SUR1",ageMinutes:15,  estimatedValue:999,  smId:"EDB-SMGR-SUR1", smLocationName:"Reliance Corporate Park",  cityId:"CITY-SURAT" },
+      { id:"SH-L-001", customerName:"Vikram Singh",   phone:"+91 98765 43219", vehicleType:"4W", vehicleCategory:"SUV",     source:"SM-Alliance-Supervisor", status:"New",         assignedTo:null,          ageMinutes:35,  estimatedValue:2499, smId:"EDB-SMGR-SUR1", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT" },
+      { id:"SH-L-002", customerName:"Sneha Mehta",    phone:"+91 98765 43220", vehicleType:"4W", vehicleCategory:"Hatchback",source:"SM-Alliance-QR",         status:"Contacted",   assignedTo:"EDB-TSE-SUR1",ageMinutes:62,  estimatedValue:1999, smId:"EDB-SMGR-SUR1", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT" },
+      { id:"SH-L-003", customerName:"Rohan Patel",    phone:"+91 98765 43221", vehicleType:"4W", vehicleCategory:"Sedan",   source:"SM-Alliance-WhatsApp",   status:"Demo Booked", assignedTo:"EDB-TSE-SUR1",ageMinutes:15,  estimatedValue:1199, smId:"EDB-SMGR-SUR1", smLocationName:"Reliance Corporate Park",  cityId:"CITY-SURAT" },
       { id:"SH-L-004", customerName:"Meera Desai",    phone:"+91 98765 43222", vehicleType:"4W", vehicleCategory:"Sedan",   source:"SM-Alliance-QR",         status:"Contacted",   assignedTo:"EDB-TSE-SUR2",ageMinutes:90,  estimatedValue:699,  smId:"EDB-SMGR-SUR2", smLocationName:"Ghod Dod RWA",            cityId:"CITY-SURAT" },
-      { id:"SH-L-005", customerName:"Arjun Shah",     phone:"+91 98765 43223", vehicleType:"4W", vehicleCategory:"SUV",     source:"SM-Alliance-Supervisor", status:"New",         assignedTo:null,          ageMinutes:125, estimatedValue:1999, smId:"EDB-SMGR-SUR2", smLocationName:"HP Petrol Pump - Vesu",   cityId:"CITY-SURAT" },
-      { id:"SH-L-006", customerName:"Kavya Joshi",    phone:"+91 98765 43224", vehicleType:"4W", vehicleCategory:"Hatchback",source:"SM-Alliance-QR",         status:"Converted",   assignedTo:"EDB-TSE-SUR1",ageMinutes:480, estimatedValue:1499, smId:"EDB-SMGR-SUR1", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT", convertedAt:minsAgoSM(60) },
+      { id:"SH-L-005", customerName:"Arjun Shah",     phone:"+91 98765 43223", vehicleType:"4W", vehicleCategory:"SUV",     source:"SM-Alliance-Supervisor", status:"New",         assignedTo:null,          ageMinutes:125, estimatedValue:2499, smId:"EDB-SMGR-SUR2", smLocationName:"HP Petrol Pump - Vesu",   cityId:"CITY-SURAT" },
+      { id:"SH-L-006", customerName:"Kavya Joshi",    phone:"+91 98765 43224", vehicleType:"4W", vehicleCategory:"Hatchback",source:"SM-Alliance-QR",         status:"Converted",   assignedTo:"EDB-TSE-SUR1",ageMinutes:480, estimatedValue:1999, smId:"EDB-SMGR-SUR1", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT", convertedAt:minsAgoSM(60) },
       { id:"SH-L-007", customerName:"Pradeep Gupta",  phone:"+91 98765 43225", vehicleType:"4W", vehicleCategory:"SUV",     source:"Digital-Inbound",        status:"Contacted",   assignedTo:"EDB-TSE-SUR2",ageMinutes:22,  estimatedValue:1699, smId:null,             smLocationName:null,                      cityId:"CITY-SURAT" },
       { id:"SH-L-008", customerName:"Nita Varma",     phone:"+91 98765 43226", vehicleType:"4W", vehicleCategory:"Hatchback",source:"SM-Alliance-Supervisor", status:"No Response", assignedTo:"EDB-TSE-SUR1",ageMinutes:360, estimatedValue:999,  smId:"EDB-SMGR-SUR3", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT" },
     ];
@@ -1065,11 +1065,11 @@ export function seedAllData(): void {
     const now = new Date();
     const dAgo = (d: number) => new Date(now.getTime() - d*86400000).toISOString();
     const WEB_CUSTOMERS = [
-      { customerId:"WEBCUST-001", firstName:"Hetal",    lastName:"Shah",   phone:"9723456781", email:"hetal@example.com",  vehicle:"Maruti Swift",   reg:"GJ05AA1234", category:"hatchback", plan:"Water Wash",     amount:999,  cityId:"CITY-SURAT", pincode:"395007", address:"A-12 Vesu Residency, Surat", daysAgo:5  },
-      { customerId:"WEBCUST-002", firstName:"Jigar",    lastName:"Patel",  phone:"9823456782", email:"jigar@example.com",  vehicle:"Hyundai Creta",  reg:"GJ05BB5678", category:"suv",       plan:"Shampoo Wash",   amount:1699, cityId:"CITY-SURAT", pincode:"395009", address:"B-7 Adajan Heights, Surat",  daysAgo:12 },
-      { customerId:"WEBCUST-003", firstName:"Minal",    lastName:"Desai",  phone:"9623456783", email:"minal@example.com",  vehicle:"Toyota Fortuner",reg:"GJ05CC9012", category:"luxury",    plan:"Shampoo + Wax",  amount:2999, cityId:"CITY-SURAT", pincode:"395005", address:"C-3 Citylight Road, Surat",  daysAgo:2  },
-      { customerId:"WEBCUST-004", firstName:"Rakesh",   lastName:"Thakkar",phone:"9523456784", email:"rakesh@example.com", vehicle:"Tata Nexon",     reg:"GJ05DD3456", category:"suv",       plan:"Water Wash",     amount:1099, cityId:"CITY-SURAT", pincode:"395007", address:"D-15 Pal Village, Surat",    daysAgo:20 },
-      { customerId:"WEBCUST-005", firstName:"Sneha",    lastName:"Agarwal",phone:"9423456785", email:"sneha@example.com",  vehicle:"Baleno",         reg:"GJ05EE7890", category:"hatchback", plan:"Shampoo Wash",   amount:1499, cityId:"CITY-SURAT", pincode:"395005", address:"E-9 Piplod Township, Surat", daysAgo:8  },
+      { customerId:"WEBCUST-001", firstName:"Hetal",    lastName:"Shah",   phone:"9723456781", email:"hetal@example.com",  vehicle:"Maruti Swift",   reg:"GJ05AA1234", category:"hatchback", plan:"SHINE",     amount:1199,  cityId:"CITY-SURAT", pincode:"395007", address:"A-12 Vesu Residency, Surat", daysAgo:5  },
+      { customerId:"WEBCUST-002", firstName:"Jigar",    lastName:"Patel",  phone:"9823456782", email:"jigar@example.com",  vehicle:"Hyundai Creta",  reg:"GJ05BB5678", category:"suv",       plan:"PROTECT",   amount:1999, cityId:"CITY-SURAT", pincode:"395009", address:"B-7 Adajan Heights, Surat",  daysAgo:12 },
+      { customerId:"WEBCUST-003", firstName:"Minal",    lastName:"Desai",  phone:"9623456783", email:"minal@example.com",  vehicle:"Toyota Fortuner",reg:"GJ05CC9012", category:"luxury",    plan:"ELITE",  amount:3499, cityId:"CITY-SURAT", pincode:"395005", address:"C-3 Citylight Road, Surat",  daysAgo:2  },
+      { customerId:"WEBCUST-004", firstName:"Rakesh",   lastName:"Thakkar",phone:"9523456784", email:"rakesh@example.com", vehicle:"Tata Nexon",     reg:"GJ05DD3456", category:"suv",       plan:"SHINE",     amount:1499, cityId:"CITY-SURAT", pincode:"395007", address:"D-15 Pal Village, Surat",    daysAgo:20 },
+      { customerId:"WEBCUST-005", firstName:"Sneha",    lastName:"Agarwal",phone:"9423456785", email:"sneha@example.com",  vehicle:"Baleno",         reg:"GJ05EE7890", category:"hatchback", plan:"PROTECT",   amount:1599, cityId:"CITY-SURAT", pincode:"395005", address:"E-9 Piplod Township, Surat", daysAgo:8  },
     ];
 
     const existingWebInvoices: any[] = JSON.parse(localStorage.getItem("cleancar_web_invoices") || "[]");
@@ -1195,8 +1195,8 @@ export function seedAllData(): void {
     const existingSHLeads: any[] = JSON.parse(localStorage.getItem("sh_leads") || "[]");
     const existingSHIds = new Set(existingSHLeads.map((l: any) => l.id));
     const WEB_SH_LEADS = [
-      { id:"SH-L-W01", customerName:"Hetal Shah",     phone:"9723456781", vehicleType:"4W", vehicleCategory:"Hatchback", source:"SM-Alliance-QR",   status:"Converted", assignedTo:"EDB-TSE-SUR1", ageMinutes:7200, estimatedValue:999,  smId:"EDB-SMGR-SUR1", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT", convertedAt:dAgo(5),  invoiceNumber:"INV-WEB-05-WEBCUST-001" },
-      { id:"SH-L-W02", customerName:"Jigar Patel",    phone:"9823456782", vehicleType:"4W", vehicleCategory:"SUV",       source:"SM-Alliance-Supervisor",status:"Converted",assignedTo:"EDB-TSE-SUR2",ageMinutes:17280,estimatedValue:1699, smId:"EDB-SMGR-SUR1", smLocationName:"Reliance Corporate Park", cityId:"CITY-SURAT", convertedAt:dAgo(12), invoiceNumber:"INV-WEB-12-WEBCUST-002" },
+      { id:"SH-L-W01", customerName:"Hetal Shah",     phone:"9723456781", vehicleType:"4W", vehicleCategory:"Hatchback", source:"SM-Alliance-QR",   status:"Converted", assignedTo:"EDB-TSE-SUR1", ageMinutes:7200, estimatedValue:1199, smId:"EDB-SMGR-SUR1", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT", convertedAt:dAgo(5),  invoiceNumber:"INV-WEB-05-WEBCUST-001" },
+      { id:"SH-L-W02", customerName:"Jigar Patel",    phone:"9823456782", vehicleType:"4W", vehicleCategory:"SUV",       source:"SM-Alliance-Supervisor",status:"Converted",assignedTo:"EDB-TSE-SUR2",ageMinutes:17280,estimatedValue:1999, smId:"EDB-SMGR-SUR1", smLocationName:"Reliance Corporate Park", cityId:"CITY-SURAT", convertedAt:dAgo(12), invoiceNumber:"INV-WEB-12-WEBCUST-002" },
       { id:"SH-L-W03", customerName:"Minal Desai",    phone:"9623456783", vehicleType:"4W", vehicleCategory:"Luxury",    source:"Digital-Inbound",  status:"Converted", assignedTo:"EDB-TSE-SUR1", ageMinutes:2880, estimatedValue:2999, smId:null,             smLocationName:null,                      cityId:"CITY-SURAT", convertedAt:dAgo(2),  invoiceNumber:"INV-WEB-02-WEBCUST-003" },
       { id:"SH-L-W04", customerName:"Rakesh Thakkar", phone:"9523456784", vehicleType:"4W", vehicleCategory:"SUV",       source:"SM-Alliance-QR",   status:"Converted", assignedTo:"EDB-TSE-SUR2", ageMinutes:28800,estimatedValue:1099, smId:"EDB-SMGR-SUR2", smLocationName:"HP Petrol Pump - Vesu",   cityId:"CITY-SURAT", convertedAt:dAgo(20), invoiceNumber:"INV-WEB-20-WEBCUST-004" },
       { id:"SH-L-W05", customerName:"Sneha Agarwal",  phone:"9423456785", vehicleType:"4W", vehicleCategory:"Hatchback", source:"SM-Alliance-WhatsApp",status:"Converted",assignedTo:"EDB-TSE-SUR1",ageMinutes:11520,estimatedValue:1499, smId:"EDB-SMGR-SUR3", smLocationName:"Piplod Township Society", cityId:"CITY-SURAT", convertedAt:dAgo(8),  invoiceNumber:"INV-WEB-08-WEBCUST-005" },
