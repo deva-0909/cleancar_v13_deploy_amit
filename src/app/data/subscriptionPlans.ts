@@ -826,10 +826,9 @@ export const ADDON_SERVICES = ADD_ON_SERVICES.map(a => ({
 }));
 
 /**
- * Combo offers — re-exported for subscriptionPlansService compat.
- * Uses the dynamically generated COMBO_OFFERS from this file (already live).
+ * Combo offers — already exported as `export const COMBO_OFFERS` above.
+ * No re-export needed.
  */
-export { COMBO_OFFERS };
 
 /** Validation constants */
 export const MIN_BASE_PRICE      = 100;
