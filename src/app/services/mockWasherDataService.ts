@@ -2,7 +2,13 @@
  * Mock Washer Data Service
  * Provides dummy customer and job data for testing the washer module
  * NO HARD-CODED DATA in components - all data comes from this service
+ *
+ * Periodic services use Option B: subscription-start-date anchored scheduling.
+ * computePeriodicFlagsB() from periodicScheduleService.ts is the live source.
+ * The old Option A fixed-day function (computePeriodicFlags) is removed.
  */
+
+import { computePeriodicFlagsB } from "./periodicScheduleService";
 
 export interface CustomerJob {
   id: string;
@@ -16,10 +22,11 @@ export interface CustomerJob {
   vehicleColor: string;
   vehicleBrand: string;
   vehicleRegistration: string;
-  packageName: string;
-  packageType: string;
+  packageName: string;       // display name e.g. "PROTECT | Raksha Plan"
+  packageType: string;       // canonical key: "SHINE" | "PROTECT" | "ELITE" | "ELITE_2W"
   serviceFrequency: string;
   subscriptionMonth: string;
+  subscriptionStartDate?: string;  // ISO date — used to compute periodic service days
   complimentaryBenefits?: string;
   jobType: "Regular" | "One-Time Demo" | "Subscription Demo" | "Ad-hoc";
   status: "Assigned" | "Acknowledged" | "In Progress" | "Completed" | "Cancelled";
@@ -32,7 +39,23 @@ export interface CustomerJob {
   totalWashesCompleted?: number;
   nextScheduledWash?: string;
   parkingInstructions?: string;
+
+  // ── Periodic service flags ────────────────────────────────────────────────
+  // Computed by computePeriodicFlags() based on packageType + today's date.
+  // Option A: fixed calendar days (shampoo=1st, wax/shampoo+wax=15th, interior=10th & 25th).
+  // Washer sees a banner when any of these are true.
+  isShampooDay?:    boolean;   // true if today is the monthly/fortnightly shampoo day
+  isWaxDay?:        boolean;   // true if today is the monthly/fortnightly wax day
+  isGlassDay?:      boolean;   // true if today is the glass cleaning day
+  isTyreDay?:       boolean;   // true if today is the tyre dressing day
+  isInteriorDay?:   boolean;   // true if today is the interior vacuum day
+  periodicServices?: PeriodicService[]; // full list of what's due today
 }
+
+// Re-export PeriodicService type for components that import it from here
+export type { PeriodicService } from "./periodicScheduleService";
+// Re-export for backward compatibility — WasherJobChecklist imports computePeriodicFlagsB
+export { computePeriodicFlagsB } from "./periodicScheduleService";
 
 export interface WasherStats {
   jobsToday: number;
@@ -66,14 +89,14 @@ class MockWasherDataService {
     { category: "Luxury Sedan", brands: ["Mercedes", "BMW", "Audi", "Jaguar"], colors: ["Black", "White", "Silver", "Blue"] },
   ];
 
-  // Package data
+  // Package pool — in sync with data/subscriptionPlans.ts CURRENT_PLAN_VERSION (SHINE/PROTECT/ELITE)
   private packages = [
-    { name: "Basic Wash", type: "Basic", frequency: "Weekly", price: 499 },
-    { name: "Standard Wash", type: "Standard", frequency: "Alternate Days", price: 799 },
-    { name: "Premium Wash", type: "Premium", frequency: "Daily", price: 1299 },
-    { name: "Elite Wash", type: "Premium", frequency: "Daily", price: 1899 },
-    { name: "Gold Monthly", type: "Premium", frequency: "Daily", price: 2499 },
-    { name: "Platinum Quarterly", type: "Elite", frequency: "Daily", price: 6999 },
+    { name: "SHINE | Chamakti Subah",  type: "SHINE",   frequency: "Daily", price: 1199 },
+    { name: "PROTECT | Raksha Plan",   type: "PROTECT", frequency: "Daily", price: 1599 },
+    { name: "ELITE | Raja Seva",       type: "ELITE",   frequency: "Daily", price: 1999 },
+    { name: "PROTECT | Raksha Plan",   type: "PROTECT", frequency: "Daily", price: 1999 }, // SUV tier
+    { name: "ELITE | Raja Seva",       type: "ELITE",   frequency: "Daily", price: 2499 }, // SUV tier
+    { name: "ELITE | Raja Seva",       type: "ELITE",   frequency: "Daily", price: 3499 }, // Luxury tier
   ];
 
   // Special instructions pool
@@ -190,6 +213,10 @@ class MockWasherDataService {
         packageType: packageInfo.type,
         serviceFrequency: packageInfo.frequency,
         subscriptionMonth: `${monthsInPlan}-month plan — Month ${currentMonth} of ${monthsInPlan}`,
+        // Subscription start date: randomised 1–90 days ago so customers have varied anchor dates
+        subscriptionStartDate: new Date(
+          Date.now() - (Math.floor(Math.random() * 90) + 1) * 86400000
+        ).toISOString().split("T")[0],
         complimentaryBenefits: Math.random() > 0.5 ? `${Math.floor(Math.random() * 3) + 1} of 3 Interior Clean-Ups remaining` : undefined,
         jobType: Math.random() > 0.9 ? "One-Time Demo" : "Regular",
         status,
@@ -201,6 +228,14 @@ class MockWasherDataService {
         totalWashesCompleted: totalWashes,
         nextScheduledWash: status === "Completed" ? "Tomorrow" : undefined,
         parkingInstructions: parking,
+        // Periodic service flags — Option B: computed from subscriptionStartDate via periodicScheduleService
+        // Supervisor can reschedule these within the month without exceeding the plan cap.
+        ...computePeriodicFlagsB(
+          `job-${i}`,
+          packageInfo.type,
+          new Date(Date.now() - (Math.floor(Math.random() * 90) + 1) * 86400000)
+            .toISOString().split("T")[0]
+        ),
       });
     }
 

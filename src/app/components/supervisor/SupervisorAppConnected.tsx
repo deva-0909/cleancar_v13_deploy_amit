@@ -27,6 +27,7 @@ import { HierarchyVisibilityScreen } from "./HierarchyVisibilityScreen";
 import { AuditTrailScreen } from "./AuditTrailScreen";
 import { DailyFlowScreen } from "./DailyFlowScreen";
 import { KPIDashboardScreen } from "./KPIDashboardScreen";
+import { SupervisorPeriodicScheduleScreen } from "./SupervisorPeriodicScheduleScreen";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
@@ -1075,9 +1076,9 @@ export function SupervisorAppConnected() {
             <SupervisorMaterialManagement />
           </TabsContent>
 
-          {/* Screen 5: Team Schedule */}
+          {/* Screen 5: Periodic Service Schedule */}
           <TabsContent value="schedule" className="mt-0">
-            <DailyFlowScreen stages={dailyFlowData} summary={dailyFlowSummary} />
+            <SupervisorPeriodicScheduleScreen />
           </TabsContent>
 
           {/* Screen 6: BTL Leads */}
