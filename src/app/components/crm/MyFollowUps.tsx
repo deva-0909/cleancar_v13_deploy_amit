@@ -101,7 +101,7 @@ export function MyFollowUps() {
         : "Never",
       followUpDue: l.followUpDate || "",
       assignedTSE: l.assignedTSE || l.assignedTo || "Unassigned",
-      area: l.address.area,
+      area: l.address?.area ?? "",
       createdAt: l.createdAt,
     }));
 
