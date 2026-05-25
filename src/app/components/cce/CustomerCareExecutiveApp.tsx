@@ -15,6 +15,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Card } from "../ui/card";
 import { toast } from "sonner";
 import { useSearchParams } from 'react-router-dom';
 import { Card } from '../ui/card';

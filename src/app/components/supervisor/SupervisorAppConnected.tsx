@@ -29,7 +29,7 @@ import { DailyFlowScreen } from "./DailyFlowScreen";
 import { KPIDashboardScreen } from "./KPIDashboardScreen";
 import { SupervisorPeriodicScheduleScreen } from "./SupervisorPeriodicScheduleScreen";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { Card, CardContent } from "../ui/card";
+import { Card, CardContent, CardHeader } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Bell } from "lucide-react";

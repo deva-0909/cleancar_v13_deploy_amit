@@ -4,15 +4,18 @@
  */
 
 import { useState } from "react";
+import { Card, CardContent } from "../ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Textarea } from "../ui/textarea";
 import { toast } from "sonner";
 import { useDemos } from "../../contexts/DemoContext";
-import { Calendar, Clock, User, MapPin, AlertCircle, Check } from "lucide-react";
+import { Calendar, Clock, User, MapPin, AlertCircle, AlertTriangle, Car, Check, CheckCircle } from "lucide-react";
 import { logger } from "../../services/logger";
 
 interface DemoSchedulingDrawerProps {

@@ -1,4 +1,9 @@
 import { Link } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { AlertCircle, AlertTriangle, BarChart3, Edit, FileText, Package, Settings, ShoppingCart, TrendingUp, Users } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
