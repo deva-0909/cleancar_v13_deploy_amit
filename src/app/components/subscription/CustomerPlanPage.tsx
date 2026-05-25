@@ -662,7 +662,7 @@ export function CustomerPlanPage() {
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{inv.vehicleReg || "Not provided"}</div>
                     <div style={{ fontSize: 13, color: "#6B7280" }}>{catLabel}</div>
                     <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 8 }}>Subscription ID</div>
-                    <div style={{ fontFamily: "monospace", fontSize: 12, color: "#1D4ED8" }}>{inv.subscriptionId}</div>
+                    <div style={{ fontFamily: "monospace", fontSize: 12, color: "#374151" }}>{inv.subscriptionId}</div>
                   </div>
                 </div>
 
@@ -697,7 +697,7 @@ export function CustomerPlanPage() {
                       <span>{k}</span><span>{v}</span>
                     </div>
                   ))}
-                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 16, fontFamily: "'Poppins', sans-serif", color: "#1D4ED8", borderTop: "1px solid #E5E7EB", paddingTop: 10, marginTop: 4 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 16, fontFamily: "'Poppins', sans-serif", color: "#0F172A", borderTop: "2px solid #0F172A", paddingTop: 12, marginTop: 6 }}>
                     <span>Grand Total</span>
                     <span>₹{inv.grandTotal.toLocaleString("en-IN")}</span>
                   </div>
@@ -732,7 +732,7 @@ export function CustomerPlanPage() {
               </a>
               {inv?.customerEmail && (
                 <a href={`mailto:${inv.customerEmail}?subject=Invoice ${inv?.invoiceNumber} — ${cfg.brand.name}&body=Dear ${inv?.customerName},%0A%0AThank you for subscribing to ${cfg.brand.name}.%0A%0AInvoice No: ${inv?.invoiceNumber}%0AAmount: ₹${inv?.grandTotal} (incl. GST)%0A%0AYour service starts within 2 working days.`}
-                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#1D4ED8", color: "#fff", padding: "12px 20px", borderRadius: 50, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
+                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#0F172A", color: "#fff", padding: "12px 20px", borderRadius: 50, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
                   📧 Send by Email
                 </a>
               )}
@@ -744,7 +744,7 @@ export function CustomerPlanPage() {
           </div>
 
           {/* What happens next */}
-          <div style={{ background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 14, padding: "18px 20px", marginBottom: 24 }}>
+          <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 14, padding: "18px 20px", marginBottom: 24 }}>
             <div style={{ fontWeight: 700, color: "#1B5E20", marginBottom: 12, fontSize: 14 }}>📋 What happens next:</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {cfg.postPaymentSteps.map((s, i) => (
@@ -772,7 +772,7 @@ export function CustomerPlanPage() {
           <span style={{ color: "#FFFFFF" }}>{cfg.brand.name.split(" ")[0]}<span style={{ color: "rgba(255,255,255,0.70)" }}> {cfg.brand.name.split(" ").slice(1).join(" ")}</span></span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.70)" }}>📞 {cfg.brand.phone}</span>
+          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", letterSpacing: "0.2px" }}>📞 {cfg.brand.phone}</span>
           <a href={`https://wa.me/${cfg.brand.whatsappNumber}`} target="_blank" rel="noreferrer"
             style={{ background: "#16A34A", color: "#fff", padding: "9px 18px", borderRadius: 50, fontSize: 13, fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
             💬 WhatsApp
@@ -785,7 +785,7 @@ export function CustomerPlanPage() {
         <div style={{ position: "absolute", inset: 0, backgroundImage: "url(https://static.wixstatic.com/media/4ae675_a44950b3d59245f3b09dd9f9bd21a1d6~mv2.jpg/v1/fill/w_1440,h_600,al_c,q_85,usm_0.33_1.00_0.00,enc_avif/hero.jpg)", backgroundSize: "cover", backgroundPosition: "center", opacity: 0.12 }} />
         <div style={{ position: "relative", zIndex: 1 }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.20)", color: "#FBBF24", fontSize: 12, fontWeight: 600, padding: "6px 18px", borderRadius: 50, marginBottom: 20, letterSpacing: "0.5px", textTransform: "uppercase" }}>
-          Trusted in Surat · 150+ Cars Serviced
+          Trusted in Surat  ·  150+ Cars Serviced  ·  Doorstep Daily Wash
         </div>
         <h1 style={{ fontFamily: "'Poppins', sans-serif", fontSize: "clamp(30px,4.5vw,54px)", fontWeight: 700, color: "#fff", lineHeight: 1.15, marginBottom: 16, letterSpacing: "-0.5px" }}>
           {cfg.hero.headline} <em style={{ fontStyle: "normal", color: "#FBBF24" }}>{cfg.hero.headlineAccent}</em>
@@ -824,7 +824,7 @@ export function CustomerPlanPage() {
             <p style={{ fontSize: 15, color: "#6B7280", marginBottom: 32 }}>We only service 4-wheelers — cars, SUVs, and luxury vehicles. Enter your car model to get the right pricing.</p>
 
             {/* 4W Only notice */}
-            <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "14px 18px", marginBottom: 28, maxWidth: 520, fontSize: 14, color: "#1D4ED8", display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <div style={{ background: "#F8FAFC", border: "1px solid #BFDBFE", borderRadius: 12, padding: "14px 18px", marginBottom: 28, maxWidth: 520, fontSize: 14, color: "#0F172A", display: "flex", gap: 10, alignItems: "flex-start" }}>
               <span style={{ fontSize: 20 }}>🚗</span>
               <div>
                 <strong>4-Wheeler Service Only</strong><br />
@@ -838,7 +838,7 @@ export function CustomerPlanPage() {
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                 {cfg.vehicleCategories.map(cat => (
                   <div key={cat.id} onClick={() => { setDetectedCat(cat.id); setCatConfirmed(true); }}
-                    style={{ border: `2px solid ${activeCat === cat.id ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 14, padding: "20px 24px", cursor: "pointer", background: activeCat === cat.id ? "#EFF6FF" : "#fff", textAlign: "center", minWidth: 160, transition: "all 0.2s" }}>
+                    style={{ border: `2px solid ${activeCat === cat.id ? "#0F172A" : "#E5E7EB"}`, borderRadius: 14, padding: "20px 24px", cursor: "pointer", background: activeCat === cat.id ? "#F8FAFC" : "#fff", textAlign: "center", minWidth: 160, transition: "all 0.2s" }}>
                     <div style={{ fontSize: 36, marginBottom: 8 }}>{cat.icon}</div>
                     <div style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 14 }}>{cat.label}</div>
                   </div>
@@ -853,17 +853,17 @@ export function CustomerPlanPage() {
                 value={carModel}
                 onChange={e => setCarModel(e.target.value)}
                 placeholder="e.g. Maruti Swift, Hyundai Creta, Toyota Fortuner"
-                style={{ width: "100%", padding: "13px 18px", border: "2px solid #E5E7EB", borderRadius: 12, fontFamily: "'Inter', sans-serif", fontSize: 15, outline: "none", background: "#fff" }}
+                style={{ width: "100%", padding: "13px 18px", border: "2px solid #E5E7EB", borderRadius: 12, fontFamily: "'Inter', sans-serif", fontSize: 15, outline: "none", background: "#fff", transition: "border-color 0.15s" }}
               />
               <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 6 }}>Swift, Baleno, Creta, Innova, Fortuner, XUV700, Nexon…</p>
             </div>
 
             {/* Detected category badge */}
             {activeCat && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "13px 18px", marginBottom: 24, maxWidth: 480 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#F8FAFC", border: "1px solid #BFDBFE", borderRadius: 12, padding: "13px 18px", marginBottom: 24, maxWidth: 480 }}>
                 <span style={{ fontSize: 20 }}>{cfg.vehicleCategories.find(c => c.id === activeCat)?.icon}</span>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1D4ED8" }}>{catLabel}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{catLabel}</div>
                   <div style={{ fontSize: 12, color: "#6B7280" }}>Pricing will be applied for this category</div>
                 </div>
               </div>
@@ -875,7 +875,7 @@ export function CustomerPlanPage() {
                 Next: Check Your Area →
               </button>
               <a href={`https://wa.me/${cfg.brand.whatsappNumber}`} target="_blank" rel="noreferrer"
-                style={{ padding: "13px 24px", background: "#f5f5f5", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
+                style={{ padding: "13px 24px", background: "#F3F4F6", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
                 📞 Prefer a callback?
               </a>
             </div>
@@ -895,7 +895,7 @@ export function CustomerPlanPage() {
                 onChange={e => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 placeholder="e.g. 395007"
                 maxLength={6}
-                style={{ width: "100%", padding: "16px 20px", border: "2px solid #E5E7EB", borderRadius: 12, fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: 4, outline: "none" }}
+                style={{ width: "100%", padding: "16px 20px", border: "2px solid #E5E7EB", borderRadius: 12, fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 700, letterSpacing: "6px", outline: "none", color: "#0F172A" }}
               />
             </div>
 
@@ -923,7 +923,7 @@ export function CustomerPlanPage() {
             </div>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => goTo(1)} style={{ padding: "12px 24px", background: "#F3F4F6", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
+              <button onClick={() => goTo(1)} style={{ padding: "11px 22px", background: "transparent", color: "#6B7280", border: "1.5px solid #E5E7EB", borderRadius: 50, fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
               <button onClick={() => goTo(3)} disabled={!step2Ok}
                 style={{ padding: "13px 32px", background: step2Ok ? "#0F172A" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: step2Ok ? "pointer" : "not-allowed", fontFamily: "'Inter', sans-serif" }}>
                 Next: Choose Your Plan →
@@ -936,7 +936,7 @@ export function CustomerPlanPage() {
         {step === 3 && (
           <div>
             <h2 style={{ fontFamily: "'Poppins', sans-serif", fontSize: 26, fontWeight: 600, marginBottom: 8, color: "#111827" }}>Choose your plan</h2>
-            <p style={{ fontSize: 15, color: "#6B7280", marginBottom: 28 }}>Priced for your <strong>{catLabel}</strong>. All monthly plans include 30 washes/month.</p>
+            <p style={{ fontSize: 15, color: "#6B7280", marginBottom: 28, lineHeight: 1.6 }}>Priced for your <strong>{catLabel}</strong>. All monthly plans include 30 washes/month.</p>
 
             {/* Toggle */}
             <div style={{ display: "flex", background: "#E2E8F0", borderRadius: 50, padding: 4, maxWidth: 340, marginBottom: 32 }}>
@@ -957,14 +957,14 @@ export function CustomerPlanPage() {
                     const isSelected = selectedPlan === plan.id;
                     return (
                       <div key={plan.id} onClick={() => setSelectedPlan(plan.id)}
-                        style={{ border: `2px solid ${isSelected || plan.popular ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 16, background: "#fff", cursor: "pointer", overflow: "hidden", transition: "transform 0.2s, box-shadow 0.2s", transition: "all 0.2s", boxShadow: isSelected ? "0 8px 32px rgba(33,150,243,0.18)" : "none" }}>
-                        {plan.popular && <div style={{ background: "#0F172A", color: "#FBBF24", fontSize: 11, fontWeight: 700, padding: "5px 12px", textAlign: "center", letterSpacing: 0.8 }}>⭐ Most Popular</div>}
+                        style={{ border: `2px solid ${isSelected || plan.popular ? "#0F172A" : "#E5E7EB"}`, borderRadius: 16, background: "#fff", cursor: "pointer", overflow: "hidden", transition: "transform 0.2s, box-shadow 0.2s", transition: "all 0.2s", boxShadow: isSelected ? "0 4px 20px rgba(15,23,42,0.12)" : "none" }}>
+                        {plan.popular && <div style={{ background: "#0F172A", color: "#FBBF24", fontSize: 10, fontWeight: 700, padding: "6px 12px", textAlign: "center", letterSpacing: "1px", textTransform: "uppercase" }}>⭐ Most Popular</div>}
                         <div style={{ padding: 24 }}>
                           <div style={{ fontSize: 28, marginBottom: 10 }}>{plan.icon}</div>
                           <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{plan.name}</div>
                           <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 18 }}>{plan.tagline}</div>
                           <div style={{ marginBottom: 4 }}>
-                            <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: 32, fontWeight: 800, color: "#1D4ED8" }}>{inr(price)}</span>
+                            <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: 34, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.5px" }}>{inr(price)}</span>
                             <span style={{ fontSize: 14, color: "#6B7280" }}>/month</span>
                           </div>
                           <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 18 }}>{perWash(price)}</div>
@@ -976,7 +976,7 @@ export function CustomerPlanPage() {
                               </div>
                             ))}
                           </div>
-                          <button style={{ width: "100%", marginTop: 18, padding: 13, borderRadius: 10, border: "2px solid #0F172A", background: isSelected ? "#0F172A" : "none", color: isSelected ? "#fff" : "#0F172A", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+                          <button style={{ width: "100%", marginTop: 18, padding: "12px 0", borderRadius: 50, border: "2px solid #0F172A", background: isSelected ? "#0F172A" : "transparent", color: isSelected ? "#fff" : "#0F172A", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Inter', sans-serif", letterSpacing: "0.3px" }}>
                             {isSelected ? "✓ Selected" : `Select ${plan.name}`}
                           </button>
                         </div>
@@ -994,10 +994,10 @@ export function CustomerPlanPage() {
                       const isSelected = commitment === c.id;
                       return (
                         <div key={c.id} onClick={() => setCommitment(c.id)}
-                          style={{ border: `2px solid ${isSelected ? "#1D4ED8" : c.highlight === "best" ? "#FF6D00" : "#E5E7EB"}`, borderRadius: 14, padding: 18, cursor: "pointer", background: isSelected ? "#EFF6FF" : "#fff", transition: "all 0.2s" }}>
-                          {c.highlight && <div style={{ display: "inline-block", background: c.highlight === "best" ? "#FF6D00" : "#1D4ED8", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, marginBottom: 8, letterSpacing: 0.5 }}>{c.highlight === "best" ? "BEST DEAL" : "GREAT VALUE"}</div>}
+                          style={{ border: `2px solid ${isSelected ? "#0F172A" : c.highlight === "best" ? "#0F172A" : "#E5E7EB"}`, borderRadius: 14, padding: 18, cursor: "pointer", background: isSelected ? "#F8FAFC" : "#fff", transition: "all 0.2s" }}>
+                          {c.highlight && <div style={{ display: "inline-block", background: "#0F172A", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, marginBottom: 8, letterSpacing: 0.5 }}>{c.highlight === "best" ? "BEST DEAL" : "GREAT VALUE"}</div>}
                           <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{c.term}</div>
-                          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 20, fontWeight: 800, color: "#1D4ED8", marginBottom: 4 }}>{c.discountLabel}</div>
+                          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>{c.discountLabel}</div>
                           <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.4 }}>{c.perk}</div>
                         </div>
                       );
@@ -1015,10 +1015,10 @@ export function CustomerPlanPage() {
                     const isSelected = selectedPack === pack.id;
                     return (
                       <div key={pack.id} onClick={() => setSelectedPack(pack.id)}
-                        style={{ border: `2px solid ${isSelected ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 14, padding: "20px 16px", textAlign: "center", cursor: "pointer", background: isSelected ? "#EFF6FF" : "#fff", transition: "all 0.2s" }}>
+                        style={{ border: `2px solid ${isSelected ? "#0F172A" : "#E5E7EB"}`, borderRadius: 14, padding: "20px 16px", textAlign: "center", cursor: "pointer", background: isSelected ? "#F8FAFC" : "#fff", transition: "all 0.2s" }}>
                         <div style={{ fontSize: 28, marginBottom: 10 }}>{pack.icon}</div>
                         <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{pack.name}</div>
-                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 24, fontWeight: 800, color: "#1D4ED8" }}>{inr(pack.price)}</div>
+                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 24, fontWeight: 800, color: "#0F172A" }}>{inr(pack.price)}</div>
                         <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 8 }}>{pack.perLabel}</div>
                         <span style={{ background: "#E8F5E9", color: "#2E7D32", fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 20 }}>{pack.discount}</span>
                       </div>
@@ -1048,14 +1048,14 @@ export function CustomerPlanPage() {
                     </div>
                   </div>
                 )}
-                <div style={{ background: "#EFF6FF", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#1D4ED8", marginBottom: 24 }}>
+                <div style={{ background: "#F8FAFC", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#374151", marginBottom: 24 }}>
                   💡 <strong>Same ₹200 base price</strong> for all vehicle categories. Volume discount applied automatically. No lock-in.
                 </div>
               </>
             )}
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => goTo(2)} style={{ padding: "12px 24px", background: "#F3F4F6", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
+              <button onClick={() => goTo(2)} style={{ padding: "11px 22px", background: "transparent", color: "#6B7280", border: "1.5px solid #E5E7EB", borderRadius: 50, fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
               <button onClick={() => goTo(4)} disabled={!step3Ok}
                 style={{ padding: "13px 32px", background: step3Ok ? "#0F172A" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: step3Ok ? "pointer" : "not-allowed", fontFamily: "'Inter', sans-serif" }}>
                 Next: Add-ons →
@@ -1069,7 +1069,7 @@ export function CustomerPlanPage() {
           <div>
             <h2 style={{ fontFamily: "'Poppins', sans-serif", fontSize: 26, fontWeight: 600, marginBottom: 8, color: "#111827" }}>Want to add anything?</h2>
             <p style={{ fontSize: 15, color: "#6B7280", marginBottom: 24 }}>Optional add-ons to get more from every wash. Can be added to any plan.</p>
-            <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#1D4ED8", marginBottom: 24 }}>
+            <div style={{ background: "#F8FAFC", border: "1px solid #BFDBFE", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#374151", marginBottom: 24 }}>
               ℹ️ Add-ons are <strong>per visit</strong> unless stated otherwise. You can add or remove them anytime from your account.
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginBottom: 32 }}>
@@ -1077,11 +1077,11 @@ export function CustomerPlanPage() {
                 const selected = addons.includes(addon.id);
                 return (
                   <div key={addon.id} onClick={() => setAddons(prev => selected ? prev.filter(a => a !== addon.id) : [...prev, addon.id])}
-                    style={{ border: `2px solid ${selected ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 14, padding: 18, cursor: "pointer", background: selected ? "#EFF6FF" : "#fff", transition: "all 0.2s" }}>
+                    style={{ border: `2px solid ${selected ? "#0F172A" : "#E5E7EB"}`, borderRadius: 14, padding: 18, cursor: "pointer", background: selected ? "#F8FAFC" : "#fff", transition: "all 0.2s" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{addon.name} {selected && <span style={{ color: "#00C853" }}>✓</span>}</div>
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 18, fontWeight: 800, color: "#1D4ED8" }}>{inr(addon.price)}</div>
+                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A" }}>{inr(addon.price)}</div>
                         <div style={{ fontSize: 11, color: "#6B7280" }}>{addon.unit}</div>
                       </div>
                     </div>
@@ -1089,14 +1089,14 @@ export function CustomerPlanPage() {
                     {/* Frequency selector — only shown when addon is selected */}
                     {selected && (
                       <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "#1D4ED8", marginBottom: 6 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
                           How often? <span style={{ fontWeight: 400, color: "#6B7280" }}>(per month)</span>
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                           {(["1x","2x","3x","4x"] as const).map(freq => (
                             <button key={freq}
                               onClick={e => { e.stopPropagation(); setAddonFreq(prev => ({ ...prev, [addon.id]: freq })); }}
-                              style={{ padding: "5px 14px", borderRadius: 20, border: `2px solid ${addonFreq[addon.id] === freq ? "#1D4ED8" : "#E5E7EB"}`,
+                              style={{ padding: "5px 14px", borderRadius: 20, border: `2px solid ${addonFreq[addon.id] === freq ? "#0F172A" : "#E5E7EB"}`,
                                 background: addonFreq[addon.id] === freq ? "#0F172A" : "#fff",
                                 color: addonFreq[addon.id] === freq ? "#fff" : "#6B7280",
                                 fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
@@ -1129,7 +1129,7 @@ export function CustomerPlanPage() {
               })}
             </div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => goTo(3)} style={{ padding: "12px 24px", background: "#F3F4F6", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
+              <button onClick={() => goTo(3)} style={{ padding: "11px 22px", background: "transparent", color: "#6B7280", border: "1.5px solid #E5E7EB", borderRadius: 50, fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
               <button onClick={() => goTo(5)} style={{ padding: "13px 32px", background: "#0F172A", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
                 Next: Your Details →
               </button>
@@ -1201,8 +1201,8 @@ export function CustomerPlanPage() {
                   </div>
                 ) : (
                   /* SUBSCRIPTION / REPEAT: 2-hour window preference */
-                  <div style={{ background: "#EFF6FF", border: "2px solid #90CAF9", borderRadius: 14, padding: "18px 20px" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "#1D4ED8", marginBottom: 4, display: "flex", gap: 8, alignItems: "center" }}>
+                  <div style={{ background: "#F9FAFB", border: "1.5px solid #E2E8F0", borderRadius: 14, padding: "18px 20px" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#1E293B", marginBottom: 4, display: "flex", gap: 8, alignItems: "center" }}>
                       <span>🕐</span> Preferred Wash Window
                     </div>
                     <p style={{ fontSize: 12, color: "#6B7280", marginBottom: 14, lineHeight: 1.5 }}>
@@ -1219,14 +1219,14 @@ export function CustomerPlanPage() {
                         { id: "18:00–20:00", label: "6 PM – 8 PM", icon: "🌇",  note: "After office" },
                       ].map(slot => (
                         <div key={slot.id} onClick={() => setPrefTime(slot.id)}
-                          style={{ border: `2px solid ${prefTime === slot.id ? "#1D4ED8" : "#E5E7EB"}`,
+                          style={{ border: `2px solid ${prefTime === slot.id ? "#0F172A" : "#E5E7EB"}`,
                             borderRadius: 12, padding: "12px 14px", cursor: "pointer",
-                            background: prefTime === slot.id ? "#EFF6FF" : "#fff",
+                            background: prefTime === slot.id ? "#F8FAFC" : "#fff",
                             transition: "all 0.15s" }}>
                           <div style={{ fontSize: 20, marginBottom: 4 }}>{slot.icon}</div>
                           <div style={{ fontWeight: 700, fontSize: 13, color: "#111827" }}>{slot.label}</div>
                           <div style={{ fontSize: 11, color: "#6B7280" }}>{slot.note}</div>
-                          {prefTime === slot.id && <div style={{ fontSize: 11, color: "#1D4ED8", fontWeight: 600, marginTop: 4 }}>✓ Selected</div>}
+                          {prefTime === slot.id && <div style={{ fontSize: 11, color: "#0F172A", fontWeight: 600, marginTop: 4 }}>✓ Selected</div>}
                         </div>
                       ))}
                     </div>
@@ -1258,7 +1258,7 @@ export function CustomerPlanPage() {
                   { id: "random",    label: "Open / Society Parking",        icon: "🏢", desc: "Our team will call you to confirm your spot each day." },
                 ].map(p => (
                   <div key={p.id} onClick={() => setParking(p.id as any)}
-                    style={{ border: `2px solid ${parking === p.id ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 14, padding: "16px 20px", cursor: "pointer", background: parking === p.id ? "#EFF6FF" : "#fff", flex: "1 1 220px", transition: "all 0.2s" }}>
+                    style={{ border: `2px solid ${parking === p.id ? "#0F172A" : "#E5E7EB"}`, borderRadius: 14, padding: "16px 20px", cursor: "pointer", background: parking === p.id ? "#F8FAFC" : "#fff", flex: "1 1 220px", transition: "all 0.2s" }}>
                     <div style={{ fontSize: 24, marginBottom: 8 }}>{p.icon}</div>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{p.label}</div>
                     <div style={{ fontSize: 12, color: "#6B7280" }}>{p.desc}</div>
@@ -1277,7 +1277,7 @@ export function CustomerPlanPage() {
                   { id: "both",     label: "Both",          icon: "📲" },
                 ].map(opt => (
                   <div key={opt.id} onClick={() => setNotifyPref(opt.id as any)}
-                    style={{ border: `2px solid ${notifyPref === opt.id ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 12, padding: "12px 20px", cursor: "pointer", background: notifyPref === opt.id ? "#EFF6FF" : "#fff", display: "flex", alignItems: "center", gap: 8, fontWeight: notifyPref === opt.id ? 700 : 500, fontSize: 14, transition: "all 0.15s" }}>
+                    style={{ border: `2px solid ${notifyPref === opt.id ? "#0F172A" : "#E5E7EB"}`, borderRadius: 12, padding: "12px 20px", cursor: "pointer", background: notifyPref === opt.id ? "#F8FAFC" : "#fff", display: "flex", alignItems: "center", gap: 8, fontWeight: notifyPref === opt.id ? 700 : 500, fontSize: 14, transition: "all 0.15s" }}>
                     <span>{opt.icon}</span>{opt.label}
                   </div>
                 ))}
@@ -1288,7 +1288,7 @@ export function CustomerPlanPage() {
             </div>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => goTo(4)} style={{ padding: "12px 24px", background: "#F3F4F6", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
+              <button onClick={() => goTo(4)} style={{ padding: "11px 22px", background: "transparent", color: "#6B7280", border: "1.5px solid #E5E7EB", borderRadius: 50, fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
               <button onClick={() => goTo(6)} disabled={!step5Ok}
                 style={{ padding: "13px 32px", background: step5Ok ? "#0F172A" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: step5Ok ? "pointer" : "not-allowed", fontFamily: "'Inter', sans-serif" }}>
                 Review & Accept T&C →
@@ -1304,13 +1304,13 @@ export function CustomerPlanPage() {
             <p style={{ fontSize: 15, color: "#6B7280", marginBottom: 24 }}>Review your order, read and accept our policies, then pay securely.</p>
 
             {/* Photos promise */}
-            <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 14, padding: "16px 20px", display: "flex", gap: 14, alignItems: "center", marginBottom: 24, maxWidth: 640 }}>
+            <div style={{ background: "#F8FAFC", border: "1px solid #BFDBFE", borderRadius: 14, padding: "16px 20px", display: "flex", gap: 14, alignItems: "center", marginBottom: 24, maxWidth: 640 }}>
               <span style={{ fontSize: 24 }}>📸</span>
               <span style={{ fontSize: 14 }}>After <strong>every single wash</strong>, your washer will send <strong>before & after photos directly to your WhatsApp</strong>. You don't need to be present.</span>
             </div>
 
             <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 16, maxWidth: 640, marginBottom: 24, overflow: "hidden" }}>
-              <div style={{ padding: "16px 20px", fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 16, borderBottom: "1px solid #E5E7EB" }}>Order Summary</div>
+              <div style={{ padding: "16px 20px", fontFamily: "'Poppins', sans-serif", fontWeight: 600, fontSize: 15, borderBottom: "1px solid #E5E7EB", background: "#0F172A", color: "#fff", borderRadius: "16px 16px 0 0" }}>Order Summary</div>
               {[
                 ["Vehicle", `${carModel} ${custReg ? "· " + custReg : ""}`],
                 ["Category", catLabel],
@@ -1330,9 +1330,9 @@ export function CustomerPlanPage() {
                   <span style={{ fontWeight: 600, textAlign: "right", maxWidth: "60%" }}>{v}</span>
                 </div>
               ))}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 20px", background: "#F9FAFB" }}>
-                <span style={{ fontWeight: 700, fontSize: 16 }}>Amount to pay</span>
-                <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: 28, fontWeight: 700, color: "#1D4ED8" }}>{inr(total)}{planMode === "monthly" ? "/month" : ""}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", background: "#0F172A" }}>
+                <span style={{ fontWeight: 700, fontSize: 16, color: "#fff" }}>Amount to pay</span>
+                <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: 28, fontWeight: 700, color: "#0F172A" }}>{inr(total)}{planMode === "monthly" ? "/month" : ""}</span>
               </div>
               <div style={{ padding: "14px 20px", fontSize: 13, color: "#6B7280", background: "#F9FAFB", borderTop: "1px solid #E5E7EB" }}>
                 🔒 <strong>Razorpay secure payment</strong> — Cards, UPI, Net Banking, Wallets. No cash at doorstep.
@@ -1347,7 +1347,7 @@ export function CustomerPlanPage() {
             </div>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => goTo(5)} style={{ padding: "12px 24px", background: "#F3F4F6", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
+              <button onClick={() => goTo(5)} style={{ padding: "11px 22px", background: "transparent", color: "#6B7280", border: "1.5px solid #E5E7EB", borderRadius: 50, fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
             </div>
 
             {/* ── T&C CONSENT SECTION ──────────────────────────────────────── */}
@@ -1356,14 +1356,14 @@ export function CustomerPlanPage() {
               <p style={{ fontSize: 13, color: "#6B7280", marginBottom: 20 }}>Please read and accept all three policies before proceeding to payment.</p>
 
               {/* T&C 1 — Terms of Service */}
-              <div style={{ border: `2px solid ${consentTerms ? "#16A34A" : "#E5E7EB"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 12, background: consentTerms ? "#F0FDF4" : "#fff" }}>
+              <div style={{ border: `1.5px solid ${consentTerms ? "#16A34A" : "#E5E7EB"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 12, background: consentTerms ? "#F0FDF4" : "#FAFAFA" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>📄 Terms of Service</div>
                     <div style={{ fontSize: 12, color: "#6B7280" }}>Service schedule, washer conduct, quality standards, service area</div>
                   </div>
                   <button onClick={() => setShowTnC("terms")}
-                    style={{ padding: "5px 14px", background: "#EFF6FF", color: "#1D4ED8", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
+                    style={{ padding: "5px 14px", background: "#F8FAFC", color: "#0F172A", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
                     Read →
                   </button>
                 </div>
@@ -1375,14 +1375,14 @@ export function CustomerPlanPage() {
               </div>
 
               {/* T&C 2 — Refund Policy */}
-              <div style={{ border: `2px solid ${consentRefund ? "#16A34A" : "#E5E7EB"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 12, background: consentRefund ? "#F0FDF4" : "#fff" }}>
+              <div style={{ border: `1.5px solid ${consentRefund ? "#16A34A" : "#E5E7EB"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 12, background: consentRefund ? "#F0FDF4" : "#FAFAFA" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>💰 Refund Policy</div>
                     <div style={{ fontSize: 12, color: "#6B7280" }}>Conditions for refund, pro-rata billing, dispute resolution</div>
                   </div>
                   <button onClick={() => setShowTnC("refund")}
-                    style={{ padding: "5px 14px", background: "#EFF6FF", color: "#1D4ED8", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
+                    style={{ padding: "5px 14px", background: "#F8FAFC", color: "#0F172A", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
                     Read →
                   </button>
                 </div>
@@ -1394,14 +1394,14 @@ export function CustomerPlanPage() {
               </div>
 
               {/* T&C 3 — Cancellation Policy */}
-              <div style={{ border: `2px solid ${consentCancel ? "#16A34A" : "#E5E7EB"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 24, background: consentCancel ? "#F0FDF4" : "#fff" }}>
+              <div style={{ border: `1.5px solid ${consentCancel ? "#16A34A" : "#E5E7EB"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 24, background: consentCancel ? "#F0FDF4" : "#FAFAFA" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>🚫 Cancellation Policy</div>
                     <div style={{ fontSize: 12, color: "#6B7280" }}>7-day notice, no lock-in, pause options, penalty-free exit</div>
                   </div>
                   <button onClick={() => setShowTnC("cancel")}
-                    style={{ padding: "5px 14px", background: "#EFF6FF", color: "#1D4ED8", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
+                    style={{ padding: "5px 14px", background: "#F8FAFC", color: "#0F172A", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
                     Read →
                   </button>
                 </div>
@@ -1430,7 +1430,7 @@ export function CustomerPlanPage() {
                 disabled={!consentOk || isProcessing}
                 style={{
                   width: "100%", padding: "16px", borderRadius: 14, border: "none",
-                  background: consentOk && !isProcessing ? "#0F172A" : "#CBD5E1",
+                  background: consentOk && !isProcessing ? "#0F172A" : "#D1D5DB",
                   color: "#fff", fontFamily: "'Poppins', sans-serif", fontWeight: 800, fontSize: 18,
                   cursor: consentOk && !isProcessing ? "pointer" : "not-allowed",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
@@ -1454,11 +1454,11 @@ export function CustomerPlanPage() {
                 onClick={() => setShowTnC(null)}>
                 <div style={{ background: "#fff", borderRadius: 18, maxWidth: 560, width: "100%", maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
                   onClick={e => e.stopPropagation()}>
-                  <div style={{ padding: "20px 24px", borderBottom: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <h3 style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 800, fontSize: 18, margin: 0 }}>
+                  <div style={{ padding: "18px 24px", borderBottom: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#0F172A" }}>
+                    <h3 style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 17, margin: 0, color: "#fff" }}>
                       {showTnC === "terms" ? "📄 Terms of Service" : showTnC === "refund" ? "💰 Refund Policy" : "🚫 Cancellation Policy"}
                     </h3>
-                    <button onClick={() => setShowTnC(null)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6B7280" }}>✕</button>
+                    <button onClick={() => setShowTnC(null)} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "rgba(255,255,255,0.70)" }}>✕</button>
                   </div>
                   <div style={{ padding: "20px 24px", overflowY: "auto", fontSize: 13, lineHeight: 1.8, color: "#374151" }}>
                     {showTnC === "terms" && <>
