@@ -365,6 +365,21 @@ class PeriodicScheduleService {
     };
   }
 
+  // ── Public: reset a skipped occurrence back to scheduled ─────────────────
+  // Called by periodicNotificationService when a customer confirms (or
+  // auto-confirms) a service that was previously marked skipped.
+  // Ensures getTodayServices() picks it up for the washer's checklist.
+
+  resetSkippedToScheduled(customerId: string, occurrenceId: string): void {
+    const schedule = this.readCustomer(customerId);
+    if (!schedule) return;
+    const idx = schedule.occurrences.findIndex(o => o.id === occurrenceId);
+    if (idx === -1) return;
+    if (schedule.occurrences[idx].status !== "skipped") return;
+    schedule.occurrences[idx].status = "scheduled";
+    this.writeCustomer(schedule);
+  }
+
   // ── Public: mark occurrence completed (called when washer finishes) ─────────
 
   markCompleted(customerId: string, occurrenceId: string): void {
