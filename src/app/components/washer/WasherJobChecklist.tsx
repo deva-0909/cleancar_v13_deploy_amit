@@ -51,14 +51,14 @@ import { periodicScheduleService } from "../../services/periodicScheduleService"
 
 // ── Plan-aware checklist builder ──────────────────────────────────────────────
 // Builds the correct sections based on job.packageType + today's periodic flags.
-// SHINE:   Exterior + Quality only
-// PROTECT: Exterior + [Shampoo if isShampooDay] + [Glass if isGlassDay] + [Tyre if isTyreDay] + Quality
-// ELITE:   Exterior + [Shampoo+Wax if day] + [Glass if isGlassDay] + [Tyre if isTyreDay] + [Interior if isInteriorDay] + Quality
+// EXPRESS_WASH:   Exterior (daily water wash + weekly tyre spray) + Quality only
+// SMART_WASH: Exterior + [Shampoo 2×/month] + [Interior Vacuum 2×/month] + [Tyre Dressing 1×/month] + Quality
+// ELITE:   Exterior + [Shampoo 4×/month] + [Dashboard 2×/month] + [Interior 2×/month] + [Tyre 2×/month] + [Wax 1×/month] + [Engine Bay 1×/month] + Quality
 
 function buildChecklistSections(job: any): ChecklistSection[] {
   const flags = computePeriodicFlagsB(
     job.id,
-    job.packageType ?? "SHINE",
+    job.packageType ?? "EXPRESS_WASH",
     job.subscriptionStartDate,
   );
 
@@ -66,7 +66,7 @@ function buildChecklistSections(job: any): ChecklistSection[] {
     id: "exterior", name: "Exterior Wash", isOpen: true,
     items: [
       { id: "ext-1", name: "Pre-rinse vehicle body — dust + loose dirt",     completed: false, skipped: false },
-      { id: "ext-2", name: "Foam / shampoo application",                      completed: false, skipped: false },
+      { id: "ext-2", name: "Rinse all panels — pressure spray, top to bottom",  completed: false, skipped: false },
       { id: "ext-3", name: "Scrub body panels with microfibre mitt",          completed: false, skipped: false },
       { id: "ext-4", name: "Clean wheels, tyres, mudguard",                   completed: false, skipped: false },
       { id: "ext-5", name: "Rinse thoroughly — no shampoo residue",           completed: false, skipped: false },
@@ -75,27 +75,29 @@ function buildChecklistSections(job: any): ChecklistSection[] {
     ],
   };
 
-  const shampooSection: ChecklistSection = {
+    const shampooSection: ChecklistSection = {
     id: "shampoo",
-    name: `Shampoo Wash — Aaj ka schedule hai 🧴`,
-    isOpen: true,
+    title: "🧴 Shampoo Wash",
     items: [
-      { id: "sha-1", name: "Car-safe shampoo foam — spray evenly on all panels", completed: false, skipped: false },
-      { id: "sha-2", name: "Work into paint with mitt — circular motion",          completed: false, skipped: false },
-      { id: "sha-3", name: "Rinse completely — check door jambs too",              completed: false, skipped: false },
-      { id: "sha-4", name: "Final dry with fresh microfibre towel",                completed: false, skipped: false },
+      { id: "sha-1", name: "Apply car-safe shampoo foam — spray evenly, all panels",         completed: false, skipped: false },
+      { id: "sha-2", name: "Work foam with microfibre mitt — circular motion, panel by panel", completed: false, skipped: false },
+      { id: "sha-3", name: "Full rinse — zero soap residue on any panel",                     completed: false, skipped: false },
+      { id: "sha-4", name: "Glass cleaned outside — windscreen, rear, side windows",           completed: false, skipped: false },
+      { id: "sha-5", name: "Final microfibre dry — no water marks",                           completed: false, skipped: false },
+      { id: "sha-6", name: "Before + after photo sent on WhatsApp",                           completed: false, skipped: false },
     ],
   };
 
-  const waxSection: ChecklistSection = {
+    const waxSection: ChecklistSection = {
     id: "wax",
-    name: `Hand Wax Polish — Aaj ka schedule hai ✨`,
-    isOpen: true,
+    title: "✨ Full Hand Wax Polish",
     items: [
-      { id: "wax-1", name: "Apply wax to one panel at a time — do not spread over whole car", completed: false, skipped: false },
-      { id: "wax-2", name: "Buff each panel — circular motion, low pressure",                  completed: false, skipped: false },
-      { id: "wax-3", name: "Check for wax haze — buff until clear shine",                      completed: false, skipped: false },
+      { id: "wax-1", name: "Shampoo wash complete first — car must be clean and dry",          completed: false, skipped: false },
+      { id: "wax-2", name: "Apply wax one panel at a time — do not spread over whole car",      completed: false, skipped: false },
+      { id: "wax-3", name: "Buff each panel — circular motion, low pressure, check for haze",  completed: false, skipped: false },
       { id: "wax-4", name: "Bonnet and boot last — hero reflection check",                     completed: false, skipped: false },
+      { id: "wax-5", name: "No wax on glass — outer body panels only",                        completed: false, skipped: false },
+      { id: "wax-6", name: "Before + after photo sent on WhatsApp",                           completed: false, skipped: false },
     ],
   };
 
@@ -108,6 +110,18 @@ function buildChecklistSections(job: any): ChecklistSection[] {
       { id: "gl-2", name: "Wipe with glass-only cloth — no smears",                  completed: false, skipped: false },
       { id: "gl-3", name: "Rear windscreen + side windows — same process",            completed: false, skipped: false },
       { id: "gl-4", name: "Check in sunlight — no streaks visible",                   completed: false, skipped: false },
+    ],
+  };
+
+    const dashboardSection: ChecklistSection = {
+    id: "dashboard",
+    title: "🧹 Dashboard & Console Deep Clean",
+    items: [
+      { id: "dash-1", name: "Dashboard polish — wipe panel by panel",                         completed: false, skipped: false },
+      { id: "dash-2", name: "Console polish — gear surround, centre console, cupholders",      completed: false, skipped: false },
+      { id: "dash-3", name: "Door pads — wipe + polish all 4 doors",                          completed: false, skipped: false },
+      { id: "dash-4", name: "AC vents — blow clean with compressed air or soft brush",         completed: false, skipped: false },
+      { id: "dash-5", name: "Before + after photo sent on WhatsApp",                          completed: false, skipped: false },
     ],
   };
 
@@ -131,8 +145,20 @@ function buildChecklistSections(job: any): ChecklistSection[] {
       { id: "int-2", name: "Vacuum cabin floor + under seats",                    completed: false, skipped: false },
       { id: "int-3", name: "Vacuum both front and rear seats",                    completed: false, skipped: false },
       { id: "int-4", name: "Vacuum boot / dicky area",                            completed: false, skipped: false },
-      { id: "int-5", name: "Wipe dashboard and console with damp cloth",          completed: false, skipped: false },
+      { id: "int-5", name: "Seat cover pockets + door pad pockets — vacuum out",  completed: false, skipped: false },
       { id: "int-6", name: "Replace floor mats — check alignment",                completed: false, skipped: false },
+    ],
+  };
+
+    const engineSection: ChecklistSection = {
+    id: "engine",
+    title: "⚙️ Engine Bay Dry Blow",
+    items: [
+      { id: "eng-1", name: "⚠️ STRICTLY DRY ONLY — no water in engine bay under any circumstances", completed: false, skipped: false },
+      { id: "eng-2", name: "Dry blow with compressed air / blower — remove dust and debris",   completed: false, skipped: false },
+      { id: "eng-3", name: "Check bonnet hinge area — dust cleared",                          completed: false, skipped: false },
+      { id: "eng-4", name: "Close bonnet fully — confirm latch",                               completed: false, skipped: false },
+      { id: "eng-5", name: "Before + after photo sent on WhatsApp",                           completed: false, skipped: false },
     ],
   };
 
@@ -149,20 +175,21 @@ function buildChecklistSections(job: any): ChecklistSection[] {
 
   const sections: ChecklistSection[] = [exteriorSection];
 
-  const pkg = job.packageType ?? "SHINE";
+  const pkg = job.packageType ?? "EXPRESS_WASH";
 
-  if (pkg === "PROTECT") {
-    if (flags.isShampooDay) sections.push(shampooSection);
-    if (flags.isGlassDay)   sections.push(glassSection);
-    if (flags.isTyreDay)    sections.push(tyreSection);
+    if (pkg === "SMART_WASH") {
+    if (flags.isShampooDay)   sections.push(shampooSection);
+    if (flags.isInteriorDay)  sections.push(interiorSection);
+    if (flags.isTyreDay)      sections.push(tyreSection);
   }
 
-  if (pkg === "ELITE") {
-    if (flags.isShampooDay) sections.push(shampooSection);
-    if (flags.isWaxDay)     sections.push(waxSection);
-    if (flags.isGlassDay)   sections.push(glassSection);
-    if (flags.isTyreDay)    sections.push(tyreSection);
-    if (flags.isInteriorDay) sections.push(interiorSection);
+    if (pkg === "ELITE") {
+    if (flags.isShampooDay)    sections.push(shampooSection);
+    if (flags.isWaxDay)        sections.push(waxSection);
+    if (flags.isDashboardDay)  sections.push(dashboardSection);
+    if (flags.isInteriorDay)   sections.push(interiorSection);
+    if (flags.isTyreDay)       sections.push(tyreSection);
+    if (flags.isEngineDay)     sections.push(engineSection);
   }
 
   if (pkg === "ELITE_2W") {
@@ -172,6 +199,8 @@ function buildChecklistSections(job: any): ChecklistSection[] {
   sections.push(qualitySection);
   return sections;
 }
+
+interface WasherJobChecklistProps {
   job: any;
   onChecklistChange: (complete: boolean, photos: boolean, autoAdvance?: string) => void;
   isInProgress: boolean;
@@ -189,7 +218,7 @@ export function WasherJobChecklist({ job, onChecklistChange, isInProgress }: Was
   // Option B periodic flags — computed from subscriptionStartDate via periodicScheduleService
   const periodicFlags = computePeriodicFlagsB(
     job.id,
-    job.packageType ?? "SHINE",
+    job.packageType ?? "EXPRESS_WASH",
     job.subscriptionStartDate,
   );
   const hasPeriodicToday = periodicFlags.periodicServices.length > 0;
@@ -500,7 +529,7 @@ export function WasherJobChecklist({ job, onChecklistChange, isInProgress }: Was
       )}
 
       {/* ── Regular wash only banner for SHINE / no periodic ── */}
-      {isInProgress && !hasPeriodicToday && job.packageType !== "SHINE" && (
+      {isInProgress && !hasPeriodicToday && job.packageType !== "EXPRESS_WASH" && (
         <div className="mx-4 mt-3 mb-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
           <div className="flex items-center gap-2">
             <span className="text-base">💧</span>

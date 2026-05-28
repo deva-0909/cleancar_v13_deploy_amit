@@ -187,7 +187,7 @@ async function fetchInvoiceDetail(invoiceId: string): Promise<InvoiceDetail> {
       ];
     }
     // PROTECT — Raksha Plan: daily wash + fortnightly interior vacuum & shampoo + monthly fragrance & tyre
-    if (name.includes("PROTECT") || name.includes("SHAMPOO") || name.includes("STANDARD")) {
+    if (name.includes("SMART_WASH") || name.includes("SHAMPOO") || name.includes("STANDARD")) {
       return [
         { id: "li-1", lineNumber: 1, description: `PROTECT — Daily Exterior Water Wash (30×) — ${catLabel}`, quantity: 30, unitPrice: +(amount * 0.75 / 30).toFixed(2), lineTotal: +(amount * 0.75).toFixed(2) },
         { id: "li-2", lineNumber: 2, description: "Fortnightly Interior Vacuum & Mat Clean + Shampoo Wash (2×/month)", quantity: 2, unitPrice: +(amount * 0.16 / 2).toFixed(2), lineTotal: +(amount * 0.16).toFixed(2) },

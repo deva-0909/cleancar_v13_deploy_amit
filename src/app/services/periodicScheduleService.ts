@@ -5,9 +5,9 @@
  *
  * RULES:
  *   1. First periodic service date = subscriptionStartDate + interval days
- *      PROTECT: shampoo/glass/tyre every 30 days (1×/month)
- *      ELITE:   shampoo+wax/glass/tyre every 15 days (2×/month), interior every 15 days
- *      ELITE_2W: shampoo every 15 days
+ *      PROTECT: shampoo 2×/month + interior vacuum 2×/month + tyre dressing 1×/month + fragrance 1×/month
+ *      ELITE:   shampoo 4×/month + dashboard 2×/month + interior vacuum 2×/month + tyre dressing 2×/month + wax 1×/month + engine bay 1×/month
+ *      ELITE_2W: shampoo 2×/month
  *
  *   2. Supervisor can reschedule a periodic date within the billing month.
  *      The new date replaces only that occurrence — next is still calculated
@@ -15,8 +15,8 @@
  *
  *   3. Monthly cap: customer cannot receive more periodic services than their
  *      plan allows in any calendar month, even after rescheduling.
- *      PROTECT: max 1 shampoo + 1 glass + 1 tyre per calendar month
- *      ELITE:   max 2 of each + 1 wax per calendar month
+ *      PROTECT: max 2 shampoo + 2 interior + 1 tyre + 1 fragrance per calendar month
+ *      ELITE:   max 4 shampoo + 2 dashboard + 2 interior + 2 tyre + 1 wax + 1 engine per calendar month
  *
  *   4. If a periodic service was already completed this month, the cap is
  *      consumed and it cannot be rescheduled to occur again that month.
@@ -30,9 +30,10 @@
 export type PeriodicServiceType =
   | "shampoo"
   | "wax"
-  | "glass"
+  | "interior"
   | "tyre"
-  | "interior";
+  | "dashboard"
+  | "engine";
 
 export interface PeriodicOccurrence {
   id: string;                    // e.g. "CUST-001-shampoo-2026-05"
@@ -51,17 +52,18 @@ export interface PeriodicOccurrence {
 export interface CustomerPeriodicSchedule {
   customerId: string;
   customerName: string;
-  packageType: string;           // SHINE | PROTECT | ELITE | ELITE_2W
+  packageType: string;           // EXPRESS_WASH | SMART_WASH | ELITE | ELITE_2W
   subscriptionStartDate: string; // YYYY-MM-DD anchor date
   occurrences: PeriodicOccurrence[];
 }
 
 export interface MonthlyUsage {
-  shampoo:  { used: number; cap: number };
-  wax:      { used: number; cap: number };
-  glass:    { used: number; cap: number };
-  tyre:     { used: number; cap: number };
-  interior: { used: number; cap: number };
+  shampoo:   { used: number; cap: number };
+  wax:       { used: number; cap: number };
+  interior:  { used: number; cap: number };
+  tyre:      { used: number; cap: number };
+  dashboard: { used: number; cap: number };
+  engine:    { used: number; cap: number };
 }
 
 export interface RescheduleResult {
@@ -85,14 +87,17 @@ const PLAN_CONFIG: Record<string, PlanPeriodicConfig> = {
     monthlyCaps: { shampoo: 0, wax: 0, glass: 0, tyre: 0, interior: 0 },
   },
   PROTECT: {
-    services: ["shampoo", "glass", "tyre"],
-    intervalDays: 30,             // 1× per month
-    monthlyCaps: { shampoo: 1, wax: 0, glass: 1, tyre: 1, interior: 0 },
+    // fortnightly: shampoo 2×/month + interior vacuum 2×/month + tyre dressing 1×/month + fragrance 1×/month
+    services: ["shampoo", "interior", "tyre"],
+    intervalDays: 15,             // fortnightly = 2× per month
+    monthlyCaps: { shampoo: 2, wax: 0, glass: 0, tyre: 1, interior: 2, dashboard: 0, engine: 0 },
   },
   ELITE: {
-    services: ["shampoo", "wax", "glass", "tyre", "interior"],
-    intervalDays: 15,             // 2× per month (wax is 1× — handled separately)
-    monthlyCaps: { shampoo: 2, wax: 1, glass: 2, tyre: 2, interior: 2 },
+    // weekly shampoo 4×/month + fortnightly dashboard 2×/month + fortnightly interior 2×/month
+    // + fortnightly tyre dressing 2×/month + monthly wax 1×/month + monthly engine bay 1×/month
+    services: ["shampoo", "dashboard", "interior", "tyre", "wax", "engine"],
+    intervalDays: 7,              // weekly shampoo (4×/month); others override per service
+    monthlyCaps: { shampoo: 4, wax: 1, glass: 0, tyre: 2, interior: 2, dashboard: 2, engine: 1 },
   },
   ELITE_2W: {
     services: ["shampoo"],
@@ -101,19 +106,20 @@ const PLAN_CONFIG: Record<string, PlanPeriodicConfig> = {
   },
 };
 
-// Wax is always 1×/month for ELITE regardless of intervalDays
+// Wax, engine bay: 1×/month for ELITE regardless of intervalDays (weekly for shampoo)
 const WAX_INTERVAL_DAYS = 30;
 
 // ── Service metadata (display) ────────────────────────────────────────────────
 
-export const PERIODIC_SERVICE_META: Record<PeriodicServiceType, {
+export const PERIODIC_SERVICE_META: Record<string, {
   name: string; nameHindi: string; icon: string;
 }> = {
-  shampoo:  { name: "Shampoo Wash",   nameHindi: "Shampoo Wash — foam lagao, deep clean karo", icon: "🧴" },
-  wax:      { name: "Hand Wax Polish",nameHindi: "Wax lagao — UV protection + shine",           icon: "✨" },
-  glass:    { name: "Glass Cleaning", nameHindi: "Kach saaf karo — glass cleaner spray use karo",icon: "🪟" },
-  tyre:     { name: "Tyre Dressing",  nameHindi: "Tyre dressing lagao — shine coat",             icon: "🛞" },
-  interior: { name: "Interior Vacuum",nameHindi: "Andar vacuum karo — seats, mats, footwells, boot", icon: "🪣" },
+  shampoo:   { name: "Shampoo Wash",              nameHindi: "Shampoo Wash — foam lagao, deep clean karo",      icon: "🧴" },
+  wax:       { name: "Hand Wax Polish",            nameHindi: "Wax lagao — UV protection + showroom shine",      icon: "✨" },
+  interior:  { name: "Interior Vacuum & Mat Clean",nameHindi: "Andar saaf karo — vacuum + mat clean",            icon: "🪣" },
+  tyre:      { name: "Tyre Dressing",              nameHindi: "Tyre dressing lagao — shine coat protection",      icon: "🛞" },
+  dashboard: { name: "Dashboard & Console Clean",  nameHindi: "Dashboard aur console saaf karo — deep polish",   icon: "🧹" },
+  engine:    { name: "Engine Bay Dry Blow",         nameHindi: "Engine bay saaf karo — sirf dry blow, pani nahi", icon: "⚙️" },
 };
 
 // ── Storage ───────────────────────────────────────────────────────────────────
@@ -273,8 +279,8 @@ class PeriodicScheduleService {
     const occs  = this.getCustomerOccurrences(customerId)
       .filter(o => o.billingMonth === month);
 
-    const pkg    = this.readCustomer(customerId)?.packageType ?? "SHINE";
-    const config = PLAN_CONFIG[pkg] ?? PLAN_CONFIG.SHINE;
+    const pkg    = this.readCustomer(customerId)?.packageType ?? "EXPRESS_WASH";
+    const config = PLAN_CONFIG[pkg] ?? PLAN_CONFIG.EXPRESS_WASH;
 
     const count = (svc: PeriodicServiceType, statuses: string[]) =>
       occs.filter(o => o.serviceType === svc && statuses.includes(o.status)).length;
@@ -285,7 +291,7 @@ class PeriodicScheduleService {
     return {
       shampoo:  { used: used("shampoo"),  cap: config.monthlyCaps.shampoo  },
       wax:      { used: used("wax"),      cap: config.monthlyCaps.wax      },
-      glass:    { used: used("glass"),    cap: config.monthlyCaps.glass    },
+      glass:    { used: used("dashboard"),    cap: config.monthlyCaps.glass    },
       tyre:     { used: used("tyre"),     cap: config.monthlyCaps.tyre     },
       interior: { used: used("interior"), cap: config.monthlyCaps.interior },
     };
@@ -454,11 +460,12 @@ export function computePeriodicFlagsB(
   subscriptionStartDate?: string,
   today?: string,
 ): {
-  isShampooDay:   boolean;
-  isWaxDay:       boolean;
-  isGlassDay:     boolean;
-  isTyreDay:      boolean;
-  isInteriorDay:  boolean;
+  isShampooDay:    boolean;
+  isWaxDay:        boolean;
+  isTyreDay:       boolean;
+  isInteriorDay:   boolean;
+  isDashboardDay:  boolean;
+  isEngineDay:     boolean;
   periodicServices: PeriodicService[];
 } {
   // Ensure schedule record exists for this customer
@@ -493,9 +500,10 @@ export function computePeriodicFlagsB(
   return {
     isShampooDay:    has("shampoo"),
     isWaxDay:        has("wax"),
-    isGlassDay:      has("glass"),
     isTyreDay:       has("tyre"),
     isInteriorDay:   has("interior"),
+    isDashboardDay:  has("dashboard"),
+    isEngineDay:     has("engine"),
     periodicServices,
   };
 }

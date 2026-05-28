@@ -403,7 +403,7 @@ for (const city of ["Surat","Mumbai"] as const) {
         assignedTo: tse,
         cityId:     cid, city,
         vehicleCategory: i%3===0?"SUV":i%3===1?"Sedan":"Hatchback",
-        planOfInterest: ["SHINE","PROTECT","ELITE"][i%3],
+        planOfInterest: ["EXPRESS_WASH","SMART_WASH","ELITE"][i%3],
         createdAt:  new Date(2026,m-1,1+(i%28)).toISOString(),
         followUpDate: new Date(2026,m-1,5+(i%20)).toISOString(),
         convertedAt: stage==="Converted" ? new Date(2026,m-1,15+(i%10)).toISOString() : undefined,
@@ -441,9 +441,9 @@ for (let i = 0; i < 30; i++) {
     demoType: i%3===0 ? "One-Time Service Demo" : "Subscription Package Demo",
     demoDate: d(m, day),
     demoTimeSlot: DEMO_TIME_SLOTS[i%4],
-    planName: ["SHINE","PROTECT","ELITE"][i%3],
+    planName: ["EXPRESS_WASH","SMART_WASH","ELITE"][i%3],
     planPrice: [1199,1599,1999][i%3],
-    planOfInterest: ["SHINE","PROTECT","ELITE"][i%3],
+    planOfInterest: ["EXPRESS_WASH","SMART_WASH","ELITE"][i%3],
     tseScheduled: true,
     tseScheduledBy: isSur ? "EDB-TSE-SUR1" : "EDB-TSE-MUM1",
     tseScheduledAt: iso(m, day-1),
@@ -485,16 +485,16 @@ for (let i = 0; i < 30; i++) {
 // 10. SUBSCRIPTIONS — 120 records
 // ═════════════════════════════════════════════════════════════════════════════
 const PKG_MAP: Record<string,string> = {
-  "SHINE":"Basic","PROTECT":"Standard","ELITE":"Premium"
+  "EXPRESS_WASH":"Basic","SMART_WASH":"Standard","ELITE":"Premium"
 };
 const PLAN_PRICES: Record<string,number> = {
-  "SHINE":1199,"PROTECT":1599,"ELITE":1999
+  "EXPRESS_WASH":1199,"SMART_WASH":1599,"ELITE":1999
 };
 const SUBS: any[] = [];
 for (let i = 0; i < 120; i++) {
   const isSur  = i < 80;
   const cust   = CUSTOMERS[isSur ? i%100 : 100+(i%100)];
-  const pkgKey = ["SHINE","PROTECT","ELITE"][i%3];
+  const pkgKey = ["EXPRESS_WASH","SMART_WASH","ELITE"][i%3];
   const pkg    = PKG_MAP[pkgKey];
   const price  = PLAN_PRICES[pkg];
   const disc   = i%5===0 ? 100 : 0;
@@ -737,7 +737,7 @@ for (const m of MONTHS) {
   // Surat — subscription sales
   [1150,1150,1499,1150,1999,1150,1150,1499,1150,1499,1150,1999].forEach((base,i)=>{
     const g=gst18(base);
-    ACC_ENTRIES.push({ id:`ACC-${String(accSeq++).padStart(5,"0")}`, voucherNumber:`SAL/SURAT/25-26/${String(accSeq).padStart(4,"0")}`, entryType:"Sales", date:`2026-${ms}-01`, gstEntryType:"B2B", ...g, invoiceNumber:`SUB-SUR-${m}-${i+1}`, hsnSacCode:"998519", debitAccount:"LM-RZP-SUR", creditAccount:"LM-SUBREV-SUR", paymentMode:"Bank", isRCM:false, narration:`Subscription — ${["SHINE","PROTECT","ELITE"][i%3]}`, city:"Surat", cityId:"CITY-SURAT", financialYear:FY, createdBy:"Seed", createdAt:`2026-${ms}-01T10:00:00.000Z`, status:"Posted", changeHistory:[] });
+    ACC_ENTRIES.push({ id:`ACC-${String(accSeq++).padStart(5,"0")}`, voucherNumber:`SAL/SURAT/25-26/${String(accSeq).padStart(4,"0")}`, entryType:"Sales", date:`2026-${ms}-01`, gstEntryType:"B2B", ...g, invoiceNumber:`SUB-SUR-${m}-${i+1}`, hsnSacCode:"998519", debitAccount:"LM-RZP-SUR", creditAccount:"LM-SUBREV-SUR", paymentMode:"Bank", isRCM:false, narration:`Subscription — ${["EXPRESS_WASH","SMART_WASH","ELITE"][i%3]}`, city:"Surat", cityId:"CITY-SURAT", financialYear:FY, createdBy:"Seed", createdAt:`2026-${ms}-01T10:00:00.000Z`, status:"Posted", changeHistory:[] });
   });
   // Surat — one-time washes
   [5,9,13,17,21].forEach((day,i)=>{ const g=gst18(499+(i%2===0?200:0)); ACC_ENTRIES.push({ id:`ACC-${String(accSeq++).padStart(5,"0")}`, voucherNumber:`SAL/SURAT/25-26/${String(accSeq).padStart(4,"0")}`, entryType:"Sales", date:`2026-${ms}-${String(day).padStart(2,"0")}`, gstEntryType:"Unregistered", ...g, invoiceNumber:`OT-SUR-${m}-${i+1}`, hsnSacCode:"998519", debitAccount:"LM-CASH-SUR", creditAccount:"LM-OT-SUR", paymentMode:"Cash", isRCM:false, narration:"One-time wash", city:"Surat", cityId:"CITY-SURAT", financialYear:FY, createdBy:"Seed", createdAt:`2026-${ms}-${String(day).padStart(2,"0")}T10:00:00.000Z`, status:"Posted", changeHistory:[] });});
@@ -1020,7 +1020,7 @@ export function seedAllData(): void {
     ];
     const SM_BLOCK_DEALS_SEED = [
       { id:"BD-001", locationId:"LOC-001", locationName:"Adajan Heights Society",  smId:"EDB-SMGR-SUR1", vehicleCount:12, packageType:"Water + Shampoo",   commitmentTerm:3,  status:"Active",   approvedDate:daysAgoSM(30), activeVehicles:10, phase1Paid:true,  phase1Amount:3750, phase2Amount:3125, phase2CheckDate:daysAgoSM(-60), phase2Status:"pending", additionalVehicles:2 },
-      { id:"BD-002", locationId:"LOC-002", locationName:"Reliance Corporate Park", smId:"EDB-SMGR-SUR1", vehicleCount:22, packageType:"PROTECT",       commitmentTerm:6,  status:"Approved", approvedDate:daysAgoSM(5),  activeVehicles:0,  phase1Paid:false, phase1Amount:7500, phase2Amount:3750, phase2CheckDate:daysAgoSM(-90), phase2Status:"pending", additionalVehicles:0 },
+      { id:"BD-002", locationId:"LOC-002", locationName:"Reliance Corporate Park", smId:"EDB-SMGR-SUR1", vehicleCount:22, packageType:"SMART_WASH",       commitmentTerm:6,  status:"Approved", approvedDate:daysAgoSM(5),  activeVehicles:0,  phase1Paid:false, phase1Amount:7500, phase2Amount:3750, phase2CheckDate:daysAgoSM(-90), phase2Status:"pending", additionalVehicles:0 },
     ];
     // Only seed if not already present (so user-added data isn't wiped)
     if (!localStorage.getItem("sm_locations"))   localStorage.setItem("sm_locations",   JSON.stringify(SM_LOCATIONS_SEED));
@@ -1065,11 +1065,11 @@ export function seedAllData(): void {
     const now = new Date();
     const dAgo = (d: number) => new Date(now.getTime() - d*86400000).toISOString();
     const WEB_CUSTOMERS = [
-      { customerId:"WEBCUST-001", firstName:"Hetal",    lastName:"Shah",   phone:"9723456781", email:"hetal@example.com",  vehicle:"Maruti Swift",   reg:"GJ05AA1234", category:"hatchback", plan:"SHINE",     amount:1199,  cityId:"CITY-SURAT", pincode:"395007", address:"A-12 Vesu Residency, Surat", daysAgo:5  },
-      { customerId:"WEBCUST-002", firstName:"Jigar",    lastName:"Patel",  phone:"9823456782", email:"jigar@example.com",  vehicle:"Hyundai Creta",  reg:"GJ05BB5678", category:"suv",       plan:"PROTECT",   amount:1999, cityId:"CITY-SURAT", pincode:"395009", address:"B-7 Adajan Heights, Surat",  daysAgo:12 },
+      { customerId:"WEBCUST-001", firstName:"Hetal",    lastName:"Shah",   phone:"9723456781", email:"hetal@example.com",  vehicle:"Maruti Swift",   reg:"GJ05AA1234", category:"hatchback", plan:"EXPRESS_WASH",     amount:1199,  cityId:"CITY-SURAT", pincode:"395007", address:"A-12 Vesu Residency, Surat", daysAgo:5  },
+      { customerId:"WEBCUST-002", firstName:"Jigar",    lastName:"Patel",  phone:"9823456782", email:"jigar@example.com",  vehicle:"Hyundai Creta",  reg:"GJ05BB5678", category:"suv",       plan:"SMART_WASH",   amount:1999, cityId:"CITY-SURAT", pincode:"395009", address:"B-7 Adajan Heights, Surat",  daysAgo:12 },
       { customerId:"WEBCUST-003", firstName:"Minal",    lastName:"Desai",  phone:"9623456783", email:"minal@example.com",  vehicle:"Toyota Fortuner",reg:"GJ05CC9012", category:"luxury",    plan:"ELITE",  amount:3499, cityId:"CITY-SURAT", pincode:"395005", address:"C-3 Citylight Road, Surat",  daysAgo:2  },
-      { customerId:"WEBCUST-004", firstName:"Rakesh",   lastName:"Thakkar",phone:"9523456784", email:"rakesh@example.com", vehicle:"Tata Nexon",     reg:"GJ05DD3456", category:"suv",       plan:"SHINE",     amount:1499, cityId:"CITY-SURAT", pincode:"395007", address:"D-15 Pal Village, Surat",    daysAgo:20 },
-      { customerId:"WEBCUST-005", firstName:"Sneha",    lastName:"Agarwal",phone:"9423456785", email:"sneha@example.com",  vehicle:"Baleno",         reg:"GJ05EE7890", category:"hatchback", plan:"PROTECT",   amount:1599, cityId:"CITY-SURAT", pincode:"395005", address:"E-9 Piplod Township, Surat", daysAgo:8  },
+      { customerId:"WEBCUST-004", firstName:"Rakesh",   lastName:"Thakkar",phone:"9523456784", email:"rakesh@example.com", vehicle:"Tata Nexon",     reg:"GJ05DD3456", category:"suv",       plan:"EXPRESS_WASH",     amount:1499, cityId:"CITY-SURAT", pincode:"395007", address:"D-15 Pal Village, Surat",    daysAgo:20 },
+      { customerId:"WEBCUST-005", firstName:"Sneha",    lastName:"Agarwal",phone:"9423456785", email:"sneha@example.com",  vehicle:"Baleno",         reg:"GJ05EE7890", category:"hatchback", plan:"SMART_WASH",   amount:1599, cityId:"CITY-SURAT", pincode:"395005", address:"E-9 Piplod Township, Surat", daysAgo:8  },
     ];
 
     const existingWebInvoices: any[] = JSON.parse(localStorage.getItem("cleancar_web_invoices") || "[]");

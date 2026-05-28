@@ -235,11 +235,11 @@ class SubscriptionPlansService {
     let features: Partial<PlanFeature>[] = [];
 
     switch (tierName) {
-      case "SHINE":
+      case "EXPRESS_WASH":
         features = [...commonEveryWash, ...commonMonthly];
         break;
 
-      case "PROTECT":
+      case "SMART_WASH":
         features = [
           ...commonEveryWash,
           {
