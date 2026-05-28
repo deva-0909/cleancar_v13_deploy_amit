@@ -123,9 +123,9 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
   monthlyPlans: [
     {
       id: "water",
-      name: "EXPRESS_WASH",
+      name: "Express Wash",
       icon: "💧",
-      tagline: "Clean every day, essentials done right",
+      tagline: "Chamakti Subah — Your car, clean every morning.",
       features: [
         { text: "Full exterior pressure rinse", included: true },
         { text: "Wheel rim & tyre spray", included: true },
@@ -134,13 +134,13 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
         { text: "Shampoo foam wash", included: false },
         { text: "Interior vacuum", included: false },
       ],
-      prices: { hatchback: 1199, suv: 1499, luxury: 1999 },
+      prices: { hatchback: 1249, suv: 1499, luxury: 1999 },
     },
     {
       id: "shampoo",
-      name: "SMART_WASH",
+      name: "Smart Wash",
       icon: "🧴",
-      tagline: "Deep clean with professional shampoo",
+      tagline: "Raksha Plan — Clean daily. Protected always.",
       popular: true,
       features: [
         { text: "Everything in Water Wash", included: true },
@@ -957,7 +957,7 @@ export function CustomerPlanPage() {
                     const isSelected = selectedPlan === plan.id;
                     return (
                       <div key={plan.id} onClick={() => setSelectedPlan(plan.id)}
-                        style={{ border: `2px solid ${isSelected || plan.popular ? "#0F172A" : "#E5E7EB"}`, borderRadius: 16, background: "#fff", cursor: "pointer", overflow: "hidden", transition: "transform 0.2s, box-shadow 0.2s", transition: "all 0.2s", boxShadow: isSelected ? "0 4px 20px rgba(15,23,42,0.12)" : "none" }}>
+                        style={{ border: `2px solid ${isSelected || plan.popular ? "#0F172A" : "#E5E7EB"}`, borderRadius: 16, background: "#fff", cursor: "pointer", overflow: "hidden", transition: "all 0.2s", boxShadow: isSelected ? "0 4px 20px rgba(15,23,42,0.12)" : "none" }}>
                         {plan.popular && <div style={{ background: "#0F172A", color: "#FBBF24", fontSize: 10, fontWeight: 700, padding: "6px 12px", textAlign: "center", letterSpacing: "1px", textTransform: "uppercase" }}>⭐ Most Popular</div>}
                         <div style={{ padding: 24 }}>
                           <div style={{ fontSize: 28, marginBottom: 10 }}>{plan.icon}</div>
