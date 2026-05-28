@@ -31,8 +31,8 @@ export type VehicleCategoryName =
  * ELITE_2W is the 2-wheeler premium plan (separate from 4W ELITE).
  */
 export type PlanTierName =
-  | "EXPRESS_WASH"
-  | "SMART_WASH"
+  | "SHINE"
+  | "PROTECT"
   | "ELITE"
   | "ELITE_2W";
 
