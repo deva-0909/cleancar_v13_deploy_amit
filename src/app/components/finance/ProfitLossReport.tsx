@@ -40,6 +40,10 @@ export function ProfitLossReport({ filters }: ProfitLossReportProps) {
         heads: ["cogs", "purchase"],
       },
       { key: "direct",      label: "Direct Expenses",   heads: ["direct_expenses"] },
+      // Salary — its own P&L group so it's never lumped with vendor/overhead expenses
+      { key: "salary",      label: "Salaries & Wages",  heads: ["salary_expense"] },
+      // Statutory — employer PF + ESIC contributions (separate from salary deductions)
+      { key: "statutory",   label: "Statutory Contributions (Employer PF + ESIC)", heads: ["statutory_expense"] },
       { key: "indirect",    label: "Indirect Expenses", heads: ["indirect_expenses"] },
       { key: "depreciation",label: "Depreciation",      heads: ["depreciation"] },
     ];

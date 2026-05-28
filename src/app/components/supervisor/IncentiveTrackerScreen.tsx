@@ -1,3 +1,4 @@
+import { SubscriptionIncentiveTracker } from "../incentives/SubscriptionIncentiveTracker";
 /**
  * IncentiveTrackerScreen.tsx
  * Supervisor Incentive Tracker — v3.0
@@ -36,7 +37,7 @@ function KPIBar({ label, score, max, color }: { label: string; score: number; ma
   );
 }
 
-export function IncentiveTrackerScreen({ dashboard }: IncentiveTrackerScreenProps) {
+export function IncentiveTrackerScreenLegacy({ dashboard }: IncentiveTrackerScreenProps) {
   const [showLeads, setShowLeads]  = useState(false);
   const [showConv,  setShowConv]   = useState(false);
 
@@ -340,5 +341,16 @@ export function IncentiveTrackerScreen({ dashboard }: IncentiveTrackerScreenProp
 
       </div>
     </div>
+  );
+}
+
+export function IncentiveTrackerScreen({ supervisorId, name }: { supervisorId?: string; name?: string }) {
+  const id = supervisorId || "EDB-SUP-SUR1";
+  return (
+    <SubscriptionIncentiveTracker
+      employeeId={id}
+      role="SUPERVISOR"
+      employeeName={name || id}
+    />
   );
 }

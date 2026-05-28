@@ -1,3 +1,4 @@
+import { SubscriptionIncentiveTracker } from "../incentives/SubscriptionIncentiveTracker";
 /**
  * TSM INCENTIVE & PAYROLL TRACKER
  * Team and individual commission forecasting
@@ -29,7 +30,7 @@ import {
   INCENTIVE_ELIGIBILITY,
 } from "../../constants/teleSalesManager.constants";
 
-export function TSMIncentiveTracker() {
+export function TSMIncentiveTrackerLegacy() {
   const incentiveData = teleSalesManagerService.getTeamIncentiveMetrics();
 
   // Calculate TSM's personal incentive based on team performance
@@ -550,5 +551,16 @@ export function TSMIncentiveTracker() {
         </div>
       </Card>
     </div>
+  );
+}
+
+export function TSMIncentiveTracker({ tsmId, name }: { tsmId?: string; name?: string }) {
+  const id = tsmId || "EDB-TSM-SUR1";
+  return (
+    <SubscriptionIncentiveTracker
+      employeeId={id}
+      role="TSM"
+      employeeName={name || id}
+    />
   );
 }

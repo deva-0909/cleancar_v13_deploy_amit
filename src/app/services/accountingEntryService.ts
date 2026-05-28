@@ -50,7 +50,13 @@ export const CHART_OF_ACCOUNTS_HEADS = [
   { value: "direct_expenses",     label: "Direct Expenses",          nature: "expense" },
   { value: "indirect_expenses",   label: "Indirect Expenses",        nature: "expense" },
   { value: "depreciation",        label: "Depreciation",             nature: "expense" },
+  // Salary & Statutory — separate heads so P&L shows them distinctly from vendor expenses
+  { value: "salary_expense",      label: "Salaries & Wages",         nature: "expense" },
+  { value: "statutory_expense",   label: "Statutory Contributions",  nature: "expense" },
   { value: "tds_payable",         label: "TDS Payable",              nature: "liability" },
+  // Salary & Statutory payable liability heads
+  { value: "salary_payable",      label: "Salary Payable",           nature: "liability" },
+  { value: "statutory_payable",   label: "Statutory Payable (PF/ESIC/PT)", nature: "liability" },
 ] as const;
 
 export type EntryType =
@@ -594,6 +600,20 @@ class AccountingEntryService {
 
       // LIABILITIES - Accounts Payable
       { name: "Accounts Payable", accountHead: "accounts_payable", accountHeadLabel: "Accounts Payable", nature: "liability", type: "vendor", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      // Vendor-wise AP ledgers (pre-seeded for 24/9 Car Wash vendors)
+      { name: "AP — Chemical Supplier", accountHead: "accounts_payable", accountHeadLabel: "Accounts Payable", nature: "liability", type: "vendor", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "AP — Equipment Supplier", accountHead: "accounts_payable", accountHeadLabel: "Accounts Payable", nature: "liability", type: "vendor", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "AP — Uniform Supplier", accountHead: "accounts_payable", accountHeadLabel: "Accounts Payable", nature: "liability", type: "vendor", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "AP — ERP / Software", accountHead: "accounts_payable", accountHeadLabel: "Accounts Payable", nature: "liability", type: "vendor", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "AP — Marketing / BTL", accountHead: "accounts_payable", accountHeadLabel: "Accounts Payable", nature: "liability", type: "vendor", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      // LIABILITIES - Salary Payable (separate head — not mixed with vendor AP)
+      { name: "Salary Payable — Sales", accountHead: "salary_payable", accountHeadLabel: "Salary Payable", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Salary Payable — Operations", accountHead: "salary_payable", accountHeadLabel: "Salary Payable", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Salary Payable — Admin", accountHead: "salary_payable", accountHeadLabel: "Salary Payable", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      // LIABILITIES - Statutory Payable
+      { name: "PF Payable (Employee + Employer)", accountHead: "statutory_payable", accountHeadLabel: "Statutory Payable (PF/ESIC/PT)", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "ESIC Payable (Employee + Employer)", accountHead: "statutory_payable", accountHeadLabel: "Statutory Payable (PF/ESIC/PT)", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "PT Payable", accountHead: "statutory_payable", accountHeadLabel: "Statutory Payable (PF/ESIC/PT)", nature: "liability", type: "other", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
 
       // INCOME - Sales Subscription
       { name: "Subscription - 2W", accountHead: "sales_subscription", accountHeadLabel: "Sales — Subscription", nature: "income", type: "sales", packageCode: "2W", openingBalance: 0, openingBalanceType: "Cr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
@@ -617,6 +637,13 @@ class AccountingEntryService {
       { name: "Labor", accountHead: "cogs", accountHeadLabel: "Cost of Goods Sold", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
       { name: "Materials", accountHead: "cogs", accountHeadLabel: "Cost of Goods Sold", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
       { name: "Subcontractor", accountHead: "cogs", accountHeadLabel: "Cost of Goods Sold", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      // EXPENSES - Salary (separate from COGS and indirect so P&L shows salary distinctly)
+      { name: "Salary — Sales Team", accountHead: "salary_expense", accountHeadLabel: "Salaries & Wages", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Salary — Operations (Washers + Supervisors)", accountHead: "salary_expense", accountHeadLabel: "Salaries & Wages", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "Salary — Admin & BD", accountHead: "salary_expense", accountHeadLabel: "Salaries & Wages", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      // EXPENSES - Statutory (employer PF + ESIC — not deducted from employee, a real business cost)
+      { name: "PF Employer Contribution (12% of Basic)", accountHead: "statutory_expense", accountHeadLabel: "Statutory Contributions", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
+      { name: "ESIC Employer Contribution (3.25% of Gross)", accountHead: "statutory_expense", accountHeadLabel: "Statutory Contributions", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },
 
       // EXPENSES - Direct Expenses
       { name: "Salaries and Employee Wages", accountHead: "direct_expenses", accountHeadLabel: "Direct Expenses", nature: "expense", type: "expense", openingBalance: 0, openingBalanceType: "Dr", city: cityDisplayName, cityId, isSystem: true, status: "Active", createdAt: "2026-01-01T00:00:00.000Z" },

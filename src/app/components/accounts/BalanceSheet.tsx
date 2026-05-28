@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react";
 import { useCity } from "../../contexts/CityContext";
+import { useFinance } from "../../contexts/FinanceContext";
 import { accountingEntryService, CHART_OF_ACCOUNTS_HEADS } from "../../services/accountingEntryService";
 import { Download, AlertCircle, CheckCircle2, ChevronRight, ChevronDown, ExternalLink } from "lucide-react";
 
 export function BalanceSheet() {
   const { city } = useCity();
+  const { payables } = useFinance();
   const [asOnDate, setAsOnDate] = useState(new Date().toISOString().split("T")[0]);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -80,6 +82,47 @@ export function BalanceSheet() {
   const totalLiabilitiesAndCapital = liabilities.total + profitLoss.netProfit;
   const imbalance  = assets.total - totalLiabilitiesAndCapital;
   const isBalanced = Math.abs(imbalance) < 0.01;
+
+  // ── Vendor-wise AP breakdown (from FinanceContext payables) ───────────────
+  // Groups all unpaid Vendor payables by vendorName so the BS shows per-vendor balances
+  const vendorAPBreakdown = useMemo(() => {
+    const cityPayables = payables.filter(p =>
+      p.type === "Vendor" &&
+      p.status !== "Paid" &&
+      (p.cityId === city || !p.cityId)
+    );
+    const grouped: Record<string, number> = {};
+    cityPayables.forEach(p => {
+      const key = p.vendorName || "Unknown Vendor";
+      grouped[key] = (grouped[key] ?? 0) + p.amount;
+    });
+    return Object.entries(grouped).sort((a, b) => b[1] - a[1]);
+  }, [payables, city]);
+
+  const totalVendorAP = vendorAPBreakdown.reduce((s, [, v]) => s + v, 0);
+
+  // ── Salary payable breakdown by department ────────────────────────────────
+  const salaryPayableBreakdown = useMemo(() => {
+    const cityPayables = payables.filter(p =>
+      p.type === "Salary" &&
+      p.status !== "Paid" &&
+      (p.cityId === city || !p.cityId)
+    );
+    const grouped: Record<string, { net: number; pf: number; esic: number; pt: number; tds: number }> = {};
+    cityPayables.forEach(p => {
+      const dept = p.department || "Admin";
+      if (!grouped[dept]) grouped[dept] = { net: 0, pf: 0, esic: 0, pt: 0, tds: 0 };
+      grouped[dept].net  += p.netSalaryPayable ?? p.amount;
+      grouped[dept].pf   += (p.pfEmployee ?? 0) + (p.pfEmployer ?? 0);
+      grouped[dept].esic += (p.esicEmployee ?? 0) + (p.esicEmployer ?? 0);
+      grouped[dept].pt   += p.pt ?? 0;
+      grouped[dept].tds  += p.tdsDeducted ?? 0;
+    });
+    return grouped;
+  }, [payables, city]);
+
+  const totalSalaryPayable = Object.values(salaryPayableBreakdown)
+    .reduce((s, d) => s + d.net + d.pf + d.esic + d.pt + d.tds, 0);
 
   // FIX 9 (UX): drill-down link — open ledger filtered to that account head
   const openLedgerDrillDown = (head: string, ledgerId: string) => {
@@ -196,6 +239,57 @@ export function BalanceSheet() {
               </div>
             ))}
 
+            {/* ── Vendor-wise Accounts Payable (from FinanceContext) ───────── */}
+            {totalVendorAP > 0 && (
+              <div className="mb-3">
+                <button
+                  className="w-full flex items-center justify-between hover:bg-gray-50 px-1 py-0.5 rounded"
+                  onClick={() => toggleGroup("vendor-ap")}
+                >
+                  <span className="flex items-center gap-1 font-medium">
+                    {expandedGroups.has("vendor-ap") ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                    Accounts Payable — Vendor-wise
+                  </span>
+                  <span>₹{fmtAmt(totalVendorAP)}</span>
+                </button>
+                {expandedGroups.has("vendor-ap") && vendorAPBreakdown.map(([vendor, amount]) => (
+                  <div key={vendor} className="flex justify-between pl-6 text-gray-600 text-xs py-0.5">
+                    <span>{vendor}</span>
+                    <span>₹{fmtAmt(amount)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── Salary & Statutory Payable (from FinanceContext) ─────────── */}
+            {totalSalaryPayable > 0 && (
+              <div className="mb-3">
+                <button
+                  className="w-full flex items-center justify-between hover:bg-gray-50 px-1 py-0.5 rounded"
+                  onClick={() => toggleGroup("salary-payable")}
+                >
+                  <span className="flex items-center gap-1 font-medium">
+                    {expandedGroups.has("salary-payable") ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                    Salary &amp; Statutory Payable
+                  </span>
+                  <span>₹{fmtAmt(totalSalaryPayable)}</span>
+                </button>
+                {expandedGroups.has("salary-payable") && Object.entries(salaryPayableBreakdown).map(([dept, d]) => (
+                  <div key={dept}>
+                    <div className="flex justify-between pl-6 text-gray-700 text-xs py-0.5 font-medium">
+                      <span>{dept} Dept</span>
+                      <span>₹{fmtAmt(d.net + d.pf + d.esic + d.pt + d.tds)}</span>
+                    </div>
+                    {d.net   > 0 && <div className="flex justify-between pl-10 text-gray-500 text-xs py-0.5"><span>Net Salary Payable</span><span>₹{fmtAmt(d.net)}</span></div>}
+                    {d.pf    > 0 && <div className="flex justify-between pl-10 text-gray-500 text-xs py-0.5"><span>PF Payable (EE + ER)</span><span>₹{fmtAmt(d.pf)}</span></div>}
+                    {d.esic  > 0 && <div className="flex justify-between pl-10 text-gray-500 text-xs py-0.5"><span>ESIC Payable (EE + ER)</span><span>₹{fmtAmt(d.esic)}</span></div>}
+                    {d.pt    > 0 && <div className="flex justify-between pl-10 text-gray-500 text-xs py-0.5"><span>PT Payable</span><span>₹{fmtAmt(d.pt)}</span></div>}
+                    {d.tds   > 0 && <div className="flex justify-between pl-10 text-gray-500 text-xs py-0.5"><span>TDS Payable</span><span>₹{fmtAmt(d.tds)}</span></div>}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Profit & Loss */}
             {profitLoss.netProfit !== 0 && (
               <div className="mb-3">
@@ -228,7 +322,7 @@ export function BalanceSheet() {
 
             <div className="border-t-2 border-gray-800 pt-2 mt-4 flex justify-between font-bold">
               <span>TOTAL LIABILITIES</span>
-              <span>₹{fmtAmt(totalLiabilitiesAndCapital)}</span>
+              <span>₹{fmtAmt(totalLiabilitiesAndCapital + totalVendorAP + totalSalaryPayable)}</span>
             </div>
           </div>
 

@@ -31,10 +31,23 @@ export interface Payable {
   // For Salary Payables
   employeeId?: string; // GLOBAL IDENTITY - links to HRDataContext
   payrollId?: string; // Links to PayrollRun in HRDataContext
+  employeeName?: string; // Denormalised for display without join
+  department?: "Sales" | "Operations" | "Admin"; // Drives which salary expense ledger to debit
+  // Salary breakdown — stored so P&L and balance sheet can show correct split
+  grossSalary?: number; // = basic + HRA + DA
+  basicSalary?: number;
+  pfEmployee?: number; // 12% of basic — deducted from employee
+  esicEmployee?: number; // 0.75% of gross — deducted from employee
+  pt?: number; // Professional tax — deducted from employee
+  tdsDeducted?: number; // TDS deducted from employee
+  netSalaryPayable?: number; // = grossSalary - pfEmployee - esicEmployee - pt - tdsDeducted
+  pfEmployer?: number; // 12% of basic — additional employer cost (NOT deducted from employee)
+  esicEmployer?: number; // 3.25% of gross — additional employer cost
   // For Vendor Payables
   vendorId?: string;
-  vendorName?: string;
+  vendorName?: string; // REQUIRED for vendor-wise AP on balance sheet
   invoiceNumber?: string;
+  invoiceDate?: string;
   // For Statutory Payables
   statutoryType?: "PF" | "ESIC" | "TDS" | "GST" | "PT";
   // Common fields
@@ -366,10 +379,21 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         addPayable({
           type: "Salary" as any,
           employeeId: d.employeeId,
-          amount: d.amount,
+          employeeName: d.employeeName,
+          department: d.department || "Admin",
+          amount: d.grossSalary ?? d.amount, // amount = gross for the expense side
+          grossSalary: d.grossSalary ?? d.amount,
+          basicSalary: d.basicSalary,
+          netSalaryPayable: d.netSalaryPayable ?? d.amount,
+          pfEmployee: d.pfEmployee ?? 0,
+          pfEmployer: d.pfEmployer ?? 0,
+          esicEmployee: d.esicEmployee ?? 0,
+          esicEmployer: d.esicEmployer ?? 0,
+          pt: d.pt ?? 0,
+          tdsDeducted: d.tdsDeducted ?? 0,
           dueDate: d.dueDate || "",
           status: "Pending" as any,
-          description: d.description || "Salary payable",
+          description: d.description || `Salary — ${d.employeeName || d.employeeId}`,
           cityId: d.cityId,
         });
       } catch { /* context may not be ready yet */ }
@@ -390,9 +414,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       if (!d?.amount || !d?.cityId) return;
       try {
         createPayable({
-          type: d.entryType === "AssetPurchase" ? "Vendor" : "Vendor",
+          type: "Vendor",
           description: d.description || `${d.entryType} entry`,
           vendorId: d.vendorId,
+          vendorName: d.vendorName || d.vendorId || undefined, // ✅ carry vendor name for vendor-wise AP
+          invoiceNumber: d.invoiceNumber,
+          invoiceDate: d.date,
           amount: d.amount,
           dueDate: d.date
             ? new Date(new Date(d.date).getTime() + 30 * 86400000).toISOString().split("T")[0]
@@ -496,27 +523,67 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     };
     setPayables((prev) => [...prev, newPayable]);
 
-    // Auto-post accrual ledger entries
-    const expenseAccountCode = payableData.type === "Salary" ? "5100"
-      : payableData.type === "Statutory" ? "5200"
-      : "5300";
-    const expenseAccountName = payableData.type === "Salary" ? "Salaries & Wages"
-      : payableData.type === "Statutory" ? "Statutory Contributions"
-      : "Vendor Expenses";
     const entryBase = {
       entryDate: payableData.dueDate,
-      description: `${payableData.type} Payable — ${payableData.description}`,
       referenceType: "Expense" as const,
       referenceId: newPayable.payableId,
       cityId: payableData.cityId,
       createdAt: new Date().toISOString(),
     };
-    setLedgerEntries(prev => [...prev,
-      // DR Expense (Account 5xxx)
-      { ...entryBase, ledgerEntryId: `LED-${Date.now()}-DR`, accountCode: expenseAccountCode, accountName: expenseAccountName, entryType: "DEBIT" as const, amount: payableData.amount },
-      // CR Payable Liability (Account 2000)
-      { ...entryBase, ledgerEntryId: `LED-${Date.now() + 1}-CR`, accountCode: "2000", accountName: "Accounts Payable", entryType: "CREDIT" as const, amount: payableData.amount },
-    ]);
+
+    if (payableData.type === "Salary") {
+      // ── SALARY JOURNAL ENTRY ──────────────────────────────────────────────
+      // The correct double-entry for salary accrual:
+      //   Dr  Salary Expense — [Dept]          (gross salary)
+      //   Dr  Statutory Expense — PF Employer  (12% of basic — employer cost on top of gross)
+      //   Dr  Statutory Expense — ESIC Employer(3.25% of gross — employer cost on top of gross)
+      //   Cr  Salary Payable — [Dept]           (net payable = gross - employee deductions)
+      //   Cr  Statutory Payable — PF            (EE 12% + ER 12% of basic)
+      //   Cr  Statutory Payable — ESIC          (EE 0.75% + ER 3.25% of gross)
+      //   Cr  Statutory Payable — PT            (₹200/employee)
+      //   Cr  TDS Payable                       (TDS deducted)
+      const dept = payableData.department || "Admin";
+      const deptLabel = `Salary — ${dept} Team`;
+      const gross   = payableData.grossSalary ?? payableData.amount;
+      const net     = payableData.netSalaryPayable ?? payableData.amount;
+      const pfEE    = payableData.pfEmployee ?? 0;
+      const pfER    = payableData.pfEmployer ?? 0;
+      const esicEE  = payableData.esicEmployee ?? 0;
+      const esicER  = payableData.esicEmployer ?? 0;
+      const ptAmt   = payableData.pt ?? 0;
+      const tdsAmt  = payableData.tdsDeducted ?? 0;
+      const entries: Parameters<typeof setLedgerEntries>[0] extends (prev: infer P) => P ? never : any[] = [];
+      // Debits — Expense side
+      entries.push({ ...entryBase, ledgerEntryId: `LED-${Date.now()}-SAL-DR`, accountCode: "5100", accountName: deptLabel, entryType: "DEBIT" as const, amount: gross, description: `${deptLabel} — ${payableData.description}` });
+      if (pfER > 0)   entries.push({ ...entryBase, ledgerEntryId: `LED-${Date.now()}-PFER-DR`, accountCode: "5200", accountName: "PF Employer Contribution (12% of Basic)", entryType: "DEBIT" as const, amount: pfER, description: `PF Employer — ${payableData.description}` });
+      if (esicER > 0) entries.push({ ...entryBase, ledgerEntryId: `LED-${Date.now()}-ESIER-DR`, accountCode: "5201", accountName: "ESIC Employer Contribution (3.25% of Gross)", entryType: "DEBIT" as const, amount: esicER, description: `ESIC Employer — ${payableData.description}` });
+      // Credits — Liability side
+      entries.push({ ...entryBase, ledgerEntryId: `LED-${Date.now()}-SAL-CR`, accountCode: "2100", accountName: `Salary Payable — ${dept}`, entryType: "CREDIT" as const, amount: net, description: `Net salary payable — ${payableData.description}` });
+      if (pfEE + pfER > 0)     entries.push({ ...entryBase, ledgerEntryId: `LED-${Date.now()}-PF-CR`,   accountCode: "2200", accountName: "PF Payable (Employee + Employer)",   entryType: "CREDIT" as const, amount: pfEE + pfER,   description: `PF payable (EE ₹${pfEE} + ER ₹${pfER})` });
+      if (esicEE + esicER > 0) entries.push({ ...entryBase, ledgerEntryId: `LED-${Date.now()}-ESIC-CR`, accountCode: "2201", accountName: "ESIC Payable (Employee + Employer)", entryType: "CREDIT" as const, amount: esicEE + esicER, description: `ESIC payable (EE ₹${esicEE} + ER ₹${esicER})` });
+      if (ptAmt > 0)   entries.push({ ...entryBase, ledgerEntryId: `LED-${Date.now()}-PT-CR`,   accountCode: "2202", accountName: "PT Payable",  entryType: "CREDIT" as const, amount: ptAmt,   description: "Professional Tax deducted" });
+      if (tdsAmt > 0)  entries.push({ ...entryBase, ledgerEntryId: `LED-${Date.now()}-TDS-CR`,  accountCode: "2300", accountName: "TDS Payable", entryType: "CREDIT" as const, amount: tdsAmt,  description: "TDS deducted from salary" });
+      setLedgerEntries(prev => [...prev, ...entries]);
+
+    } else if (payableData.type === "Statutory") {
+      // ── STATUTORY JOURNAL ENTRY (standalone — e.g. advance tax, GST) ──────
+      setLedgerEntries(prev => [...prev,
+        { ...entryBase, ledgerEntryId: `LED-${Date.now()}-STAT-DR`, accountCode: "5200", accountName: "Statutory Contributions", entryType: "DEBIT" as const, amount: payableData.amount, description: `Statutory — ${payableData.description}` },
+        { ...entryBase, ledgerEntryId: `LED-${Date.now()}-STAT-CR`, accountCode: "2200", accountName: "Statutory Payable", entryType: "CREDIT" as const, amount: payableData.amount, description: `Statutory payable — ${payableData.description}` },
+      ]);
+
+    } else {
+      // ── VENDOR / AP JOURNAL ENTRY ─────────────────────────────────────────
+      // Dr  Expense Account (5300 — vendor expense)
+      // Cr  AP — [Vendor Name]  (vendor-wise liability so BS shows vendor-wise breakdown)
+      const vendorLedgerName = payableData.vendorName
+        ? `AP — ${payableData.vendorName}`
+        : "Accounts Payable";
+      setLedgerEntries(prev => [...prev,
+        { ...entryBase, ledgerEntryId: `LED-${Date.now()}-VND-DR`, accountCode: "5300", accountName: "Vendor Expenses", entryType: "DEBIT" as const, amount: payableData.amount, description: `${payableData.description}${payableData.vendorName ? ` (${payableData.vendorName})` : ""}` },
+        { ...entryBase, ledgerEntryId: `LED-${Date.now()}-VND-CR`, accountCode: "2000", accountName: vendorLedgerName, entryType: "CREDIT" as const, amount: payableData.amount, description: vendorLedgerName },
+      ]);
+    }
 
     return newPayable;
   };

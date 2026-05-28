@@ -217,6 +217,8 @@ import { WorkforceDiagnostic } from "./components/workforce/WorkforceDiagnostic"
 // import { IncentiveConfiguration } from "./components/incentives/IncentiveConfiguration"; // NOW LAZY
 import { IncentiveSimulator } from "./components/incentives/IncentiveSimulator";
 import { IncentiveDashboard } from "./components/incentives/IncentiveDashboard";
+import { IncentiveAdminOverview } from "./components/incentives/IncentiveAdminOverview";
+import { SubscriptionIncentiveTracker } from "./components/incentives/SubscriptionIncentiveTracker";
 import { HRPayrollApproval } from "./components/hr/HRPayrollApproval";
 import { SuperAdminPayrollApproval } from "./components/admin/SuperAdminPayrollApproval";
 import { CityManagement } from "./components/admin/CityManagement";
@@ -593,6 +595,7 @@ export const router = createBrowserRouter([
       { path: "incentives/configuration", element: <ErrorBoundary><IncentiveConfiguration /></ErrorBoundary> },
       { path: "incentives/simulator", element: <IncentiveSimulator /> },
       { path: "incentives/forecast", element: <IncentiveDashboard /> },
+      { path: "incentives/ledger", element: <IncentiveAdminOverview /> },
       { path: "incentives", element: <Navigate to="/incentives/configuration" replace /> },
 
       // My Account - Employee self-service

@@ -1,3 +1,4 @@
+import { SubscriptionIncentiveTracker } from "../incentives/SubscriptionIncentiveTracker";
 /**
  * TSE Incentive Tracker
  * Read-only dashboard showing real-time earnings breakdown
@@ -37,7 +38,7 @@ import {
   REFRESH_INTERVALS,
 } from "../../constants/teleSalesExecutive.constants";
 
-export function TSEIncentiveTracker() {
+export function TSEIncentiveTrackerLegacy() {
   const [incentives, setIncentives] = useState<TSEIncentives | null>(null);
 
   useEffect(() => {
@@ -431,5 +432,16 @@ export function TSEIncentiveTracker() {
         </div>
       </Card>
     </div>
+  );
+}
+
+export function TSEIncentiveTracker({ tseId, tseName }: { tseId?: string; tseName?: string }) {
+  const id = tseId || "EDB-TSE-SUR1";
+  return (
+    <SubscriptionIncentiveTracker
+      employeeId={id}
+      role="TSE"
+      employeeName={tseName || id}
+    />
   );
 }
