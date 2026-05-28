@@ -130,6 +130,12 @@ const EMPLOYEES = EMPLOYEES_RAW.map(e => ({
   role:       e.designation,
   joiningDate: e.dateOfJoining,
   cityId:     e.workLocation,
+  city:       e.workLocation === "CITY-MUMBAI" ? "Mumbai" : "Surat",
+  firstName:  e.fullName?.split(" ")[0] || e.fullName || "Employee",
+  lastName:   e.fullName?.split(" ").slice(1).join(" ") || "",
+  department: e.department || e.designation || "Operations",
+  status:     e.status || "Active",
+  email:      e.email || `${(e.fullName||"emp").toLowerCase().replace(/ /g,".")}@249carwash.com`,
 }));
 
 const SUR_EMPS = EMPLOYEES.filter(e => e.cityId === "CITY-SURAT");
@@ -282,6 +288,8 @@ for (const emp of FIELD_STAFF) {
         employeeId:   emp.id,
         cityId:       emp.cityId,
         date:         dateStr,
+        checkInTime:  (isLeave) ? undefined : (isLate ? "09:45" : "07:30"),
+        checkOutTime: (isLeave) ? undefined : "18:00",
         status:       isLeave ? "Leave" : isLate ? "Late" : "Present",
         checkInTime:  isLeave ? undefined : isLate ? "09:35:00" : "09:00:00",
         checkOutTime: isLeave ? undefined : "18:00:00",
@@ -390,22 +398,44 @@ for (const city of ["Surat","Mumbai"] as const) {
   for (const m of MONTHS) {
     for (let i = 0; i < 20; i++) {
       const stage = LEAD_STAGES[i % LEAD_STAGES.length];
+      const isMum = city === "Mumbai";
+      const lIdx = leadIdx++;
+      const lFirst = FIRST_NAMES[lIdx % FIRST_NAMES.length];
+      const lLast  = (isMum ? LAST_NAMES_MUM : LAST_NAMES_SUR)[lIdx % 50];
       LEADS.push({
-        leadId:     `LEAD-${city.slice(0,3).toUpperCase()}-${String(leadIdx++).padStart(3,"0")}`,
-        name:       `Lead ${city.slice(0,3)} ${leadIdx}`,
-        mobile:     `98765${String(43200+leadIdx).slice(-5)}`,
-        email:      `lead${leadIdx}@example.com`,
+        leadId:     `LEAD-${city.slice(0,3).toUpperCase()}-${String(lIdx).padStart(3,"0")}`,
+        // Lead interface fields (leadConversionService.ts)
+        firstName:  lFirst,
+        lastName:   lLast,
+        name:       `${lFirst} ${lLast}`,
+        phone:      `98765${String(43200+lIdx).slice(-5)}`,
+        mobile:     `98765${String(43200+lIdx).slice(-5)}`,
+        email:      `${lFirst.toLowerCase()}${lIdx}@example.com`,
+        address: {
+          line1:   `${100+lIdx} ${["Main Road","Society Block","Residency","Heights","Park"][lIdx%5]}`,
+          area:    areas[i%7],
+          pinCode: pins[i%7],
+          city,
+        },
         area:       areas[i%7],
         pinCode:    pins[i%7],
         source:     LEAD_SOURCES[i%LEAD_SOURCES.length],
+        leadSource: LEAD_SOURCES[i%LEAD_SOURCES.length],
         stage,
         status:     stage,
         assignedTo: tse,
-        cityId:     cid, city,
+        assignedTseId: tse,
+        cityId:     cid,
+        city,
+        vehicleType: "4W",
         vehicleCategory: i%3===0?"SUV":i%3===1?"Sedan":"Hatchback",
+        vehicleDetails: { category: i%3===0?"SUV":i%3===1?"Sedan":"Hatchback" },
         planOfInterest: ["EXPRESS_WASH","SMART_WASH","ELITE"][i%3],
-        createdAt:  new Date(2026,m-1,1+(i%28)).toISOString(),
-        followUpDate: new Date(2026,m-1,5+(i%20)).toISOString(),
+        estimatedValue: [1249,1599,1999][i%3],
+        priority: i%5===0?"high":"medium",
+        createdAt:   new Date(2026,m-1,1+(i%28)).toISOString(),
+        followUpDate:new Date(2026,m-1,5+(i%20)).toISOString(),
+        lastContact: new Date(2026,m-1,1+(i%28)).toISOString(),
         convertedAt: stage==="Converted" ? new Date(2026,m-1,15+(i%10)).toISOString() : undefined,
         lostReason: stage==="Lost" ? ["Price too high","Not interested","Competitor","Area not serviceable"][i%4] : undefined,
         notes: `Status: ${stage}.`,
@@ -429,6 +459,13 @@ for (let i = 0; i < 30; i++) {
     leadId: `LEAD-${isSur?"SUR":"MUM"}-${String((i%20)+1).padStart(3,"0")}`,
     customerName: `Demo Customer ${i+1}`,
     customerFirstName: `Customer`,
+    cityId:       isSur ? "CITY-SURAT" : "CITY-MUMBAI",
+    city:         isSur ? "Surat" : "Mumbai",
+    scheduledDate: new Date(2026, 2+(i%3), 3+(i%25)).toISOString().split("T")[0],
+    scheduledTime: ["09:00 AM","11:00 AM","02:00 PM","04:00 PM"][i%4],
+    status:       i < 20 ? "Completed" : i < 25 ? "Scheduled" : "Cancelled",
+    tseId:        isSur ? "EDB-TSE-SUR1" : "EDB-TSE-MUM1",
+    assignedWasherId: null,
     mobile: `98766${String(10000+i).slice(-5)}`,
     email: `demo${i+1}@example.com`,
     addressLine1: `${200+i} Demo Street`,
@@ -485,7 +522,9 @@ for (let i = 0; i < 30; i++) {
 // 10. SUBSCRIPTIONS — 120 records
 // ═════════════════════════════════════════════════════════════════════════════
 const PKG_MAP: Record<string,string> = {
-  "EXPRESS_WASH":"Express Wash","SMART_WASH":"Smart Wash","ELITE":"ELITE"
+  // CustomerSubscriptionContext interface: "Basic"|"Standard"|"Premium"|"Deluxe"
+  // These display names match what the Subscription screens expect
+  "EXPRESS_WASH":"Basic","SMART_WASH":"Standard","ELITE":"Premium"
 };
 const PLAN_PRICES: Record<string,number> = {
   "EXPRESS_WASH":1249,"SMART_WASH":1599,"ELITE":1999
@@ -503,6 +542,8 @@ for (let i = 0; i < 120; i++) {
   SUBS.push({
     subscriptionId: `SUB-${isSur?"SUR":"MUM"}-${String(i+1).padStart(4,"0")}`,
     customerId:     cust.customerId,
+    cityId:         isSur ? "CITY-SURAT" : "CITY-MUMBAI",
+    city:           isSur ? "Surat" : "Mumbai",
     packageType:    pkg,
     packageName:    pkgKey,
     frequency:      ["Daily","Alternate Days","Weekly"][i%3],
@@ -510,6 +551,9 @@ for (let i = 0; i < 120; i++) {
     startDate:      d(m, day),
     renewalDate:    d(Math.min(m+1,12), day),
     pricing:        { basePrice:price, discount:disc, finalPrice:price-disc, currency:"INR" },
+    monthlyAmount:  price - disc,
+    planName:       pkg,
+    vehicleCategory: cust?.vehicleDetails?.category || ["Hatchback","SUV","Sedan"][i%3],
     priceLocked:    price - disc,
     serviceDetails: { vehicleType: i%2===0?"SUV":"Sedan", addOns:i%4===0?["Interior Cleaning"]:[], preferredTimeSlot:["Morning","Afternoon","Evening"][i%3] },
     billingCycle:   ["Monthly","Quarterly","Annual"][i%3],
@@ -537,6 +581,9 @@ for (const sub of SUBS.filter(s => s.status !== "Cancelled").slice(0, 100)) {
       customerId:   sub.customerId,
       subscriptionId: sub.subscriptionId,
       washerId:     washer,
+      assignedWasherId: washer,
+      cityId:       isSur ? "CITY-SURAT" : "CITY-MUMBAI",
+      packageType:  sub.packageName,
       scheduledDate: d(m, day),
       timeSlot:     ["07:00 AM","09:00 AM","11:00 AM","02:00 PM"][jobIdx%4],
       status:       "Completed",
@@ -865,12 +912,12 @@ export function seedAllData(): void {
     writeByCityId("stock_transactions", STOCK_TRANSACTIONS);
 
     // ── 15. FINANCE ──────────────────────────────────────────────────────────
-    writeByCityId("mrr",      FINANCE_MRR);
-    writeByCityId("payables", FINANCE_PAYABLES);
+    writeByCityId("finance_mrr",      FINANCE_MRR);
+    writeByCityId("finance_payables", FINANCE_PAYABLES);
     // Force-clear stale revenue data so customerName + packageName fields are always fresh
     ["cleancar_revenues","cleancar_CITY-SURAT_revenues","cleancar_CITY-MUMBAI_revenues"]
       .forEach(k => localStorage.removeItem(k));
-    writeByCityId("revenues", FINANCE_REVENUES);
+    writeByCityId("finance_revenues", FINANCE_REVENUES);
 
     // ── 16. ADVANCES ─────────────────────────────────────────────────────────
     writeByCityId("advance_management", ADVANCES);
