@@ -442,7 +442,7 @@ for (let i = 0; i < 30; i++) {
     demoDate: d(m, day),
     demoTimeSlot: DEMO_TIME_SLOTS[i%4],
     planName: ["EXPRESS_WASH","SMART_WASH","ELITE"][i%3],
-    planPrice: [1199,1599,1999][i%3],
+    planPrice: [1249,1599,1999][i%3],
     planOfInterest: ["EXPRESS_WASH","SMART_WASH","ELITE"][i%3],
     tseScheduled: true,
     tseScheduledBy: isSur ? "EDB-TSE-SUR1" : "EDB-TSE-MUM1",
@@ -485,10 +485,10 @@ for (let i = 0; i < 30; i++) {
 // 10. SUBSCRIPTIONS — 120 records
 // ═════════════════════════════════════════════════════════════════════════════
 const PKG_MAP: Record<string,string> = {
-  "EXPRESS_WASH":"Basic","SMART_WASH":"Standard","ELITE":"Premium"
+  "EXPRESS_WASH":"Express Wash","SMART_WASH":"Smart Wash","ELITE":"ELITE"
 };
 const PLAN_PRICES: Record<string,number> = {
-  "EXPRESS_WASH":1199,"SMART_WASH":1599,"ELITE":1999
+  "EXPRESS_WASH":1249,"SMART_WASH":1599,"ELITE":1999
 };
 const SUBS: any[] = [];
 for (let i = 0; i < 120; i++) {
@@ -496,7 +496,7 @@ for (let i = 0; i < 120; i++) {
   const cust   = CUSTOMERS[isSur ? i%100 : 100+(i%100)];
   const pkgKey = ["EXPRESS_WASH","SMART_WASH","ELITE"][i%3];
   const pkg    = PKG_MAP[pkgKey];
-  const price  = PLAN_PRICES[pkg];
+  const price  = PLAN_PRICES[pkgKey];
   const disc   = i%5===0 ? 100 : 0;
   const m      = 2 + (i%3);
   const day    = 1 + (i%28);
@@ -1065,7 +1065,7 @@ export function seedAllData(): void {
     const now = new Date();
     const dAgo = (d: number) => new Date(now.getTime() - d*86400000).toISOString();
     const WEB_CUSTOMERS = [
-      { customerId:"WEBCUST-001", firstName:"Hetal",    lastName:"Shah",   phone:"9723456781", email:"hetal@example.com",  vehicle:"Maruti Swift",   reg:"GJ05AA1234", category:"hatchback", plan:"EXPRESS_WASH",     amount:1199,  cityId:"CITY-SURAT", pincode:"395007", address:"A-12 Vesu Residency, Surat", daysAgo:5  },
+      { customerId:"WEBCUST-001", firstName:"Hetal",    lastName:"Shah",   phone:"9723456781", email:"hetal@example.com",  vehicle:"Maruti Swift",   reg:"GJ05AA1234", category:"hatchback", plan:"EXPRESS_WASH",     amount:1249,  cityId:"CITY-SURAT", pincode:"395007", address:"A-12 Vesu Residency, Surat", daysAgo:5  },
       { customerId:"WEBCUST-002", firstName:"Jigar",    lastName:"Patel",  phone:"9823456782", email:"jigar@example.com",  vehicle:"Hyundai Creta",  reg:"GJ05BB5678", category:"suv",       plan:"SMART_WASH",   amount:1999, cityId:"CITY-SURAT", pincode:"395009", address:"B-7 Adajan Heights, Surat",  daysAgo:12 },
       { customerId:"WEBCUST-003", firstName:"Minal",    lastName:"Desai",  phone:"9623456783", email:"minal@example.com",  vehicle:"Toyota Fortuner",reg:"GJ05CC9012", category:"luxury",    plan:"ELITE",  amount:3499, cityId:"CITY-SURAT", pincode:"395005", address:"C-3 Citylight Road, Surat",  daysAgo:2  },
       { customerId:"WEBCUST-004", firstName:"Rakesh",   lastName:"Thakkar",phone:"9523456784", email:"rakesh@example.com", vehicle:"Tata Nexon",     reg:"GJ05DD3456", category:"suv",       plan:"EXPRESS_WASH",     amount:1499, cityId:"CITY-SURAT", pincode:"395007", address:"D-15 Pal Village, Surat",    daysAgo:20 },

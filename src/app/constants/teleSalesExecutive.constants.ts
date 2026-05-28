@@ -96,7 +96,7 @@ export const BUNDLE_TEMPLATES = {
   },
   BIKE_COMBO: {
     HIGH: 1497,
-    MID: 1249,
+    MID: 1249, // Bike combo mid tier — NOTE: coincides with EXPRESS_WASH Hatchback price by coincidence only. Do NOT derive from plan pricing.
     LOW: 1099,
   },
 } as const;

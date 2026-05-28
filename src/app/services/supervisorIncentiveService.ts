@@ -309,12 +309,12 @@ class SupervisorIncentiveService {
 
     // ── Conversion Bonus ──────────────────────────────────────────────────────
     const convRecords: ConversionRecord[] = [
-      this.buildConversionRecord("L-001","Amit Patel",   "Hatchback — Shampoo Wash",1499, new Date(now.getTime()-75*86400000), new Date(now.getTime()-70*86400000)),
-      this.buildConversionRecord("L-002","Priya Shah",   "SUV — Water Wash",        1099, new Date(now.getTime()-68*86400000), new Date(now.getTime()-63*86400000)),
-      this.buildConversionRecord("L-003","Rahul Desai",  "Hatchback — Water Wash",   999, new Date(now.getTime()-40*86400000), new Date(now.getTime()-35*86400000)),
-      this.buildConversionRecord("L-004","Sneha Mehta",  "SUV — Shampoo+Wax",       2699, new Date(now.getTime()-20*86400000), new Date(now.getTime()-15*86400000)),
-      this.buildConversionRecord("L-005","Vikram Modi",  "Hatchback — Shampoo+Wax", 1999, new Date(now.getTime()-10*86400000)),
-      this.buildConversionRecord("L-006","Kavita Joshi", "Luxury — Shampoo+Wax",    2999, new Date(now.getTime()-5*86400000)),
+      this.buildConversionRecord("L-001","Amit Patel",   "Hatchback — Smart Wash",  1599, new Date(now.getTime()-75*86400000), new Date(now.getTime()-70*86400000)),
+      this.buildConversionRecord("L-002","Priya Shah",   "SUV — Express Wash",      1499, new Date(now.getTime()-68*86400000), new Date(now.getTime()-63*86400000)),
+      this.buildConversionRecord("L-003","Rahul Desai",  "Hatchback — Express Wash",1249, new Date(now.getTime()-40*86400000), new Date(now.getTime()-35*86400000)),
+      this.buildConversionRecord("L-004","Sneha Mehta",  "SUV — ELITE",             2499, new Date(now.getTime()-20*86400000), new Date(now.getTime()-15*86400000)),
+      this.buildConversionRecord("L-005","Vikram Modi",  "Hatchback — ELITE",       1999, new Date(now.getTime()-10*86400000)),
+      this.buildConversionRecord("L-006","Kavita Joshi", "Luxury — ELITE",          3499, new Date(now.getTime()-5*86400000)),
     ];
     const convBonus = this.calculateConversionBonus(convRecords, kpi.btlUnlocked);
 

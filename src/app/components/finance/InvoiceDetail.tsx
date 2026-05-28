@@ -177,7 +177,7 @@ async function fetchInvoiceDetail(invoiceId: string): Promise<InvoiceDetail> {
     const name = planName?.toUpperCase() || "";
 
     // ELITE — Raja Seva: daily wash + weekly shampoo + fortnightly dash + monthly wax + engine bay
-    if (name.includes("ELITE") || name.includes("WAX") || name.includes("PREMIUM")) {
+    if (name.includes("ELITE") || name.includes("WAX")) {
       return [
         { id: "li-1", lineNumber: 1, description: `ELITE — Daily Exterior Water Wash (30×) — ${catLabel}`, quantity: 30, unitPrice: +(amount * 0.72 / 30).toFixed(2), lineTotal: +(amount * 0.72).toFixed(2) },
         { id: "li-2", lineNumber: 2, description: "Weekly Shampoo Wash (4×/month)", quantity: 4, unitPrice: +(amount * 0.12 / 4).toFixed(2), lineTotal: +(amount * 0.12).toFixed(2) },

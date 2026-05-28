@@ -91,10 +91,10 @@ class MockWasherDataService {
 
   // Package pool — in sync with data/subscriptionPlans.ts CURRENT_PLAN_VERSION (SHINE/PROTECT/ELITE)
   private packages = [
-    { name: "SHINE | Chamakti Subah",  type: "EXPRESS_WASH",   frequency: "Daily", price: 1199 },
-    { name: "PROTECT | Raksha Plan",   type: "SMART_WASH", frequency: "Daily", price: 1599 },
-    { name: "ELITE | Raja Seva",       type: "ELITE",   frequency: "Daily", price: 1999 },
-    { name: "PROTECT | Raksha Plan",   type: "SMART_WASH", frequency: "Daily", price: 1999 }, // SUV tier
+    { name: "Express Wash | Chamakti Subah",  type: "EXPRESS_WASH",   frequency: "Daily", price: 1249 },
+    { name: "Smart Wash | Raksha Plan",   type: "SMART_WASH", frequency: "Daily", price: 1599 },
+    { name: "ELITE | Raja Seva",       type: "ELITE",   frequency: "Daily", price: 1999 }, // Hatchback
+    { name: "Smart Wash | Raksha Plan",   type: "SMART_WASH", frequency: "Daily", price: 1999 }, // SUV tier
     { name: "ELITE | Raja Seva",       type: "ELITE",   frequency: "Daily", price: 2499 }, // SUV tier
     { name: "ELITE | Raja Seva",       type: "ELITE",   frequency: "Daily", price: 3499 }, // Luxury tier
   ];

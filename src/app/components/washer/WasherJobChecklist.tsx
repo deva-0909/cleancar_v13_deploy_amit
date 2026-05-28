@@ -162,7 +162,18 @@ function buildChecklistSections(job: any): ChecklistSection[] {
     ],
   };
 
-  const qualitySection: ChecklistSection = {
+  const fragranceSection: ChecklistSection = {
+    id: "fragrance",
+    title: "🌸 Car Fragrance Application",
+    items: [
+      { id: "fra-1", name: "Interior dry and windows up before applying fragrance",    completed: false, skipped: false },
+      { id: "fra-2", name: "Spray fragrance — 2-3 short bursts, not directly on seats", completed: false, skipped: false },
+      { id: "fra-3", name: "Close doors for 1 minute — allow fragrance to settle",      completed: false, skipped: false },
+      { id: "fra-4", name: "Before + after photo sent on WhatsApp",                     completed: false, skipped: false },
+    ],
+  };
+
+    const qualitySection: ChecklistSection = {
     id: "quality", name: "Quality Check", isOpen: true,
     items: [
       { id: "qc-1", name: "Check for water spots on body panels",      completed: false, skipped: false },
@@ -190,6 +201,7 @@ function buildChecklistSections(job: any): ChecklistSection[] {
     if (flags.isInteriorDay)   sections.push(interiorSection);
     if (flags.isTyreDay)       sections.push(tyreSection);
     if (flags.isEngineDay)     sections.push(engineSection);
+    if (flags.isFragranceDay)  sections.push(fragranceSection);
   }
 
   if (pkg === "ELITE_2W") {

@@ -1356,7 +1356,17 @@ class OrganizationHierarchyService {
         crmComplianceScore: tse.kpis.crmCompliance.score,
         callsMadeToday: tse.kpis.callsMade.count,
         callsTarget: tse.kpis.callsMade.target,
-        openLeadsCount: Math.floor(Math.random() * 15), // replace with real queue count when wired
+        openLeadsCount: (() => {
+            // TODO: replace with Supabase query: SELECT COUNT(*) FROM leads
+            //       WHERE assigned_tse_id = tse.id AND stage NOT IN ('CONVERTED','LOST')
+            try {
+              const leads = JSON.parse(localStorage.getItem('cleancar_leads') || '[]');
+              return (leads as any[]).filter((l: any) =>
+                l.assignedTseId === tse.id &&
+                !['CONVERTED','LOST','CANCELLED'].includes(l.stage)
+              ).length;
+            } catch { return 0; }
+          })(),
         vehicleTypeWinRate: { "4W": tse.kpis.conversionRate.rate + 2, "2W": tse.kpis.conversionRate.rate - 4 },
         sourceWinRate: { "DIGITAL": tse.kpis.conversionRate.rate, "BTL_REFERRAL": tse.kpis.conversionRate.rate + 5 },
         avgHandleTimeMinutes: 12,

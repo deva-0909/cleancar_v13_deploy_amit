@@ -4,7 +4,7 @@
  * ⚠️ DO NOT CONFUSE WITH CustomerSubscriptionContext ⚠️
  *
  * THIS CONTEXT:
- * - Stores plan templates (Basic, Standard, Premium, Deluxe)
+ * - Stores plan templates (Express Wash, Smart Wash, ELITE)
  * - Manages pricing matrix by vehicle category and plan type
  * - Provides add-on services, combo offers, one-time wash pricing
  * - Used for admin plan management and pricing updates

@@ -51,9 +51,9 @@ export function WorkflowControlDemo() {
   }, []);
 
   const mockJobs = [
-    { id: "JOB-001", vehicleRegNo: "GJ01AB1234", packageType: "PREMIUM", customerName: "Rajesh Patel" },
-    { id: "JOB-002", vehicleRegNo: "GJ05CD5678", packageType: "STANDARD", customerName: "Amit Shah" },
-    { id: "JOB-003", vehicleRegNo: "GJ06EF9012", packageType: "BASIC", customerName: "Priya Desai" },
+    { id: "JOB-001", vehicleRegNo: "GJ01AB1234", packageType: "ELITE",        customerName: "Rajesh Patel" },
+    { id: "JOB-002", vehicleRegNo: "GJ05CD5678", packageType: "SMART_WASH",  customerName: "Amit Shah" },
+    { id: "JOB-003", vehicleRegNo: "GJ06EF9012", packageType: "EXPRESS_WASH", customerName: "Priya Desai" },
   ];
 
   const handleCheckIn = async () => {

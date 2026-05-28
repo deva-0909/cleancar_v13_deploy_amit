@@ -64,11 +64,22 @@ export function LeadConversionModal({ lead, open, onOpenChange, onSuccess }: Lea
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentNotes, setPaymentNotes] = useState("");
 
-  const [selectedPackage, setSelectedPackage] = useState<"Basic" | "Standard" | "Premium" | "Deluxe">("Standard");
-  const [packageName, setPackageName] = useState("CleanCar Premium");
+  const [selectedPackage, setSelectedPackage] = useState<"EXPRESS_WASH" | "SMART_WASH" | "ELITE">("SMART_WASH");
+  const [packageName, setPackageName] = useState("Smart Wash");
   const [frequency, setFrequency] = useState<"Daily" | "Alternate Days" | "Weekly" | "Bi-Weekly" | "Monthly">("Weekly");
   const [billingCycle, setBillingCycle] = useState<"Monthly" | "Quarterly" | "Annual">("Monthly");
-  const [basePrice, setBasePrice] = useState("1599");
+  const [basePrice, setBasePrice] = useState(() => {
+    // Default: Smart Wash Hatchback — update when plan/vehicle changes
+    const prices: Record<string, Record<string, number>> = {
+      EXPRESS_WASH: { Hatchback: 1249, SUV: 1499, Luxury: 1999 },
+      SMART_WASH:   { Hatchback: 1599, SUV: 1999, Luxury: 2699 },
+      ELITE:        { Hatchback: 1999, SUV: 2499, Luxury: 3499 },
+    };
+    const cat = (lead?.vehicleCategory || "Hatchback").includes("SUV") ? "SUV"
+      : (lead?.vehicleCategory || "").includes("Luxury") ? "Luxury" : "Hatchback";
+    const plan = lead?.planOfInterest || "SMART_WASH";
+    return String(prices[plan]?.[cat] ?? prices.SMART_WASH.Hatchback);
+  });
   const [discount, setDiscount] = useState("0");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
 
@@ -235,7 +246,7 @@ export function LeadConversionModal({ lead, open, onOpenChange, onSuccess }: Lea
                       type="number"
                       value={paymentAmount}
                       onChange={(e) => setPaymentAmount(e.target.value)}
-                      placeholder="1599"
+                      placeholder="Enter amount"
                     />
                   </div>
 

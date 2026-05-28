@@ -32,38 +32,46 @@ export function SendPlanPricePanel({
   const [channel, setChannel] = useState("both");
   const [priceVersion, setPriceVersion] = useState("current");
 
-  // Mock plan pricing
+  // Plan pricing — from subscriptionPlans.ts CURRENT_PLAN_VERSION (Package Architecture v1.8)
   const planPrices: Record<string, Record<string, number>> = {
-    "CleanCar Basic": { Hatchback: 899, Sedan: 1099, SUV: 1399 },
-    "CleanCar Premium": { Hatchback: 1299, Sedan: 1599, SUV: 1999 },
-    "CleanCar Elite": { Hatchback: 1899, Sedan: 2299, SUV: 2899 },
+    "EXPRESS_WASH": { Hatchback: 1249, SUV: 1499, "Luxury SUV": 1999 },
+    "SMART_WASH":   { Hatchback: 1599, SUV: 1999, "Luxury SUV": 2699 },
+    "ELITE":        { Hatchback: 1999, SUV: 2499, "Luxury SUV": 3499 },
+  };
+
+  // Display names for plan keys
+  const planDisplayNames: Record<string, string> = {
+    "EXPRESS_WASH": "Express Wash (Chamakti Subah)",
+    "SMART_WASH":   "Smart Wash (Raksha Plan)",
+    "ELITE":        "ELITE (Raja Seva)",
   };
 
   const currentPrice = planPrices[selectedPlan]?.[vehicleCategory] || 0;
-  const oldPrice = currentPrice - 100; // Mock old price
+  const oldPrice = 0; // No fake old price — show actual price only
 
-  const planFeatures = {
-    "CleanCar Basic": [
-      "Daily exterior wash",
-      "Interior vacuuming (weekly)",
-      "Dashboard cleaning",
-      "Tyre polishing",
-      "Basic water wash",
+  const planFeatures: Record<string, string[]> = {
+    "EXPRESS_WASH": [
+      "Daily exterior water wash + microfibre dry (30×/month)",
+      "Weekly tyre & rim spray-clean",
+      "Monthly underbody flush",
+      "Monthly windshield clean (outside)",
+      "Monthly shampoo wash",
     ],
-    "CleanCar Premium": [
-      "Daily exterior wash with foam",
-      "Interior vacuuming (2x weekly)",
-      "Dashboard & console deep clean",
-      "Tyre blackening",
-      "Underbody wash (weekly)",
+    "SMART_WASH": [
+      "Everything in Express Wash",
+      "Fortnightly shampoo wash (2×/month)",
+      "Fortnightly interior vacuum & mat clean (2×/month)",
+      "Monthly tyre dressing & shine coat",
+      "Monthly car fragrance",
     ],
-    "CleanCar Elite": [
-      "Premium foam wash daily",
-      "Complete interior detailing (3x weekly)",
-      "Dashboard premium care",
-      "Tyre blackening & alloy shine",
-      "Underbody wash (2x weekly)",
-      "Wax polish (monthly)",
+    "ELITE": [
+      "Everything in Smart Wash",
+      "Weekly shampoo wash (4×/month)",
+      "Fortnightly dashboard & console deep clean (2×/month)",
+      "Fortnightly tyre dressing (2×/month)",
+      "Monthly full hand wax polish",
+      "Monthly engine bay dry blow (no water)",
+      "Monthly premium fragrance + cabin sanitisation",
     ],
   };
 

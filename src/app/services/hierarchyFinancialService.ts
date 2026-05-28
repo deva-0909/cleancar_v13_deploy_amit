@@ -56,8 +56,8 @@ class HierarchyFinancialService {
       const teams = organizationHierarchyService.getTeamsByPincode(pincode.id);
 
       for (let i = 0; i < customerCount; i++) {
-        const packageType = i % 3 === 0 ? 'PREMIUM' : i % 2 === 0 ? 'STANDARD' : 'BASIC';
-        const amount = packageType === 'PREMIUM' ? 2499 : packageType === 'STANDARD' ? 1499 : 999;
+        const packageType = i % 3 === 0 ? 'ELITE' : i % 2 === 0 ? 'SMART_WASH' : 'EXPRESS_WASH';
+        const amount = packageType === 'ELITE' ? 1999 : packageType === 'SMART_WASH' ? 1599 : 1249;
 
         // Distribute customers across teams in round-robin fashion
         const teamIndex = teams.length > 0 ? i % teams.length : 0;
