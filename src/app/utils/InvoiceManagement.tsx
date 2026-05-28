@@ -166,8 +166,8 @@ async function fetchInvoices(
     })();
     const rawPlan = r.packageName || sub?.packageName || "";
     const planNameMap: Record<string,string> = {
-      "Water Wash":"SHINE","Shampoo Wash":"PROTECT","Shampoo+Wax":"ELITE",
-      "Basic":"SHINE","Standard":"PROTECT","Premium":"ELITE",
+      "Water Wash":"EXPRESS_WASH","Shampoo Wash":"SMART_WASH","Shampoo+Wax":"ELITE",
+      "Basic":"EXPRESS_WASH","Standard":"SMART_WASH","Premium":"ELITE",
     };
     const serviceType = planNameMap[rawPlan] || rawPlan || (r.type === "One-Time" ? "One-Time Wash" : "Car Wash Subscription");
     return {

@@ -312,10 +312,11 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
   ],
   monthlyPlans: [
     {
-      id: "water",
-      name: "Water Wash",
+      id: "express",
+      name: "Express Wash",
+      packageType: "EXPRESS_WASH",
       icon: "💧",
-      tagline: "Clean every day, essentials done right",
+      tagline: "Chamakti Subah — Your car, clean every morning.",
       features: [
         { text: "Full exterior pressure rinse", included: true },
         { text: "Wheel rim & tyre spray", included: true },
@@ -327,10 +328,11 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
       prices: { hatchback: 999, suv: 1099, luxury: 1499 },
     },
     {
-      id: "shampoo",
-      name: "Shampoo Wash",
+      id: "smart",
+      name: "Smart Wash",
+      packageType: "SMART_WASH",
       icon: "🧴",
-      tagline: "Deep clean with professional shampoo",
+      tagline: "Raksha Plan — Clean daily. Protected always.",
       popular: true,
       features: [
         { text: "Everything in Water Wash", included: true },
@@ -343,10 +345,11 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
       prices: { hatchback: 1499, suv: 1699, luxury: 1999 },
     },
     {
-      id: "wax",
-      name: "Shampoo + Wax",
+      id: "elite",
+      name: "ELITE",
+      packageType: "ELITE",
       icon: "✨",
-      tagline: "Full care — inside and out",
+      tagline: "Raja Seva — Showroom condition, every day.",
       features: [
         { text: "Everything in Shampoo Wash", included: true },
         { text: "Weekly interior dashboard wipe", included: true },
