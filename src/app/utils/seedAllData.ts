@@ -17,7 +17,7 @@
  *   EMPLOYEE_DATABASE_RECORDS    (auth system)
  */
 
-const SEED_FLAG = "ALL_DATA_SEEDED_V7";
+const SEED_FLAG = "ALL_DATA_SEEDED_V8";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 const NOW   = new Date().toISOString();
@@ -798,7 +798,7 @@ export function seedAllData(): void {
     ["HISTORIC_DATA_SEEDED_V1","HISTORIC_DATA_SEEDED_V2","HISTORIC_DATA_SEEDED_V3",
      "HISTORIC_DATA_SEEDED_V4","HISTORIC_DATA_SEEDED_V5","ACC_SEED_V1","ACC_SEED_V2",
      "ALL_DATA_SEEDED_V1","ALL_DATA_SEEDED_V2","ALL_DATA_SEEDED_V3","ALL_DATA_SEEDED_V4",
-     "ALL_DATA_SEEDED_V5","ALL_DATA_SEEDED_V6"
+     "ALL_DATA_SEEDED_V5","ALL_DATA_SEEDED_V6","ALL_DATA_SEEDED_V7"
     ].forEach(f => localStorage.removeItem(f));
 
     // ── 1. EMPLOYEES ─────────────────────────────────────────────────────────
@@ -1220,7 +1220,72 @@ export function seedAllData(): void {
       }
     } catch (_) {}
 
-    localStorage.setItem(SEED_FLAG, "true");
+    // ── KEY ALIASES — bridge keys that screens read under different names ────────
+    // DataService.ts reads "employees" (no prefix)
+    localStorage.setItem("employees",         JSON.stringify(EMPLOYEES));
+
+    // CancellationRequestPage reads cc360_customers / cc360_subscriptions
+    localStorage.setItem("cc360_customers",     JSON.stringify(CUSTOMERS));
+    localStorage.setItem("cc360_subscriptions", JSON.stringify(SUBS));
+
+    // RootLayout reads "attendance_records" (no prefix)
+    localStorage.setItem("attendance_records",  JSON.stringify(ATTENDANCE_RECORDS));
+
+    // salaryStructureService reads "salaryStructures" (no prefix)
+    // employeeSalaryService reads "employeeSalaries" (no prefix)
+    localStorage.setItem("salaryStructures",    JSON.stringify(SALARY_STRUCTURES));
+    localStorage.setItem("employeeSalaries",    JSON.stringify(SALARY_STRUCTURES));
+
+    // CancellationRequestPage + finance reads "FINANCE_REVENUES" (upper-case, no prefix)
+    localStorage.setItem("FINANCE_REVENUES",    JSON.stringify(FINANCE_REVENUES));
+
+    // DataService.ts reads "cleancar_selected_city" for city context
+    if (!localStorage.getItem("cleancar_selected_city")) {
+      localStorage.setItem("cleancar_selected_city", "CITY-SURAT");
+    }
+
+    // ShiftContext reads "cleancar_shifts" — seed empty array so context doesn't crash
+    if (!localStorage.getItem("cleancar_shifts")) {
+      localStorage.setItem("cleancar_shifts", JSON.stringify([]));
+    }
+
+    // CustomerPlanPage reads "cleancar_public_holidays" — seed Gujarat 2026 holidays
+    if (!localStorage.getItem("cleancar_public_holidays")) {
+      localStorage.setItem("cleancar_public_holidays", JSON.stringify([
+        { date: "2026-01-26", name: "Republic Day" },
+        { date: "2026-03-25", name: "Holi" },
+        { date: "2026-03-26", name: "Dhuleti" },
+        { date: "2026-04-02", name: "Ram Navami" },
+        { date: "2026-04-14", name: "Ambedkar Jayanti" },
+        { date: "2026-04-18", name: "Good Friday" },
+        { date: "2026-08-15", name: "Independence Day" },
+        { date: "2026-08-27", name: "Janmashtami" },
+        { date: "2026-10-02", name: "Gandhi Jayanti" },
+        { date: "2026-10-20", name: "Dussehra" },
+        { date: "2026-11-01", name: "Diwali Day 1" },
+        { date: "2026-11-02", name: "Diwali Day 2 (Lakshmi Puja)" },
+        { date: "2026-11-03", name: "Diwali Day 3 (New Year)" },
+        { date: "2026-12-25", name: "Christmas" },
+      ]));
+    }
+
+    // SalesHeadService reads "sh_personal_closures_count" — seed with 0 if absent
+    if (!localStorage.getItem("sh_personal_closures_count")) {
+      localStorage.setItem("sh_personal_closures_count", JSON.stringify(0));
+    }
+
+    // cancelreq, procurement — seed empty arrays so screens don't crash
+    if (!localStorage.getItem("cleancar_cancellation_requests")) {
+      localStorage.setItem("cleancar_cancellation_requests", JSON.stringify([]));
+    }
+    if (!localStorage.getItem("cleancar_purchase_orders")) {
+      localStorage.setItem("cleancar_purchase_orders", JSON.stringify([]));
+    }
+    if (!localStorage.getItem("cleancar_material_requisitions")) {
+      localStorage.setItem("cleancar_material_requisitions", JSON.stringify([]));
+    }
+
+        localStorage.setItem(SEED_FLAG, "true");
     console.log(`[seedAllData] ✅ Complete seed done:\n` +
       `  Employees: ${EMPLOYEES.length} | Payroll: ${PAYROLL_RUNS.length} | Attendance: ${ATTENDANCE_RECORDS.length}\n` +
       `  Customers: ${CUSTOMERS.length} | Leads: ${LEADS.length} | Demos: ${DEMOS.length}\n` +
