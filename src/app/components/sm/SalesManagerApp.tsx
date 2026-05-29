@@ -29,9 +29,10 @@ import {
   MapPin, Building2, QrCode, Users, Package,
   Award, Receipt, AlertTriangle, CheckCircle2,
   TrendingUp, RefreshCw, ChevronDown, ChevronUp,
-  Clock, XCircle,
+  Clock, XCircle, CalendarCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { SMDailyActivity } from "./SMDailyActivity";
 import {
   salesManagerService,
   type SMLocation, type SMBlockDeal, type LocationStatus,
@@ -554,6 +555,9 @@ export function SalesManagerApp() {
             <TabsTrigger value="supervisor" className="text-xs gap-1">
               <Users className="w-3 h-3 hidden sm:block" />Supervisors
             </TabsTrigger>
+            <TabsTrigger value="daily" className="text-xs gap-1">
+              <CalendarCheck className="w-3 h-3 hidden sm:block" />Daily Report
+            </TabsTrigger>
             <TabsTrigger value="block" className="text-xs gap-1">
               <Package className="w-3 h-3 hidden sm:block" />Block Deals
             </TabsTrigger>
@@ -581,6 +585,9 @@ export function SalesManagerApp() {
           </TabsContent>
           <TabsContent value="submit">
             <SubmitLocation />
+          </TabsContent>
+          <TabsContent value="daily">
+            <SMDailyActivity />
           </TabsContent>
           <TabsContent value="supervisor">
             <Card className="p-8 text-center text-gray-400">
