@@ -395,3 +395,12 @@ export const KPI_THRESHOLDS = {
     RED: 79, // < 80% = red
   },
 } as const;
+
+// BUNDLE_TEMPLATES — WhatsApp pitch script templates for bundle upsells
+// Used by teleSalesExecutiveService.calculateBundleOptions()
+export const BUNDLE_TEMPLATES = {
+  SUV_COMBO: "For your SUV, our [plan] + Interior Vacuum is ₹[price]/month — that's ₹[value] of value in one package. Shall I set it up for you right now?",
+  HATCHBACK_COMBO: "For your [car], our [plan] + Interior Vacuum is ₹[price]/month — cleaner inside and out every day.",
+  LUXURY_COMBO: "For your [car], our Elite Wash + Vacuum + Dashboard Detail is ₹[price]/month — showroom condition daily.",
+  DEFAULT: "Our [plan] + [addon] bundle is ₹[price]/month — ₹[saving] saving vs booking separately.",
+} as const;
