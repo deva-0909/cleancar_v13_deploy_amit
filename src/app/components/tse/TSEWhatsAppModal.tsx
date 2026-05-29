@@ -158,10 +158,6 @@ Reply *YES* for details! 👇
     },
   },
   {
-    key: "CUSTOM"
-    },
-  },
-  {
     key: "CUSTOM",
     label: "Custom Message",
     hint: "Write your own",
