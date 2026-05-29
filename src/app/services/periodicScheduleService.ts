@@ -116,7 +116,7 @@ const WAX_INTERVAL_DAYS = 30;
 export const PERIODIC_SERVICE_META: Record<string, {
   name: string; nameHindi: string; icon: string;
 }> = {
-  shampoo:   { name: "Shampoo Wash",              nameHindi: "Shampoo Wash — foam lagao, deep clean karo",      icon: "🧴" },
+  shampoo:   { name: "SMART_WASH",              nameHindi: "Shampoo Wash — foam lagao, deep clean karo",      icon: "🧴" },
   wax:       { name: "Hand Wax Polish",            nameHindi: "Wax lagao — UV protection + showroom shine",      icon: "✨" },
   interior:  { name: "Interior Vacuum & Mat Clean",nameHindi: "Andar saaf karo — vacuum + mat clean",            icon: "🪣" },
   tyre:      { name: "Tyre Dressing",              nameHindi: "Tyre dressing lagao — shine coat protection",      icon: "🛞" },

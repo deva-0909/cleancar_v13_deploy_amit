@@ -32,7 +32,7 @@ import { useCity } from "./CityContext";
 export interface CustomerSubscription {
   subscriptionId: string;
   customerId: string; // GLOBAL IDENTITY - links to CustomerContext
-  packageType: "Basic" | "Standard" | "Premium" | "Deluxe";
+  packageType: "EXPRESS_WASH" | "SMART_WASH" | "Premium" | "ELITE_WASH";
   packageName: string;
   frequency: "Daily" | "Alternate Days" | "Weekly" | "Bi-Weekly" | "Monthly";
   status: "Active" | "Paused" | "Cancelled" | "Expired";

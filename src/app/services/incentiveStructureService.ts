@@ -160,7 +160,7 @@ export const POOL_SPLIT: Record<IncentiveSource, Partial<Record<IncentiveRole, n
 // Is this a zero-pool case?
 export function isZeroPool(planType: string, vehicleCategory: string): boolean {
   const isExpressWash = planType === "EXPRESS_WASH" ||
-    planType === "Basic" || planType === "Express Wash";
+    planType === "EXPRESS_WASH" || planType === "EXPRESS_WASH";
   const isHatchback   = vehicleCategory.toLowerCase().includes("hatchback") ||
     vehicleCategory.toLowerCase().includes("compact sedan");
   return isExpressWash && isHatchback;

@@ -430,7 +430,7 @@ for (const city of ["Surat","Mumbai"] as const) {
         vehicleType: "4W",
         vehicleCategory: i%3===0?"SUV":i%3===1?"Sedan":"Hatchback",
         vehicleDetails: { category: i%3===0?"SUV":i%3===1?"Sedan":"Hatchback" },
-        planOfInterest: ["EXPRESS_WASH","SMART_WASH","ELITE"][i%3],
+        planOfInterest: ["EXPRESS_WASH","SMART_WASH","ELITE_WASH"][i%3],
         estimatedValue: [1249,1599,1999][i%3],
         priority: i%5===0?"high":"medium",
         createdAt:   new Date(2026,m-1,1+(i%28)).toISOString(),
@@ -478,9 +478,9 @@ for (let i = 0; i < 30; i++) {
     demoType: i%3===0 ? "One-Time Service Demo" : "Subscription Package Demo",
     demoDate: d(m, day),
     demoTimeSlot: DEMO_TIME_SLOTS[i%4],
-    planName: ["EXPRESS_WASH","SMART_WASH","ELITE"][i%3],
+    planName: ["EXPRESS_WASH","SMART_WASH","ELITE_WASH"][i%3],
     planPrice: [1249,1599,1999][i%3],
-    planOfInterest: ["EXPRESS_WASH","SMART_WASH","ELITE"][i%3],
+    planOfInterest: ["EXPRESS_WASH","SMART_WASH","ELITE_WASH"][i%3],
     tseScheduled: true,
     tseScheduledBy: isSur ? "EDB-TSE-SUR1" : "EDB-TSE-MUM1",
     tseScheduledAt: iso(m, day-1),
@@ -522,18 +522,18 @@ for (let i = 0; i < 30; i++) {
 // 10. SUBSCRIPTIONS — 120 records
 // ═════════════════════════════════════════════════════════════════════════════
 const PKG_MAP: Record<string,string> = {
-  // CustomerSubscriptionContext interface: "Basic"|"Standard"|"Premium"|"Deluxe"
+  // CustomerSubscriptionContext interface: "EXPRESS_WASH"|"SMART_WASH"|"Premium"|"ELITE_WASH"
   // These display names match what the Subscription screens expect
-  "EXPRESS_WASH":"Basic","SMART_WASH":"Standard","ELITE":"Premium"
+  "EXPRESS_WASH":"EXPRESS_WASH","SMART_WASH":"SMART_WASH","ELITE_WASH":"Premium"
 };
 const PLAN_PRICES: Record<string,number> = {
-  "EXPRESS_WASH":1249,"SMART_WASH":1599,"ELITE":1999
+  "EXPRESS_WASH":1249,"SMART_WASH":1599,"ELITE_WASH":1999
 };
 const SUBS: any[] = [];
 for (let i = 0; i < 120; i++) {
   const isSur  = i < 80;
   const cust   = CUSTOMERS[isSur ? i%100 : 100+(i%100)];
-  const pkgKey = ["EXPRESS_WASH","SMART_WASH","ELITE"][i%3];
+  const pkgKey = ["EXPRESS_WASH","SMART_WASH","ELITE_WASH"][i%3];
   const pkg    = PKG_MAP[pkgKey];
   const price  = PLAN_PRICES[pkgKey];
   const disc   = i%5===0 ? 100 : 0;
@@ -784,7 +784,7 @@ for (const m of MONTHS) {
   // Surat — subscription sales
   [1150,1150,1499,1150,1999,1150,1150,1499,1150,1499,1150,1999].forEach((base,i)=>{
     const g=gst18(base);
-    ACC_ENTRIES.push({ id:`ACC-${String(accSeq++).padStart(5,"0")}`, voucherNumber:`SAL/SURAT/25-26/${String(accSeq).padStart(4,"0")}`, entryType:"Sales", date:`2026-${ms}-01`, gstEntryType:"B2B", ...g, invoiceNumber:`SUB-SUR-${m}-${i+1}`, hsnSacCode:"998519", debitAccount:"LM-RZP-SUR", creditAccount:"LM-SUBREV-SUR", paymentMode:"Bank", isRCM:false, narration:`Subscription — ${["EXPRESS_WASH","SMART_WASH","ELITE"][i%3]}`, city:"Surat", cityId:"CITY-SURAT", financialYear:FY, createdBy:"Seed", createdAt:`2026-${ms}-01T10:00:00.000Z`, status:"Posted", changeHistory:[] });
+    ACC_ENTRIES.push({ id:`ACC-${String(accSeq++).padStart(5,"0")}`, voucherNumber:`SAL/SURAT/25-26/${String(accSeq).padStart(4,"0")}`, entryType:"Sales", date:`2026-${ms}-01`, gstEntryType:"B2B", ...g, invoiceNumber:`SUB-SUR-${m}-${i+1}`, hsnSacCode:"998519", debitAccount:"LM-RZP-SUR", creditAccount:"LM-SUBREV-SUR", paymentMode:"Bank", isRCM:false, narration:`Subscription — ${["EXPRESS_WASH","SMART_WASH","ELITE_WASH"][i%3]}`, city:"Surat", cityId:"CITY-SURAT", financialYear:FY, createdBy:"Seed", createdAt:`2026-${ms}-01T10:00:00.000Z`, status:"Posted", changeHistory:[] });
   });
   // Surat — one-time washes
   [5,9,13,17,21].forEach((day,i)=>{ const g=gst18(499+(i%2===0?200:0)); ACC_ENTRIES.push({ id:`ACC-${String(accSeq++).padStart(5,"0")}`, voucherNumber:`SAL/SURAT/25-26/${String(accSeq).padStart(4,"0")}`, entryType:"Sales", date:`2026-${ms}-${String(day).padStart(2,"0")}`, gstEntryType:"Unregistered", ...g, invoiceNumber:`OT-SUR-${m}-${i+1}`, hsnSacCode:"998519", debitAccount:"LM-CASH-SUR", creditAccount:"LM-OT-SUR", paymentMode:"Cash", isRCM:false, narration:"One-time wash", city:"Surat", cityId:"CITY-SURAT", financialYear:FY, createdBy:"Seed", createdAt:`2026-${ms}-${String(day).padStart(2,"0")}T10:00:00.000Z`, status:"Posted", changeHistory:[] });});
@@ -845,7 +845,7 @@ export function seedAllData(): void {
     ["HISTORIC_DATA_SEEDED_V1","HISTORIC_DATA_SEEDED_V2","HISTORIC_DATA_SEEDED_V3",
      "HISTORIC_DATA_SEEDED_V4","HISTORIC_DATA_SEEDED_V5","ACC_SEED_V1","ACC_SEED_V2",
      "ALL_DATA_SEEDED_V1","ALL_DATA_SEEDED_V2","ALL_DATA_SEEDED_V3","ALL_DATA_SEEDED_V4",
-     "ALL_DATA_SEEDED_V5","ALL_DATA_SEEDED_V6","ALL_DATA_SEEDED_V7","ALL_DATA_SEEDED_V8"
+     "ALL_DATA_SEEDED_V5","ALL_DATA_SEEDED_V6","ALL_DATA_SEEDED_V7"
     ].forEach(f => localStorage.removeItem(f));
 
     // ── 1. EMPLOYEES ─────────────────────────────────────────────────────────
@@ -1066,7 +1066,7 @@ export function seedAllData(): void {
       { id:"LOC-006", smId:"EDB-SMGR-SUR2", smName:"Kalpesh Rathod", name:"Piplod Township Society",  type:"Society",      address:"Piplod, Surat",         gpsLat:21.1512, gpsLng:72.7802, contactPerson:"Secretary",             contactPhone:"+91 98765 66666", status:"Pending Approval",                         qrCodeActive:false, supervisorId:null,            supervisorName:null,             leadsMTD:0,  leadsMTDM1:0,  leadsMTDM2:0, leadsMTDM3:0, conversionsMTD:0, conversionRatePct:0,  payingCustomers:0,  lastSupervisorActivity:"",             activationBonusStatus:"pending",  previousPayingMilestone:0  },
     ];
     const SM_BLOCK_DEALS_SEED = [
-      { id:"BD-001", locationId:"LOC-001", locationName:"Adajan Heights Society",  smId:"EDB-SMGR-SUR1", vehicleCount:12, packageType:"Water + Shampoo",   commitmentTerm:3,  status:"Active",   approvedDate:daysAgoSM(30), activeVehicles:10, phase1Paid:true,  phase1Amount:3750, phase2Amount:3125, phase2CheckDate:daysAgoSM(-60), phase2Status:"pending", additionalVehicles:2 },
+      { id:"BD-001", locationId:"LOC-001", locationName:"Adajan Heights Society",  smId:"EDB-SMGR-SUR1", vehicleCount:12, packageType:"SMART_WASH",   commitmentTerm:3,  status:"Active",   approvedDate:daysAgoSM(30), activeVehicles:10, phase1Paid:true,  phase1Amount:3750, phase2Amount:3125, phase2CheckDate:daysAgoSM(-60), phase2Status:"pending", additionalVehicles:2 },
       { id:"BD-002", locationId:"LOC-002", locationName:"Reliance Corporate Park", smId:"EDB-SMGR-SUR1", vehicleCount:22, packageType:"SMART_WASH",       commitmentTerm:6,  status:"Approved", approvedDate:daysAgoSM(5),  activeVehicles:0,  phase1Paid:false, phase1Amount:7500, phase2Amount:3750, phase2CheckDate:daysAgoSM(-90), phase2Status:"pending", additionalVehicles:0 },
     ];
     // Only seed if not already present (so user-added data isn't wiped)
@@ -1114,7 +1114,7 @@ export function seedAllData(): void {
     const WEB_CUSTOMERS = [
       { customerId:"WEBCUST-001", firstName:"Hetal",    lastName:"Shah",   phone:"9723456781", email:"hetal@example.com",  vehicle:"Maruti Swift",   reg:"GJ05AA1234", category:"hatchback", plan:"EXPRESS_WASH",     amount:1249,  cityId:"CITY-SURAT", pincode:"395007", address:"A-12 Vesu Residency, Surat", daysAgo:5  },
       { customerId:"WEBCUST-002", firstName:"Jigar",    lastName:"Patel",  phone:"9823456782", email:"jigar@example.com",  vehicle:"Hyundai Creta",  reg:"GJ05BB5678", category:"suv",       plan:"SMART_WASH",   amount:1999, cityId:"CITY-SURAT", pincode:"395009", address:"B-7 Adajan Heights, Surat",  daysAgo:12 },
-      { customerId:"WEBCUST-003", firstName:"Minal",    lastName:"Desai",  phone:"9623456783", email:"minal@example.com",  vehicle:"Toyota Fortuner",reg:"GJ05CC9012", category:"luxury",    plan:"ELITE",  amount:3499, cityId:"CITY-SURAT", pincode:"395005", address:"C-3 Citylight Road, Surat",  daysAgo:2  },
+      { customerId:"WEBCUST-003", firstName:"Minal",    lastName:"Desai",  phone:"9623456783", email:"minal@example.com",  vehicle:"Toyota Fortuner",reg:"GJ05CC9012", category:"luxury",    plan:"ELITE_WASH",  amount:3499, cityId:"CITY-SURAT", pincode:"395005", address:"C-3 Citylight Road, Surat",  daysAgo:2  },
       { customerId:"WEBCUST-004", firstName:"Rakesh",   lastName:"Thakkar",phone:"9523456784", email:"rakesh@example.com", vehicle:"Tata Nexon",     reg:"GJ05DD3456", category:"suv",       plan:"EXPRESS_WASH",     amount:1499, cityId:"CITY-SURAT", pincode:"395007", address:"D-15 Pal Village, Surat",    daysAgo:20 },
       { customerId:"WEBCUST-005", firstName:"Sneha",    lastName:"Agarwal",phone:"9423456785", email:"sneha@example.com",  vehicle:"Baleno",         reg:"GJ05EE7890", category:"hatchback", plan:"SMART_WASH",   amount:1599, cityId:"CITY-SURAT", pincode:"395005", address:"E-9 Piplod Township, Surat", daysAgo:8  },
     ];
@@ -1196,7 +1196,7 @@ export function seedAllData(): void {
       existingSubsDS.push({
         subscriptionId: subId,
         customerId:     wc.customerId,
-        packageType:    wc.plan.includes("Wax") ? "Premium" : wc.plan.includes("Shampoo") ? "Standard" : "Basic",
+        packageType:    wc.plan.includes("Wax") ? "Premium" : wc.plan.includes("Shampoo") ? "SMART_WASH" : "EXPRESS_WASH",
         packageName:    wc.plan,
         frequency:      "Daily",
         status:         "Active",

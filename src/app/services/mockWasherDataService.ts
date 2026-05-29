@@ -23,7 +23,7 @@ export interface CustomerJob {
   vehicleBrand: string;
   vehicleRegistration: string;
   packageName: string;       // display name e.g. "PROTECT | Raksha Plan"
-  packageType: string;       // canonical key: "EXPRESS_WASH" | "SMART_WASH" | "ELITE" | "ELITE_2W"
+  packageType: string;       // canonical key: "EXPRESS_WASH" | "SMART_WASH" | "ELITE_WASH" | "ELITE_2W"
   serviceFrequency: string;
   subscriptionMonth: string;
   subscriptionStartDate?: string;  // ISO date — used to compute periodic service days
@@ -93,10 +93,10 @@ class MockWasherDataService {
   private packages = [
     { name: "Express Wash | Chamakti Subah",  type: "EXPRESS_WASH",   frequency: "Daily", price: 1249 },
     { name: "Smart Wash | Raksha Plan",   type: "SMART_WASH", frequency: "Daily", price: 1599 },
-    { name: "ELITE | Raja Seva",       type: "ELITE",   frequency: "Daily", price: 1999 }, // Hatchback
+    { name: "ELITE | Raja Seva",       type: "ELITE_WASH",   frequency: "Daily", price: 1999 }, // Hatchback
     { name: "Smart Wash | Raksha Plan",   type: "SMART_WASH", frequency: "Daily", price: 1999 }, // SUV tier
-    { name: "ELITE | Raja Seva",       type: "ELITE",   frequency: "Daily", price: 2499 }, // SUV tier
-    { name: "ELITE | Raja Seva",       type: "ELITE",   frequency: "Daily", price: 3499 }, // Luxury tier
+    { name: "ELITE | Raja Seva",       type: "ELITE_WASH",   frequency: "Daily", price: 2499 }, // SUV tier
+    { name: "ELITE | Raja Seva",       type: "ELITE_WASH",   frequency: "Daily", price: 3499 }, // Luxury tier
   ];
 
   // Special instructions pool

@@ -123,7 +123,7 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
   monthlyPlans: [
     {
       id: "water",
-      name: "Express Wash",
+      name: "EXPRESS_WASH",
       icon: "💧",
       tagline: "Chamakti Subah — Your car, clean every morning.",
       features: [
@@ -138,7 +138,7 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
     },
     {
       id: "shampoo",
-      name: "Smart Wash",
+      name: "SMART_WASH",
       icon: "🧴",
       tagline: "Raksha Plan — Clean daily. Protected always.",
       popular: true,
@@ -154,7 +154,7 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
     },
     {
       id: "wax",
-      name: "Shampoo + Wax",
+      name: "ELITE_WASH",
       icon: "✨",
       tagline: "Full care — inside and out",
       features: [
@@ -509,7 +509,7 @@ export function CustomerPlanPage() {
 
       const sub = createSubscription({
         customerId,
-        packageType: selectedPlan === "wax" ? "Premium" : selectedPlan === "shampoo" ? "Standard" : "Basic",
+        packageType: selectedPlan === "wax" ? "Premium" : selectedPlan === "shampoo" ? "SMART_WASH" : "EXPRESS_WASH",
         packageName: planMode === "monthly"
           ? (planObj?.name || selectedPlan || "Plan")
           : (packObj?.name || selectedPack || "Pack"),

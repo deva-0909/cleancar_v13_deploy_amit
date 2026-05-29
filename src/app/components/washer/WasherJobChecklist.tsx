@@ -53,7 +53,7 @@ import { periodicScheduleService } from "../../services/periodicScheduleService"
 // Builds the correct sections based on job.packageType + today's periodic flags.
 // EXPRESS_WASH:   Exterior (daily water wash + weekly tyre spray) + Quality only
 // SMART_WASH: Exterior + [Shampoo 2×/month] + [Interior Vacuum 2×/month] + [Tyre Dressing 1×/month] + Quality
-// ELITE:   Exterior + [Shampoo 4×/month] + [Dashboard 2×/month] + [Interior 2×/month] + [Tyre 2×/month] + [Wax 1×/month] + [Engine Bay 1×/month] + Quality
+// ELITE_WASH:   Exterior + [Shampoo 4×/month] + [Dashboard 2×/month] + [Interior 2×/month] + [Tyre 2×/month] + [Wax 1×/month] + [Engine Bay 1×/month] + Quality
 
 function buildChecklistSections(job: any): ChecklistSection[] {
   const flags = computePeriodicFlagsB(
@@ -194,7 +194,7 @@ function buildChecklistSections(job: any): ChecklistSection[] {
     if (flags.isTyreDay)      sections.push(tyreSection);
   }
 
-    if (pkg === "ELITE") {
+    if (pkg === "ELITE_WASH") {
     if (flags.isShampooDay)    sections.push(shampooSection);
     if (flags.isWaxDay)        sections.push(waxSection);
     if (flags.isDashboardDay)  sections.push(dashboardSection);

@@ -115,7 +115,7 @@ export interface ConversionResult {
 }
 
 export interface SubscriptionPlan {
-  packageType: "Basic" | "Standard" | "Premium" | "Deluxe";
+  packageType: "EXPRESS_WASH" | "SMART_WASH" | "Premium" | "ELITE_WASH";
   packageName: string;
   frequency: "Daily" | "Alternate Days" | "Weekly" | "Bi-Weekly" | "Monthly";
   pricing: {

@@ -36,14 +36,14 @@ export function SendPlanPricePanel({
   const planPrices: Record<string, Record<string, number>> = {
     "EXPRESS_WASH": { Hatchback: 1249, SUV: 1499, "Luxury SUV": 1999 },
     "SMART_WASH":   { Hatchback: 1599, SUV: 1999, "Luxury SUV": 2699 },
-    "ELITE":        { Hatchback: 1999, SUV: 2499, "Luxury SUV": 3499 },
+    "ELITE_WASH":        { Hatchback: 1999, SUV: 2499, "Luxury SUV": 3499 },
   };
 
   // Display names for plan keys
   const planDisplayNames: Record<string, string> = {
     "EXPRESS_WASH": "Express Wash (Chamakti Subah)",
     "SMART_WASH":   "Smart Wash (Raksha Plan)",
-    "ELITE":        "ELITE (Raja Seva)",
+    "ELITE_WASH":        "ELITE (Raja Seva)",
   };
 
   const currentPrice = planPrices[selectedPlan]?.[vehicleCategory] || 0;
@@ -64,7 +64,7 @@ export function SendPlanPricePanel({
       "Monthly tyre dressing & shine coat",
       "Monthly car fragrance",
     ],
-    "ELITE": [
+    "ELITE_WASH": [
       "Everything in Smart Wash",
       "Weekly shampoo wash (4×/month)",
       "Fortnightly dashboard & console deep clean (2×/month)",
@@ -163,9 +163,9 @@ export function SendPlanPricePanel({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="CleanCar Basic">CleanCar Basic</SelectItem>
-              <SelectItem value="CleanCar Premium">CleanCar Premium</SelectItem>
-              <SelectItem value="CleanCar Elite">CleanCar Elite</SelectItem>
+              <SelectItem value="EXPRESS_WASH">CleanCar Basic</SelectItem>
+              <SelectItem value="SMART_WASH">CleanCar Premium</SelectItem>
+              <SelectItem value="ELITE_WASH">CleanCar Elite</SelectItem>
             </SelectContent>
           </Select>
         </div>
