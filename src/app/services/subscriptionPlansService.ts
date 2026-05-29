@@ -380,7 +380,16 @@ class SubscriptionPlansService {
       id: `addon-${index + 1}`,
       name: addon.name,
       description: addon.description,
-      price: addon.price,
+      price: addon.price, // Hatchback default — use prices object for vehicle-aware pricing
+      // FIX 3: expose full vehicle-category pricing so AddonSelector shows correct price
+      prices: (addon as any).pricing
+        ? {
+            hatchback: (addon as any).pricing.hatchback ?? addon.price,
+            suv:       (addon as any).pricing.suv       ?? addon.price,
+            luxury:    (addon as any).pricing.luxury     ?? addon.price,
+            twoW:      (addon as any).pricing.twoW       ?? 0,
+          }
+        : { hatchback: addon.price, suv: addon.price, luxury: addon.price, twoW: 0 },
       billingType: addon.billingType,
       bestPairedWith: addon.bestPairedWith as PlanTierName[],
       marginPercent: addon.marginPercent,

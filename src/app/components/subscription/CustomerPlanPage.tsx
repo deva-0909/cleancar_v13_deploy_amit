@@ -241,7 +241,7 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
   // Issue 2 FIX: Section 4.3 combo bundles (Andar Se Sundar + Showroom Shine)
   comboBundles: [
     { id: "andar-se-sundar", name: "Andar Se Sundar",      addonIds: ["vacuum","dashboard"], prices: { hatchback: 299, suv: 399, luxury: 549 }, savings: { hatchback: 49, suv: 49, luxury: 49 }, whenToSell: "Push at month 1 for Express Wash subscribers." },
-    { id: "showroom-shine",  name: "Showroom Shine Pack",  addonIds: ["waxpolish","vacuum","dashboard"], prices: { hatchback: 499, suv: 647, luxury: 949 }, savings: { hatchback: 47, suv: 51, luxury: 47 }, whenToSell: "Diwali / festive / gifting." },
+    { id: "showroom-shine",  name: "Showroom Shine Pack",  addonIds: ["waxpolish","vacuum","dashboard"], prices: { hatchback: 849, suv: 1099, luxury: 997 }, savings: { hatchback: 198, suv: 248, luxury: 0 }, whenToSell: "Diwali / festive / gifting." }, // FIX 4: was H₹499/SUV₹647 — doc §4.3 says H₹849 (save₹198) / SUV₹1,099 (save₹248)
   ],
   addons: [
     // Issue 1 FIX: prices object added for vehicle-aware pricing (H/SUV/Luxury)

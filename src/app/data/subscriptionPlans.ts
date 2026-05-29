@@ -355,12 +355,12 @@ export const ADD_ON_SERVICES: AddOnService[] = [
   {
     id: "addon-005",
     name: "Underbody Wash",
-    description: "Underbody water spray — removes road grime and debris from undercarriage.",
+    description: "Underbody water spray — included monthly in Express Wash deliverables. Not a standalone bookable add-on per doc §4.",
     billing: "Per visit",
     pricing: { hatchback: 199, suv: 249, luxury: 349, twoW: "NA" },
     bestPairedWith: ["EXPRESS_WASH", "SMART_WASH", "ELITE_WASH"],
     estimatedMargin: 78,
-    isActive: true,
+    isActive: false, // FIX 5: not in §4 add-on price card — remove from customer-facing selector
     icon: "💧",
     category: "Maintenance",
   },
@@ -431,14 +431,14 @@ export const REPEAT_PACK_PRICING = {
     shampooWash: { hatchback: 550,  suv: 640,  luxury: 920  },
     shampooWax:  { hatchback: 730,  suv: 920,  luxury: 1290 },
     savingPct: 8,
-    validityDays: 60,
+    validityDays: 20,  // FIX 2: doc §5 says Pack of 2 = 20-day validity
   },
   packOf4: {
     waterWash:   { hatchback: 680,  suv: 1020, luxury: 1360 },
     shampooWash: { hatchback: 1020, suv: 1180, luxury: 1700 },
     shampooWax:  { hatchback: 1360, suv: 1700, luxury: 2380 },
     savingPct: 15,
-    validityDays: 60,
+    validityDays: 30,  // FIX 2: doc §5 says Pack of 4 = 30-day validity
   },
 } as const;
 
