@@ -124,7 +124,7 @@ export function TSMPricingAudit() {
           >
             {auditStats.avgEBITDA.toFixed(1)}%
           </div>
-          <div className="text-xs text-gray-600 mt-1">Target: 25%+</div>
+          <div className="text-xs text-gray-600 mt-1">Target: {EBITDA_THRESHOLDS.FLOOR}%+ (floor)</div>
         </Card>
 
         <Card className="p-4 border-2 border-green-200 bg-green-50">
@@ -132,7 +132,7 @@ export function TSMPricingAudit() {
           <div className="text-2xl font-bold text-green-600">
             {auditStats.healthyCount}
           </div>
-          <div className="text-xs text-gray-600 mt-1">EBITDA ≥25%</div>
+          <div className="text-xs text-gray-600 mt-1">EBITDA ≥{EBITDA_THRESHOLDS.FLOOR}%</div>
         </Card>
 
         <Card className="p-4 border-2 border-red-200 bg-red-50">

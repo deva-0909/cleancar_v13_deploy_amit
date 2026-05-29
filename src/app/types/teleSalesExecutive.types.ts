@@ -326,7 +326,8 @@ export interface SystemSafeguard {
 
 export const PRICING_SAFEGUARDS = {
   NO_DISCOUNT_BUTTON: "System does not have a price reduction field. TSE cannot manually enter a lower price.",
-  ADD_ON_LIMIT: "Up to 3 add-ons per deal. Each must maintain EBITDA ≥ 30%."  // F1 FIX,
+  // F1 FIX: add-on limit enforced per deal
+  ADD_ON_LIMIT: "Up to 3 add-ons per deal. Each must maintain EBITDA ≥ 30%.",
   BUNDLE_EBITDA_GATE: "System calculates EBITDA in real time. LOW price only available if EBITDA ≥ 30%.",
   AUDIT_LOG: "Every deal is logged: who gave add-on, who used LOW price, margin per deal.",
 } as const;

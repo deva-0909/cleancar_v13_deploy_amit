@@ -81,7 +81,8 @@ export interface TSEPerformanceCard {
 // ============================================
 
 export type LeadStage = "NEW" | "ATTEMPTED" | "FOLLOW_UP" | "CONVERTED" | "LOST";
-export type LeadSource = "WEBSITE" | "REFERRAL" | "MARKETING" | "WALK_IN" | "OTHER";
+// Aligned with teleSalesExecutive.types.ts LeadSource
+export type LeadSource = "DIGITAL" | "BTL_REFERRAL" | "WALK_IN" | "SOCIAL_MEDIA" | "PARTNER";
 
 export interface Lead {
   id: string;
@@ -101,6 +102,10 @@ export interface Lead {
   nextFollowUpDate?: Date;
   lostReason?: string;
   approvedBy?: string;
+  // Plan context — critical for TSM to see pipeline value by plan tier
+  planSelected?: "SHINE" | "PROTECT" | "ELITE" | "ELITE_2W";
+  vehicleCategory?: "Hatchback / Compact Sedan" | "SUV / MUV / Sedan" | "Luxury / Large SUV";
+  estimatedMonthlyValue?: number; // actual plan price, not a free-form estimate
 }
 
 export interface LeadPipelineFilters {
@@ -151,7 +156,7 @@ export interface RenewalLead {
   monthlyValue: number;
   expiryDate: Date;
   daysUntilExpiry: number;
-  urgency: "TODAY" | "2_DAYS" | "7_DAYS" | "LATER";
+  urgency: "TODAY" | "2_DAYS" | "7_DAYS" | "LATER" | "LAPSED";
   status: "PENDING" | "CONTACTED" | "RENEWED" | "UPGRADED" | "LAPSED";
   renewalValue?: number;
   upgraded: boolean;

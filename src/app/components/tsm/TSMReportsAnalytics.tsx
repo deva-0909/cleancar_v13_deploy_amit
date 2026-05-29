@@ -346,7 +346,7 @@ export function TSMReportsAnalytics() {
                       : "bg-red-600"
                   }
                 >
-                  {bundle.dealType.replace("_", " ")}
+                  {DEAL_TYPE_LABELS[bundle.dealType as keyof typeof DEAL_TYPE_LABELS] ?? bundle.dealType}
                 </Badge>
               </div>
 
