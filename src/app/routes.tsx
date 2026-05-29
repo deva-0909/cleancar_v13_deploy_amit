@@ -169,8 +169,8 @@ import { WasherJobExecution } from "./components/modules/WasherJobExecution";
 import { ExpansionOpportunities } from "./components/modules/ExpansionOpportunities";
 import { SupplierDetail } from "./components/procurement/SupplierDetail";
 import { CostTrackingIntegrationDemo } from "./components/demo/CostTrackingIntegrationDemo";
-import { DesignSystemTest } from "./design-system/tests/DesignSystemTest";
-// import { ClothExchange } from "./components/cloth-tracking/ClothExchange";
+// R1 FIX: DesignSystemTest file does not exist — import removed
+import { ClothExchange } from "./components/cloth-tracking/ClothExchange"; // restored — component exists, was wrongly commented
 import { ClothAdminDashboard } from "./components/cloth-tracking/ClothAdminDashboard";
 import { AdvanceTypeSelection } from "./components/advance/AdvanceTypeSelection";
 import { LongTermAdvanceForm } from "./components/advance/LongTermAdvanceForm";
@@ -198,7 +198,12 @@ import { TeleSalesExecutiveApp } from "./components/tse/TeleSalesExecutiveApp";
 import { TSEDiagnostics } from "./components/tse/TSEDiagnostics";
 import { CustomerCareExecutiveApp } from "./components/cce/CustomerCareExecutiveApp";
 // R2 FIX: test-btl-service file may not exist — converted to lazy with error boundary
-import TestBTLService from "./test-btl-service";
+// R2 FIX: test-btl-service may not exist — lazy with error boundary fallback
+const TestBTLService = lazy(() =>
+  import("./test-btl-service").catch(() => ({
+    default: () => <div className="p-8 text-gray-500">BTL test module not available</div>,
+  }))
+);
 import { SubscriptionApp } from "./components/subscription/SubscriptionApp";
 import { PlanSelectionScreen } from "./components/subscription/PlanSelectionScreen";
 import { CustomerPlanPage } from "./components/subscription/CustomerPlanPage";
@@ -485,7 +490,8 @@ export const router = createBrowserRouter([
       { path: "expansion-opportunities", element: <ExpansionOpportunities /> },
       { path: "procurement/supplier/:supplierId", element: <SupplierDetail /> },
       { path: "demo/cost-tracking-integration", element: <DevOnlyRoute element={<CostTrackingIntegrationDemo />} /> },
-      { path: "design-system-test", element: <DevOnlyRoute element={<DesignSystemTest />} /> },
+      // R1 FIX: DesignSystemTest removed — file does not exist (was also in JSX below)
+      // { path: "design-system-test", element: <DevOnlyRoute element={<DesignSystemTest />} /> },
       // Cloth Tracking System
       { path: "cloth-tracking/exchange", element: <ClothExchange /> },
       { path: "cloth-tracking/admin", element: <ClothAdminDashboard /> },
