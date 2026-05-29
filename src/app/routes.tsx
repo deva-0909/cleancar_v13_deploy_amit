@@ -198,7 +198,12 @@ import { TeleSalesExecutiveApp } from "./components/tse/TeleSalesExecutiveApp";
 import { TSEDiagnostics } from "./components/tse/TSEDiagnostics";
 import { CustomerCareExecutiveApp } from "./components/cce/CustomerCareExecutiveApp";
 // R2 FIX: test-btl-service file may not exist — converted to lazy with error boundary
-const TestBTLService = lazy(() => import("./test-btl-service").catch(() => ({ default: () => <div>BTL test module not available</div> })));
+// R2 FIX: test-btl-service may not exist — lazy with error boundary fallback
+const TestBTLService = lazy(() =>
+  import("./test-btl-service").catch(() => ({
+    default: () => <div className="p-8 text-gray-500">BTL test module not available</div>,
+  }))
+);
 import { SubscriptionApp } from "./components/subscription/SubscriptionApp";
 import { PlanSelectionScreen } from "./components/subscription/PlanSelectionScreen";
 import { CustomerPlanPage } from "./components/subscription/CustomerPlanPage";
@@ -485,7 +490,7 @@ export const router = createBrowserRouter([
       { path: "expansion-opportunities", element: <ExpansionOpportunities /> },
       { path: "procurement/supplier/:supplierId", element: <SupplierDetail /> },
       { path: "demo/cost-tracking-integration", element: <DevOnlyRoute element={<CostTrackingIntegrationDemo />} /> },
-      // R1 FIX: DesignSystemTest removed — file does not exist
+      // R1 FIX: DesignSystemTest removed — file does not exist (was also in JSX below)
       // { path: "design-system-test", element: <DevOnlyRoute element={<DesignSystemTest />} /> },
       // Cloth Tracking System
       { path: "cloth-tracking/exchange", element: <ClothExchange /> },
