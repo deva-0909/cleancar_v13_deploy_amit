@@ -136,7 +136,7 @@ export function TSMPricingAudit() {
           >
             {auditStats.avgEBITDA.toFixed(1)}%
           </div>
-          <div className="text-xs text-gray-600 mt-1">Floor: 30%+ (Healthy: 35%+)</div>}
+          <div className="text-xs text-gray-600 mt-1">Floor: 30%+ (Healthy: 35%+)</div>
         </Card>
 
         <Card className="p-4 border-2 border-green-200 bg-green-50">
