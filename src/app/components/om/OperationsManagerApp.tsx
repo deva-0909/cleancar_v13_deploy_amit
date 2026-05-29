@@ -399,7 +399,15 @@ export function OperationsManagerApp() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Data Lock Banner */}
-      {isDataLocked && <OMDataLockBanner lockReason="PAYROLL_PROCESSING" />}
+      {isDataLocked && (
+        <>
+          <OMDataLockBanner lockReason="PAYROLL_PROCESSING" />
+          {/* O2 FIX: Data-entry tabs disabled; Reports/Analytics still accessible */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mx-4 mb-2 text-sm text-amber-800">
+            ⚠️ Data Lock Mode (00:00–03:00): Write operations disabled. Reports and Analytics are read-only.
+          </div>
+        </>
+      )}
 
       {/* Main App */}
       <Tabs value={currentScreen} onValueChange={setCurrentScreen}>

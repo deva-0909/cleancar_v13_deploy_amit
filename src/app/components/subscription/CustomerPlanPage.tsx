@@ -238,21 +238,33 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
     { id: "6month",   term: "6 Months",       discountLabel: "10% off",     perk: "Renewal + free interior vacuum every month.", highlight: "great" },
     { id: "12month",  term: "12 Months",      discountLabel: "18% off",     perk: "Renewal + vacuum + tyre dressing monthly + priority slots.", highlight: "best" },
   ],
+  // Issue 2 FIX: Section 4.3 combo bundles (Andar Se Sundar + Showroom Shine)
+  comboBundles: [
+    { id: "andar-se-sundar", name: "Andar Se Sundar",      addonIds: ["vacuum","dashboard"], prices: { hatchback: 299, suv: 399, luxury: 549 }, savings: { hatchback: 49, suv: 49, luxury: 49 }, whenToSell: "Push at month 1 for Express Wash subscribers." },
+    { id: "showroom-shine",  name: "Showroom Shine Pack",  addonIds: ["waxpolish","vacuum","dashboard"], prices: { hatchback: 499, suv: 647, luxury: 949 }, savings: { hatchback: 47, suv: 51, luxury: 47 }, whenToSell: "Diwali / festive / gifting." },
+  ],
   addons: [
-    // Prices shown are for Hatchback. SUV: +₹50–100. Luxury: +₹100–200. See v1.9 doc Section 4.
+    // Issue 1 FIX: prices object added for vehicle-aware pricing (H/SUV/Luxury)
     { id: "vacuum",    name: "Interior Deep Vacuum",        price: 199, unit: "per visit",
-      description: "Glove box, door pad polish, seats, mats, footwells, boot. Before+after photo. (₹199 H / ₹249 SUV / ₹349 Luxury)" },
+      prices: { hatchback: 199, suv: 249, luxury: 349 },
+      description: "Glove box, cooling box, door pad polish, seats, mats, footwells, boot. Before+after photo." },
     { id: "dashboard", name: "Dashboard & Console Detail",  price: 149, unit: "per visit",
-      description: "Dashboard polish, console polish, door pads, console vents cleaned by blower. (₹149 H / ₹199 SUV / ₹249 Luxury)" },
+      prices: { hatchback: 149, suv: 199, luxury: 249 },
+      description: "Dashboard polish, console polish, door pads cleaning + polish, vents cleaned by blower." },
     { id: "tyre",      name: "Tyre Dressing (all 4 tyres)", price: 99,  unit: "per visit",
-      description: "Shampoo wash tyre + mud guard + shine protect application. (₹99 H / ₹149 SUV / ₹199 Luxury)" },
+      prices: { hatchback: 99, suv: 149, luxury: 199 },
+      description: "Shampoo wash tyre + mud guard + shine protect application. All 4 tyres." },
     { id: "waxpolish", name: "Full Hand Wax Polish",        price: 199, unit: "per visit",
-      description: "Shampoo wash + full body panel-by-panel wax application. Outer body only — no glass. (₹199 H / ₹249 SUV / ₹399 Luxury)" },
+      prices: { hatchback: 199, suv: 249, luxury: 399 },
+      description: "Shampoo wash + full body panel-by-panel wax application. Outer body only — no glass." },
     { id: "underbody", name: "Underbody Wash",              price: 199, unit: "per visit",
-      description: "Under body water spray — removes mud, road grime, salt. (₹199 H / ₹249 SUV / ₹349 Luxury)" },
+      prices: { hatchback: 199, suv: 249, luxury: 349 },
+      description: "Under body water spray — removes mud, road grime, salt." },
     { id: "enginebay", name: "Engine Bay Wipe-Down",        price: 99,  unit: "per visit",
-      description: "Dry blow of engine bay — no water. Removes dust and debris. Strictly dry process only. (₹99 H / ₹149 SUV / ₹199 Luxury)" },
+      prices: { hatchback: 99, suv: 149, luxury: 199 },
+      description: "Dry blow of engine bay — no water. Removes dust and debris. Strictly dry process only." },
     { id: "fragrance", name: "Car Fragrance (standalone)",  price: 49,  unit: "per visit",
+      prices: { hatchback: 49, suv: 49, luxury: 49 },
       description: "Interior car fragrance spray — single fresh application. All vehicle types ₹49." },
     // REMOVED: Glass Coating (RainX) — not in current pricing
   ],
@@ -505,9 +517,25 @@ export function CustomerPlanPage() {
     return p?.price ?? 0;
   }, [selectedPack, cfg.packs]);
 
+  // S1+S2 FIX: vehicleCat must come from actual vehicle selection, not plan ID
+  // custVehicleType is already captured in the form for subscription pricing
+  // Map it to the prices object keys used in addon config
+  const vehicleCat = (() => {
+    const vt = (custVehicleType || "").toUpperCase();
+    if (vt.includes("LUXURY") || vt.includes("LUX"))            return "luxury";
+    if (vt.includes("SUV") || vt.includes("MUV") || vt.includes("SEDAN")) return "suv";
+    return "hatchback";  // default
+  })();
+  const getAddonPrice = (id: string): number => {
+    const a = cfg.addons.find(a => a.id === id);
+    if (!a) return 0;
+    const p = (a as any).prices;
+    return p ? (p[vehicleCat] ?? a.price) : a.price;
+  };
+  // S4 FIX: vehicleCat added to deps (it's derived from custVehicleType, not selectedPlan)
   const addonTotal = useMemo(() =>
-    addons.reduce((s, id) => s + (cfg.addons.find(a => a.id === id)?.price ?? 0), 0),
-    [addons, cfg.addons]);
+    addons.reduce((s, id) => s + getAddonPrice(id), 0),
+    [addons, cfg.addons, selectedPlan, vehicleCat]);
 
   const basePrice = planMode === "monthly" ? planPrice : packPrice;
   const total = basePrice + addonTotal;
@@ -586,9 +614,7 @@ export function CustomerPlanPage() {
             selectedPack === "pack4" ? "Pack of 4" :
             selectedPack === "pack2" ? "Pack of 2" :
             selectedPack === "pack4" ? "Pack of 4" :
-            selectedPack === "biweekly" ? "2x/month" :  // legacy
-            selectedPack === "3x" ? "3x/month" :  // legacy
-            selectedPack === "weekly" ? "4x/month" : "Daily",
+            "One-time",
         status: "Active",
         startDate: now.toISOString().split("T")[0],
         renewalDate: renewalDate.toISOString().split("T")[0],
@@ -1114,7 +1140,6 @@ export function CustomerPlanPage() {
                       <strong>Repeat Service</strong> — {
                         selectedPack === "pack2" ? "Your 2-visit pack is valid for 20 days from purchase." :
             selectedPack === "pack4" ? "Your 4-visit pack is valid for 30 days from purchase." :
-            selectedPack === "biweekly" ? "Your car will be washed 2 times per month." :
                         selectedPack === "3x" ? "Your car will be washed 3 times per month." :
                         selectedPack === "weekly" ? "Your car will be washed 4 times per month (every week)." : ""
                       }<br />
@@ -1146,6 +1171,51 @@ export function CustomerPlanPage() {
             <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#1D4ED8", marginBottom: 24 }}>
               ℹ️ Add-ons are <strong>per visit</strong> unless stated otherwise. You can add or remove them anytime from your account.
             </div>
+            {/* S3 FIX: Combo bundles — added to config but never rendered */}
+            {(cfg as any).comboBundles && (cfg as any).comboBundles.length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: "#FF6D00", marginBottom: 12 }}>💰 Bundle Deals — Save More</h3>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  {((cfg as any).comboBundles as any[]).map((bundle: any) => {
+                    const allSelected = bundle.addonIds.every((id: string) => addons.includes(id));
+                    const price  = bundle.prices?.[vehicleCat]  ?? bundle.prices?.hatchback;
+                    const saving = bundle.savings?.[vehicleCat] ?? bundle.savings?.hatchback;
+                    return (
+                      <div key={bundle.id}
+                        onClick={() => {
+                          const next = allSelected
+                            ? addons.filter((id: string) => !bundle.addonIds.includes(id))
+                            : [...new Set([...addons, ...bundle.addonIds])];
+                          setAddons(next as string[]);
+                        }}
+                        style={{ padding: "14px 20px", borderRadius: 14,
+                          border: `2px solid ${allSelected ? "#FF6D00" : "#E5E7EB"}`,
+                          background: allSelected ? "#FFF3E0" : "#fff", cursor: "pointer",
+                          minWidth: 200, transition: "all 0.15s" }}>
+                        <div style={{ fontWeight: 700, fontSize: 15 }}>{bundle.name}</div>
+                        <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
+                          {bundle.addonIds.join(" + ")}
+                        </div>
+                        {price && (
+                          <div style={{ marginTop: 8, fontWeight: 800, fontSize: 17, color: "#FF6D00" }}>
+                            ₹{price}
+                            {saving && (
+                              <span style={{ fontSize: 12, color: "#2E7D32", marginLeft: 8, fontWeight: 600 }}>
+                                Save ₹{saving}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {allSelected && (
+                          <div style={{ marginTop: 4, fontSize: 12, color: "#00C853", fontWeight: 600 }}>✓ Selected</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginBottom: 32 }}>
               {cfg.addons.map(addon => {
                 const selected = addons.includes(addon.id);

@@ -94,6 +94,18 @@ type EntityType = keyof typeof STORAGE_KEYS;
  * Generic DataService interface
  * Each entity type can be stored/retrieved using these methods
  */
+// G1 FIX: Quota error notification — components can subscribe to this
+// Usage: window.addEventListener("dataservice:quota", (e) => toast.error(e.detail))
+function notifyQuotaError(entityType: string) {
+  try {
+    window.dispatchEvent(
+      new CustomEvent("dataservice:quota", {
+        detail: `Storage full — could not save ${entityType} data. Please contact support or clear old data.`,
+      })
+    );
+  } catch (_) {}
+}
+
 class DataServiceClass {
   /**
    * Get all records for an entity type
@@ -187,8 +199,10 @@ class DataServiceClass {
       import.meta.env.DEV && console.log(`[DataService] Inserted ${newRecords.length} record(s) to ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
       const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
-      if (isQuota) { console.warn(`[DataService] Could not insert ${entityType} — localStorage full`); }
-      else { console.error(`[DataService] Error inserting to ${entityType}:`, error); }
+      if (isQuota) {
+        console.warn(`[DataService] Could not insert ${entityType} — localStorage full`);
+        notifyQuotaError(String(entityType));  // G1 FIX: surface to UI
+      } else { console.error(`[DataService] Error inserting to ${entityType}:`, error); }
     }
   }
 
@@ -218,8 +232,10 @@ class DataServiceClass {
       import.meta.env.DEV && console.log(`[DataService] Updated record ${id} in ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
       const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
-      if (isQuota) { console.warn(`[DataService] Could not update ${entityType} — localStorage full`); }
-      else { console.error(`[DataService] Error updating ${entityType}:`, error); }
+      if (isQuota) {
+        console.warn(`[DataService] Could not update ${entityType} — localStorage full`);
+        notifyQuotaError(String(entityType));  // G1 FIX: surface to UI
+      } else { console.error(`[DataService] Error updating ${entityType}:`, error); }
     }
   }
 
@@ -245,8 +261,10 @@ class DataServiceClass {
       import.meta.env.DEV && console.log(`[DataService] Deleted record ${id} from ${entityType} (${cityId || DEFAULT_CITY})`);
     } catch (error) {
       const isQuota = error instanceof DOMException && error.name === "QuotaExceededError";
-      if (isQuota) { console.warn(`[DataService] Could not delete ${entityType} — localStorage full`); }
-      else { console.error(`[DataService] Error deleting from ${entityType}:`, error); }
+      if (isQuota) {
+        console.warn(`[DataService] Could not delete ${entityType} — localStorage full`);
+        notifyQuotaError(String(entityType));
+      } else { console.error(`[DataService] Error deleting from ${entityType}:`, error); }
     }
   }
 

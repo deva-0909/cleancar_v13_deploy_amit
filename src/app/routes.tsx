@@ -35,11 +35,11 @@ const LabourCostPerWash = lazy(() => import("./components/analytics/LabourCostPe
 const EmployeeEfficiency = lazy(() => import("./components/analytics/EmployeeEfficiency"));
 const CityComparison = lazy(() => import("./components/analytics/CityComparison"));
 
-// Founder module - converted to regular imports due to fetch errors
-import FounderControlTower from "./components/founder/FounderControlTower";
-import DetailedFinancialView from "./components/founder/DetailedFinancialView";
-import CashFlowDashboard from "./components/founder/CashFlowDashboard";
-import MarketingROIDrilldown from "./components/founder/MarketingROIDrilldown";
+// R3 FIX: Founder module properly lazy-loaded (was importing eagerly despite "NOW LAZY" comments)
+const FounderControlTower  = lazy(() => import("./components/founder/FounderControlTower"));
+const DetailedFinancialView = lazy(() => import("./components/founder/DetailedFinancialView"));
+const CashFlowDashboard    = lazy(() => import("./components/founder/CashFlowDashboard"));
+const MarketingROIDrilldown = lazy(() => import("./components/founder/MarketingROIDrilldown"));
 
 // Keep these as regular imports (frequently accessed)
 // import { OnboardingPortal } from "./components/OnboardingPortal"; // NOW LAZY
@@ -169,8 +169,8 @@ import { WasherJobExecution } from "./components/modules/WasherJobExecution";
 import { ExpansionOpportunities } from "./components/modules/ExpansionOpportunities";
 import { SupplierDetail } from "./components/procurement/SupplierDetail";
 import { CostTrackingIntegrationDemo } from "./components/demo/CostTrackingIntegrationDemo";
-import { DesignSystemTest } from "./design-system/tests/DesignSystemTest";
-import { ClothExchange } from "./components/cloth-tracking/ClothExchange";
+// R1 FIX: DesignSystemTest file does not exist — import removed
+// import { ClothExchange } from "./components/cloth-tracking/ClothExchange";
 import { ClothAdminDashboard } from "./components/cloth-tracking/ClothAdminDashboard";
 import { AdvanceTypeSelection } from "./components/advance/AdvanceTypeSelection";
 import { LongTermAdvanceForm } from "./components/advance/LongTermAdvanceForm";
@@ -197,7 +197,8 @@ import { SalesManagerApp } from "./components/sm/SalesManagerApp";
 import { TeleSalesExecutiveApp } from "./components/tse/TeleSalesExecutiveApp";
 import { TSEDiagnostics } from "./components/tse/TSEDiagnostics";
 import { CustomerCareExecutiveApp } from "./components/cce/CustomerCareExecutiveApp";
-import TestBTLService from "./test-btl-service";
+// R2 FIX: test-btl-service file may not exist — converted to lazy with error boundary
+const TestBTLService = lazy(() => import("./test-btl-service").catch(() => ({ default: () => <div>BTL test module not available</div> })));
 import { SubscriptionApp } from "./components/subscription/SubscriptionApp";
 import { PlanSelectionScreen } from "./components/subscription/PlanSelectionScreen";
 import { CustomerPlanPage } from "./components/subscription/CustomerPlanPage";
@@ -217,8 +218,6 @@ import { WorkforceDiagnostic } from "./components/workforce/WorkforceDiagnostic"
 // import { IncentiveConfiguration } from "./components/incentives/IncentiveConfiguration"; // NOW LAZY
 import { IncentiveSimulator } from "./components/incentives/IncentiveSimulator";
 import { IncentiveDashboard } from "./components/incentives/IncentiveDashboard";
-import { IncentiveAdminOverview } from "./components/incentives/IncentiveAdminOverview";
-import { SubscriptionIncentiveTracker } from "./components/incentives/SubscriptionIncentiveTracker";
 import { HRPayrollApproval } from "./components/hr/HRPayrollApproval";
 import { SuperAdminPayrollApproval } from "./components/admin/SuperAdminPayrollApproval";
 import { CityManagement } from "./components/admin/CityManagement";
@@ -441,20 +440,21 @@ export const router = createBrowserRouter([
 
           // Legacy redirects for backward compatibility
           { path: "cost-per-wash", element: <Navigate to="/finance/cost-per-wash" replace /> },
-          { path: "cost-per-wash-by-plan", element: <Navigate to="/analytics/unit-economics/cost-by-plan" replace /> },
-          { path: "cost-per-wash-by-consumption", element: <Navigate to="/analytics/unit-economics/cost-by-consumption" replace /> },
-          { path: "labour-cost-per-wash", element: <Navigate to="/analytics/unit-economics/labour-cost" replace /> },
-          { path: "cost-per-wash-report", element: <Navigate to="/analytics/unit-economics/cost-report" replace /> },
+          // R4 FIX: /unit-economics/ doesn't exist in route tree — removed
+          { path: "cost-per-wash-by-plan", element: <Navigate to="/analytics/cost-by-plan" replace /> },
+          { path: "cost-per-wash-by-consumption", element: <Navigate to="/analytics/cost-by-consumption" replace /> },
+          { path: "labour-cost-per-wash", element: <Navigate to="/analytics/labour-cost" replace /> },
+          { path: "cost-per-wash-report", element: <Navigate to="/analytics/cost-report" replace /> },
 
           { path: "employee-efficiency", element: <ErrorBoundary><EmployeeEfficiency /></ErrorBoundary> },
           { path: "city-comparison", element: <ErrorBoundary><CityComparison /></ErrorBoundary> },
           { path: "role-based-demo", element: <DevOnlyRoute element={<RoleBasedAnalyticsDashboard />} /> },
         ]
       },
-      { path: "founder/control-tower", element: <FounderControlTower /> },
-      { path: "founder/financial-view", element: <DetailedFinancialView /> },
-      { path: "founder/cash-flow", element: <CashFlowDashboard /> },
-      { path: "founder/marketing-roi", element: <MarketingROIDrilldown /> },
+      { path: "founder/control-tower", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><FounderControlTower /></Suspense></ErrorBoundary> },
+      { path: "founder/financial-view", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><DetailedFinancialView /></Suspense></ErrorBoundary> },
+      { path: "founder/cash-flow", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><CashFlowDashboard /></Suspense></ErrorBoundary> },
+      { path: "founder/marketing-roi", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><MarketingROIDrilldown /></Suspense></ErrorBoundary> },
       { path: "crm/activity-timeline", element: <ActivityTimelineWrapper /> },
       { path: "crm/notifications", element: <NotificationCenter /> },
       { path: "crm/conversion-analytics", element: <CRMConversionAnalyticsDashboard /> },
@@ -485,7 +485,8 @@ export const router = createBrowserRouter([
       { path: "expansion-opportunities", element: <ExpansionOpportunities /> },
       { path: "procurement/supplier/:supplierId", element: <SupplierDetail /> },
       { path: "demo/cost-tracking-integration", element: <DevOnlyRoute element={<CostTrackingIntegrationDemo />} /> },
-      { path: "design-system-test", element: <DevOnlyRoute element={<DesignSystemTest />} /> },
+      // R1 FIX: DesignSystemTest removed — file does not exist
+      // { path: "design-system-test", element: <DevOnlyRoute element={<DesignSystemTest />} /> },
       // Cloth Tracking System
       { path: "cloth-tracking/exchange", element: <ClothExchange /> },
       { path: "cloth-tracking/admin", element: <ClothAdminDashboard /> },
@@ -533,6 +534,9 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <SupervisorAppConnected /> },
           { path: "dashboard", element: <SupervisorAppConnected /> },
+          // R5 FIX NOTE: deep-linking to specific tabs requires SupervisorAppConnected
+          // to read useLocation().pathname and set its initial active tab.
+          // See SupervisorAppConnected fix in supervisor-fixes.
           { path: "team", element: <SupervisorAppConnected /> },
           { path: "audit", element: <SupervisorAppConnected /> },
           { path: "cloth", element: <SupervisorAppConnected /> },
@@ -595,7 +599,6 @@ export const router = createBrowserRouter([
       { path: "incentives/configuration", element: <ErrorBoundary><IncentiveConfiguration /></ErrorBoundary> },
       { path: "incentives/simulator", element: <IncentiveSimulator /> },
       { path: "incentives/forecast", element: <IncentiveDashboard /> },
-      { path: "incentives/ledger", element: <IncentiveAdminOverview /> },
       { path: "incentives", element: <Navigate to="/incentives/configuration" replace /> },
 
       // My Account - Employee self-service
