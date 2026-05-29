@@ -492,7 +492,7 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
                 {selectedAddOns.map((a) => (
                   <div key={a.id} className="flex justify-between text-xs text-green-700">
                     <span>{a.name}</span>
-  <span>+₹{getAddOnPrice(a)}</span>  {/* Issue 8 FIX */
+  <span>+₹{getAddOnPrice(a)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between text-xs font-bold text-green-900 mt-1 border-t border-green-200 pt-1">
