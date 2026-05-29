@@ -1056,7 +1056,7 @@ export function CustomerPlanPage() {
                     const isSelected = selectedPlan === plan.id;
                     return (
                       <div key={plan.id} onClick={() => setSelectedPlan(plan.id)}
-                        style={{ border: `2px solid ${isSelected || plan.popular ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 16, background: "#fff", cursor: "pointer", overflow: "hidden", transition: "transform 0.2s, box-shadow 0.2s", transition: "all 0.2s", boxShadow: isSelected ? "0 8px 32px rgba(33,150,243,0.18)" : "none" }}>
+                        style={{ border: `2px solid ${isSelected || plan.popular ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 16, background: "#fff", cursor: "pointer", overflow: "hidden", transition: "all 0.2s", boxShadow: isSelected ? "0 8px 32px rgba(33,150,243,0.18)" : "none" }}>
                         {plan.popular && <div style={{ background: "#0F172A", color: "#FBBF24", fontSize: 11, fontWeight: 700, padding: "5px 12px", textAlign: "center", letterSpacing: 0.8 }}>⭐ Most Popular</div>}
                         <div style={{ padding: 24 }}>
                           <div style={{ fontSize: 28, marginBottom: 10 }}>{plan.icon}</div>
