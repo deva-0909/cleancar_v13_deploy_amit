@@ -1,3 +1,4 @@
+// TSM incentive values — see incentiveStructureV6.ts TSM_PERSONAL_3M, TSM_CONVERSION_BONUS etc.
 /**
  * Tele Sales Manager Constants
  * Centralized configuration values and thresholds for TSM module

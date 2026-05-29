@@ -29,7 +29,7 @@ import {
   type IncentiveRole,
   type ExitPayoutSummary,
   POOL_BY_TERM,
-} from "../../services/incentiveStructureService";
+} from "../../services/incentiveStructureV6";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -122,10 +122,10 @@ function SubCard({ rec, myId, myRole }: {
   const total     = paid + pending + forfeited;
 
   const exitSummary = rec.status === "CANCELLED"
-    ? incentiveStructureService.processCancellation(rec.subscriptionId, rec.cancelledDate!)
+    ? incentiveV6.processCancellation(rec.subscriptionId, rec.cancelledDate!)
     : null;
 
-  const planColor = rec.planType === "ELITE" ? "bg-amber-100 text-amber-800"
+  const planColor = rec.planType === "ELITE_WASH" ? "bg-amber-100 text-amber-800"
     : rec.planType === "SMART_WASH" ? "bg-blue-100 text-blue-800"
     : "bg-gray-100 text-gray-700";
 
@@ -241,13 +241,13 @@ export function SubscriptionIncentiveTracker({
 
   useEffect(() => {
     // Auto-process any overdue tranches first
-    incentiveStructureService.autoProcessDueTranches(
+    incentiveV6.autoProcessDueTranches(
       new Date().toISOString().split("T")[0]
     );
-    setSummary(incentiveStructureService.getForEmployee(employeeId, role));
+    setSummary(incentiveV6.getForEmployee(employeeId, role));
     if (role === "SH" || showSHRolling) {
       const now = new Date();
-      setSHRolling(incentiveStructureService.getSHRollingReward(
+      setSHRolling(incentiveV6.getSHRolling(
         employeeId,
         `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
       ));
@@ -352,7 +352,7 @@ export function SubscriptionIncentiveTracker({
 
 export function ExitPayoutCalculator({ subscriptionId }: { subscriptionId: string }) {
   const today  = new Date().toISOString().split("T")[0];
-  const result = incentiveStructureService.processCancellation(subscriptionId, today);
+  const result = incentiveV6.processCancellation(subscriptionId, today);
   if (!result) return <p className="text-sm text-gray-500">Subscription not found.</p>;
 
   return (

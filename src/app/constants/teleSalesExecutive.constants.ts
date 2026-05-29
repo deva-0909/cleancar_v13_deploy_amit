@@ -1,3 +1,5 @@
+// TSE incentive values — see incentiveStructureV6.ts TSE constants
+// TSE.POOL_TSE_SOURCED_3M = ₹79.50 (53%), TSE.POOL_BTL_3M = ₹30 (20%), TSE.GATE_CLOSURES = 10
 /**
  * TELE SALES EXECUTIVE (TSE) - CONSTANTS & CONFIGURATION
  * System-Enforced Business Rules

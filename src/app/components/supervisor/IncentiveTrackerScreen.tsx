@@ -1,4 +1,5 @@
-import { SubscriptionIncentiveTracker } from "../incentives/SubscriptionIncentiveTracker";
+import { SubscriptionIncentiveTracker } from "../incentives/SubscriptionIncentiveTracker"
+import { incentiveV6 } from "../../services/incentiveStructureV6";;
 /**
  * IncentiveTrackerScreen.tsx
  * Supervisor Incentive Tracker — v3.0

@@ -1,3 +1,4 @@
+import { WASHER, calcWasherIncentive } from "../../services/incentiveStructureV6";
 /**
  * SCREEN 5: INCENTIVE TRACKER
  * Read-only incentive display with time band status

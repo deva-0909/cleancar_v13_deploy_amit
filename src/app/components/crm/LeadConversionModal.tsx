@@ -1,3 +1,4 @@
+import { incentiveV6, type IncentiveTerm } from "../../services/incentiveStructureV6";
 import { incentiveStructureService } from "../../services/incentiveStructureService";
 /**
  * LeadConversionModal - Payment-driven lead conversion
@@ -65,8 +66,8 @@ export function LeadConversionModal({ lead, open, onOpenChange, onSuccess }: Lea
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentNotes, setPaymentNotes] = useState("");
 
-  const [selectedPackage, setSelectedPackage] = useState<"EXPRESS_WASH" | "SMART_WASH" | "ELITE">("SMART_WASH");
-  const [packageName, setPackageName] = useState("Smart Wash");
+  const [selectedPackage, setSelectedPackage] = useState<"EXPRESS_WASH" | "SMART_WASH" | "ELITE_WASH">("SMART_WASH");
+  const [packageName, setPackageName] = useState("SMART_WASH");
   const [frequency, setFrequency] = useState<"Daily" | "Alternate Days" | "Weekly" | "Bi-Weekly" | "Monthly">("Weekly");
   const [billingCycle, setBillingCycle] = useState<"Monthly" | "Quarterly" | "Annual">("Monthly");
   const [basePrice, setBasePrice] = useState(() => {
@@ -298,10 +299,10 @@ export function LeadConversionModal({ lead, open, onOpenChange, onSuccess }: Lea
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Basic">Basic</SelectItem>
-                        <SelectItem value="Standard">Standard</SelectItem>
+                        <SelectItem value="EXPRESS_WASH">Basic</SelectItem>
+                        <SelectItem value="SMART_WASH">Standard</SelectItem>
                         <SelectItem value="Premium">Premium</SelectItem>
-                        <SelectItem value="Deluxe">Deluxe</SelectItem>
+                        <SelectItem value="ELITE_WASH">Deluxe</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -311,7 +312,7 @@ export function LeadConversionModal({ lead, open, onOpenChange, onSuccess }: Lea
                     <Input
                       value={packageName}
                       onChange={(e) => setPackageName(e.target.value)}
-                      placeholder="CleanCar Premium"
+                      placeholder="SMART_WASH"
                     />
                   </div>
                 </div>

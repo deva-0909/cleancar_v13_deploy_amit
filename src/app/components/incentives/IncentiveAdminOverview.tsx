@@ -18,7 +18,7 @@ import {
   incentiveStructureService,
   type SubscriptionIncentiveRecord,
   type ExitPayoutSummary,
-} from "../../services/incentiveStructureService";
+} from "../../services/incentiveStructureV6";
 
 function fmt(n: number) {
   return `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -164,13 +164,13 @@ export function IncentiveAdminOverview() {
   const [filter,  setFilter]    = useState<"ALL" | "ACTIVE" | "CANCELLED" | "PENDING_PAYOUT">("ALL");
 
   useEffect(() => {
-    incentiveStructureService.autoProcessDueTranches(
+    incentiveV6.autoProcessDueTranches(
       new Date().toISOString().split("T")[0]
     );
-    setRecords(incentiveStructureService.getAll());
+    setRecords(incentiveV6.getAll());
   }, []);
 
-  const stats = incentiveStructureService.getStats();
+  const stats = incentiveV6.getStats();
 
   const filtered = records.filter(r => {
     if (filter === "ACTIVE"    && r.status !== "ACTIVE")    return false;

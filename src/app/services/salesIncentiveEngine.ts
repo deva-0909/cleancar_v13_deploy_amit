@@ -1,5 +1,19 @@
 /**
  * salesIncentiveEngine.ts
+ * Legacy wrapper — all new calculations delegated to incentiveStructureV6.ts
+ * Source of truth: Incentive Structure v6 Final · 28 May 2026
+ */
+import { incentiveV6, POOL_SPLIT_PCT, POOL_BY_TERM, isZeroPool,
+         TSE, SH, SM_GATE, WASHER, ADDON_PRICES } from "./incentiveStructureV6";
+
+// Re-export v6 constants with legacy names for backward compatibility
+export const POOL_SPLIT = POOL_SPLIT_PCT;
+export const POOL_BASE_3M = POOL_BY_TERM[3]; // 150
+export { isZeroPool, TSE as TSE_CONSTANTS, SH as SH_CONSTANTS, WASHER as WASHER_CONSTANTS };
+export { incentiveV6 };
+
+/**
+ * salesIncentiveEngine.ts
  *
  * Authoritative incentive + payroll calculation engine for:
  *   - Sales Head (SH)  — coaching bonus + quality bonuses + personal conversion
