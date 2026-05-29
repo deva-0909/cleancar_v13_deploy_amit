@@ -46,11 +46,24 @@ class IncentiveEngineService {
       ENGINE_CLEANING: 50,
       UNDERBODY_WASH: 40,
     },
-    monthlyBaseTarget: 550, // ⚠️ From backend API - avg units per month
-    avgWorkingDaysPerMonth: 26, // ⚠️ From backend API
+    monthlyBaseTarget: 750, // ⚠️ From backend API - 25/day × 30-day window
+    avgWorkingDaysPerMonth: 30, // 30-day rolling subscription window (not calendar 26-day)
   };
 
-  private progress: WasherProgress = {
+  // W2 FIX: per-washer progress map — prevents shared state across washer sessions
+  private progressMap: Map<string, WasherProgress> = new Map();
+  private currentWasherId: string = "";
+
+  private getProgress_internal(washerId?: string): WasherProgress {
+    const id = washerId || this.currentWasherId || "WASHER-UNKNOWN";
+    if (!this.progressMap.has(id)) {
+      this.progressMap.set(id, this.createEmptyProgress());
+    }
+    return this.progressMap.get(id)!;
+  }
+
+  private createEmptyProgress(): WasherProgress {
+    return {
     baseUnitsCompleted: 0,
     baseUnitsTarget: 25,
     isBaseComplete: false,
@@ -77,7 +90,16 @@ class IncentiveEngineService {
     isLateCheckIn: false,
     isWeekOff: false,
     isCoverDay: false,
-  };
+    };
+  }
+
+  // Set active washer for this session
+  setWasherId(washerId: string): void {
+    this.currentWasherId = washerId;
+    if (!this.progressMap.has(washerId)) {
+      this.progressMap.set(washerId, this.createEmptyProgress());
+    }
+  }
 
   private animationTriggers = {
     shouldAnimateUnlock: false,
@@ -149,8 +171,9 @@ class IncentiveEngineService {
     message: string;
     newStatus: WasherProgress;
   } {
+    const p = this.getProgress_internal();
     // Check if at max limit
-    if (this.progress.totalUnitsToday >= this.config.maxDailyLimit) {
+    if (p.totalUnitsToday >= this.config.maxDailyLimit) {
       return {
         success: false,
         earningsAdded: 0,
@@ -507,7 +530,7 @@ class IncentiveEngineService {
   private logEvent(eventType: string, details: string, earningsImpact: number): void {
     this.eventLogs.push({
       id: `EVENT-${Date.now()}`,
-      washerId: "WASHER-001",
+      washerId: this.currentWasherId || "WASHER-UNKNOWN",
       eventType,
       timestamp: new Date().toISOString(),
       details,
@@ -517,6 +540,22 @@ class IncentiveEngineService {
 
   getEventLogs() {
     return [...this.eventLogs];
+  }
+
+
+  // W1 FIX: processJobCompletion — called by WasherContext on job completion
+  processJobCompletion(data: {
+    washerId: string;
+    jobId: string;
+    cityId: string;
+    packageName: string;
+    completedAt: string;
+  }): { success: boolean; earningsAdded: number; message: string } {
+    // Set the washer context for this operation
+    this.setWasherId(data.washerId);
+    // Delegate to completeUnit which handles all eligibility rules
+    const result = this.completeUnit(data.jobId);
+    return result;
   }
 
   // ==================== RESET (For testing) ====================

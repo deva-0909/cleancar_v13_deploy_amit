@@ -212,7 +212,7 @@ export function WasherJobInfo({ job }: WasherJobInfoProps) {
             <p className="text-xl font-bold text-teal-600">{job.packageName}</p>
             <div className="flex items-center gap-2 mt-2">
               <Badge variant="outline">
-                    {({EXPRESS_WASH:"Express Wash",SMART_WASH:"Smart Wash",ELITE_WASH:"Elite Wash",ELITE_2W:"Elite Wash 2W"}[job.packageType] ?? job.packageType)}
+                    {({EXPRESS_WASH:"SHINE — Chamakti Subah",SMART_WASH:"PROTECT — Raksha Plan",ELITE_WASH:"ELITE — Raja Seva",ELITE_2W:"ELITE 2W",SHINE:"SHINE — Chamakti Subah",PROTECT:"PROTECT — Raksha Plan",ELITE:"ELITE — Raja Seva"}[job.packageType] ?? job.packageType)}
                   </Badge>
               <Badge variant="outline">{job.serviceFrequency}</Badge>
             </div>

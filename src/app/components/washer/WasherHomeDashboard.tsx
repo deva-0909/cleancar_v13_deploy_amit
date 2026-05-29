@@ -27,8 +27,8 @@ export type DayStatus = "NOT_CHECKED_IN" | "WORKING" | "LATE" | "WEEK_OFF" | "CH
 export interface WasherHomeDashboardProps {
   washerName: string;
   todayDate: Date;
-  dayNumber: number; // Day X of 26
-  totalDaysInMonth: number; // 26
+  dayNumber: number; // Day X of 30 (rolling 30-day subscription window)
+  totalDaysInMonth: number; // 30 (rolling 30-day subscription window — not calendar month)
   
   // Status
   dayStatus: DayStatus;

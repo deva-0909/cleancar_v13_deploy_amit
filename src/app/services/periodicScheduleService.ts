@@ -106,6 +106,22 @@ const PLAN_CONFIG: Record<string, PlanPeriodicConfig> = {
     intervalDays: 15,
     monthlyCaps: { shampoo: 2, wax: 0, glass: 0, tyre: 0, interior: 0 },
   },
+  // W4 FIX: aliases for legacy packageType keys used in WasherJobChecklist and mockWasherDataService
+  EXPRESS_WASH: {
+    services: [],
+    intervalDays: 0,
+    monthlyCaps: { shampoo: 0, wax: 0, glass: 0, tyre: 0, interior: 0 },
+  },
+  SMART_WASH: {
+    services: ["shampoo", "interior", "tyre", "fragrance"],
+    intervalDays: 15,
+    monthlyCaps: { shampoo: 2, wax: 0, glass: 0, tyre: 1, interior: 2, dashboard: 0, engine: 0, fragrance: 1 },
+  },
+  ELITE_WASH: {
+    services: ["shampoo", "dashboard", "interior", "tyre", "wax", "engine", "fragrance"],
+    intervalDays: 7,
+    monthlyCaps: { shampoo: 4, wax: 1, glass: 0, tyre: 2, interior: 2, dashboard: 2, engine: 1, fragrance: 1 },
+  },
 };
 
 // Wax, engine bay: 1×/month for ELITE regardless of intervalDays (weekly for shampoo)

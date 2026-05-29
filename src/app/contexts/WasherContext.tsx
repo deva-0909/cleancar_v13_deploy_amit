@@ -360,15 +360,22 @@ export function WasherProvider({ children }: WasherProviderProps) {
   const completeStep = (stepId: string) => {
     if (!shouldActivate || !activeJob) return;
 
-    washerDataService.completeJobStep(activeJob.id, stepId);
+    washerDataService.completeStep(activeJob.id, stepId); // W9 FIX: was completeJobStep (wrong name)
     const updatedExecution = washerDataService.getJobExecution(activeJob.id);
     setJobExecution(updatedExecution);
   };
 
   const addPhoto = (type: "BEFORE" | "DURING" | "AFTER", url: string, stepId?: string) => {
     if (!shouldActivate || !activeJob) return;
-
-    washerDataService.addJobPhoto(activeJob.id, type, url, stepId);
+    // W3 FIX: construct JobPhoto object — service expects (jobId, JobPhoto) not (jobId, type, url, stepId)
+    const photo = {
+      id: `PHOTO-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      type,
+      url,
+      timestamp: new Date(),
+      stepId,
+    };
+    washerDataService.addJobPhoto(activeJob.id, photo);
     const updatedExecution = washerDataService.getJobExecution(activeJob.id);
     setJobExecution(updatedExecution);
   };
@@ -410,6 +417,8 @@ export function WasherProvider({ children }: WasherProviderProps) {
 
     // ✅ Trigger incentive calculation after job completion
     if (washerId) {
+      // W1 FIX: processJobCompletion now exists — also set washerId on engine first
+      incentiveEngineService.setWasherId?.(washerId);
       incentiveEngineService.processJobCompletion?.({
         washerId,
         jobId:      activeJob.id,

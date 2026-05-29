@@ -102,7 +102,7 @@ export interface DayStatus {
 // ========== SERVICE CLASS ==========
 
 class WasherDataService {
-  private currentWasherId: string = "WASHER-001"; // In real app, from auth
+  private currentWasherId: string = ""; // W12 FIX: no hardcoded default — must be set by caller
   private dayStatusCache: Map<string, DayStatus> = new Map();
   private jobExecutionCache: Map<string, JobExecution> = new Map();
 
@@ -317,7 +317,8 @@ class WasherDataService {
       { id: "4", name: "Final Polish", order: 4, requiresPhoto: true },
     ];
 
-    if (job.packageType === "Premium" || job.packageType === "Elite") {
+    // W13 FIX: was 'Premium'/'Elite' — neither matches any canonical type
+    if (job.packageType === "ELITE_WASH" || job.packageType === "ELITE") {
       baseSteps.push(
         { id: "5", name: "Dashboard Cleaning", order: 5, requiresPhoto: false },
         { id: "6", name: "Vacuum Interior", order: 6, requiresPhoto: true }
@@ -344,7 +345,8 @@ class WasherDataService {
       { itemId: "C003", name: "Polish", quantity: 20, unit: "ml" },
     ];
 
-    if (job.packageType === "Premium" || job.packageType === "Elite") {
+    // W13 FIX: was 'Premium'/'Elite' — neither matches any canonical type
+    if (job.packageType === "ELITE_WASH" || job.packageType === "ELITE") {
       baseConsumables.push(
         { itemId: "C004", name: "Dashboard Cleaner", quantity: 15, unit: "ml" },
         { itemId: "C005", name: "Glass Cleaner", quantity: 25, unit: "ml" }
