@@ -10,6 +10,12 @@ import { mockWasherDataService, type CustomerJob, type WasherStats } from "./moc
 import { incentiveEngineService } from "./incentiveEngineService";
 import { weekOffCoverService } from "./weekOffCoverService";
 import { WasherAttendanceService } from "./washerAttendanceService";
+import {
+  type WasherEmploymentType,
+  type WasherShiftConfig,
+  WASHER_SHIFT_DEFAULTS,
+  buildWasherShift,
+} from "../types/hr-types";
 
 // ========== TYPES ==========
 
@@ -21,6 +27,12 @@ export interface WasherProfile {
   joiningDate: Date;
   baseTarget: number; // 25 units
   photo?: string;
+  // Shift / employment type — drives late cutoff, auto-logout, minimum shift duration
+  employmentType: WasherEmploymentType;     // "PART_TIME" | "FULL_TIME"
+  shiftConfig: WasherShiftConfig;           // resolved from WASHER_SHIFT_DEFAULTS
+  customShiftStart?: string;                // HH:MM — overrides default if set
+  customShiftEnd?: string;                  // HH:MM — overrides default if set
+  cityId: string;
 }
 
 export interface CheckInData {
@@ -109,7 +121,9 @@ class WasherDataService {
   // ========== WASHER PROFILE ==========
 
   getWasherProfile(washerId: string = this.currentWasherId): WasherProfile {
-    // In production: fetch from API
+    // In production: fetch from API — employmentType and shiftStart/shiftEnd stored on employee record
+    // Defaulting to PART_TIME (5–9 AM) for demo; production pulls from HRDataContext Employee.employeeType
+    const employmentType: WasherEmploymentType = "PART_TIME";
     return {
       id: washerId,
       name: "Rajesh Kumar",
@@ -118,7 +132,26 @@ class WasherDataService {
       joiningDate: new Date("2024-01-15"),
       baseTarget: 25,
       photo: undefined,
+      employmentType,
+      shiftConfig: WASHER_SHIFT_DEFAULTS[employmentType],
+      cityId: "SUR-001",
     };
+  }
+
+  /** Build the Shift object for WasherAttendanceService from the washer's profile */
+  getWasherShift(washerId: string = this.currentWasherId) {
+    const profile = this.getWasherProfile(washerId);
+    try {
+      return buildWasherShift(
+        profile.cityId,
+        profile.employmentType,
+        profile.customShiftStart,
+        profile.customShiftEnd,
+      );
+    } catch {
+      // Fallback to default shift if custom config is invalid
+      return buildWasherShift(profile.cityId, profile.employmentType);
+    }
   }
 
   updateWasherProfile(washerId: string, updates: Partial<WasherProfile>): void {
@@ -165,12 +198,17 @@ class WasherDataService {
     dayStatus.isCheckedIn = true;
     dayStatus.checkInTime = data.timestamp;
     dayStatus.status = "CHECKED_IN";
-    
-    // Check if late
-    const checkInHour = data.timestamp.getHours();
-    if (checkInHour > 9) {
+
+    // W11 FIX: Late detection uses shift config, not hardcoded 9 AM
+    // Derive shift start + grace period from the washer's employment type
+    const shift = this.getWasherShift(data.washerId);
+    const [shiftHour, shiftMin] = shift.startTime.split(":").map(Number);
+    const shiftStartMinutes = shiftHour * 60 + shiftMin;
+    const checkInMinutes = data.timestamp.getHours() * 60 + data.timestamp.getMinutes();
+    const lateBy = checkInMinutes - shiftStartMinutes;
+    if (lateBy > shift.graceMinutes) {
       dayStatus.isLate = true;
-      dayStatus.lateReason = "Checked in after 9:00 AM";
+      dayStatus.lateReason = `Checked in ${lateBy - shift.graceMinutes} min late (shift starts ${shift.startTime}, grace ${shift.graceMinutes} min)`;
     }
 
     return { success: true };
@@ -317,8 +355,7 @@ class WasherDataService {
       { id: "4", name: "Final Polish", order: 4, requiresPhoto: true },
     ];
 
-    // W13 FIX: was 'Premium'/'Elite' — neither matches any canonical type
-    if (job.packageType === "ELITE_WASH" || job.packageType === "ELITE") {
+    if (job.packageType === "Premium" || job.packageType === "Elite") {
       baseSteps.push(
         { id: "5", name: "Dashboard Cleaning", order: 5, requiresPhoto: false },
         { id: "6", name: "Vacuum Interior", order: 6, requiresPhoto: true }
@@ -345,8 +382,7 @@ class WasherDataService {
       { itemId: "C003", name: "Polish", quantity: 20, unit: "ml" },
     ];
 
-    // W13 FIX: was 'Premium'/'Elite' — neither matches any canonical type
-    if (job.packageType === "ELITE_WASH" || job.packageType === "ELITE") {
+    if (job.packageType === "Premium" || job.packageType === "Elite") {
       baseConsumables.push(
         { itemId: "C004", name: "Dashboard Cleaner", quantity: 15, unit: "ml" },
         { itemId: "C005", name: "Glass Cleaner", quantity: 25, unit: "ml" }

@@ -17,6 +17,7 @@ import { washerDataService } from "../services/washerDataService";
 import { incentiveEngineService } from "../services/incentiveEngineService";
 import { weekOffCoverService } from "../services/weekOffCoverService";
 import { WasherAttendanceService } from "../services/washerAttendanceService";
+import { WASHER_SHIFT_DEFAULTS } from "../types/hr-types";
 import type { CustomerJob, WasherStats } from "../services/mockWasherDataService";
 import type {
   WasherProfile,
@@ -91,6 +92,9 @@ interface WasherContextType {
   // Loading states
   isLoading: boolean;
   error: string | null;
+  // Auto-logout state (Part-Time washers only)
+  isAppLocked: boolean;        // true after PT washer's shift ends + job finishes
+  lockReason: string | null;   // explanation shown on locked screen
 }
 
 const WasherContext = createContext<WasherContextType | undefined>(undefined);
@@ -140,6 +144,9 @@ export function WasherProvider({ children }: WasherProviderProps) {
   });
   const [isLoading, setIsLoading] = useState(!shouldActivate);
   const [error, setError] = useState<string | null>(null);
+  // W11: Auto-logout state — only fires for Part-Time washers
+  const [isAppLocked, setIsAppLocked] = useState(false);
+  const [lockReason, setLockReason] = useState<string | null>(null);
 
   // Dev mode debug logging
   if (shouldActivate) {
@@ -241,7 +248,67 @@ export function WasherProvider({ children }: WasherProviderProps) {
     loadData();
   }, [loadData]);
 
-  // Auto-sync dayStatus from AttendanceContext (single source of truth)
+  // W11 FIX: Auto-logout for Part-Time washers
+  // Fires at shift end time. If a job is in progress, app waits for it to complete
+  // then locks. Full-time washers are never auto-locked.
+  useEffect(() => {
+    if (!shouldActivate || !washerId) return;
+
+    const profile = washerDataService.getWasherProfile(washerId);
+    const shiftConfig = WASHER_SHIFT_DEFAULTS[profile.employmentType];
+    if (!shiftConfig.autoLogoutEnabled) return; // FT washers: no auto-logout
+
+    const shift = washerDataService.getWasherShift(washerId);
+    const [endH, endM] = shift.endTime.split(":").map(Number);
+
+    const checkAutoLogout = () => {
+      if (isAppLocked) return; // Already locked
+
+      const now = new Date();
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const shiftEndMinutes = endH * 60 + endM;
+      const graceEndMinutes = shiftEndMinutes + shiftConfig.checkOutGraceMinutes;
+
+      if (nowMinutes >= graceEndMinutes) {
+        if (activeJob) {
+          // Job in progress — allow it to finish, show a warning banner only
+          setLockReason(
+            `Your shift ended at ${shift.endTime}. Complete your current job — ` +
+            `the app will lock once it is done.`
+          );
+        } else {
+          // No active job — lock immediately
+          setIsAppLocked(true);
+          setLockReason(
+            `Your ${shift.endTime} shift has ended. The app is locked. ` +
+            `See your supervisor to unlock or for your next shift.`
+          );
+        }
+      }
+    };
+
+    // Check immediately and then every minute
+    checkAutoLogout();
+    const timer = setInterval(checkAutoLogout, 60_000);
+    return () => clearInterval(timer);
+  }, [shouldActivate, washerId, isAppLocked, activeJob]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // W11: Lock the app when a PT washer's job completes after shift end
+  useEffect(() => {
+    if (!shouldActivate || !washerId || isAppLocked) return;
+    if (!lockReason) return; // No pending lock
+    if (activeJob) return;   // Still have an active job
+
+    const profile = washerDataService.getWasherProfile(washerId);
+    if (!WASHER_SHIFT_DEFAULTS[profile.employmentType].autoLogoutEnabled) return;
+
+    // Job just completed and we had a pending post-shift lock
+    setIsAppLocked(true);
+    setLockReason(
+      `Your shift has ended and all jobs are complete. The app is now locked. ` +
+      `See your supervisor for your next shift.`
+    );
+  }, [activeJob, shouldActivate, washerId, lockReason, isAppLocked]);
   useEffect(() => {
     if (!shouldActivate || !washerId) return;
 
@@ -274,8 +341,12 @@ export function WasherProvider({ children }: WasherProviderProps) {
     }
 
     try {
+      // W11 FIX: Build shift from washer's employment type and pass to WasherAttendanceService
+      // This makes late detection use the correct shift start + grace period, not hardcoded 9 AM
+      const shift = washerDataService.getWasherShift(washerId);
+
       // CRITICAL: Delegate to WasherAttendanceService for proper HR integration
-      const result = WasherAttendanceService.checkIn(
+      const result = await WasherAttendanceService.checkIn(
         {
           employeeId: washerId,
           date: new Date().toISOString().split('T')[0],
@@ -291,7 +362,10 @@ export function WasherProvider({ children }: WasherProviderProps) {
             return attendanceRecords.filter(a => a.date === date);
           },
           emit,
-        }
+          attendanceRecords,
+        },
+        { employeeId: washerId },
+        shift  // W11: pass resolved shift — enables accurate late detection
       );
 
       if (result.success && result.attendanceRecord) {
@@ -315,6 +389,9 @@ export function WasherProvider({ children }: WasherProviderProps) {
     }
 
     try {
+      // W11 FIX: Build shift for checkout too (overtime calculation)
+      const shift = washerDataService.getWasherShift(washerId);
+
       // CRITICAL: Delegate to WasherAttendanceService for proper HR integration
       const result = WasherAttendanceService.checkOut(
         {
@@ -327,9 +404,10 @@ export function WasherProvider({ children }: WasherProviderProps) {
           getAttendanceForDate: (date: string) => {
             return attendanceRecords.filter(a => a.date === date);
           },
-          updateAttendanceRecord: updateAttendance,
+          updateAttendance,
           emit,
-        }
+        },
+        shift  // W11: pass shift for overtime calculation
       );
 
       if (result.success && result.attendanceRecord) {
@@ -360,22 +438,15 @@ export function WasherProvider({ children }: WasherProviderProps) {
   const completeStep = (stepId: string) => {
     if (!shouldActivate || !activeJob) return;
 
-    washerDataService.completeStep(activeJob.id, stepId); // W9 FIX: was completeJobStep (wrong name)
+    washerDataService.completeJobStep(activeJob.id, stepId);
     const updatedExecution = washerDataService.getJobExecution(activeJob.id);
     setJobExecution(updatedExecution);
   };
 
   const addPhoto = (type: "BEFORE" | "DURING" | "AFTER", url: string, stepId?: string) => {
     if (!shouldActivate || !activeJob) return;
-    // W3 FIX: construct JobPhoto object — service expects (jobId, JobPhoto) not (jobId, type, url, stepId)
-    const photo = {
-      id: `PHOTO-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-      type,
-      url,
-      timestamp: new Date(),
-      stepId,
-    };
-    washerDataService.addJobPhoto(activeJob.id, photo);
+
+    washerDataService.addJobPhoto(activeJob.id, type, url, stepId);
     const updatedExecution = washerDataService.getJobExecution(activeJob.id);
     setJobExecution(updatedExecution);
   };
@@ -417,8 +488,6 @@ export function WasherProvider({ children }: WasherProviderProps) {
 
     // ✅ Trigger incentive calculation after job completion
     if (washerId) {
-      // W1 FIX: processJobCompletion now exists — also set washerId on engine first
-      incentiveEngineService.setWasherId?.(washerId);
       incentiveEngineService.processJobCompletion?.({
         washerId,
         jobId:      activeJob.id,
@@ -458,8 +527,10 @@ export function WasherProvider({ children }: WasherProviderProps) {
     refreshData,
     isLoading,
     error,
+    isAppLocked,
+    lockReason,
   }),
-  [profile, dayStatus, isCheckedIn, isCheckedOut, checkInTime, checkOutTime, jobs, activeJob, jobExecution, stats]); // eslint-disable-line react-hooks/exhaustive-deps
+  [profile, dayStatus, isCheckedIn, isCheckedOut, checkInTime, checkOutTime, jobs, activeJob, jobExecution, stats, isAppLocked, lockReason]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <WasherContext.Provider value={contextValue}>

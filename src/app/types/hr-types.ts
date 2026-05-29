@@ -517,3 +517,86 @@ export interface Shift {
   createdAt: string;
   updatedAt?: string;
 }
+
+// ── Washer-specific shift rules ───────────────────────────────────────────────
+// Part-time washer:
+//   Default shift: 05:00–09:00 (4 hrs). Any custom shift must be ≥ 4 hrs.
+//   Grace at check-in: 10 min. Grace at check-out: 5 min.
+//   Auto-logout fires at shift end. Job in progress continues; app locks after.
+// Full-time washer:
+//   Default shift: 10:00–19:00 (9 hrs). Any custom shift must be ≥ 9 hrs.
+//   Grace at check-in: 10 min. Grace at check-out: 5 min.
+//   No auto-logout.
+
+export type WasherEmploymentType = "PART_TIME" | "FULL_TIME";
+
+export interface WasherShiftConfig {
+  employmentType: WasherEmploymentType;
+  defaultStartTime: string;   // HH:MM
+  defaultEndTime: string;     // HH:MM
+  minimumShiftMinutes: number;
+  checkInGraceMinutes: number;  // 10 min
+  checkOutGraceMinutes: number; // 5 min
+  autoLogoutEnabled: boolean;   // true for PT only
+  autoLogoutAllowsJobInProgress: boolean; // true — running job completes; app locks after
+}
+
+export const WASHER_SHIFT_DEFAULTS: Record<WasherEmploymentType, WasherShiftConfig> = {
+  PART_TIME: {
+    employmentType: "PART_TIME",
+    defaultStartTime: "05:00",
+    defaultEndTime: "09:00",
+    minimumShiftMinutes: 240,         // 4 hours minimum
+    checkInGraceMinutes: 10,
+    checkOutGraceMinutes: 5,
+    autoLogoutEnabled: true,          // auto-logout at 09:00
+    autoLogoutAllowsJobInProgress: true, // job in progress continues; app locks after
+  },
+  FULL_TIME: {
+    employmentType: "FULL_TIME",
+    defaultStartTime: "10:00",
+    defaultEndTime: "19:00",
+    minimumShiftMinutes: 540,         // 9 hours minimum
+    checkInGraceMinutes: 10,
+    checkOutGraceMinutes: 5,
+    autoLogoutEnabled: false,
+    autoLogoutAllowsJobInProgress: false,
+  },
+} as const;
+
+/** Build a Shift object from a WasherShiftConfig (for use with WasherAttendanceService) */
+export function buildWasherShift(
+  cityId: string,
+  employmentType: WasherEmploymentType,
+  customStartTime?: string,
+  customEndTime?: string,
+): Shift {
+  const defaults = WASHER_SHIFT_DEFAULTS[employmentType];
+
+  const startTime = customStartTime ?? defaults.defaultStartTime;
+  const endTime   = customEndTime   ?? defaults.defaultEndTime;
+
+  // Validate minimum shift duration
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  const durationMinutes = (eh * 60 + em) - (sh * 60 + sm);
+  if (durationMinutes < defaults.minimumShiftMinutes) {
+    throw new Error(
+      `${employmentType === "PART_TIME" ? "Part-time" : "Full-time"} washer shift must be ` +
+      `at least ${defaults.minimumShiftMinutes / 60} hours. ` +
+      `Provided shift is only ${Math.round(durationMinutes / 60 * 10) / 10} hours.`
+    );
+  }
+
+  return {
+    id: `WASHER-SHIFT-${employmentType}-${startTime}-${endTime}`,
+    name: `${employmentType === "PART_TIME" ? "Part-Time" : "Full-Time"} Washer (${startTime}–${endTime})`,
+    cityId,
+    startTime,
+    endTime,
+    graceMinutes: defaults.checkInGraceMinutes,
+    overtimeThresholdMinutes: 30,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  };
+}
