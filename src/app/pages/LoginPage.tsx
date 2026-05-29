@@ -31,20 +31,26 @@ export function LoginPage() {
   const [forgotError, setForgotError] = useState("");
   const [forgotInfo, setForgotInfo] = useState("");
 
-  // Data is pre-loaded by App.tsx bootstrap — just verify employees are available
+  // Data is pre-loaded by main.tsx seedAllData() before React mounts
   useEffect(() => {
-    // App.tsx already awaited loadAllDataFromSupabase() before mounting
-    // We just need to confirm employee data is in localStorage
+    // Listen for storage quota errors from DataService
+    const handleQuota = (e: Event) => {
+      const msg = (e as CustomEvent).detail || "Storage is full. Some data may not load correctly. Please clear your browser storage.";
+      setLoginError(msg);
+    };
+    window.addEventListener("dataservice:quota", handleQuota);
+
+    // Verify employee data is available
     const employees = employeeDatabaseService.getAll();
     if (employees.length > 0) {
-      console.log(`Login ready: ${employees.length} employees loaded`);
       setDataReady(true);
     } else {
-      // Fallback: load if somehow missing (e.g. localStorage cleared)
       employeeDatabaseService.loadFromSupabase()
         .then(() => setDataReady(true))
         .catch(() => setDataReady(true));
     }
+
+    return () => window.removeEventListener("dataservice:quota", handleQuota);
   }, []);
 
   const handleLogin = async () => {

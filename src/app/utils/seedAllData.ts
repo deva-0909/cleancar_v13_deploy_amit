@@ -17,7 +17,7 @@
  *   EMPLOYEE_DATABASE_RECORDS    (auth system)
  */
 
-const SEED_FLAG = "ALL_DATA_SEEDED_V8";
+const SEED_FLAG = "ALL_DATA_SEEDED_V7";
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 const NOW   = new Date().toISOString();
@@ -32,13 +32,7 @@ function d(m: number, day: number) {
 function iso(m: number, day: number, h = 9) {
   return `2026-${String(m).padStart(2,"0")}-${String(day).padStart(2,"0")}T${String(h).padStart(2,"0")}:00:00.000Z`;
 }
-function writeByCityId(baseKey: string, records: any[]) {
-  const sur = records.filter(r => (r.cityId || "CITY-SURAT") === "CITY-SURAT");
-  const mum = records.filter(r => r.cityId === "CITY-MUMBAI");
-  localStorage.setItem(`cleancar_${baseKey}`,             JSON.stringify(records));
-  localStorage.setItem(`cleancar_CITY-SURAT_${baseKey}`,  JSON.stringify(sur));
-  localStorage.setItem(`cleancar_CITY-MUMBAI_${baseKey}`, JSON.stringify(mum));
-}
+// Original writeByCityId kept for reference — replaced by safeWriteByCityId above
 
 // ─── Salary helper ────────────────────────────────────────────────────────────
 function sal(gross: number) {
@@ -130,12 +124,6 @@ const EMPLOYEES = EMPLOYEES_RAW.map(e => ({
   role:       e.designation,
   joiningDate: e.dateOfJoining,
   cityId:     e.workLocation,
-  city:       e.workLocation === "CITY-MUMBAI" ? "Mumbai" : "Surat",
-  firstName:  e.fullName?.split(" ")[0] || e.fullName || "Employee",
-  lastName:   e.fullName?.split(" ").slice(1).join(" ") || "",
-  department: e.department || e.designation || "Operations",
-  status:     e.status || "Active",
-  email:      e.email || `${(e.fullName||"emp").toLowerCase().replace(/ /g,".")}@249carwash.com`,
 }));
 
 const SUR_EMPS = EMPLOYEES.filter(e => e.cityId === "CITY-SURAT");
@@ -288,9 +276,9 @@ for (const emp of FIELD_STAFF) {
         employeeId:   emp.id,
         cityId:       emp.cityId,
         date:         dateStr,
-        checkInTime:  isLeave ? undefined : isLate ? "09:35" : "07:30",
-        checkOutTime: isLeave ? undefined : "18:00",
         status:       isLeave ? "Leave" : isLate ? "Late" : "Present",
+        checkInTime:  isLeave ? undefined : isLate ? "09:35:00" : "09:00:00",
+        checkOutTime: isLeave ? undefined : "18:00:00",
         hoursWorked:  isLeave ? 0 : 9,
         lateMinutes:  isLate ? 35 : 0,
         workMinutes:  isLeave ? 0 : 540,
@@ -396,44 +384,22 @@ for (const city of ["Surat","Mumbai"] as const) {
   for (const m of MONTHS) {
     for (let i = 0; i < 20; i++) {
       const stage = LEAD_STAGES[i % LEAD_STAGES.length];
-      const isMum = city === "Mumbai";
-      const lIdx = leadIdx++;
-      const lFirst = FIRST_NAMES[lIdx % FIRST_NAMES.length];
-      const lLast  = (isMum ? LAST_NAMES_MUM : LAST_NAMES_SUR)[lIdx % 50];
       LEADS.push({
-        leadId:     `LEAD-${city.slice(0,3).toUpperCase()}-${String(lIdx).padStart(3,"0")}`,
-        // Lead interface fields (leadConversionService.ts)
-        firstName:  lFirst,
-        lastName:   lLast,
-        name:       `${lFirst} ${lLast}`,
-        phone:      `98765${String(43200+lIdx).slice(-5)}`,
-        mobile:     `98765${String(43200+lIdx).slice(-5)}`,
-        email:      `${lFirst.toLowerCase()}${lIdx}@example.com`,
-        address: {
-          line1:   `${100+lIdx} ${["Main Road","Society Block","Residency","Heights","Park"][lIdx%5]}`,
-          area:    areas[i%7],
-          pinCode: pins[i%7],
-          city,
-        },
+        leadId:     `LEAD-${city.slice(0,3).toUpperCase()}-${String(leadIdx++).padStart(3,"0")}`,
+        name:       `Lead ${city.slice(0,3)} ${leadIdx}`,
+        mobile:     `98765${String(43200+leadIdx).slice(-5)}`,
+        email:      `lead${leadIdx}@example.com`,
         area:       areas[i%7],
         pinCode:    pins[i%7],
         source:     LEAD_SOURCES[i%LEAD_SOURCES.length],
-        leadSource: LEAD_SOURCES[i%LEAD_SOURCES.length],
         stage,
         status:     stage,
         assignedTo: tse,
-        assignedTseId: tse,
-        cityId:     cid,
-        city,
-        vehicleType: "4W",
+        cityId:     cid, city,
         vehicleCategory: i%3===0?"SUV":i%3===1?"Sedan":"Hatchback",
-        vehicleDetails: { category: i%3===0?"SUV":i%3===1?"Sedan":"Hatchback" },
-        planOfInterest: ["EXPRESS_WASH","SMART_WASH","ELITE_WASH"][i%3],
-        estimatedValue: [1249,1599,1999][i%3],
-        priority: i%5===0?"high":"medium",
-        createdAt:   new Date(2026,m-1,1+(i%28)).toISOString(),
-        followUpDate:new Date(2026,m-1,5+(i%20)).toISOString(),
-        lastContact: new Date(2026,m-1,1+(i%28)).toISOString(),
+        planOfInterest: ["SHINE","PROTECT","ELITE"][i%3],
+        createdAt:  new Date(2026,m-1,1+(i%28)).toISOString(),
+        followUpDate: new Date(2026,m-1,5+(i%20)).toISOString(),
         convertedAt: stage==="Converted" ? new Date(2026,m-1,15+(i%10)).toISOString() : undefined,
         lostReason: stage==="Lost" ? ["Price too high","Not interested","Competitor","Area not serviceable"][i%4] : undefined,
         notes: `Status: ${stage}.`,
@@ -457,13 +423,6 @@ for (let i = 0; i < 30; i++) {
     leadId: `LEAD-${isSur?"SUR":"MUM"}-${String((i%20)+1).padStart(3,"0")}`,
     customerName: `Demo Customer ${i+1}`,
     customerFirstName: `Customer`,
-    cityId:       isSur ? "CITY-SURAT" : "CITY-MUMBAI",
-    city:         isSur ? "Surat" : "Mumbai",
-    scheduledDate: new Date(2026, 2+(i%3), 3+(i%25)).toISOString().split("T")[0],
-    scheduledTime: ["09:00 AM","11:00 AM","02:00 PM","04:00 PM"][i%4],
-    status:       i < 20 ? "Completed" : i < 25 ? "Scheduled" : "Cancelled",
-    tseId:        isSur ? "EDB-TSE-SUR1" : "EDB-TSE-MUM1",
-    assignedWasherId: null,
     mobile: `98766${String(10000+i).slice(-5)}`,
     email: `demo${i+1}@example.com`,
     addressLine1: `${200+i} Demo Street`,
@@ -476,9 +435,9 @@ for (let i = 0; i < 30; i++) {
     demoType: i%3===0 ? "One-Time Service Demo" : "Subscription Package Demo",
     demoDate: d(m, day),
     demoTimeSlot: DEMO_TIME_SLOTS[i%4],
-    planName: ["EXPRESS_WASH","SMART_WASH","ELITE_WASH"][i%3],
-    planPrice: [1249,1599,1999][i%3],
-    planOfInterest: ["EXPRESS_WASH","SMART_WASH","ELITE_WASH"][i%3],
+    planName: ["SHINE","PROTECT","ELITE"][i%3],
+    planPrice: [1199,1599,1999][i%3],
+    planOfInterest: ["SHINE","PROTECT","ELITE"][i%3],
     tseScheduled: true,
     tseScheduledBy: isSur ? "EDB-TSE-SUR1" : "EDB-TSE-MUM1",
     tseScheduledAt: iso(m, day-1),
@@ -520,28 +479,24 @@ for (let i = 0; i < 30; i++) {
 // 10. SUBSCRIPTIONS — 120 records
 // ═════════════════════════════════════════════════════════════════════════════
 const PKG_MAP: Record<string,string> = {
-  // CustomerSubscriptionContext interface: "EXPRESS_WASH"|"SMART_WASH"|"Premium"|"ELITE_WASH"
-  // These display names match what the Subscription screens expect
-  "EXPRESS_WASH":"Express Wash","SMART_WASH":"Smart Wash","ELITE_WASH":"Premium"
+  "SHINE":"Basic","PROTECT":"Standard","ELITE":"Premium"
 };
 const PLAN_PRICES: Record<string,number> = {
-  "EXPRESS_WASH":1249,"SMART_WASH":1599,"ELITE_WASH":1999
+  "SHINE":1199,"PROTECT":1599,"ELITE":1999
 };
 const SUBS: any[] = [];
 for (let i = 0; i < 120; i++) {
   const isSur  = i < 80;
   const cust   = CUSTOMERS[isSur ? i%100 : 100+(i%100)];
-  const pkgKey = ["EXPRESS_WASH","SMART_WASH","ELITE_WASH"][i%3];
+  const pkgKey = ["SHINE","PROTECT","ELITE"][i%3];
   const pkg    = PKG_MAP[pkgKey];
-  const price  = PLAN_PRICES[pkgKey];
+  const price  = PLAN_PRICES[pkg];
   const disc   = i%5===0 ? 100 : 0;
   const m      = 2 + (i%3);
   const day    = 1 + (i%28);
   SUBS.push({
     subscriptionId: `SUB-${isSur?"SUR":"MUM"}-${String(i+1).padStart(4,"0")}`,
     customerId:     cust.customerId,
-    cityId:         isSur ? "CITY-SURAT" : "CITY-MUMBAI",
-    city:           isSur ? "Surat" : "Mumbai",
     packageType:    pkg,
     packageName:    pkgKey,
     frequency:      ["Daily","Alternate Days","Weekly"][i%3],
@@ -549,9 +504,6 @@ for (let i = 0; i < 120; i++) {
     startDate:      d(m, day),
     renewalDate:    d(Math.min(m+1,12), day),
     pricing:        { basePrice:price, discount:disc, finalPrice:price-disc, currency:"INR" },
-    monthlyAmount:  price - disc,
-    planName:       pkg,
-    vehicleCategory: cust?.vehicleDetails?.category || ["Hatchback","SUV","Sedan"][i%3],
     priceLocked:    price - disc,
     serviceDetails: { vehicleType: i%2===0?"SUV":"Sedan", addOns:i%4===0?["Interior Cleaning"]:[], preferredTimeSlot:["Morning","Afternoon","Evening"][i%3] },
     billingCycle:   ["Monthly","Quarterly","Annual"][i%3],
@@ -579,9 +531,6 @@ for (const sub of SUBS.filter(s => s.status !== "Cancelled").slice(0, 100)) {
       customerId:   sub.customerId,
       subscriptionId: sub.subscriptionId,
       washerId:     washer,
-      assignedWasherId: washer,
-      cityId:       isSur ? "CITY-SURAT" : "CITY-MUMBAI",
-      packageType:  sub.packageName,
       scheduledDate: d(m, day),
       timeSlot:     ["07:00 AM","09:00 AM","11:00 AM","02:00 PM"][jobIdx%4],
       status:       "Completed",
@@ -782,7 +731,7 @@ for (const m of MONTHS) {
   // Surat — subscription sales
   [1150,1150,1499,1150,1999,1150,1150,1499,1150,1499,1150,1999].forEach((base,i)=>{
     const g=gst18(base);
-    ACC_ENTRIES.push({ id:`ACC-${String(accSeq++).padStart(5,"0")}`, voucherNumber:`SAL/SURAT/25-26/${String(accSeq).padStart(4,"0")}`, entryType:"Sales", date:`2026-${ms}-01`, gstEntryType:"B2B", ...g, invoiceNumber:`SUB-SUR-${m}-${i+1}`, hsnSacCode:"998519", debitAccount:"LM-RZP-SUR", creditAccount:"LM-SUBREV-SUR", paymentMode:"Bank", isRCM:false, narration:`Subscription — ${["EXPRESS_WASH","SMART_WASH","ELITE_WASH"][i%3]}`, city:"Surat", cityId:"CITY-SURAT", financialYear:FY, createdBy:"Seed", createdAt:`2026-${ms}-01T10:00:00.000Z`, status:"Posted", changeHistory:[] });
+    ACC_ENTRIES.push({ id:`ACC-${String(accSeq++).padStart(5,"0")}`, voucherNumber:`SAL/SURAT/25-26/${String(accSeq).padStart(4,"0")}`, entryType:"Sales", date:`2026-${ms}-01`, gstEntryType:"B2B", ...g, invoiceNumber:`SUB-SUR-${m}-${i+1}`, hsnSacCode:"998519", debitAccount:"LM-RZP-SUR", creditAccount:"LM-SUBREV-SUR", paymentMode:"Bank", isRCM:false, narration:`Subscription — ${["SHINE","PROTECT","ELITE"][i%3]}`, city:"Surat", cityId:"CITY-SURAT", financialYear:FY, createdBy:"Seed", createdAt:`2026-${ms}-01T10:00:00.000Z`, status:"Posted", changeHistory:[] });
   });
   // Surat — one-time washes
   [5,9,13,17,21].forEach((day,i)=>{ const g=gst18(499+(i%2===0?200:0)); ACC_ENTRIES.push({ id:`ACC-${String(accSeq++).padStart(5,"0")}`, voucherNumber:`SAL/SURAT/25-26/${String(accSeq).padStart(4,"0")}`, entryType:"Sales", date:`2026-${ms}-${String(day).padStart(2,"0")}`, gstEntryType:"Unregistered", ...g, invoiceNumber:`OT-SUR-${m}-${i+1}`, hsnSacCode:"998519", debitAccount:"LM-CASH-SUR", creditAccount:"LM-OT-SUR", paymentMode:"Cash", isRCM:false, narration:"One-time wash", city:"Surat", cityId:"CITY-SURAT", financialYear:FY, createdBy:"Seed", createdAt:`2026-${ms}-${String(day).padStart(2,"0")}T10:00:00.000Z`, status:"Posted", changeHistory:[] });});
@@ -835,6 +784,25 @@ JOURNALS.push({ id:"JV-ADVTAX-1", voucherNumber:jvNo2(), date:"2026-03-15", narr
 // ═════════════════════════════════════════════════════════════════════════════
 // SEEDER FUNCTION
 // ═════════════════════════════════════════════════════════════════════════════
+// ── Safe localStorage write — never throws, returns false on quota ──────────
+function safeSet(key: string, value: string): boolean {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    const isQuota = e instanceof DOMException && e.name === "QuotaExceededError";
+    console.warn(`[seedAllData] Could not write ${key}${isQuota ? " — storage full" : ""}`);
+    return false;
+  }
+}
+function safeWriteByCityId(baseKey: string, records: any[]): void {
+  const sur = records.filter(r => (r.cityId || "CITY-SURAT") === "CITY-SURAT");
+  const mum = records.filter(r => r.cityId === "CITY-MUMBAI");
+  safeSet(`cleancar_${baseKey}`,             JSON.stringify(records));
+  safeSet(`cleancar_CITY-SURAT_${baseKey}`,  JSON.stringify(sur));
+  safeSet(`cleancar_CITY-MUMBAI_${baseKey}`, JSON.stringify(mum));
+}
+
 export function seedAllData(): void {
   try {
     if (localStorage.getItem(SEED_FLAG)) return;
@@ -843,57 +811,61 @@ export function seedAllData(): void {
     ["HISTORIC_DATA_SEEDED_V1","HISTORIC_DATA_SEEDED_V2","HISTORIC_DATA_SEEDED_V3",
      "HISTORIC_DATA_SEEDED_V4","HISTORIC_DATA_SEEDED_V5","ACC_SEED_V1","ACC_SEED_V2",
      "ALL_DATA_SEEDED_V1","ALL_DATA_SEEDED_V2","ALL_DATA_SEEDED_V3","ALL_DATA_SEEDED_V4",
-     "ALL_DATA_SEEDED_V5","ALL_DATA_SEEDED_V6","ALL_DATA_SEEDED_V7"
+     "ALL_DATA_SEEDED_V5","ALL_DATA_SEEDED_V6"
     ].forEach(f => localStorage.removeItem(f));
 
-    // ── 1. EMPLOYEES ─────────────────────────────────────────────────────────
+    // FIX: Set SEED_FLAG FIRST so partial failures don't cause infinite re-seed on reload.
+    // Individual sections below are independently guarded with safeSet/safeWriteByCityId.
+    localStorage.setItem(SEED_FLAG, "true");
+
+    // ── 1. EMPLOYEES — MUST SUCCEED (auth depends on this) ───────────────────
     const existEmp = JSON.parse(localStorage.getItem("EMPLOYEE_DATABASE_RECORDS")||"[]");
     const existIds = new Set(existEmp.map((e:any)=>e.id));
     const allEmp   = [...existEmp, ...EMPLOYEES_RAW.filter(e=>!existIds.has(e.id))];
-    localStorage.setItem("EMPLOYEE_DATABASE_RECORDS", JSON.stringify(allEmp)); // auth
-    localStorage.setItem("cleancar_employees",              JSON.stringify(EMPLOYEES));       // legacy fallback
-    localStorage.setItem("cleancar_CITY-SURAT_employees",   JSON.stringify(SUR_EMPS));
-    localStorage.setItem("cleancar_CITY-MUMBAI_employees",  JSON.stringify(MUM_EMPS));
+    safeSet("EMPLOYEE_DATABASE_RECORDS", JSON.stringify(allEmp)); // auth
+    safeSet("cleancar_employees",              JSON.stringify(EMPLOYEES));       // legacy fallback
+    safeSet("cleancar_CITY-SURAT_employees",   JSON.stringify(SUR_EMPS));
+    safeSet("cleancar_CITY-MUMBAI_employees",  JSON.stringify(MUM_EMPS));
 
     // ── 2. SALARY STRUCTURES ─────────────────────────────────────────────────
-    writeByCityId("salary_structures", SALARY_STRUCTURES);
+    safeWriteByCityId("salary_structures", SALARY_STRUCTURES);
 
     // ── 3. INCENTIVE PLANS ───────────────────────────────────────────────────
-    writeByCityId("incentive_plans", INCENTIVE_PLANS);
+    safeWriteByCityId("incentive_plans", INCENTIVE_PLANS);
 
     // ── 4. PAYROLL RUNS ──────────────────────────────────────────────────────
-    writeByCityId("payroll_runs", PAYROLL_RUNS);
+    safeWriteByCityId("payroll_runs", PAYROLL_RUNS);
 
     // ── 5. EMPLOYEE INCENTIVES ───────────────────────────────────────────────
-    writeByCityId("employee_incentives", EMPLOYEE_INCENTIVES);
+    safeWriteByCityId("employee_incentives", EMPLOYEE_INCENTIVES);
 
     // ── 6. ATTENDANCE ────────────────────────────────────────────────────────
-    writeByCityId("attendance_records", ATTENDANCE_RECORDS);
+    safeWriteByCityId("attendance_records", ATTENDANCE_RECORDS);
 
     // ── 7. CUSTOMERS ─────────────────────────────────────────────────────────
     // Force-clear stale customers so real Indian names always replace generic ones
     ["cleancar_customers","cleancar_CITY-SURAT_customers","cleancar_CITY-MUMBAI_customers"]
       .forEach(k => localStorage.removeItem(k));
-    writeByCityId("customers", CUSTOMERS);
+    safeWriteByCityId("customers", CUSTOMERS);
 
     // ── 8. LEADS ─────────────────────────────────────────────────────────────
-    writeByCityId("leads", LEADS);
+    safeWriteByCityId("leads", LEADS);
 
     // ── 9. DEMOS ─────────────────────────────────────────────────────────────
-    writeByCityId("demos", DEMOS);
+    safeWriteByCityId("demos", DEMOS);
 
     // ── 10. SUBSCRIPTIONS ────────────────────────────────────────────────────
     // Force-clear stale subscriptions so packageName field is always present
     ["cleancar_subscriptions","cleancar_CITY-SURAT_subscriptions","cleancar_CITY-MUMBAI_subscriptions"]
       .forEach(k => localStorage.removeItem(k));
-    writeByCityId("subscriptions", SUBS);
+    safeWriteByCityId("subscriptions", SUBS);
 
     // ── 11. JOBS ─────────────────────────────────────────────────────────────
-    writeByCityId("jobs", JOBS);
+    safeWriteByCityId("jobs", JOBS);
 
     // ── 12. COMPLAINTS (DataService + raw key for customerCareExecutiveService)
-    writeByCityId("complaints", COMPLAINTS_DS);
-    localStorage.setItem("cleancar_complaints", JSON.stringify(COMPLAINTS_RAW));
+    safeWriteByCityId("complaints", COMPLAINTS_DS);
+    safeSet("cleancar_complaints", JSON.stringify(COMPLAINTS_RAW));
 
     // ── 13. INVENTORY ────────────────────────────────────────────────────────
     const invByCityId: Record<string,any[]> = {};
@@ -903,40 +875,40 @@ export function seedAllData(): void {
       invByCityId[cid].push(item);
     }
     for (const [cid, items] of Object.entries(invByCityId)) {
-      localStorage.setItem(`cleancar_${cid}_inventory_items`, JSON.stringify(items));
+      safeSet(`cleancar_${cid}_inventory_items`, JSON.stringify(items));
     }
 
     // ── 14. STOCK TRANSACTIONS ───────────────────────────────────────────────
-    writeByCityId("stock_transactions", STOCK_TRANSACTIONS);
+    safeWriteByCityId("stock_transactions", STOCK_TRANSACTIONS);
 
     // ── 15. FINANCE ──────────────────────────────────────────────────────────
-    writeByCityId("finance_mrr",      FINANCE_MRR);
-    writeByCityId("finance_payables", FINANCE_PAYABLES);
+    safeWriteByCityId("mrr",      FINANCE_MRR);
+    safeWriteByCityId("payables", FINANCE_PAYABLES);
     // Force-clear stale revenue data so customerName + packageName fields are always fresh
     ["cleancar_revenues","cleancar_CITY-SURAT_revenues","cleancar_CITY-MUMBAI_revenues"]
       .forEach(k => localStorage.removeItem(k));
-    writeByCityId("finance_revenues", FINANCE_REVENUES);
+    safeWriteByCityId("revenues", FINANCE_REVENUES);
 
     // ── 16. ADVANCES ─────────────────────────────────────────────────────────
-    writeByCityId("advance_management", ADVANCES);
+    safeWriteByCityId("advance_management", ADVANCES);
 
     // ── 17. CLOTH TRACKING ───────────────────────────────────────────────────
-    writeByCityId("cloth_tracking", CLOTH);
+    safeWriteByCityId("cloth_tracking", CLOTH);
 
     // ── 18. ACCOUNTING LEDGERS ───────────────────────────────────────────────
     // Force-clear stale SYS-... duplicate system ledgers; seed writes canonical LM-... IDs
     localStorage.removeItem("cleancar_ledger_masters");
-    localStorage.setItem("cleancar_ledger_masters", JSON.stringify(LEDGERS));
+    safeSet("cleancar_ledger_masters", JSON.stringify(LEDGERS));
 
     // ── 19. ACCOUNTING ENTRIES ───────────────────────────────────────────────
     // Force-clear so entries always match the canonical ledger IDs from LEDGERS[]
     localStorage.removeItem("cleancar_accounting_entries");
-    localStorage.setItem("cleancar_accounting_entries", JSON.stringify(ACC_ENTRIES));
+    safeSet("cleancar_accounting_entries", JSON.stringify(ACC_ENTRIES));
 
     // ── 20. JOURNAL ENTRIES ──────────────────────────────────────────────────
     const existJournals: any[] = JSON.parse(localStorage.getItem("cleancar_journal_entries")||"[]");
     const existJvIds = new Set(existJournals.map((j:any)=>j.id));
-    localStorage.setItem("cleancar_journal_entries",
+    safeSet("cleancar_journal_entries",
       JSON.stringify([...existJournals, ...JOURNALS.filter(j=>!existJvIds.has(j.id))]));
 
     // ── 21. GST VENDORS (for AccountingEntry + ExpenseVoucher dropdowns) ─────
@@ -951,7 +923,7 @@ export function seedAllData(): void {
       const key = `cleancar_${cid}_gst_vendors`;
       const existV: any[] = JSON.parse(localStorage.getItem(key)||"[]");
       const existVIds = new Set(existV.map((v:any)=>v.id));
-      localStorage.setItem(key, JSON.stringify([...existV, ...SEED_GST_VENDORS.filter(v=>!existVIds.has(v.id))]));
+      safeSet(key, JSON.stringify([...existV, ...SEED_GST_VENDORS.filter(v=>!existVIds.has(v.id))]));
     });
 
     // ── 22. SEED INVOICES from FINANCE_REVENUES ───────────────────────────────
@@ -978,7 +950,7 @@ export function seedAllData(): void {
       const key = `cleancar_${cid}_payments`;
       const existP: any[] = JSON.parse(localStorage.getItem(key)||"[]");
       const existPIds = new Set(existP.map((p:any)=>p.id));
-      localStorage.setItem(key, JSON.stringify([...existP, ...SEED_PAYMENTS.filter(p=>!existPIds.has(p.id) && p.city === cid)]));
+      safeSet(key, JSON.stringify([...existP, ...SEED_PAYMENTS.filter(p=>!existPIds.has(p.id) && p.city === cid)]));
     });
 
     // ── 24. BTL ASSIGNMENTS (for Supervisor BTL Activity Mode) ───────────────
@@ -1044,7 +1016,7 @@ export function seedAllData(): void {
     const btlAssignKey = "cleancar_btl_assignments";
     const existingBTL: any[] = JSON.parse(localStorage.getItem(btlAssignKey)||"[]");
     const existBTLIds = new Set(existingBTL.map((a:any)=>a.assignmentId));
-    localStorage.setItem(btlAssignKey, JSON.stringify([
+    safeSet(btlAssignKey, JSON.stringify([
       ...existingBTL,
       ...SEED_BTL_ASSIGNMENTS.filter(a=>!existBTLIds.has(a.assignmentId))
     ]));
@@ -1064,12 +1036,12 @@ export function seedAllData(): void {
       { id:"LOC-006", smId:"EDB-SMGR-SUR2", smName:"Kalpesh Rathod", name:"Piplod Township Society",  type:"Society",      address:"Piplod, Surat",         gpsLat:21.1512, gpsLng:72.7802, contactPerson:"Secretary",             contactPhone:"+91 98765 66666", status:"Pending Approval",                         qrCodeActive:false, supervisorId:null,            supervisorName:null,             leadsMTD:0,  leadsMTDM1:0,  leadsMTDM2:0, leadsMTDM3:0, conversionsMTD:0, conversionRatePct:0,  payingCustomers:0,  lastSupervisorActivity:"",             activationBonusStatus:"pending",  previousPayingMilestone:0  },
     ];
     const SM_BLOCK_DEALS_SEED = [
-      { id:"BD-001", locationId:"LOC-001", locationName:"Adajan Heights Society",  smId:"EDB-SMGR-SUR1", vehicleCount:12, packageType:"SMART_WASH",   commitmentTerm:3,  status:"Active",   approvedDate:daysAgoSM(30), activeVehicles:10, phase1Paid:true,  phase1Amount:3750, phase2Amount:3125, phase2CheckDate:daysAgoSM(-60), phase2Status:"pending", additionalVehicles:2 },
-      { id:"BD-002", locationId:"LOC-002", locationName:"Reliance Corporate Park", smId:"EDB-SMGR-SUR1", vehicleCount:22, packageType:"SMART_WASH",       commitmentTerm:6,  status:"Approved", approvedDate:daysAgoSM(5),  activeVehicles:0,  phase1Paid:false, phase1Amount:7500, phase2Amount:3750, phase2CheckDate:daysAgoSM(-90), phase2Status:"pending", additionalVehicles:0 },
+      { id:"BD-001", locationId:"LOC-001", locationName:"Adajan Heights Society",  smId:"EDB-SMGR-SUR1", vehicleCount:12, packageType:"Water + Shampoo",   commitmentTerm:3,  status:"Active",   approvedDate:daysAgoSM(30), activeVehicles:10, phase1Paid:true,  phase1Amount:3750, phase2Amount:3125, phase2CheckDate:daysAgoSM(-60), phase2Status:"pending", additionalVehicles:2 },
+      { id:"BD-002", locationId:"LOC-002", locationName:"Reliance Corporate Park", smId:"EDB-SMGR-SUR1", vehicleCount:22, packageType:"PROTECT",       commitmentTerm:6,  status:"Approved", approvedDate:daysAgoSM(5),  activeVehicles:0,  phase1Paid:false, phase1Amount:7500, phase2Amount:3750, phase2CheckDate:daysAgoSM(-90), phase2Status:"pending", additionalVehicles:0 },
     ];
     // Only seed if not already present (so user-added data isn't wiped)
-    if (!localStorage.getItem("sm_locations"))   localStorage.setItem("sm_locations",   JSON.stringify(SM_LOCATIONS_SEED));
-    if (!localStorage.getItem("sm_block_deals")) localStorage.setItem("sm_block_deals", JSON.stringify(SM_BLOCK_DEALS_SEED));
+    if (!localStorage.getItem("sm_locations"))   safeSet("sm_locations",   JSON.stringify(SM_LOCATIONS_SEED));
+    if (!localStorage.getItem("sm_block_deals")) safeSet("sm_block_deals", JSON.stringify(SM_BLOCK_DEALS_SEED));
 
     // ── 26. SH MODULE — sh_tce_performance with real TSE employee IDs ─────────
     // SalesHeadService reads sh_tce_performance first before falling back to seedTCEStatuses().
@@ -1079,11 +1051,11 @@ export function seedAllData(): void {
       { id:"EDB-TSE-SUR2", name:"Ankit Trivedi", closuresMTD:14, gateColor:"RED",   slaCompliancePct:72, planMixPct:48, churnCount30d:3, lastCallTime:minsAgoSM(95), incentiveForecast:1800, status:"ACTIVE"  },
     ];
     if (!localStorage.getItem("sh_tce_performance")) {
-      localStorage.setItem("sh_tce_performance", JSON.stringify(SH_TCE_PERF));
+      safeSet("sh_tce_performance", JSON.stringify(SH_TCE_PERF));
     }
     // Also seed sh_tce_statuses (what SalesHeadService.STORE_KEYS.TCE_STATUSES reads)
     if (!localStorage.getItem("sh_tce_statuses")) {
-      localStorage.setItem("sh_tce_statuses", JSON.stringify(SH_TCE_PERF));
+      safeSet("sh_tce_statuses", JSON.stringify(SH_TCE_PERF));
     }
 
     // ── 27. SM MODULE — per-SM leads with real customer IDs ──────────────────────
@@ -1100,7 +1072,7 @@ export function seedAllData(): void {
       { id:"SH-L-008", customerName:"Nita Varma",     phone:"+91 98765 43226", vehicleType:"4W", vehicleCategory:"Hatchback",source:"SM-Alliance-Supervisor", status:"No Response", assignedTo:"EDB-TSE-SUR1",ageMinutes:360, estimatedValue:999,  smId:"EDB-SMGR-SUR3", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT" },
     ];
     if (!localStorage.getItem("sh_leads")) {
-      localStorage.setItem("sh_leads", JSON.stringify(SM_LEADS_SEED));
+      safeSet("sh_leads", JSON.stringify(SM_LEADS_SEED));
     }
 
     // ── 28. BUY PAGE → SYSTEM SYNC: Seed 5 web-purchased subscriptions ─────────
@@ -1110,11 +1082,11 @@ export function seedAllData(): void {
     const now = new Date();
     const dAgo = (d: number) => new Date(now.getTime() - d*86400000).toISOString();
     const WEB_CUSTOMERS = [
-      { customerId:"WEBCUST-001", firstName:"Hetal",    lastName:"Shah",   phone:"9723456781", email:"hetal@example.com",  vehicle:"Maruti Swift",   reg:"GJ05AA1234", category:"hatchback", plan:"EXPRESS_WASH",     amount:1249,  cityId:"CITY-SURAT", pincode:"395007", address:"A-12 Vesu Residency, Surat", daysAgo:5  },
-      { customerId:"WEBCUST-002", firstName:"Jigar",    lastName:"Patel",  phone:"9823456782", email:"jigar@example.com",  vehicle:"Hyundai Creta",  reg:"GJ05BB5678", category:"suv",       plan:"SMART_WASH",   amount:1999, cityId:"CITY-SURAT", pincode:"395009", address:"B-7 Adajan Heights, Surat",  daysAgo:12 },
-      { customerId:"WEBCUST-003", firstName:"Minal",    lastName:"Desai",  phone:"9623456783", email:"minal@example.com",  vehicle:"Toyota Fortuner",reg:"GJ05CC9012", category:"luxury",    plan:"ELITE_WASH",  amount:3499, cityId:"CITY-SURAT", pincode:"395005", address:"C-3 Citylight Road, Surat",  daysAgo:2  },
-      { customerId:"WEBCUST-004", firstName:"Rakesh",   lastName:"Thakkar",phone:"9523456784", email:"rakesh@example.com", vehicle:"Tata Nexon",     reg:"GJ05DD3456", category:"suv",       plan:"EXPRESS_WASH",     amount:1499, cityId:"CITY-SURAT", pincode:"395007", address:"D-15 Pal Village, Surat",    daysAgo:20 },
-      { customerId:"WEBCUST-005", firstName:"Sneha",    lastName:"Agarwal",phone:"9423456785", email:"sneha@example.com",  vehicle:"Baleno",         reg:"GJ05EE7890", category:"hatchback", plan:"SMART_WASH",   amount:1599, cityId:"CITY-SURAT", pincode:"395005", address:"E-9 Piplod Township, Surat", daysAgo:8  },
+      { customerId:"WEBCUST-001", firstName:"Hetal",    lastName:"Shah",   phone:"9723456781", email:"hetal@example.com",  vehicle:"Maruti Swift",   reg:"GJ05AA1234", category:"hatchback", plan:"SHINE",     amount:1199,  cityId:"CITY-SURAT", pincode:"395007", address:"A-12 Vesu Residency, Surat", daysAgo:5  },
+      { customerId:"WEBCUST-002", firstName:"Jigar",    lastName:"Patel",  phone:"9823456782", email:"jigar@example.com",  vehicle:"Hyundai Creta",  reg:"GJ05BB5678", category:"suv",       plan:"PROTECT",   amount:1999, cityId:"CITY-SURAT", pincode:"395009", address:"B-7 Adajan Heights, Surat",  daysAgo:12 },
+      { customerId:"WEBCUST-003", firstName:"Minal",    lastName:"Desai",  phone:"9623456783", email:"minal@example.com",  vehicle:"Toyota Fortuner",reg:"GJ05CC9012", category:"luxury",    plan:"ELITE",  amount:3499, cityId:"CITY-SURAT", pincode:"395005", address:"C-3 Citylight Road, Surat",  daysAgo:2  },
+      { customerId:"WEBCUST-004", firstName:"Rakesh",   lastName:"Thakkar",phone:"9523456784", email:"rakesh@example.com", vehicle:"Tata Nexon",     reg:"GJ05DD3456", category:"suv",       plan:"SHINE",     amount:1499, cityId:"CITY-SURAT", pincode:"395007", address:"D-15 Pal Village, Surat",    daysAgo:20 },
+      { customerId:"WEBCUST-005", firstName:"Sneha",    lastName:"Agarwal",phone:"9423456785", email:"sneha@example.com",  vehicle:"Baleno",         reg:"GJ05EE7890", category:"hatchback", plan:"PROTECT",   amount:1599, cityId:"CITY-SURAT", pincode:"395005", address:"E-9 Piplod Township, Surat", daysAgo:8  },
     ];
 
     const existingWebInvoices: any[] = JSON.parse(localStorage.getItem("cleancar_web_invoices") || "[]");
@@ -1155,7 +1127,7 @@ export function seedAllData(): void {
       };
       existingWebInvoices.push(invoice);
     });
-    localStorage.setItem("cleancar_web_invoices", JSON.stringify(existingWebInvoices));
+    safeSet("cleancar_web_invoices", JSON.stringify(existingWebInvoices));
 
     // Sync web customers into CUSTOMERS DataService key
     const customersDSKey = `cleancar_CITY-SURAT_customers`;
@@ -1180,7 +1152,7 @@ export function seedAllData(): void {
         updatedAt:      dAgo(wc.daysAgo),
       });
     });
-    localStorage.setItem(customersDSKey, JSON.stringify(existingCustDS));
+    safeSet(customersDSKey, JSON.stringify(existingCustDS));
 
     // Sync web subscriptions into SUBSCRIPTIONS DataService key
     const subsDSKey = `cleancar_CITY-SURAT_subscriptions`;
@@ -1194,7 +1166,7 @@ export function seedAllData(): void {
       existingSubsDS.push({
         subscriptionId: subId,
         customerId:     wc.customerId,
-        packageType:    wc.plan.includes("Wax") ? "ELITE_WASH" : wc.plan.includes("Shampoo") ? "SMART_WASH" : "EXPRESS_WASH",
+        packageType:    wc.plan.includes("Wax") ? "Premium" : wc.plan.includes("Shampoo") ? "Standard" : "Basic",
         packageName:    wc.plan,
         frequency:      "Daily",
         status:         "Active",
@@ -1209,7 +1181,7 @@ export function seedAllData(): void {
         createdAt:      dAgo(wc.daysAgo),
       });
     });
-    localStorage.setItem(subsDSKey, JSON.stringify(existingSubsDS));
+    safeSet(subsDSKey, JSON.stringify(existingSubsDS));
 
     // Sync web revenues into FINANCE_REVENUES DataService key
     const revKey = `cleancar_CITY-SURAT_revenues`;
@@ -1233,7 +1205,7 @@ export function seedAllData(): void {
         createdAt:      dAgo(wc.daysAgo),
       });
     });
-    localStorage.setItem(revKey, JSON.stringify(existingRevs));
+    safeSet(revKey, JSON.stringify(existingRevs));
 
     // ── 29. SH MODULE — sh_leads with SM attribution for web customers ─────────
     // Leads from buy page attributed to SM alliance locations appear in SH pipeline
@@ -1247,7 +1219,7 @@ export function seedAllData(): void {
       { id:"SH-L-W05", customerName:"Sneha Agarwal",  phone:"9423456785", vehicleType:"4W", vehicleCategory:"Hatchback", source:"SM-Alliance-WhatsApp",status:"Converted",assignedTo:"EDB-TSE-SUR1",ageMinutes:11520,estimatedValue:1499, smId:"EDB-SMGR-SUR3", smLocationName:"Piplod Township Society", cityId:"CITY-SURAT", convertedAt:dAgo(8),  invoiceNumber:"INV-WEB-08-WEBCUST-005" },
     ];
     WEB_SH_LEADS.forEach(l => { if (!existingSHIds.has(l.id)) existingSHLeads.push(l); });
-    localStorage.setItem("sh_leads", JSON.stringify(existingSHLeads));
+    safeSet("sh_leads", JSON.stringify(existingSHLeads));
 
     // ── 30. SM LOCATIONS — update conversion counts from web customers ─────────
     // Reflect the web-purchased customers in the SM location conversion counts
@@ -1261,76 +1233,11 @@ export function seedAllData(): void {
         // Update LOC-003 (HP Petrol Pump) +1 conversion (Rakesh)
         const loc3 = smLocs.find((l: any) => l.id === "LOC-003");
         if (loc3) { loc3.conversionsMTD = Math.max(loc3.conversionsMTD, 3); loc3.payingCustomers = Math.max(loc3.payingCustomers, 3); loc3.status = "Active"; }
-        localStorage.setItem("sm_locations", JSON.stringify(smLocs));
+        safeSet("sm_locations", JSON.stringify(smLocs));
       }
     } catch (_) {}
 
-    // ── KEY ALIASES — bridge keys that screens read under different names ────────
-    // DataService.ts reads "employees" (no prefix)
-    localStorage.setItem("employees",         JSON.stringify(EMPLOYEES));
-
-    // CancellationRequestPage reads cc360_customers / cc360_subscriptions
-    localStorage.setItem("cc360_customers",     JSON.stringify(CUSTOMERS));
-    localStorage.setItem("cc360_subscriptions", JSON.stringify(SUBS));
-
-    // RootLayout reads "attendance_records" (no prefix)
-    localStorage.setItem("attendance_records",  JSON.stringify(ATTENDANCE_RECORDS));
-
-    // salaryStructureService reads "salaryStructures" (no prefix)
-    // employeeSalaryService reads "employeeSalaries" (no prefix)
-    localStorage.setItem("salaryStructures",    JSON.stringify(SALARY_STRUCTURES));
-    localStorage.setItem("employeeSalaries",    JSON.stringify(SALARY_STRUCTURES));
-
-    // CancellationRequestPage + finance reads "FINANCE_REVENUES" (upper-case, no prefix)
-    localStorage.setItem("FINANCE_REVENUES",    JSON.stringify(FINANCE_REVENUES));
-
-    // DataService.ts reads "cleancar_selected_city" for city context
-    if (!localStorage.getItem("cleancar_selected_city")) {
-      localStorage.setItem("cleancar_selected_city", "CITY-SURAT");
-    }
-
-    // ShiftContext reads "cleancar_shifts" — seed empty array so context doesn't crash
-    if (!localStorage.getItem("cleancar_shifts")) {
-      localStorage.setItem("cleancar_shifts", JSON.stringify([]));
-    }
-
-    // CustomerPlanPage reads "cleancar_public_holidays" — seed Gujarat 2026 holidays
-    if (!localStorage.getItem("cleancar_public_holidays")) {
-      localStorage.setItem("cleancar_public_holidays", JSON.stringify([
-        { date: "2026-01-26", name: "Republic Day" },
-        { date: "2026-03-25", name: "Holi" },
-        { date: "2026-03-26", name: "Dhuleti" },
-        { date: "2026-04-02", name: "Ram Navami" },
-        { date: "2026-04-14", name: "Ambedkar Jayanti" },
-        { date: "2026-04-18", name: "Good Friday" },
-        { date: "2026-08-15", name: "Independence Day" },
-        { date: "2026-08-27", name: "Janmashtami" },
-        { date: "2026-10-02", name: "Gandhi Jayanti" },
-        { date: "2026-10-20", name: "Dussehra" },
-        { date: "2026-11-01", name: "Diwali Day 1" },
-        { date: "2026-11-02", name: "Diwali Day 2 (Lakshmi Puja)" },
-        { date: "2026-11-03", name: "Diwali Day 3 (New Year)" },
-        { date: "2026-12-25", name: "Christmas" },
-      ]));
-    }
-
-    // SalesHeadService reads "sh_personal_closures_count" — seed with 0 if absent
-    if (!localStorage.getItem("sh_personal_closures_count")) {
-      localStorage.setItem("sh_personal_closures_count", JSON.stringify(0));
-    }
-
-    // cancelreq, procurement — seed empty arrays so screens don't crash
-    if (!localStorage.getItem("cleancar_cancellation_requests")) {
-      localStorage.setItem("cleancar_cancellation_requests", JSON.stringify([]));
-    }
-    if (!localStorage.getItem("cleancar_purchase_orders")) {
-      localStorage.setItem("cleancar_purchase_orders", JSON.stringify([]));
-    }
-    if (!localStorage.getItem("cleancar_material_requisitions")) {
-      localStorage.setItem("cleancar_material_requisitions", JSON.stringify([]));
-    }
-
-        localStorage.setItem(SEED_FLAG, "true");
+    // SEED_FLAG already set at top of function
     console.log(`[seedAllData] ✅ Complete seed done:\n` +
       `  Employees: ${EMPLOYEES.length} | Payroll: ${PAYROLL_RUNS.length} | Attendance: ${ATTENDANCE_RECORDS.length}\n` +
       `  Customers: ${CUSTOMERS.length} | Leads: ${LEADS.length} | Demos: ${DEMOS.length}\n` +
@@ -1342,827 +1249,4 @@ export function seedAllData(): void {
   } catch (err) {
     console.error("[seedAllData] Failed:", err);
   }
-}
-
-
-// ═══════════════════════════════════════════════════════════════════════════
-// EXTENDED SEED — All modules (appended to existing seed)
-// Covers: Inventory · GST · Complaints/CCE · SM Block Deals · SH Performance
-//         TSM Performance · Accounts/Ledger · Finance Budgets · Cloth Tracking
-//         HR Departments · Leave · Travel · Procurement · Incentive V6
-//         Store · Analytics · Operations · Cloth Tracking
-// ═══════════════════════════════════════════════════════════════════════════
-
-export function seedExtendedModules(): void {
-  const EXTENDED_FLAG = "ALL_EXTENDED_SEEDED_V2";
-  if (localStorage.getItem(EXTENDED_FLAG)) return;
-
-  const NOW   = new Date().toISOString();
-  const TODAY = NOW.split("T")[0];
-  const CID   = "CITY-SURAT";
-
-  function ws(key: string, data: any[]) {
-    localStorage.setItem(key, JSON.stringify(data));
-    // Also write city-namespaced version
-    localStorage.setItem(`cleancar_${CID}_${key}`, JSON.stringify(data));
-  }
-  function wg(key: string, data: any) {
-    localStorage.setItem(key, JSON.stringify(data));
-  }
-
-  // ── INVENTORY ITEMS ────────────────────────────────────────────────────────
-  const CHEMICALS = [
-    "Foam Shampoo (5L)", "Microfibre Cloths", "Tyre Dressing Spray",
-    "Dashboard Polish", "Glass Cleaner", "Car Fragrance",
-    "Wax Polish", "Engine Degreaser", "Underbody Spray",
-    "Pressure Washer Soap", "Interior Sanitiser", "Cloth Wash Powder",
-  ];
-  const INVENTORY_ITEMS = CHEMICALS.map((name, i) => ({
-    id:            `INV-${String(i+1).padStart(3,"0")}`,
-    name,
-    category:      i < 4 ? "Chemical" : i < 8 ? "Consumable" : "Equipment",
-    unit:          i < 6 ? "Litre" : i < 9 ? "Piece" : "Kg",
-    currentStock:  30 + (i * 7),
-    minStock:      10,
-    maxStock:      100,
-    reorderLevel:  15,
-    unitCost:      [450, 25, 180, 220, 120, 49, 199, 350, 280, 380, 150, 95][i] || 100,
-    supplier:      ["Pidilite", "3M India", "Sonax India", "WD-40 India"][i % 4],
-    lastReceived:  new Date(2026, 4, 15 + (i%10)).toISOString().split("T")[0],
-    cityId:        CID,
-    isActive:      true,
-    createdAt:     NOW,
-  }));
-  ws("inventory_items", INVENTORY_ITEMS);
-
-  // ── STOCK TRANSACTIONS ─────────────────────────────────────────────────────
-  const STOCK_TXN: any[] = [];
-  INVENTORY_ITEMS.slice(0, 8).forEach((item, i) => {
-    // Receipts
-    STOCK_TXN.push({
-      id: `STK-IN-${String(i+1).padStart(3,"0")}`,
-      type: "RECEIPT", itemId: item.id, itemName: item.name,
-      qty: 50, unitCost: item.unitCost, totalCost: 50 * item.unitCost,
-      date: new Date(2026, 4, 1 + i).toISOString().split("T")[0],
-      reference: `PO-2026-${String(i+1).padStart(3,"0")}`,
-      issuedTo: null, issuedToType: null, cityId: CID, createdAt: NOW,
-    });
-    // Issuances to washers
-    STOCK_TXN.push({
-      id: `STK-OUT-${String(i+1).padStart(3,"0")}`,
-      type: "ISSUANCE", itemId: item.id, itemName: item.name,
-      qty: 10, unitCost: item.unitCost, totalCost: 10 * item.unitCost,
-      date: new Date(2026, 4, 10 + i).toISOString().split("T")[0],
-      reference: `ISS-${String(i+1).padStart(3,"0")}`,
-      issuedTo: `EDB-CW-SUR${(i%3)+1}A`, issuedToType: "WASHER", cityId: CID, createdAt: NOW,
-    });
-  });
-  ws("stock_transactions", STOCK_TXN);
-
-  // ── COMPLAINTS / CCE TICKETS ───────────────────────────────────────────────
-  const COMPLAINT_TYPES = [
-    "Wash quality issue", "Washer late", "Periodic service missed",
-    "Vehicle scratch reported", "Billing dispute", "App not working",
-    "Cancellation request", "Plan upgrade request", "Refund request",
-  ];
-  const COMPLAINT_STATUSES = ["Open", "In Progress", "Resolved", "Closed", "Escalated"];
-  const COMPLAINTS = Array.from({ length: 30 }, (_, i) => ({
-    id:            `CMP-SUR-${String(i+1).padStart(3,"0")}`,
-    ticketNumber:  `TKT-${2026}${String(i+1).padStart(4,"0")}`,
-    customerId:    `CUST-SUR-${String((i%30)+1).padStart(3,"0")}`,
-    customerName:  ["Amit Patel","Priya Shah","Rahul Desai","Sneha Mehta","Vikram Modi"][i%5],
-    mobile:        `9876${String(543200+i).slice(-6)}`,
-    type:          COMPLAINT_TYPES[i % COMPLAINT_TYPES.length],
-    description:   `Customer reported: ${COMPLAINT_TYPES[i % COMPLAINT_TYPES.length]}. Needs immediate attention.`,
-    status:        COMPLAINT_STATUSES[i % COMPLAINT_STATUSES.length],
-    priority:      ["High","Medium","Low"][i % 3],
-    assignedTo:    `EDB-CCE-SUR${(i%2)+1}`,
-    assignedToName: i%2===0 ? "Neha Joshi" : "Arjun Rao",
-    channel:       ["WhatsApp","IVR","App","Walk-in"][i%4],
-    planType:      ["EXPRESS_WASH","SMART_WASH","ELITE_WASH"][i%3],
-    vehicleCategory: ["Hatchback / Compact Sedan","SUV / MUV / Sedan"][i%2],
-    subscriptionId: `SUB-SUR-${String((i%20)+1).padStart(3,"0")}`,
-    createdAt:     new Date(2026, 4, 1 + (i%28)).toISOString(),
-    updatedAt:     new Date(2026, 4, 3 + (i%25)).toISOString(),
-    resolvedAt:    i%3===2 ? new Date(2026, 4, 5 + (i%20)).toISOString() : undefined,
-    resolution:    i%3===2 ? "Issue resolved. Customer confirmed satisfaction." : undefined,
-    slaBreached:   i%7===0,
-    firstResponseMinutes: 15 + (i*3),
-    cityId:        CID,
-  }));
-  ws("complaints", COMPLAINTS);
-  localStorage.setItem("cleancar_complaints", JSON.stringify(COMPLAINTS));
-
-  // ── PROCUREMENT ────────────────────────────────────────────────────────────
-  const PO_ITEMS = CHEMICALS.slice(0, 6);
-  const PURCHASE_ORDERS = PO_ITEMS.map((name, i) => ({
-    id:           `PO-2026-${String(i+1).padStart(3,"0")}`,
-    poNumber:     `PO/2026/05/${String(i+1).padStart(3,"0")}`,
-    itemName:     name,
-    itemId:       INVENTORY_ITEMS[i].id,
-    quantity:     50 + (i*10),
-    unit:         INVENTORY_ITEMS[i].unit,
-    unitPrice:    INVENTORY_ITEMS[i].unitCost,
-    totalAmount:  (50+(i*10)) * INVENTORY_ITEMS[i].unitCost,
-    supplier:     INVENTORY_ITEMS[i].supplier,
-    status:       ["Pending","Approved","Received","Partially Received"][i%4],
-    requestedBy:  "EDB-OM-SUR1",
-    approvedBy:   i%2===1 ? "EDB-CM-SUR1" : undefined,
-    orderDate:    new Date(2026, 4, 1 + i).toISOString().split("T")[0],
-    expectedDate: new Date(2026, 4, 7 + i).toISOString().split("T")[0],
-    receivedDate: i%4===2 ? new Date(2026, 4, 8 + i).toISOString().split("T")[0] : undefined,
-    notes:        "Standard monthly procurement order.",
-    cityId:       CID, createdAt: NOW,
-  }));
-  localStorage.setItem("cleancar_purchase_orders", JSON.stringify(PURCHASE_ORDERS));
-  localStorage.setItem("cleancar_material_requisitions", JSON.stringify(
-    PURCHASE_ORDERS.slice(0,4).map((po, i) => ({
-      ...po, id: `MR-${String(i+1).padStart(3,"0")}`, mrNumber: `MR/2026/05/${String(i+1).padStart(3,"0")}`,
-      status: ["Pending","Approved"][i%2], type: "Material Requisition",
-    }))
-  ));
-
-  // ── CLOTH TRACKING ─────────────────────────────────────────────────────────
-  const CLOTH_TYPES = ["Microfibre 40×40", "Microfibre 60×60", "Terry Towel", "Glass Cloth", "Duster Cloth"];
-  const CLOTH_ITEMS = CLOTH_TYPES.map((name, i) => ({
-    id: `CLT-${String(i+1).padStart(3,"0")}`, name, category: "Cloth",
-    unit: "Piece", currentStock: 200 - (i*20), minStock: 50,
-    unitCost: [25, 45, 35, 30, 15][i], cityId: CID, createdAt: NOW,
-    isActive: true,
-  }));
-  ws("cloth_items", CLOTH_ITEMS);
-
-  const CLOTH_EXCHANGES = Array.from({ length: 20 }, (_, i) => ({
-    id: `CLE-${String(i+1).padStart(3,"0")}`,
-    washerId: `EDB-CW-SUR${(i%3)+1}A`,
-    washerName: ["Ravi Kumar","Suresh Patil","Mohan Yadav"][i%3],
-    clothType: CLOTH_TYPES[i%5],
-    clothItemId: CLOTH_ITEMS[i%5].id,
-    soiledQty: 5 + (i%3),
-    freshQty:  5 + (i%3),
-    date: new Date(2026, 4, 1 + (i%28)).toISOString().split("T")[0],
-    shift: i%2===0 ? "Morning" : "Evening",
-    supervisorId: "EDB-SUP-SUR1",
-    cityId: CID, createdAt: NOW,
-  }));
-  ws("cloth_exchanges", CLOTH_EXCHANGES);
-  ws("cloth_tracking", CLOTH_EXCHANGES);
-
-  // ── SM BLOCK DEALS & ALLIANCE ──────────────────────────────────────────────
-  const BLOCK_DEALS = [
-    { id:"BD-001", name:"Shiven Square RWA",   type:"Housing Society", units:45, planType:"SMART_WASH",   vehicleCategory:"Hatchback / Compact Sedan", monthlyAmount:1599, term:12, status:"Active",   activationDate:"2026-01-15", contactPerson:"Ramesh Mehta", contactMobile:"9876500001", address:"Shiven Square, Adajan, Surat", cityId:CID },
-    { id:"BD-002", name:"Royal Heights Society",type:"Housing Society", units:28, planType:"EXPRESS_WASH", vehicleCategory:"Hatchback / Compact Sedan", monthlyAmount:1249, term:6,  status:"Active",   activationDate:"2026-02-01", contactPerson:"Sunita Patel",  contactMobile:"9876500002", address:"Royal Heights, Vesu, Surat",   cityId:CID },
-    { id:"BD-003", name:"Green Valley Corp",    type:"Corporate",       units:15, planType:"ELITE_WASH",   vehicleCategory:"SUV / MUV / Sedan",          monthlyAmount:2499, term:12, status:"Active",   activationDate:"2026-01-01", contactPerson:"Nikhil Sharma", contactMobile:"9876500003", address:"Ring Road, Surat",             cityId:CID },
-    { id:"BD-004", name:"City Prime Residency", type:"Housing Society", units:60, planType:"SMART_WASH",   vehicleCategory:"Hatchback / Compact Sedan", monthlyAmount:1599, term:12, status:"Pending",  activationDate:"2026-06-01", contactPerson:"Kavita Joshi",  contactMobile:"9876500004", address:"Athwa Lines, Surat",          cityId:CID },
-    { id:"BD-005", name:"Metro Motors Pvt Ltd", type:"Corporate",       units:8,  planType:"ELITE_WASH",   vehicleCategory:"Luxury / Large SUV",         monthlyAmount:3499, term:3,  status:"Completed",activationDate:"2026-02-15", contactPerson:"Arun Kapoor",   contactMobile:"9876500005", address:"Industrial Area, Surat",       cityId:CID },
-  ].map(b => ({
-    ...b, createdAt: NOW,
-    totalMonthlyRevenue: b.units * b.monthlyAmount,
-    phase1Incentive: 3750, phase2Incentive: 3750,
-    smId: "EDB-SM-SUR1", smName: "Mohit Verma",
-  }));
-  localStorage.setItem("sm_block_deals", JSON.stringify(BLOCK_DEALS));
-  localStorage.setItem("cleancar_CITY-SURAT_block_deals", JSON.stringify(BLOCK_DEALS));
-
-  const SM_LOCATIONS = [
-    { id:"LOC-001", name:"Adajan Cluster",    area:"Adajan",     pincodes:["395009","395010"], activeAccounts:38, activeSubs:285, cityId:CID },
-    { id:"LOC-002", name:"Vesu Cluster",      area:"Vesu",       pincodes:["395007"],          activeAccounts:25, activeSubs:190, cityId:CID },
-    { id:"LOC-003", name:"Piplod Cluster",    area:"Piplod",     pincodes:["395007","395011"], activeAccounts:19, activeSubs:140, cityId:CID },
-    { id:"LOC-004", name:"Althan Cluster",    area:"Althan",     pincodes:["395017"],          activeAccounts:28, activeSubs:210, cityId:CID },
-    { id:"LOC-005", name:"Pal-Gam Cluster",   area:"Pal",        pincodes:["395009"],          activeAccounts:22, activeSubs:165, cityId:CID },
-  ].map(l => ({ ...l, smId:"EDB-SM-SUR1", createdAt:NOW }));
-  localStorage.setItem("sm_locations", JSON.stringify(SM_LOCATIONS));
-
-  // ── SH PERFORMANCE DATA ────────────────────────────────────────────────────
-  const SH_TCE_PERFORMANCE = [
-    { tceId:"EDB-TSE-SUR1", name:"Divya Nair",   closuresMTD:42, closuresTarget:50, planMixPct:72, slaCompliancePct:94, crmCompliancePct:100, rank:1 },
-    { tceId:"EDB-TSE-SUR2", name:"Karan Shah",   closuresMTD:35, closuresTarget:50, planMixPct:65, slaCompliancePct:88, crmCompliancePct:98,  rank:2 },
-    { tceId:"EDB-TSE-SUR3", name:"Pooja Mehta",  closuresMTD:28, closuresTarget:50, planMixPct:58, slaCompliancePct:91, crmCompliancePct:96,  rank:3 },
-    { tceId:"EDB-TSE-MUM1", name:"Raj Thakur",   closuresMTD:38, closuresTarget:50, planMixPct:70, slaCompliancePct:96, crmCompliancePct:100, rank:1 },
-  ].map(t => ({
-    ...t, month:"2026-05", cityId:t.tceId.includes("SUR") ? CID : "CITY-MUMBAI",
-    revenue: t.closuresMTD * 1599, createdAt: NOW,
-  }));
-  localStorage.setItem("sh_tce_performance", JSON.stringify(SH_TCE_PERFORMANCE));
-  localStorage.setItem("sh_tce_statuses", JSON.stringify(
-    SH_TCE_PERFORMANCE.map(t => ({ tceId:t.tceId, status:"Active", lastActivity:TODAY, cityId:t.cityId }))
-  ));
-  localStorage.setItem("sh_personal_closures_count", JSON.stringify(12));
-  localStorage.setItem("sh_leads", JSON.stringify(
-    Array.from({length:15},(_,i)=>({
-      id:`SH-L-${String(i+1).padStart(3,"0")}`,
-      name:`${["Amit","Priya","Rahul","Sneha","Vikram"][i%5]} ${["Patel","Shah","Desai","Mehta","Modi"][i%5]}`,
-      mobile:`9876${String(543300+i).slice(-6)}`,
-      vehicleType:"4W", vehicleCategory:"SUV / MUV / Sedan",
-      planOfInterest:"ELITE_WASH",
-      source:"SH_PERSONAL", status:["New","Contacted","Demo Scheduled","Converted"][i%4],
-      cityId:CID, createdAt:NOW,
-    }))
-  ));
-
-  // ── TSM PERFORMANCE DATA ───────────────────────────────────────────────────
-  const TSM_TEAM = {
-    tsmId: "EDB-TSM-SUR1",
-    name: "Rohan Gupta",
-    cityId: CID,
-    month: "2026-05",
-    teamClosures: 105,
-    teamTarget: 150,
-    personalClosures: 8,
-    conversionBonus: 10000,
-    renewalRate: 82,
-    renewalBonus: 7000,
-    teamRevenue: 167850,
-    teamRevenueBonusTier: 1000000,
-    csatScore: 4.3,
-    csatBonus: 10000,
-    tsePerformance: SH_TCE_PERFORMANCE.filter(t => t.cityId === CID),
-    createdAt: NOW,
-  };
-  localStorage.setItem("tsm_performance", JSON.stringify([TSM_TEAM]));
-  localStorage.setItem("cleancar_CITY-SURAT_tsm_performance", JSON.stringify([TSM_TEAM]));
-
-  // ── INCENTIVE V6 RECORDS ───────────────────────────────────────────────────
-  // Seed 10 subscription incentive records so the incentive ledger has data
-  const IV6_RECORDS = Array.from({length:10},(_,i)=>({
-    id: `INC-SUB-SUR-${String(i+1).padStart(3,"0")}`,
-    subscriptionId: `SUB-SUR-${String(i+1).padStart(3,"0")}`,
-    customerId: `CUST-SUR-${String(i+1).padStart(3,"0")}`,
-    customerName: ["Amit Patel","Priya Shah","Rahul Desai","Sneha Mehta","Vikram Modi","Kavita Joshi","Rajesh Mehta","Sunita Patel","Nikhil Sharma","Divya Nair"][i],
-    planType: ["EXPRESS_WASH","SMART_WASH","ELITE_WASH"][i%3],
-    vehicleCategory: ["Hatchback / Compact Sedan","SUV / MUV / Sedan","Luxury / Large SUV"][i%3],
-    monthlyAmount: [1249,1599,1999,1499,1999,2499,1999,2499,3499,1249][i],
-    term: [3,6,12,3,6,3,12,3,6,3][i],
-    source: ["DIGITAL","BTL","DIGITAL","BTL","BULK_DEAL","DIGITAL","BTL","DIGITAL","BTL","DIGITAL"][i],
-    activationDate: new Date(2026, 4-Math.floor(i/3), 1+(i%15)).toISOString().split("T")[0],
-    status: i===7 ? "CANCELLED" : "ACTIVE",
-    cancelledDate: i===7 ? "2026-05-15" : undefined,
-    cityId: CID,
-    tseId: "EDB-TSE-SUR1", tseName: "Divya Nair",
-    smId: "EDB-SM-SUR1", smName: "Mohit Verma",
-    shId: "EDB-SH-SUR1", shName: "Anjali Rao",
-    tsmId: "EDB-TSM-SUR1", tsmName: "Rohan Gupta",
-    supervisorId: i%2===1 ? "EDB-SUP-SUR1" : undefined,
-    supervisorName: i%2===1 ? "Sanjay Kumar" : undefined,
-    poolTotal: [0,150,150,150,0,300,600,150,300,0][i],
-    isZeroPool: [true,false,false,false,true,false,false,false,false,true][i],
-    tranches: [],
-    createdAt: NOW,
-  }));
-  localStorage.setItem("cleancar_incentive_v6_records", JSON.stringify(IV6_RECORDS));
-
-  // ── FINANCE BUDGETS & ALERTS ───────────────────────────────────────────────
-  const FINANCE_BUDGETS = [
-    { id:"BUD-001", month:"2026-05", category:"Chemicals",    budgetAmount:85000,  actualAmount:72400,  variance:12600,  cityId:CID, createdAt:NOW },
-    { id:"BUD-002", month:"2026-05", category:"Labour",       budgetAmount:240000, actualAmount:236800, variance:3200,   cityId:CID, createdAt:NOW },
-    { id:"BUD-003", month:"2026-05", category:"Overheads",    budgetAmount:45000,  actualAmount:48200,  variance:-3200,  cityId:CID, createdAt:NOW },
-    { id:"BUD-004", month:"2026-05", category:"Marketing",    budgetAmount:30000,  actualAmount:22500,  variance:7500,   cityId:CID, createdAt:NOW },
-    { id:"BUD-005", month:"2026-05", category:"Procurement",  budgetAmount:120000, actualAmount:118400, variance:1600,   cityId:CID, createdAt:NOW },
-  ];
-  const key_budgets = `cleancar_CITY-SURAT_finance_budgets`;
-  localStorage.setItem(key_budgets, JSON.stringify(FINANCE_BUDGETS));
-  localStorage.setItem("cleancar_finance_budgets", JSON.stringify(FINANCE_BUDGETS));
-
-  const FINANCE_ALERTS = [
-    { id:"ALT-001", type:"BUDGET_BREACH",   message:"Overheads exceeded budget by ₹3,200",           severity:"Medium", date:TODAY, cityId:CID, isRead:false },
-    { id:"ALT-002", type:"REVENUE_DIP",     message:"Daily collection below target for 3 days",        severity:"High",   date:TODAY, cityId:CID, isRead:false },
-    { id:"ALT-003", type:"CHURN_RISK",      message:"8 subscriptions due for renewal in 7 days",       severity:"High",   date:TODAY, cityId:CID, isRead:false },
-    { id:"ALT-004", type:"PAYROLL_DUE",     message:"May payroll processing deadline in 3 days",        severity:"Low",    date:TODAY, cityId:CID, isRead:true  },
-    { id:"ALT-005", type:"INCENTIVE_DUE",   message:"M3 incentive tranches due for 12 subscriptions",  severity:"Medium", date:TODAY, cityId:CID, isRead:false },
-  ];
-  localStorage.setItem("cleancar_CITY-SURAT_finance_alerts", JSON.stringify(FINANCE_ALERTS));
-  localStorage.setItem("cleancar_finance_alerts", JSON.stringify(FINANCE_ALERTS));
-
-  const FINANCE_RECS = [
-    { id:"REC-001", type:"UPSELL",    message:"22 Express Wash customers eligible for Smart Wash upgrade", potentialRevenue:7700, priority:"High", cityId:CID },
-    { id:"REC-002", type:"RETENTION", message:"15 customers with single missed wash — send proactive message", potentialRevenue:0, priority:"Medium", cityId:CID },
-    { id:"REC-003", type:"COST",      message:"Switch to bulk shampoo procurement — save ₹4,200/month", potentialRevenue:4200, priority:"Medium", cityId:CID },
-  ];
-  localStorage.setItem("cleancar_CITY-SURAT_finance_recommendations", JSON.stringify(FINANCE_RECS));
-  localStorage.setItem("cleancar_finance_recommendations", JSON.stringify(FINANCE_RECS));
-
-  // ── GST DATA ───────────────────────────────────────────────────────────────
-  const GST_TRANSACTIONS = Array.from({length:20},(_,i)=>({
-    id: `GST-${String(i+1).padStart(4,"0")}`,
-    invoiceNumber: `INV-${2026}${String(i+1).padStart(4,"0")}`,
-    date: new Date(2026, 4, 1+(i%28)).toISOString().split("T")[0],
-    partyName: ["Pidilite Industries","3M India","Sonax India","WD-40 India","Customer RWA"][i%5],
-    partyGSTIN: `27${["AABCP1234D1ZC","AAACC1234K1ZC","AABCS1234G1ZC","AABCW1234F1ZC","AABCR1234H1ZC"][i%5]}`,
-    type: i < 15 ? "SALES" : "PURCHASE",
-    taxableAmount: 1000 + (i*500),
-    cgst: (1000+(i*500)) * 0.09,
-    sgst: (1000+(i*500)) * 0.09,
-    igst: 0,
-    totalTax: (1000+(i*500)) * 0.18,
-    totalAmount: (1000+(i*500)) * 1.18,
-    hsn: "998531",
-    description: i < 15 ? "Car Washing Subscription Services" : "Chemical/Consumable Purchase",
-    status: "Filed",
-    cityId: CID, createdAt: NOW,
-  }));
-  localStorage.setItem("cleancar_gst_transactions", JSON.stringify(GST_TRANSACTIONS));
-  localStorage.setItem("cleancar_CITY-SURAT_gst_transactions", JSON.stringify(GST_TRANSACTIONS));
-
-  // ── HR DEPARTMENTS & DESIGNATIONS ─────────────────────────────────────────
-  const DEPARTMENTS = [
-    { id:"DEPT-001", name:"Operations",     code:"OPS",  headId:"EDB-OM-SUR1",  headCount:8,  cityId:CID },
-    { id:"DEPT-002", name:"Sales",          code:"SALES",headId:"EDB-TSM-SUR1", headCount:6,  cityId:CID },
-    { id:"DEPT-003", name:"Field Services", code:"FIELD",headId:"EDB-SUP-SUR1", headCount:12, cityId:CID },
-    { id:"DEPT-004", name:"Finance",        code:"FIN",  headId:"EDB-CM-SUR1",  headCount:3,  cityId:CID },
-    { id:"DEPT-005", name:"HR",             code:"HR",   headId:"EDB-CM-SUR1",  headCount:2,  cityId:CID },
-  ].map(d => ({ ...d, createdAt:NOW, isActive:true }));
-  const DESIGNATIONS = [
-    { id:"DES-001", name:"Car Washer",              code:"CW",  department:"Field Services", grade:"G1", cityId:CID },
-    { id:"DES-002", name:"Supervisor",              code:"SUP", department:"Field Services", grade:"G3", cityId:CID },
-    { id:"DES-003", name:"TSE",                     code:"TSE", department:"Sales",          grade:"G3", cityId:CID },
-    { id:"DES-004", name:"TSM",                     code:"TSM", department:"Sales",          grade:"G5", cityId:CID },
-    { id:"DES-005", name:"Sales Manager",           code:"SM",  department:"Sales",          grade:"G6", cityId:CID },
-    { id:"DES-006", name:"Sales Head",              code:"SH",  department:"Sales",          grade:"G7", cityId:CID },
-    { id:"DES-007", name:"Operations Manager",      code:"OM",  department:"Operations",     grade:"G6", cityId:CID },
-    { id:"DES-008", name:"City Manager",            code:"CM",  department:"Operations",     grade:"G7", cityId:CID },
-    { id:"DES-009", name:"Customer Care Executive", code:"CCE", department:"Operations",     grade:"G3", cityId:CID },
-    { id:"DES-010", name:"Accounts Executive",      code:"ACC", department:"Finance",        grade:"G4", cityId:CID },
-  ].map(d => ({ ...d, createdAt:NOW, isActive:true }));
-  localStorage.setItem("hrdata:departments",  JSON.stringify(DEPARTMENTS));
-  localStorage.setItem("hrdata:designations", JSON.stringify(DESIGNATIONS));
-  localStorage.setItem("hrdata:holidays", JSON.stringify([
-    { id:"HOL-001", date:"2026-01-26", name:"Republic Day",       type:"National" },
-    { id:"HOL-002", date:"2026-03-25", name:"Holi",               type:"Festival" },
-    { id:"HOL-003", date:"2026-08-15", name:"Independence Day",   type:"National" },
-    { id:"HOL-004", date:"2026-10-02", name:"Gandhi Jayanti",     type:"National" },
-    { id:"HOL-005", date:"2026-11-02", name:"Diwali",             type:"Festival" },
-  ]));
-  localStorage.setItem("hrdata:employees", JSON.stringify([])); // HR initializer handles this
-
-  // ── LEAVE RECORDS ──────────────────────────────────────────────────────────
-  const LEAVE_RECORDS = Array.from({length:15},(_,i)=>({
-    id: `LV-${String(i+1).padStart(3,"0")}`,
-    employeeId: `EDB-${["CW","TSE","SUP","TSE","CCE"][i%5]}-SUR${(i%3)+1}${i%2===0?"A":""}`,
-    employeeName: ["Ravi Kumar","Divya Nair","Sanjay Kumar","Karan Shah","Neha Joshi"][i%5],
-    leaveType: ["Casual","Sick","Earned","Maternity"][i%4],
-    startDate: new Date(2026, 4, 1+(i%20)).toISOString().split("T")[0],
-    endDate:   new Date(2026, 4, 2+(i%20)).toISOString().split("T")[0],
-    days: i%3===0 ? 2 : 1,
-    reason: "Personal reasons",
-    status: ["Approved","Pending","Rejected","Approved"][i%4],
-    approvedBy: "EDB-OM-SUR1",
-    cityId: CID, createdAt: NOW,
-  }));
-  localStorage.setItem("cleancar_leave_records", JSON.stringify(LEAVE_RECORDS));
-  localStorage.setItem("cleancar_CITY-SURAT_leave_records", JSON.stringify(LEAVE_RECORDS));
-
-  // ── TRAVEL CLAIMS ──────────────────────────────────────────────────────────
-  const TRAVEL_CLAIMS = Array.from({length:12},(_,i)=>({
-    id: `TRV-${String(i+1).padStart(3,"0")}`,
-    employeeId: ["EDB-SM-SUR1","EDB-TSE-SUR1","EDB-TSE-SUR2","EDB-SM-SUR1"][i%4],
-    employeeName: ["Mohit Verma","Divya Nair","Karan Shah","Mohit Verma"][i%4],
-    date: new Date(2026, 4, 1+(i*2)).toISOString().split("T")[0],
-    from: ["Office","Adajan","Vesu","Piplod"][i%4],
-    to: ["Adajan RWA","Vesu Society","Piplod Colony","Althan Complex"][i%4],
-    purpose: ["Client Visit","Lead Follow-up","Site Survey","Block Deal Negotiation"][i%4],
-    mode: ["2W","2W","4W","2W"][i%4],
-    km: [8,12,15,10][i%4],
-    ratePerKm: i%4===2 ? 12 : 7,
-    amount: [56,84,180,70][i%4],
-    status: ["Approved","Pending","Approved","Rejected"][i%4],
-    approvedBy: "EDB-OM-SUR1",
-    cityId: CID, createdAt: NOW,
-  }));
-  localStorage.setItem("cleancar_travel_claims", JSON.stringify(TRAVEL_CLAIMS));
-  localStorage.setItem("cleancar_CITY-SURAT_travel_claims", JSON.stringify(TRAVEL_CLAIMS));
-
-  // ── ADVANCE MANAGEMENT ─────────────────────────────────────────────────────
-  const ADVANCES = Array.from({length:8},(_,i)=>({
-    id: `ADV-${String(i+1).padStart(3,"0")}`,
-    employeeId: `EDB-${["CW","TSE","SUP","CW"][i%4]}-SUR${(i%3)+1}${i<4?"A":""}`,
-    employeeName: ["Ravi Kumar","Divya Nair","Sanjay Kumar","Suresh Patil"][i%4],
-    amount: [5000,3000,8000,4000][i%4],
-    purpose: ["Medical Emergency","Festival","House Rent","Education"][i%4],
-    requestDate: new Date(2026, 3, 1+(i*5)).toISOString().split("T")[0],
-    status: ["Approved","Pending","Approved","Rejected"][i%4],
-    approvedBy: i%2===0 ? "EDB-OM-SUR1" : undefined,
-    repaymentMonths: 3,
-    amountRepaid: i<3 ? [2000,0,4000][i] : 0,
-    balanceAmount: [3000,3000,4000,4000][i%4],
-    cityId: CID, createdAt: NOW,
-  }));
-  ws("advance_management", ADVANCES);
-
-  // ── OPERATIONS / SERVICE ZONES ─────────────────────────────────────────────
-  const ZONES = [
-    { id:"ZONE-001", name:"Zone A – North Adajan", pincodes:["395009","395010"], washers:3, activeCustomers:185, dailyCapacity:90, utilisation:82, cityId:CID },
-    { id:"ZONE-002", name:"Zone B – Vesu & Piplod", pincodes:["395007","395011"], washers:2, activeCustomers:142, dailyCapacity:60, utilisation:79, cityId:CID },
-    { id:"ZONE-003", name:"Zone C – Althan",        pincodes:["395017"],          washers:2, activeCustomers:98,  dailyCapacity:60, utilisation:65, cityId:CID },
-    { id:"ZONE-004", name:"Zone D – Pal-Gam",       pincodes:["395009"],          washers:2, activeCustomers:115, dailyCapacity:60, utilisation:77, cityId:CID },
-  ].map(z => ({ ...z, createdAt:NOW, isActive:true }));
-  localStorage.setItem("cleancar_service_zones", JSON.stringify(ZONES));
-  localStorage.setItem("cleancar_CITY-SURAT_service_zones", JSON.stringify(ZONES));
-
-  // ── STORE / PRODUCTS ───────────────────────────────────────────────────────
-  const STORE_PRODUCTS = [
-    { id:"PROD-001", name:"Express Wash – 1 Month",  type:"subscription", planType:"EXPRESS_WASH", price:1249, category:"Subscription", isActive:true },
-    { id:"PROD-002", name:"Smart Wash – 1 Month",    type:"subscription", planType:"SMART_WASH",   price:1599, category:"Subscription", isActive:true },
-    { id:"PROD-003", name:"Elite Wash – 1 Month",    type:"subscription", planType:"ELITE_WASH",   price:1999, category:"Subscription", isActive:true },
-    { id:"PROD-004", name:"Water Wash – One Time",   type:"one_time",     planType:"EXPRESS_WASH", price:199,  category:"One-Time",     isActive:true },
-    { id:"PROD-005", name:"Shampoo Wash – One Time", type:"one_time",     planType:"SMART_WASH",   price:299,  category:"One-Time",     isActive:true },
-    { id:"PROD-006", name:"Interior Deep Vacuum",    type:"addon",        addonId:"vacuum",        price:199,  category:"Add-On",       isActive:true },
-    { id:"PROD-007", name:"Full Hand Wax Polish",    type:"addon",        addonId:"waxpolish",     price:199,  category:"Add-On",       isActive:true },
-    { id:"PROD-008", name:"Car Fragrance",           type:"addon",        addonId:"fragrance",     price:49,   category:"Add-On",       isActive:true },
-  ].map(p => ({ ...p, cityId:CID, createdAt:NOW }));
-  localStorage.setItem("cleancar_store_products", JSON.stringify(STORE_PRODUCTS));
-
-  // ── OFFER LETTERS ──────────────────────────────────────────────────────────
-  const OFFER_LETTERS = Array.from({length:5},(_,i)=>({
-    id: `OFR-2026-${String(i+1).padStart(3,"0")}`,
-    employeeId: `EDB-TEMP-SUR${i+1}`,
-    candidateName: ["Anil Bhatt","Sunita Rao","Deepak Verma","Priti Shah","Vikash Kumar"][i],
-    designation: ["Car Washer","TSE","Car Washer","Supervisor","Car Washer"][i],
-    department: ["Field Services","Sales","Field Services","Field Services","Field Services"][i],
-    joiningDate: new Date(2026, 5, 1+(i*3)).toISOString().split("T")[0],
-    grossSalary: [15000,22000,15000,20000,15000][i],
-    status: ["Accepted","Pending","Accepted","Rejected","Pending"][i],
-    issuedDate: new Date(2026, 4, 20+(i*2)).toISOString().split("T")[0],
-    cityId: CID, createdAt: NOW,
-  }));
-  localStorage.setItem("OFFER_LETTERS", JSON.stringify(OFFER_LETTERS));
-
-  // ── DEMO MANAGEMENT ────────────────────────────────────────────────────────
-  // Already seeded in main seed — just add a few more rich demos
-  const EXTRA_DEMOS = Array.from({length:10},(_,i)=>({
-    id: `DEMO-EXT-${String(i+1).padStart(3,"0")}`,
-    leadId: `LEAD-SUR-${String(i+20).padStart(3,"0")}`,
-    customerName: ["Arjun Patel","Kavita Shah","Sunil Desai","Rekha Mehta","Pradeep Modi"][i%5],
-    customerPhone: `9876${String(543400+i).slice(-6)}`,
-    vehicleCategory: ["SUV / MUV / Sedan","Hatchback / Compact Sedan","Luxury / Large SUV"][i%3],
-    vehicleRegistration: `GJ05${String.fromCharCode(65+(i%26))}${String.fromCharCode(65+((i+3)%26))}${1000+i}`,
-    scheduledDate: new Date(2026, 4, 20+(i%10)).toISOString().split("T")[0],
-    scheduledTime: ["09:00 AM","11:00 AM","02:00 PM","04:00 PM"][i%4],
-    status: ["Scheduled","Completed","No Show","Converted"][i%4],
-    tseId: `EDB-TSE-SUR${(i%3)+1}`,
-    tseName: ["Divya Nair","Karan Shah","Pooja Mehta"][i%3],
-    cityId: CID, createdAt: NOW,
-    planOfInterest: ["SMART_WASH","ELITE_WASH","EXPRESS_WASH"][i%3],
-    estimatedValue: [1999,2499,1249][i%3],
-    outcome: i%4===3 ? "Converted to Smart Wash 6M" : undefined,
-  }));
-  const existingDemos = JSON.parse(localStorage.getItem("cleancar_CITY-SURAT_demos") || "[]");
-  localStorage.setItem("cleancar_CITY-SURAT_demos", JSON.stringify([...existingDemos, ...EXTRA_DEMOS]));
-  localStorage.setItem("cleancar_demos", JSON.stringify([...existingDemos, ...EXTRA_DEMOS]));
-
-  // ── ANALYTICS DATA ─────────────────────────────────────────────────────────
-  const ANALYTICS_KPI = {
-    cityId: CID,
-    month: "2026-05",
-    totalActiveSubscribers: 540,
-    expressWashCount: 185,
-    smartWashCount: 210,
-    eliteWashCount: 145,
-    totalMRR: 897150,
-    churnRate: 4.2,
-    newSubscribers: 38,
-    renewals: 22,
-    avgRevenuePerSubscriber: 1661,
-    costPerSubscriber: 1248,
-    ebitdaMargin: 24.8,
-    csatScore: 4.4,
-    dailyWashVolume: 548,
-    washerUtilisation: 76,
-    slaCompliance: 92,
-    planMixPct: 65,
-    createdAt: NOW,
-  };
-  localStorage.setItem("cleancar_analytics_kpi", JSON.stringify([ANALYTICS_KPI]));
-  localStorage.setItem("cleancar_CITY-SURAT_analytics_kpi", JSON.stringify([ANALYTICS_KPI]));
-
-  // ── FINANCE LEDGER ─────────────────────────────────────────────────────────
-  const LEDGER_ENTRIES = Array.from({length:20},(_,i)=>({
-    id: `LED-${String(i+1).padStart(4,"0")}`,
-    date: new Date(2026, 4, 1+(i%28)).toISOString().split("T")[0],
-    voucherNo: `VCH-${String(i+1).padStart(4,"0")}`,
-    type: i%5===0?"Expense":i%5===1?"Receipt":i%5===2?"Journal":i%5===3?"Payment":"Contra",
-    account: ["Cash","Bank","Sales Revenue","Chemical Expense","Labour Cost","Rent","Utilities"][i%7],
-    debit:  i%2===0 ? (5000+(i*1500)) : 0,
-    credit: i%2===1 ? (5000+(i*1500)) : 0,
-    narration: ["Monthly subscription collection","Chemical purchase payment","Labour payment","Rent payment","Utility payment"][i%5],
-    cityId: CID, createdAt: NOW,
-  }));
-  localStorage.setItem("cleancar_CITY-SURAT_finance_ledger", JSON.stringify(LEDGER_ENTRIES));
-  localStorage.setItem("cleancar_finance_ledger", JSON.stringify(LEDGER_ENTRIES));
-
-  // ── SESSION AND CONFIG ─────────────────────────────────────────────────────
-  if (!localStorage.getItem("cc360_session")) {
-    localStorage.setItem("cc360_session", JSON.stringify({
-      userId: "EDB-SA-01", role: "Admin", name: "Amit Deva",
-      cityId: CID, loginTime: NOW, isActive: true,
-    }));
-  }
-
-  // Mark complete
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: Finance key aliases — DataService reads "mrr" not "finance_mrr"
-  // ═══════════════════════════════════════════════════════════════════════
-  // DataService STORAGE_KEYS: FINANCE_MRR→"mrr", FINANCE_REVENUES→"revenues",
-  // FINANCE_PAYABLES→"payables", FINANCE_LEDGER→"ledger"
-  // So city key = cleancar_CITY-SURAT_mrr (NOT cleancar_CITY-SURAT_finance_mrr)
-
-  // MRR Data — 3 months of subscription MRR
-  const MRR_DATA = [
-    ...[...Array(30)].map((_,i) => ({
-      mrrId:          `MRR-${String(i+1).padStart(4,"0")}`,
-      month:          i < 10 ? "2026-03" : i < 20 ? "2026-04" : "2026-05",
-      subscriptionId: `SUB-SUR-${String((i%20)+1).padStart(3,"0")}`,
-      customerId:     `CUST-SUR-${String((i%20)+1).padStart(3,"0")}`,
-      revenue:        [1249,1599,1999,1499,1999,2499][i%6],
-      status:         i===25 ? "Churned" : "Active" as const,
-      cityId:         CID, createdAt: NOW, updatedAt: NOW,
-    })),
-  ];
-  localStorage.setItem(`cleancar_CITY-SURAT_mrr`,         JSON.stringify(MRR_DATA));
-  localStorage.setItem(`cleancar_mrr`,                     JSON.stringify(MRR_DATA));
-
-  // Revenue Data — matching the Revenue interface exactly
-  const REV_DATA = [...Array(40)].map((_,i) => ({
-    revenueId:     `REV-SUR-${String(i+1).padStart(4,"0")}`,
-    customerId:    `CUST-SUR-${String((i%30)+1).padStart(3,"0")}`,
-    customerName:  ["Amit Patel","Priya Shah","Rahul Desai","Sneha Mehta","Vikram Modi"][i%5],
-    subscriptionId: `SUB-SUR-${String((i%20)+1).padStart(3,"0")}`,
-    type:          i%5===4 ? "Add-on" : i%5===3 ? "One-Time" : "Subscription" as const,
-    amount:        [1249,1599,1999,299,199][i%5],
-    receivedDate:  new Date(2026, 4-Math.floor(i/15), 1+(i%28)).toISOString().split("T")[0],
-    paymentMethod: ["UPI","Card","Bank Transfer","UPI","Cash"][i%5] as any,
-    invoiceNumber: `INV-SUR-${String(i+1).padStart(4,"0")}`,
-    status:        i%10===9 ? "Pending" : "Received" as const,
-    packageName:   ["EXPRESS_WASH","SMART_WASH","ELITE_WASH"][i%3],
-    source:        "subscription",
-    cityId:        CID, createdAt: NOW,
-  }));
-  localStorage.setItem(`cleancar_CITY-SURAT_revenues`, JSON.stringify(REV_DATA));
-  localStorage.setItem(`cleancar_revenues`,             JSON.stringify(REV_DATA));
-
-  // Payables — matching Payable interface exactly
-  const PAYABLES_DATA = [
-    ...["Ravi Kumar","Suresh Patil","Mohan Yadav","Divya Nair","Karan Shah","Sanjay Kumar"].map((name,i) => ({
-      payableId:    `PAY-SAL-${String(i+1).padStart(3,"0")}`,
-      type:         "Salary" as const,
-      employeeId:   `EDB-${["CW","CW","CW","TSE","TSE","SUP"][i]}-SUR${(i%3)+1}${i<3?"A":""}`,
-      amount:       [15000,15000,16000,22000,22000,20000][i],
-      dueDate:      "2026-05-31",
-      status:       i<3 ? "Paid" : "Pending" as const,
-      description:  `May 2026 salary — ${name}`,
-      cityId:       CID, createdAt: NOW, updatedAt: NOW,
-      paidAt:       i<3 ? "2026-05-31" : undefined,
-    })),
-    { payableId:"PAY-GST-001",  type:"Statutory" as const, statutoryType:"GST" as const,  amount:28450, dueDate:"2026-06-20", status:"Pending" as const, description:"GSTR-3B May 2026", cityId:CID, createdAt:NOW, updatedAt:NOW },
-    { payableId:"PAY-PF-001",   type:"Statutory" as const, statutoryType:"PF" as const,   amount:12480, dueDate:"2026-06-15", status:"Pending" as const, description:"PF May 2026",      cityId:CID, createdAt:NOW, updatedAt:NOW },
-    { payableId:"PAY-VEND-001", type:"Vendor" as const, vendorName:"Pidilite Industries",  amount:45000, dueDate:"2026-06-10", status:"Approved" as const, description:"Chemical supply May 2026", cityId:CID, createdAt:NOW, updatedAt:NOW },
-  ];
-  localStorage.setItem(`cleancar_CITY-SURAT_payables`, JSON.stringify(PAYABLES_DATA));
-  localStorage.setItem(`cleancar_payables`,             JSON.stringify(PAYABLES_DATA));
-
-  // Ledger entries — matching LedgerEntry interface exactly
-  const LEDGER_DATA = [...Array(25)].map((_,i) => ({
-    ledgerEntryId: `LED-${String(i+1).padStart(4,"0")}`,
-    entryDate:     new Date(2026, 4, 1+(i%28)).toISOString().split("T")[0],
-    accountCode:   ["4001","4002","5001","5002","5003","1001","2001"][i%7],
-    accountName:   ["Subscription Revenue","Add-on Revenue","Chemical Expense","Labour Cost","Overhead Expense","Cash/Bank","Accounts Payable"][i%7],
-    entryType:     i%7 < 2 ? "CREDIT" : i%7 < 5 ? "DEBIT" : i%2===0 ? "DEBIT" : "CREDIT" as any,
-    amount:        [1599,199,8500,24000,5500,1599,8500][i%7],
-    description:   ["Subscription collection","Add-on sale","Chemical purchase","Labour payment","Overhead","Cash receipt","Vendor payment"][i%7],
-    referenceType: ["Invoice","Invoice","Payment","Payroll","Expense","Invoice","Payment"][i%7] as any,
-    referenceId:   `REF-${String(i+1).padStart(4,"0")}`,
-    cityId:        CID,
-    serviceType:   ["EXPRESS_WASH","SMART_WASH","ELITE_WASH","","","",""][i%7],
-    createdAt:     NOW,
-  }));
-  localStorage.setItem(`cleancar_CITY-SURAT_ledger`, JSON.stringify(LEDGER_DATA));
-  localStorage.setItem(`cleancar_ledger`,             JSON.stringify(LEDGER_DATA));
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: InventoryContext uses different field names (itemId/itemName not id/name)
-  // ═══════════════════════════════════════════════════════════════════════
-  const INV_ITEMS_FIXED = [
-    { itemId:"INV-C001", itemName:"Foam Car Shampoo 5L",     category:"Cleaning Supplies" as const, unit:"L"   as const, reorderLevel:10, centralStock:45, supervisorStock:{"EDB-SUP-SUR1":8,"EDB-SUP-SUR2":6}, washerStock:{"EDB-CW-SUR1A":2,"EDB-CW-SUR1B":2,"EDB-CW-SUR2A":1}, unitCost:450, supplierId:"SUPP-001", lastProcurementDate:"2026-05-15", cityId:CID, createdAt:NOW, updatedAt:NOW },
-    { itemId:"INV-C002", itemName:"Microfibre Cloths 40×40", category:"Consumables"       as const, unit:"Pcs" as const, reorderLevel:50, centralStock:180, supervisorStock:{"EDB-SUP-SUR1":30,"EDB-SUP-SUR2":25}, washerStock:{"EDB-CW-SUR1A":8,"EDB-CW-SUR1B":8,"EDB-CW-SUR2A":6}, unitCost:25, supplierId:"SUPP-002", lastProcurementDate:"2026-05-10", cityId:CID, createdAt:NOW, updatedAt:NOW },
-    { itemId:"INV-C003", itemName:"Tyre Dressing Spray",      category:"Cleaning Supplies" as const, unit:"L"   as const, reorderLevel:5,  centralStock:22, supervisorStock:{"EDB-SUP-SUR1":4,"EDB-SUP-SUR2":3}, washerStock:{"EDB-CW-SUR1A":1,"EDB-CW-SUR1B":1}, unitCost:180, supplierId:"SUPP-001", lastProcurementDate:"2026-05-12", cityId:CID, createdAt:NOW, updatedAt:NOW },
-    { itemId:"INV-C004", itemName:"Dashboard Polish",         category:"Cleaning Supplies" as const, unit:"L"   as const, reorderLevel:5,  centralStock:18, supervisorStock:{"EDB-SUP-SUR1":3,"EDB-SUP-SUR2":2}, washerStock:{"EDB-CW-SUR1A":1}, unitCost:220, supplierId:"SUPP-003", lastProcurementDate:"2026-05-08", cityId:CID, createdAt:NOW, updatedAt:NOW },
-    { itemId:"INV-C005", itemName:"Glass Cleaner 5L",         category:"Cleaning Supplies" as const, unit:"L"   as const, reorderLevel:8,  centralStock:30, supervisorStock:{"EDB-SUP-SUR1":5,"EDB-SUP-SUR2":4}, washerStock:{"EDB-CW-SUR1A":2,"EDB-CW-SUR1B":1}, unitCost:120, supplierId:"SUPP-001", lastProcurementDate:"2026-05-15", cityId:CID, createdAt:NOW, updatedAt:NOW },
-    { itemId:"INV-C006", itemName:"Wax Polish 1Kg",           category:"Consumables"       as const, unit:"Kg"  as const, reorderLevel:3,  centralStock:12, supervisorStock:{"EDB-SUP-SUR1":2,"EDB-SUP-SUR2":2}, washerStock:{"EDB-CW-SUR1A":1}, unitCost:350, supplierId:"SUPP-003", lastProcurementDate:"2026-05-01", cityId:CID, createdAt:NOW, updatedAt:NOW },
-    { itemId:"INV-C007", itemName:"Pressure Washer Soap 10L", category:"Cleaning Supplies" as const, unit:"L"   as const, reorderLevel:15, centralStock:55, supervisorStock:{"EDB-SUP-SUR1":10,"EDB-SUP-SUR2":8}, washerStock:{"EDB-CW-SUR1A":3,"EDB-CW-SUR1B":3,"EDB-CW-SUR2A":2}, unitCost:380, supplierId:"SUPP-001", lastProcurementDate:"2026-05-15", cityId:CID, createdAt:NOW, updatedAt:NOW },
-    { itemId:"INV-C008", itemName:"Interior Sanitiser 5L",    category:"Cleaning Supplies" as const, unit:"L"   as const, reorderLevel:5,  centralStock:20, supervisorStock:{"EDB-SUP-SUR1":4,"EDB-SUP-SUR2":3}, washerStock:{"EDB-CW-SUR1A":1,"EDB-CW-SUR1B":1}, unitCost:150, supplierId:"SUPP-002", lastProcurementDate:"2026-05-10", cityId:CID, createdAt:NOW, updatedAt:NOW },
-  ];
-  localStorage.setItem(`cleancar_CITY-SURAT_inventory_items`, JSON.stringify(INV_ITEMS_FIXED));
-  localStorage.setItem(`cleancar_inventory_items`,             JSON.stringify(INV_ITEMS_FIXED));
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: CLOTH_ITEMS and CLOTH_EXCHANGES — DataService keys
-  // ═══════════════════════════════════════════════════════════════════════
-  const CLOTH_ITEMS_DS = [
-    { itemId:"CLT-001", itemName:"Microfibre 40×40", category:"Cleaning Supplies" as const, unit:"Pcs" as const, reorderLevel:50, centralStock:200, supervisorStock:{"EDB-SUP-SUR1":40}, washerStock:{"EDB-CW-SUR1A":8,"EDB-CW-SUR1B":8,"EDB-CW-SUR2A":6}, unitCost:25, cityId:CID, createdAt:NOW, updatedAt:NOW },
-    { itemId:"CLT-002", itemName:"Microfibre 60×60", category:"Cleaning Supplies" as const, unit:"Pcs" as const, reorderLevel:30, centralStock:120, supervisorStock:{"EDB-SUP-SUR1":20}, washerStock:{"EDB-CW-SUR1A":4,"EDB-CW-SUR1B":4}, unitCost:45, cityId:CID, createdAt:NOW, updatedAt:NOW },
-    { itemId:"CLT-003", itemName:"Terry Towel",       category:"Consumables"       as const, unit:"Pcs" as const, reorderLevel:20, centralStock:80,  supervisorStock:{"EDB-SUP-SUR1":15}, washerStock:{"EDB-CW-SUR1A":3,"EDB-CW-SUR1B":3}, unitCost:35, cityId:CID, createdAt:NOW, updatedAt:NOW },
-    { itemId:"CLT-004", itemName:"Glass Cloth",       category:"Cleaning Supplies" as const, unit:"Pcs" as const, reorderLevel:15, centralStock:60,  supervisorStock:{"EDB-SUP-SUR1":10}, washerStock:{"EDB-CW-SUR1A":2,"EDB-CW-SUR1B":2}, unitCost:30, cityId:CID, createdAt:NOW, updatedAt:NOW },
-  ];
-  localStorage.setItem(`cleancar_CITY-SURAT_cloth_items`, JSON.stringify(CLOTH_ITEMS_DS));
-  localStorage.setItem(`cleancar_cloth_items`,             JSON.stringify(CLOTH_ITEMS_DS));
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: PLAN_TIERS — PlanDefinitionContext reads DataService.get("PLAN_TIERS")
-  // Needs to match PlanTier interface from types/subscriptionPlans.types.ts
-  // ═══════════════════════════════════════════════════════════════════════
-  const VEHICLE_CATS = [
-    { id:"VC-001", name:"Hatchback / Compact Sedan" },
-    { id:"VC-002", name:"SUV / MUV / Sedan" },
-    { id:"VC-003", name:"Luxury / Large SUV" },
-  ];
-  const PLAN_TIERS_SEED = VEHICLE_CATS.flatMap((vc, vi) =>
-    [
-      { key:"EXPRESS_WASH", display:"Express Wash",  price:[1249,1499,1999][vi], sort:1 },
-      { key:"SMART_WASH",   display:"Smart Wash",    price:[1599,1999,2699][vi], sort:2 },
-      { key:"ELITE_WASH",   display:"Elite Wash",    price:[1999,2499,3499][vi], sort:3 },
-    ].map((plan,pi) => ({
-      id:                `pt-${vc.id}-${pi+1}`,
-      name:              plan.key,
-      displayName:       plan.display,
-      vehicleCategoryId: vc.id,
-      baseMonthlyPrice:  plan.price,
-      costPerWash:       Math.round(plan.price/30),
-      washesPerMonth:    30,
-      isActive:          true,
-      sortOrder:         plan.sort,
-    }))
-  );
-  localStorage.setItem(`cleancar_CITY-SURAT_plan_tiers`, JSON.stringify(PLAN_TIERS_SEED));
-  localStorage.setItem(`cleancar_plan_tiers`,             JSON.stringify(PLAN_TIERS_SEED));
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: DEPARTMENTS and DESIGNATIONS — OrgContext DataService keys
-  // ═══════════════════════════════════════════════════════════════════════
-  const DEPT_DS = [
-    { id:"DEPT-001", name:"Operations",     code:"OPS",  isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DEPT-002", name:"Sales",          code:"SALES",isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DEPT-003", name:"Field Services", code:"FIELD",isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DEPT-004", name:"Finance",        code:"FIN",  isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DEPT-005", name:"HR & Admin",     code:"HR",   isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DEPT-006", name:"Technology",     code:"TECH", isActive:true, cityId:CID, createdAt:NOW },
-  ];
-  const DES_DS = [
-    { id:"DES-001", name:"Car Washer",              code:"CW",  departmentId:"DEPT-003", minSalary:12000, maxSalary:18000, isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DES-002", name:"Senior Car Washer",       code:"SCW", departmentId:"DEPT-003", minSalary:15000, maxSalary:20000, isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DES-003", name:"Supervisor",              code:"SUP", departmentId:"DEPT-003", minSalary:18000, maxSalary:25000, isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DES-004", name:"TSE",                     code:"TSE", departmentId:"DEPT-002", minSalary:18000, maxSalary:28000, isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DES-005", name:"TSM",                     code:"TSM", departmentId:"DEPT-002", minSalary:35000, maxSalary:55000, isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DES-006", name:"Sales Manager",           code:"SM",  departmentId:"DEPT-002", minSalary:35000, maxSalary:55000, isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DES-007", name:"Sales Head",              code:"SH",  departmentId:"DEPT-002", minSalary:60000, maxSalary:90000, isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DES-008", name:"Operations Manager",      code:"OM",  departmentId:"DEPT-001", minSalary:40000, maxSalary:65000, isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DES-009", name:"City Manager",            code:"CM",  departmentId:"DEPT-001", minSalary:80000, maxSalary:120000,isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DES-010", name:"Customer Care Executive", code:"CCE", departmentId:"DEPT-001", minSalary:18000, maxSalary:28000, isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DES-011", name:"Accounts Executive",      code:"ACC", departmentId:"DEPT-004", minSalary:22000, maxSalary:38000, isActive:true, cityId:CID, createdAt:NOW },
-    { id:"DES-012", name:"Store Manager",           code:"STR", departmentId:"DEPT-003", minSalary:25000, maxSalary:40000, isActive:true, cityId:CID, createdAt:NOW },
-  ];
-  localStorage.setItem(`cleancar_CITY-SURAT_departments`, JSON.stringify(DEPT_DS));
-  localStorage.setItem(`cleancar_departments`,             JSON.stringify(DEPT_DS));
-  localStorage.setItem(`cleancar_CITY-SURAT_designations`,JSON.stringify(DES_DS));
-  localStorage.setItem(`cleancar_designations`,            JSON.stringify(DES_DS));
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: LEAVE_REQUESTS — PayrollRun reads DataService.get("LEAVE_REQUESTS")
-  // ═══════════════════════════════════════════════════════════════════════
-  const LEAVE_REQS = [...Array(15)].map((_,i) => ({
-    id:           `LR-${String(i+1).padStart(3,"0")}`,
-    employeeId:   `EDB-${["CW","CW","TSE","SUP","TSE"][i%5]}-SUR${(i%3)+1}${i%2===0?"A":""}`,
-    employeeName: ["Ravi Kumar","Suresh Patil","Divya Nair","Sanjay Kumar","Karan Shah"][i%5],
-    leaveType:    ["Casual","Sick","Earned","Casual","Sick"][i%5],
-    startDate:    new Date(2026, 4, 1+(i%20)).toISOString().split("T")[0],
-    endDate:      new Date(2026, 4, 1+(i%20)+(i%2)).toISOString().split("T")[0],
-    days:         (i%2)+1,
-    status:       ["Approved","Pending","Approved","Rejected","Approved"][i%5],
-    reason:       "Personal / medical",
-    approvedBy:   "EDB-OM-SUR1",
-    cityId:       CID, createdAt: NOW,
-  }));
-  localStorage.setItem(`cleancar_CITY-SURAT_leave_requests`, JSON.stringify(LEAVE_REQS));
-  localStorage.setItem(`cleancar_leave_requests`,             JSON.stringify(LEAVE_REQS));
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: BUSINESS_RULES — BusinessRulesContext
-  // ═══════════════════════════════════════════════════════════════════════
-  const BUSINESS_RULES = [
-    { id:"BR-001", name:"Minimum Subscription Term",   category:"Subscription", value:"1",    unit:"months", isActive:true, cityId:CID },
-    { id:"BR-002", name:"Grace Period Days",            category:"Subscription", value:"7",    unit:"days",   isActive:true, cityId:CID },
-    { id:"BR-003", name:"Max Reschedule Per Month",     category:"Operations",   value:"2",    unit:"times",  isActive:true, cityId:CID },
-    { id:"BR-004", name:"Periodic Reschedule Notice",  category:"Operations",   value:"4",    unit:"hours",  isActive:true, cityId:CID },
-    { id:"BR-005", name:"TSE Gate Closures",            category:"Incentive",    value:"10",   unit:"closures/month", isActive:true, cityId:CID },
-    { id:"BR-006", name:"Express Wash H Pool",          category:"Incentive",    value:"0",    unit:"₹",      isActive:true, cityId:CID },
-    { id:"BR-007", name:"Base Washer Quota",            category:"Operations",   value:"25",   unit:"units/day", isActive:true, cityId:CID },
-    { id:"BR-008", name:"GSTR-1 Filing Deadline",       category:"Compliance",   value:"11",   unit:"day of month", isActive:true, cityId:CID },
-    { id:"BR-009", name:"Salary Processing Deadline",   category:"HR",           value:"28",   unit:"day of month", isActive:true, cityId:CID },
-    { id:"BR-010", name:"Advance Max Months Salary",    category:"HR",           value:"1",    unit:"months",  isActive:true, cityId:CID },
-  ].map(r => ({ ...r, createdAt:NOW }));
-  localStorage.setItem(`cleancar_CITY-SURAT_business_rules`, JSON.stringify(BUSINESS_RULES));
-  localStorage.setItem(`cleancar_business_rules`,             JSON.stringify(BUSINESS_RULES));
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: CITY_CONFIG — organizationHierarchyService reads this
-  // ═══════════════════════════════════════════════════════════════════════
-  const CITY_CONFIG = [{
-    cityId: CID, cityName: "Surat", state: "Gujarat", country: "India",
-    isActive: true, launchDate: "2026-01-01",
-    washersCount: 6, supervisorsCount: 2, activeSubs: 540,
-    pincodes: ["395007","395009","395010","395011","395017"],
-    operatingHours: { start: "07:00", end: "18:00" },
-    createdAt: NOW,
-  },{
-    cityId: "CITY-MUMBAI", cityName: "Mumbai", state: "Maharashtra", country: "India",
-    isActive: true, launchDate: "2026-03-01",
-    washersCount: 4, supervisorsCount: 1, activeSubs: 180,
-    pincodes: ["400001","400002","400003"],
-    operatingHours: { start: "07:00", end: "18:00" },
-    createdAt: NOW,
-  }];
-  localStorage.setItem("cleancar_city_config", JSON.stringify(CITY_CONFIG));
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: PLAN_PAGE_CONFIG — buy page and supervisor plan page reads this
-  // ═══════════════════════════════════════════════════════════════════════
-  const PLAN_PAGE_CONFIG = {
-    showPriceComparison: true,
-    showTaglines: true,
-    defaultVehicleCategory: "Hatchback / Compact Sedan",
-    highlightedPlan: "SMART_WASH",
-    promoText: "Join 540+ happy subscribers in Surat!",
-    showAddons: true,
-    showBillingOptions: true,
-    cityId: CID, updatedAt: NOW,
-  };
-  localStorage.setItem("cleancar_plan_page_config", JSON.stringify(PLAN_PAGE_CONFIG));
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: SIDEBAR defaults — SidebarContext reads these
-  // ═══════════════════════════════════════════════════════════════════════
-  if (!localStorage.getItem("sidebarCollapsed")) {
-    localStorage.setItem("sidebarCollapsed", "false");
-  }
-  if (!localStorage.getItem("sidebarOpenGroups")) {
-    localStorage.setItem("sidebarOpenGroups", JSON.stringify(["CRM","TSE APP","HR"]));
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: cc360_hrdata_employees and cc360_leaveAdjustmentPolicy (payslip)
-  // ═══════════════════════════════════════════════════════════════════════
-  if (!localStorage.getItem("cc360_leaveAdjustmentPolicy")) {
-    localStorage.setItem("cc360_leaveAdjustmentPolicy", JSON.stringify({
-      casualLeave: 12, sickLeave: 6, earnedLeave: 15, maternityLeave: 180,
-      paternityLeave: 15, carryForward: true, maxCarryForward: 15,
-      encashmentAllowed: true, updatedAt: NOW,
-    }));
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: EXIT_SETTLEMENTS — HR Exit Settlement module
-  // ═══════════════════════════════════════════════════════════════════════
-  const EXIT_SETTLEMENTS = [
-    { id:"EXIT-001", employeeId:"EDB-CW-SUR3A", employeeName:"Dinesh Solanki", department:"Field Services", designation:"Car Washer",
-      lastWorkingDay:"2026-04-30", exitType:"Resignation", noticeServed:true, noticePeriodDays:30,
-      gratuityAmount:0, leaveEncashment:2400, salaryDue:16000, recoveries:0, netPayable:18400,
-      status:"Completed", settledOn:"2026-05-05", settledBy:"EDB-OM-SUR1", cityId:CID, createdAt:NOW },
-  ];
-  localStorage.setItem(`cleancar_CITY-SURAT_exit_settlements`, JSON.stringify(EXIT_SETTLEMENTS));
-  localStorage.setItem(`cleancar_exit_settlements`,             JSON.stringify(EXIT_SETTLEMENTS));
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: TDS_PAYMENTS — accounts module
-  // ═══════════════════════════════════════════════════════════════════════
-  const TDS_PAYMENTS = [
-    { id:"TDS-001", month:"2026-05", section:"194C", deductee:"Pidilite Industries", amount:2250, dueDate:"2026-06-07", status:"Pending", cityId:CID, createdAt:NOW },
-    { id:"TDS-002", month:"2026-04", section:"194C", deductee:"3M India",            amount:1800, dueDate:"2026-05-07", status:"Paid",    paidDate:"2026-05-05", cityId:CID, createdAt:NOW },
-  ];
-  localStorage.setItem(`cleancar_CITY-SURAT_tds_payments`, JSON.stringify(TDS_PAYMENTS));
-  localStorage.setItem(`cleancar_tds_payments`,             JSON.stringify(TDS_PAYMENTS));
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: ROLE_PERMISSION_OVERRIDES and CUSTOM_ROLES — admin/permissions module
-  // ═══════════════════════════════════════════════════════════════════════
-  localStorage.setItem(`cleancar_CITY-SURAT_role_permission_overrides`, JSON.stringify([]));
-  localStorage.setItem(`cleancar_role_permission_overrides`,             JSON.stringify([]));
-  localStorage.setItem(`cleancar_CITY-SURAT_custom_roles`,               JSON.stringify([]));
-  localStorage.setItem(`cleancar_custom_roles`,                          JSON.stringify([]));
-  localStorage.setItem(`cleancar_CITY-SURAT_custom_transaction_sub_types`, JSON.stringify([]));
-  localStorage.setItem(`cleancar_custom_transaction_sub_types`,          JSON.stringify([]));
-  localStorage.setItem(`cleancar_CITY-SURAT_mobile_change_requests`,    JSON.stringify([]));
-  localStorage.setItem(`cleancar_mobile_change_requests`,               JSON.stringify([]));
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // FIX: EMPLOYEE_DATABASE_RECORDS alias for payslip module
-  // ═══════════════════════════════════════════════════════════════════════
-  const empDbRaw = localStorage.getItem("EMPLOYEE_DATABASE_RECORDS");
-  if (empDbRaw) {
-    localStorage.setItem(`cleancar_CITY-SURAT_employee_database_records`, empDbRaw);
-    localStorage.setItem(`cc360_hrdata_employees`, empDbRaw);
-  }
-
-  // Bump flag
-  localStorage.removeItem("ALL_EXTENDED_SEEDED_V1");
-  localStorage.setItem(EXTENDED_FLAG, "true");
-  console.log("[seedExtendedModules] ✅ All module data seeded successfully");
 }
