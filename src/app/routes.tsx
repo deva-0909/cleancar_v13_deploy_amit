@@ -169,8 +169,8 @@ import { WasherJobExecution } from "./components/modules/WasherJobExecution";
 import { ExpansionOpportunities } from "./components/modules/ExpansionOpportunities";
 import { SupplierDetail } from "./components/procurement/SupplierDetail";
 import { CostTrackingIntegrationDemo } from "./components/demo/CostTrackingIntegrationDemo";
-// R1 FIX: DesignSystemTest file does not exist — import removed
-import { ClothExchange } from "./components/cloth-tracking/ClothExchange"; // restored — component exists, was wrongly commented
+import { DesignSystemTest } from "./design-system/tests/DesignSystemTest";
+// import { ClothExchange } from "./components/cloth-tracking/ClothExchange";
 import { ClothAdminDashboard } from "./components/cloth-tracking/ClothAdminDashboard";
 import { AdvanceTypeSelection } from "./components/advance/AdvanceTypeSelection";
 import { LongTermAdvanceForm } from "./components/advance/LongTermAdvanceForm";
@@ -198,12 +198,7 @@ import { TeleSalesExecutiveApp } from "./components/tse/TeleSalesExecutiveApp";
 import { TSEDiagnostics } from "./components/tse/TSEDiagnostics";
 import { CustomerCareExecutiveApp } from "./components/cce/CustomerCareExecutiveApp";
 // R2 FIX: test-btl-service file may not exist — converted to lazy with error boundary
-// R2 FIX: test-btl-service may not exist — lazy with error boundary fallback
-const TestBTLService = lazy(() =>
-  import("./test-btl-service").catch(() => ({
-    default: () => <div className="p-8 text-gray-500">BTL test module not available</div>,
-  }))
-);
+import TestBTLService from "./test-btl-service";
 import { SubscriptionApp } from "./components/subscription/SubscriptionApp";
 import { PlanSelectionScreen } from "./components/subscription/PlanSelectionScreen";
 import { CustomerPlanPage } from "./components/subscription/CustomerPlanPage";
@@ -262,7 +257,7 @@ export const router = createBrowserRouter([
   // Standalone Onboarding Portal routes (no header/sidebar) - MUST come FIRST
   {
     path: "/onboarding/:empId",
-    element: <ErrorBoundary><OnboardingPortal /></ErrorBoundary>,
+    element: <ErrorBoundary><Suspense fallback={<PageLoader />}><OnboardingPortal /></Suspense></ErrorBoundary>,
   },
   {
     path: "/onboard/:empId",
@@ -335,7 +330,7 @@ export const router = createBrowserRouter([
       { path: "finance/reports", element: <FinancialReportsModule /> },
       { path: "finance/transactions", element: <FinanceTransactions /> },
       { path: "finance/ledger-entries", element: <LedgerEntriesView /> },
-      { path: "finance/chart-of-accounts", element: <ErrorBoundary><ChartOfAccounts /></ErrorBoundary> },
+      { path: "finance/chart-of-accounts", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><ChartOfAccounts /></Suspense></ErrorBoundary> },
       { path: "finance/invoices", element: <InvoiceManagement /> },
       { path: "finance/invoices/:id", element: <InvoiceDetail /> },
       { path: "finance/payments", element: <PaymentManagement /> },
@@ -343,10 +338,10 @@ export const router = createBrowserRouter([
       { path: "finance/package-cost-matrix", element: <PackageCostMatrix /> },
       { path: "finance/cost-per-wash", element: <CostPerWashModule /> },
       { path: "finance/cost-per-wash/actual-inputs", element: <ActualCostInputs /> },
-      { path: "hr", element: <ErrorBoundary><HRModule /></ErrorBoundary> },
+      { path: "hr", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><HRModule /></Suspense></ErrorBoundary> },
       { path: "hr/leave", element: <Navigate to="/hr/professional-leave" replace /> },
       { path: "hr/enhanced-leave", element: <Navigate to="/hr/professional-leave" replace /> },
-      { path: "hr/professional-leave", element: <ErrorBoundary><ProfessionalLeaveManagement /></ErrorBoundary> },
+      { path: "hr/professional-leave", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><ProfessionalLeaveManagement /></Suspense></ErrorBoundary> },
       { path: "hr/leave-policy-engine", element: <LeavePolicyEngine /> },
       { path: "hr/onboarding", element: <EmployeeOnboarding /> },
       { path: "hr/exit-settlement", element: <ExitFFSettlement /> },
@@ -356,7 +351,7 @@ export const router = createBrowserRouter([
       { path: "hr/holiday-management", element: <HolidayManagement /> },
       { path: "hr/lifecycle-reports", element: <LifeCycleReports /> },
       { path: "hr/employee-ledger", element: <EmployeeLedger /> },
-      { path: "hr/statutory-forms-onboarding", element: <ErrorBoundary><StatutoryFormsOnboarding /></ErrorBoundary> },
+      { path: "hr/statutory-forms-onboarding", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><StatutoryFormsOnboarding /></Suspense></ErrorBoundary> },
       { path: "hr/statutory-forms-verification", element: <StatutoryFormsVerification /> },
       { path: "hr/onboarding-automation", element: <OnboardingAutomation /> },
       { path: "hr/self-service", element: <EmployeeSelfService /> },
@@ -379,9 +374,9 @@ export const router = createBrowserRouter([
       { path: "accounts/accounting-entry", element: <AccountingEntry /> },
       { path: "accounts/expense-voucher", element: <ExpenseVoucher /> },
       { path: "accounts/item-master", element: <ItemMaster /> },
-      { path: "accounts/payables", element: <ErrorBoundary><PayablesDashboard /></ErrorBoundary> },
-      { path: "accounts/tds-payable", element: <ErrorBoundary><TDSPayableModule /></ErrorBoundary> },
-      { path: "accounts/advance-tax", element: <ErrorBoundary><AdvanceTaxCalculator /></ErrorBoundary> },
+      { path: "accounts/payables", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><PayablesDashboard /></Suspense></ErrorBoundary> },
+      { path: "accounts/tds-payable", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><TDSPayableModule /></Suspense></ErrorBoundary> },
+      { path: "accounts/advance-tax", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><AdvanceTaxCalculator /></Suspense></ErrorBoundary> },
       { path: "accounts/journal-entry", element: <JournalEntry /> },
       { path: "accounts/dashboard", element: <AccountsDashboard /> },
       { path: "accounts/transactions", element: <AccountingTransactionList /> },
@@ -429,18 +424,18 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/analytics/dashboard" replace /> },
           { path: "dashboard", element: <AnalyticsDashboardWithDrillDown /> },
-          { path: "unit-economics", element: <ErrorBoundary><UnitEconomicsDashboard /></ErrorBoundary> },
-          { path: "customer-ltv", element: <ErrorBoundary><CustomerLTVAnalysis /></ErrorBoundary> },
-          { path: "cac", element: <ErrorBoundary><CACDashboard /></ErrorBoundary> },
-          { path: "break-even", element: <ErrorBoundary><BreakEvenAnalysis /></ErrorBoundary> },
+          { path: "unit-economics", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><UnitEconomicsDashboard /></Suspense></ErrorBoundary> },
+          { path: "customer-ltv", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><CustomerLTVAnalysis /></Suspense></ErrorBoundary> },
+          { path: "cac", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><CACDashboard /></Suspense></ErrorBoundary> },
+          { path: "break-even", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><BreakEvenAnalysis /></Suspense></ErrorBoundary> },
           { path: "package-cost-matrix", element: <Navigate to="/finance/package-cost-matrix" replace /> },
 
           // PHASE 3: Consolidated Cost Module Routes
           // Main dashboard: /finance/cost-per-wash (CostPerWashModule)
           // Specialized views:
-          { path: "cost-by-plan", element: <ErrorBoundary><CostPerWashByPlan /></ErrorBoundary> },
-          { path: "cost-by-consumption", element: <ErrorBoundary><CostPerWashByConsumption /></ErrorBoundary> },
-          { path: "labour-cost", element: <ErrorBoundary><LabourCostPerWash /></ErrorBoundary> },
+          { path: "cost-by-plan", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><CostPerWashByPlan /></Suspense></ErrorBoundary> },
+          { path: "cost-by-consumption", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><CostPerWashByConsumption /></Suspense></ErrorBoundary> },
+          { path: "labour-cost", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><LabourCostPerWash /></Suspense></ErrorBoundary> },
           { path: "cost-report", element: <CostPerWashReport /> },
 
           // Legacy redirects for backward compatibility
@@ -451,8 +446,8 @@ export const router = createBrowserRouter([
           { path: "labour-cost-per-wash", element: <Navigate to="/analytics/labour-cost" replace /> },
           { path: "cost-per-wash-report", element: <Navigate to="/analytics/cost-report" replace /> },
 
-          { path: "employee-efficiency", element: <ErrorBoundary><EmployeeEfficiency /></ErrorBoundary> },
-          { path: "city-comparison", element: <ErrorBoundary><CityComparison /></ErrorBoundary> },
+          { path: "employee-efficiency", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><EmployeeEfficiency /></Suspense></ErrorBoundary> },
+          { path: "city-comparison", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><CityComparison /></Suspense></ErrorBoundary> },
           { path: "role-based-demo", element: <DevOnlyRoute element={<RoleBasedAnalyticsDashboard />} /> },
         ]
       },
@@ -479,7 +474,7 @@ export const router = createBrowserRouter([
         element: <Outlet />,
         children: [
           { index: true, element: <Navigate to="/subscription/plan-management" replace /> },
-          { path: "plan-management", element: <ErrorBoundary><AdminPlanManagement userRole="ADMIN" /></ErrorBoundary> },
+          { path: "plan-management", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><AdminPlanManagement userRole="ADMIN" /></Suspense></ErrorBoundary> },
           { path: "plan-editor", element: <PlanEditor /> },
         ]
       },
@@ -490,8 +485,7 @@ export const router = createBrowserRouter([
       { path: "expansion-opportunities", element: <ExpansionOpportunities /> },
       { path: "procurement/supplier/:supplierId", element: <SupplierDetail /> },
       { path: "demo/cost-tracking-integration", element: <DevOnlyRoute element={<CostTrackingIntegrationDemo />} /> },
-      // R1 FIX: DesignSystemTest removed — file does not exist (was also in JSX below)
-      // { path: "design-system-test", element: <DevOnlyRoute element={<DesignSystemTest />} /> },
+      { path: "design-system-test", element: <DevOnlyRoute element={<DesignSystemTest />} /> },
       // Cloth Tracking System
       { path: "cloth-tracking/exchange", element: <ClothExchange /> },
       { path: "cloth-tracking/admin", element: <ClothAdminDashboard /> },
@@ -506,7 +500,7 @@ export const router = createBrowserRouter([
       { path: "advance/other-deductions", element: <OtherDeductionsModule /> },
       { path: "advance/adjustments-report", element: <AdjustmentsReport /> },
       // Travel Reimbursement
-      { path: "travel", element: <TravelReimbursementModule /> },
+      { path: "travel", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><TravelReimbursementModule /></Suspense></ErrorBoundary> },
 
       // Workflow Control & Incentive Engine
       { path: "workflow-demo", element: <DevOnlyRoute element={<WorkflowControlDemo />} /> },
@@ -587,7 +581,7 @@ export const router = createBrowserRouter([
       { path: "subscription-app", element: <SubscriptionApp /> },
       { path: "plans", element: <PlanSelectionScreen /> },
       { path: "buy",   element: <CustomerPlanPage /> },
-      { path: "admin/plans", element: <ErrorBoundary><AdminPlanManagement userRole="ADMIN" /></ErrorBoundary> },
+      { path: "admin/plans", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><AdminPlanManagement userRole="ADMIN" /></Suspense></ErrorBoundary> },
       { path: "admin/plan-page-editor", element: <ErrorBoundary><SuperAdminPlanEditor /></ErrorBoundary> },
       { path: "subscription-diagnostics", element: <DevOnlyRoute element={<SubscriptionDiagnostics />} /> },
 
@@ -601,7 +595,7 @@ export const router = createBrowserRouter([
       { path: "workforce/working-hours", element: <WorkingHoursSetup /> },
 
       // Incentive Management System - Configuration, Simulation & Forecasting
-      { path: "incentives/configuration", element: <ErrorBoundary><IncentiveConfiguration /></ErrorBoundary> },
+      { path: "incentives/configuration", element: <ErrorBoundary><Suspense fallback={<PageLoader />}><IncentiveConfiguration /></Suspense></ErrorBoundary> },
       { path: "incentives/simulator", element: <IncentiveSimulator /> },
       { path: "incentives/forecast", element: <IncentiveDashboard /> },
       { path: "incentives", element: <Navigate to="/incentives/configuration" replace /> },
