@@ -43,9 +43,9 @@ export function OneTimeWashPricing() {
 
   const getWashTypeIcon = (washType: string) => {
     switch (washType) {
-      case "Basic":
+      case "EXPRESS_WASH":
         return <Droplet className="h-4 w-4" />;
-      case "Premium":
+      case "ELITE_WASH":
         return <Sparkles className="h-4 w-4" />;
       case "Elite":
         return <Star className="h-4 w-4" />;
@@ -56,9 +56,9 @@ export function OneTimeWashPricing() {
 
   const getWashTypeBadge = (washType: string) => {
     switch (washType) {
-      case "Basic":
+      case "EXPRESS_WASH":
         return "bg-blue-100 text-blue-800";
-      case "Premium":
+      case "ELITE_WASH":
         return "bg-purple-100 text-purple-800";
       case "Elite":
         return "bg-amber-100 text-amber-800";

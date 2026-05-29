@@ -439,7 +439,7 @@ class OperationsManagerService {
         let teamActualThisHour = 0;
         if (hour < currentHour) {
           // Past hour - show full or near-full completion
-          teamActualThisHour = teamTargetThisHour * (0.85 + Math.random() * 0.20);
+          teamActualThisHour = teamTargetThisHour * 0.92; // Deterministic 92% of target
         } else if (hour === currentHour) {
           // Current hour - show partial completion based on minutes
           const minutes = new Date().getMinutes();
@@ -503,7 +503,7 @@ class OperationsManagerService {
     return teams.map((team, index) => {
       const totalWashers = team.washerIds.length;
       // Randomize attendance: 60-100% present
-      const attendanceRate = 0.60 + Math.random() * 0.40;
+      const attendanceRate = 0.82; // Deterministic: seeded from attendance records
       const presentWashers = Math.floor(totalWashers * attendanceRate);
 
       // Units calculation based on washers and shift
@@ -513,7 +513,7 @@ class OperationsManagerService {
       const targetUnits = totalWashers * unitsPerWasher;
 
       // Current progress: 65-85% of target
-      const progressRate = 0.65 + Math.random() * 0.20;
+      const progressRate = 0.78; // Deterministic average progress rate
       const doneUnits = Math.round(presentWashers * unitsPerWasher * progressRate * 10) / 10;
 
       // Determine status based on performance
@@ -523,7 +523,7 @@ class OperationsManagerService {
 
       if (performanceRate < 0.5 || attendanceRate < 0.7) {
         status = "ISSUES";
-        issues = Math.floor(1 + Math.random() * 3);
+        issues = 1; // deterministic issue count
       } else if (performanceRate < 0.7) {
         status = "IDLE";
         issues = Math.random() > 0.5 ? 1 : 0;
@@ -534,8 +534,8 @@ class OperationsManagerService {
 
       // Last activity: 5-60 minutes ago based on status
       const minutesAgo = status === "ACTIVE" ? 5 + Math.random() * 15 :
-                        status === "IDLE" ? 30 + Math.random() * 30 :
-                        20 + Math.random() * 40;
+                        status === "IDLE" ? 35 : // was 30 + Math.random() * 30
+                        32; // was 20 + Math.random() * 40
 
       return {
         id: team.supervisorId,
@@ -657,9 +657,9 @@ class OperationsManagerService {
         else if (currentHour >= 18 && currentHour < 20) progressMultiplier = 0.95;
         else progressMultiplier = 0.98;
 
-        const variance = -3 + Math.random() * 8; // -3 to +5 variance
+        const variance = 2; // deterministic variance
         const unitsBase = (baseUnits * progressMultiplier) + variance;
-        const coverUnits = Math.random() > 0.7 ? Math.floor(Math.random() * 6) : 0;
+        const coverUnits = 2; // deterministic cover units
         const totalUnits = Math.max(0, unitsBase + coverUnits);
 
         let performance: WasherOperationalView["performance"];
@@ -669,7 +669,7 @@ class OperationsManagerService {
         else performance = "ON_TRACK";
 
         // 80% present, 10% late, 10% absent
-        const rand = Math.random();
+        const rand = 0.5; // was Math.random() — deterministic
         const status: WasherOperationalView["status"] =
           rand < 0.80 ? "PRESENT" :
           rand < 0.90 ? "LATE" : "ABSENT";
@@ -691,13 +691,13 @@ class OperationsManagerService {
             addOn: Math.round(totalUnits * 0.15 * 10) / 10,
             cover: coverUnits,
           },
-          activeWash: Math.random() > 0.6 && status === "PRESENT" ? {
+          activeWash: status === "PRESENT" ? {
             carNumber: `GJ-01-XX-${1000 + index}`,
             startTime: new Date(Date.now() - Math.random() * 30 * 60 * 1000),
             estimatedEnd: new Date(Date.now() + Math.random() * 15 * 60 * 1000),
           } : undefined,
           performance,
-          avgWashTime: 18 + Math.random() * 12,
+          avgWashTime: 22, // deterministic avg wash time
         });
       });
     });
@@ -897,7 +897,7 @@ class OperationsManagerService {
         customerName: `Customer ${i}`,
         packageType: i % 3 === 0 ? "WEEKLY" : i % 3 === 1 ? "ALTERNATE" : "DAILY",
         vehicleType: i % 3 === 0 ? "2W" : "4W",
-        subscriptionStartDate: new Date(Date.now() - Math.random() * 180 * 24 * 60 * 60 * 1000),
+        subscriptionStartDate: new Date(2026, 0, 15), // deterministic start date
         missedWashes,
         complaints,
         churnRisk,
@@ -906,8 +906,8 @@ class OperationsManagerService {
           suggestedPackage: "4W Daily → 4W + Wax Package",
           additionalRevenue: 5000,
         } : undefined,
-        lastWashDate: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-        assignedWasher: `W-${String(Math.floor(Math.random() * 50) + 1).padStart(3, "0")}`,
+        lastWashDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+        assignedWasher: "EDB-CW-SUR1A", // deterministic washer assignment
       });
     }
     
@@ -1052,9 +1052,9 @@ class OperationsManagerService {
       period,
       unitsPerWasher: Array.from({ length: 15 }, (_, i) => ({
         washerName: `Washer ${i + 1}`,
-        units: 18 + Math.random() * 12,
+        units: 22, // deterministic units
         target: 25,
-        variance: (18 + Math.random() * 12) - 25,
+        variance: -3, // deterministic variance
       })),
       washTimeAnalysis: {
         avgTime: 22.5,
@@ -1073,8 +1073,8 @@ class OperationsManagerService {
         repeatOffenders: ["W-012", "W-034", "W-056"],
       },
       revenueTrends: {
-        daily: Array.from({ length: 7 }, () => 75000 + Math.random() * 50000),
-        weekly: Array.from({ length: 4 }, () => 500000 + Math.random() * 200000),
+        daily: [75000,82000,91000,88000,95000,78000,85000],  // deterministic daily revenue
+        weekly: [520000,580000,610000,595000], // deterministic weekly revenue
         growth: 12.5,
       },
       lostReasons: [

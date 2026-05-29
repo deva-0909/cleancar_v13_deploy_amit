@@ -48,21 +48,21 @@ export default function ComplianceReportsPage() {
     pf: Array.from({ length: 25 }, (_, i) => ({
       id: `EMP-${String(i + 1).padStart(3, "0")}`,
       name: `Employee ${i + 1}`,
-      uan: `${String(Math.floor(Math.random() * 1000000000000)).padStart(12, "0")}`,
-      basic: 15000 + Math.floor(Math.random() * 20000),
+      uan: `100000000001`,
+      basic: 22000,
     })),
     esic: Array.from({ length: 12 }, (_, i) => ({
       id: `EMP-${String(i + 1).padStart(3, "0")}`,
       name: `Employee ${i + 1}`,
-      ipNumber: `${String(Math.floor(Math.random() * 10000000000)).padStart(10, "0")}`,
-      gross: 18000 + Math.floor(Math.random() * 3000),
+      ipNumber: `0000000001`,
+      gross: 28000,
     })),
     tds: Array.from({ length: 18 }, (_, i) => ({
       id: `EMP-${String(i + 1).padStart(3, "0")}`,
       name: `Employee ${i + 1}`,
-      pan: `ABCDE${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}F`,
+      pan: `ABCDE1234F`,
       gross: 35000 + Math.floor(Math.random() * 30000),
-      tds: 3000 + Math.floor(Math.random() * 5000),
+      tds: 5000,
     })),
   };
 
@@ -339,7 +339,7 @@ export default function ComplianceReportsPage() {
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="text-sm text-green-700">Total Amount</div>
                   <div className="text-2xl font-bold text-green-900 mt-1">
-                    ₹{Math.floor(Math.random() * 500000).toLocaleString()}
+                    ₹{(542000).toLocaleString()}
                   </div>
                 </div>
 

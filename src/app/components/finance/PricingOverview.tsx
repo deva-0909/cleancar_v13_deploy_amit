@@ -164,23 +164,23 @@ export function PricingOverview() {
             {/* One-Time Wash */}
             <TabsContent value="onetime">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                {["Basic", "Premium", "Elite"].map((washType) => {
+                {["EXPRESS_WASH", "Premium", "Elite"].map((washType) => {
                   const memberPrice = getOneTimeWashPrice(
                     selectedVehicle,
-                    washType as "Basic" | "Premium" | "Elite",
+                    washType as "EXPRESS_WASH" | "Premium" | "Elite",
                     true
                   );
                   const nonMemberPrice = getOneTimeWashPrice(
                     selectedVehicle,
-                    washType as "Basic" | "Premium" | "Elite",
+                    washType as "EXPRESS_WASH" | "Premium" | "Elite",
                     false
                   );
 
                   const getIcon = () => {
                     switch (washType) {
-                      case "Basic":
+                      case "EXPRESS_WASH":
                         return <Droplet className="h-6 w-6 text-blue-600" />;
-                      case "Premium":
+                      case "ELITE_WASH":
                         return <Sparkles className="h-6 w-6 text-purple-600" />;
                       case "Elite":
                         return <Star className="h-6 w-6 text-amber-600" />;
