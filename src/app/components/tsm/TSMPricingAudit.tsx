@@ -127,7 +127,7 @@ export function TSMPricingAudit() {
           <div className="text-xs text-gray-500 mb-1">Avg EBITDA</div>
           <div
             className={`text-2xl font-bold ${
-              auditStats.avgEBITDA >= 35  /* E1 FIX */
+              auditStats.avgEBITDA >= 35
                 ? "text-green-600"
                 : auditStats.avgEBITDA >= 20
                 ? "text-amber-600"
@@ -136,7 +136,7 @@ export function TSMPricingAudit() {
           >
             {auditStats.avgEBITDA.toFixed(1)}%
           </div>
-          <div className="text-xs text-gray-600 mt-1">Floor: 30%+ (Healthy: 35%+)</div>  {/* E1 FIX */}
+          <div className="text-xs text-gray-600 mt-1">Floor: 30%+ (Healthy: 35%+)</div>}
         </Card>
 
         <Card className="p-4 border-2 border-green-200 bg-green-50">
@@ -144,7 +144,7 @@ export function TSMPricingAudit() {
           <div className="text-2xl font-bold text-green-600">
             {auditStats.healthyCount}
           </div>
-          <div className="text-xs text-gray-600 mt-1">EBITDA ≥35% (healthy)</div>  {/* E1 FIX */
+          <div className="text-xs text-gray-600 mt-1">EBITDA ≥35% (healthy — floor is 30%)</div>
         </Card>
 
         <Card className="p-4 border-2 border-red-200 bg-red-50">
@@ -152,7 +152,7 @@ export function TSMPricingAudit() {
           <div className="text-2xl font-bold text-red-600">
             {auditStats.criticalCount}
           </div>
-          <div className="text-xs text-gray-600 mt-1">EBITDA &lt;30% (below floor)</div>  {/* E1 FIX */
+          <div className="text-xs text-gray-600 mt-1">EBITDA &lt;30% (below 30% floor)</div>
         </Card>
 
         <Card className="p-4 border-2 border-purple-200 bg-purple-50">
