@@ -51,9 +51,10 @@ function vehicleLabel(lead: TSELead): string {
 function prices(lead: TSELead) {
   const is2W = lead.vehicleType === "2W";
   return {
-    wash:    is2W ? "₹299" : "₹699",
-    shampoo: is2W ? "₹399" : "₹899",
-    wax:     is2W ? "₹499" : "₹1,099",
+    expressWash: is2W ? "₹699" : "₹1,249",
+    smartWash:   is2W ? "₹899" : "₹1,599",
+    eliteWash:   is2W ? "N/A" : "₹1,999",
+    planNames: { p1: "Express Wash", p2: "Smart Wash", p3: "Elite Wash" },
     est:     `₹${lead.estimatedValue.toLocaleString("en-IN")}`,
   };
 }
@@ -72,7 +73,7 @@ const TEMPLATES: Template[] = [
       const p = prices(lead);
       return `Hi ${firstName(lead)} 👋,
 
-I'm calling from *24/9 Car Wash* — doorstep car wash, every day.
+I'm calling from *249 Carwashing* — doorstep car wash, every day.
 
 We noticed your interest in keeping your ${vehicleLabel(lead)} clean! 🚗✨
 
@@ -83,7 +84,7 @@ We noticed your interest in keeping your ${vehicleLabel(lead)} clean! 🚗✨
 
 Can I take 2 minutes to share the best plan for your ${vehicleLabel(lead)}?
 
-— 24/9 Car Wash Team`;
+— 249 Carwashing Team`;
     },
   },
   {
@@ -117,7 +118,7 @@ All plans include:
 
 Ready to book? I'll set it up in 2 minutes! 🙌
 
-— 24/9 Car Wash | ${today}`;
+— 249 Carwashing | ${today}`;
     },
   },
   {
@@ -126,13 +127,13 @@ Ready to book? I'll set it up in 2 minutes! 🙌
     hint: "Send before calling",
     build: (lead) => `Hi ${firstName(lead)},
 
-Quick reminder from *24/9 Car Wash* 🔔
+Quick reminder from *249 Carwashing* 🔔
 
 We have a callback scheduled for you today regarding your *${vehicleLabel(lead)} wash subscription*.
 
 I'll call shortly — if it's not a good time, just reply and we'll reschedule. No problem at all! 😊
 
-— 24/9 Car Wash Team`,
+— 249 Carwashing Team`,
   },
   {
     key: "SPECIAL_OFFER",
@@ -142,20 +143,22 @@ I'll call shortly — if it's not a good time, just reply and we'll reschedule. 
       const p = prices(lead);
       return `Hi ${firstName(lead)},
 
-🎉 *Exclusive Offer — Today Only!*
+🎉 *Save with a Visit Pack!*
 
-For your *${vehicleLabel(lead)}*, we have a special deal:
+For your *${vehicleLabel(lead)}*, pre-buy visits and save 15%:
 
-🔥 Get *3 months* of Water + Shampoo plan at the price of *2 months!*
+💧 *Pack of 4 Water Washes* — 15% off single-visit price, valid 30 days
+🧴 *Pack of 4 Shampoo Washes* — 15% off, valid 30 days
 
-Normal: ${p.shampoo}/month
-*Your offer: Save 33% on your first quarter*
+Or go daily with *Smart Wash* at ${p.smartWash}/month — same washer every morning.
 
-Available for a limited time only.
+Reply *YES* for details! 👇
 
-Interested? Reply *YES* and I'll lock it in right away! 👇
-
-— 24/9 Car Wash`;
+— 249 Carwashing`;
+    },
+  },
+  {
+    key: "CUSTOM"
     },
   },
   {

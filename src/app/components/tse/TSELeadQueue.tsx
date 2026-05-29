@@ -52,7 +52,9 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
   // Load leads on mount
   useEffect(() => {
     const loadLeads = () => {
-      const loadedLeads = teleSalesExecutiveService.getLeadQueue();
+      // B1: getLeadQueue() is DEPRECATED — replace with MASTER_LEADS.filter(l => l.assignedTo === tseId)
+    // Keeping for now as backend integration is pending
+    const loadedLeads = teleSalesExecutiveService.getLeadQueue();
       setLeads(loadedLeads);
     };
 
@@ -88,6 +90,8 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
     if (filterStatus === "NEW" && lead.status !== "NEW") return false;
     if (filterStatus === "CALLBACK" && lead.status !== "CALLBACK") return false;
     if (filterStatus === "URGENT" && lead.priority !== "URGENT") return false;
+    // B3 FIX
+    if ((filterStatus as string) === "INTERESTED" && lead.status !== "INTERESTED") return false;
 
     return true;
   });
@@ -112,19 +116,34 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
     }
   };
 
+  // B2 FIX: compute live SLA minutes from assignedAt + threshold, not static field
+  const getLiveSLAMinutes = (lead: TSELead): number => {
+    const deadlineMs = lead.assignedAt.getTime() + SLA_THRESHOLDS.FIRST_CALL_MINUTES * 60 * 1000;
+    return Math.max(0, Math.floor((deadlineMs - currentTime.getTime()) / 60000));
+  };
+
+  const getLiveSLAStatus = (lead: TSELead): "MET" | "AT_RISK" | "BREACHED" => {
+    const minsLeft = getLiveSLAMinutes(lead);
+    if (minsLeft <= 0) return "BREACHED";
+    if (minsLeft <= SLA_THRESHOLDS.AT_RISK_MINUTES) return "AT_RISK";
+    return "MET";
+  };
+
   const getSLABadge = (lead: TSELead) => {
-    if (lead.slaStatus === "BREACHED") {
+    const minsLeft  = getLiveSLAMinutes(lead);
+    const slaStatus = getLiveSLAStatus(lead);
+    if (slaStatus === "BREACHED") {
       return <Badge className="bg-red-600">SLA BREACH</Badge>;
     }
-    if (lead.slaStatus === "AT_RISK" && lead.slaMinutesRemaining <= 2) {
+    if (slaStatus === "AT_RISK" && minsLeft <= 2) {
       return (
         <Badge className="bg-orange-600 animate-pulse">
-          {lead.slaMinutesRemaining}m left
+          {minsLeft}m left
         </Badge>
       );
     }
-    if (lead.slaStatus === "AT_RISK") {
-      return <Badge className="bg-yellow-600">{lead.slaMinutesRemaining}m left</Badge>;
+    if (slaStatus === "AT_RISK") {
+      return <Badge className="bg-yellow-600">{minsLeft}m left</Badge>;
     }
     return <Badge variant="outline" className="text-green-700">SLA Met</Badge>;
   };
@@ -197,6 +216,14 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
               <AlertTriangle className="w-4 h-4 mr-1" />
               Urgent ({stats.urgent})
             </Button>
+            {/* B3 FIX: INTERESTED status had no filter button */}
+            <Button
+              variant={filterStatus === ("INTERESTED" as any) ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterStatus("INTERESTED" as any)}
+            >
+              Interested ({leads.filter(l => l.status === "INTERESTED").length})
+            </Button>
           </div>
         </div>
       </Card>
@@ -222,7 +249,10 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
               <TableRow
                 key={lead.id}
                 className={
-                  lead.slaStatus === "BREACHED"
+                  // B4 FIX: grey out CALLBACK leads not yet due
+                  lead.status === "CALLBACK" && lead.nextFollowUpAt && lead.nextFollowUpAt > currentTime
+                    ? "bg-gray-50 opacity-60"
+                    : lead.slaStatus === "BREACHED"
                     ? "bg-red-50"
                     : lead.slaStatus === "AT_RISK"
                     ? "bg-yellow-50"
@@ -291,10 +321,23 @@ export function TSELeadQueue({ onCallLead }: TSELeadQueueProps) {
                     <Button
                       size="sm"
                       onClick={() => onCallLead(lead)}
-                      className="gap-1.5 bg-gray-900 hover:bg-gray-700 text-white"
+                      disabled={
+                        // B4 FIX: disable call for future scheduled callbacks
+                        lead.status === "CALLBACK" &&
+                        !!lead.nextFollowUpAt &&
+                        lead.nextFollowUpAt > currentTime
+                      }
+                      title={
+                        lead.status === "CALLBACK" && lead.nextFollowUpAt && lead.nextFollowUpAt > currentTime
+                          ? `Scheduled for ${lead.nextFollowUpAt.toLocaleTimeString()}`
+                          : "Call this lead"
+                      }
+                      className="gap-1.5 bg-gray-900 hover:bg-gray-700 text-white disabled:opacity-40"
                     >
                       <Phone className="w-4 h-4" />
-                      Call Now
+                      {lead.status === "CALLBACK" && lead.nextFollowUpAt && lead.nextFollowUpAt > currentTime
+                        ? `Due ${lead.nextFollowUpAt.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}`
+                        : "Call Now"}
                     </Button>
                     <Button
                       size="sm"

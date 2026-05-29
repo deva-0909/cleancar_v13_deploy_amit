@@ -185,7 +185,7 @@ class TeleSalesExecutiveService {
         slaStatus: "MET",
         slaMinutesRemaining: 0,
         nextFollowUpAt: now, // Due now
-        estimatedValue: 499,
+        estimatedValue: 699,  // B5 FIX: was 499 (one-time visit price) — should be monthly plan price
         priority: "HIGH",
         tags: ["Quality Question"],
       },
@@ -517,24 +517,24 @@ class TeleSalesExecutiveService {
         customerId: "cust-001",
         customerName: "Arjun Mehta",
         phone: "+91 98765 12345",
-        currentPlan: "Water Wash - Hatchback",
-        monthlyPrice: 699,
+        currentPlan: "Express Wash - Hatchback",  // F4 FIX
+        monthlyPrice: 1249,
         expiryDate: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
         daysUntilExpiry: 5,
         renewalStage: "FIRST_CALL",
-        upgradeRecommended: "Shampoo Wash",
+        upgradeRecommended: "Smart Wash",
       },
       {
         id: "renewal-002",
         customerId: "cust-002",
         customerName: "Kavya Reddy",
         phone: "+91 98765 12346",
-        currentPlan: "Shampoo Wash - SUV",
-        monthlyPrice: 1699,
+        currentPlan: "Smart Wash - SUV",  // F4 FIX
+        monthlyPrice: 1999,
         expiryDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
         daysUntilExpiry: 2,
         renewalStage: "SECOND_CALL",
-        upgradeRecommended: "Shampoo + Wax",
+        upgradeRecommended: "Elite Wash",
         lastContactedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
       },
       {
@@ -542,8 +542,8 @@ class TeleSalesExecutiveService {
         customerId: "cust-003",
         customerName: "Rohan Gupta",
         phone: "+91 98765 12347",
-        currentPlan: "Bike Wash - Standard",
-        monthlyPrice: 499,
+        currentPlan: "Express Wash - Standard Bike",  // F4 FIX
+        monthlyPrice: 699,
         expiryDate: new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000), // Tomorrow
         daysUntilExpiry: 1,
         renewalStage: "FINAL_NUDGE",

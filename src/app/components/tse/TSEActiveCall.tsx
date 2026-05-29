@@ -67,6 +67,13 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
   const recommendedPlan = teleSalesExecutiveService.getRecommendedPlanForLead(lead);
   const [selectedPlan, setSelectedPlan] = useState(recommendedPlan);
 
+  // C1+C3 FIX: clear bundle and add-ons when plan changes
+  const handlePlanChange = (plan: typeof recommendedPlan) => {
+    setSelectedPlan(plan);
+    setSelectedBundle(undefined);
+    setSelectedAddOns([]);
+  };
+
   // Pricing state
   const [basePlanPrice, setBasePlanPrice] = useState(
     selectedPlan?.baseMonthlyPrice || lead.estimatedValue
@@ -126,13 +133,15 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
   };
 
   const handleAddOnSelect = (addOn: AddOnOption) => {
-    // This branch should not be reached (replaced by array logic below)
-    if (false) {
-      setSelectedAddOns([]);
-    } else {
-      setSelectedAddOn(addOn);
-      setSelectedBundle(undefined); // Clear bundle if add-on selected
-    }
+    // C6 FIX: selecting add-on clears bundle (can't have both simultaneously)
+    setSelectedBundle(undefined);
+    // Toggle add-on in/out of selectedAddOns array (max 3)
+    setSelectedAddOns((prev) => {
+      const exists = prev.some((a) => a.id === addOn.id);
+      if (exists) return prev.filter((a) => a.id !== addOn.id);
+      if (prev.length >= 3) return prev;
+      return [...prev, addOn];
+    });
   };
 
   const handleBundleSelect = (bundle: BundleOption) => {
@@ -144,9 +153,20 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
     }
   };
 
+  // C2 FIX: generatePaymentLink was previously just a toast with no actual call
   const generatePaymentLink = () => {
-    // In real implementation, this would call payment gateway API
-    toast.info("Payment link sent via WhatsApp (mock implementation)");
+    if (!pricingCalculation.paymentLinkEnabled) return;
+    const result = teleSalesExecutiveService.sendPaymentLink(
+      lead.id,
+      pricingCalculation.finalPrice
+    );
+    if (result.success) {
+      toast.success(`Payment link sent! Link ID: ${result.linkId}`, {
+        description: `₹${pricingCalculation.finalPrice.toLocaleString()} — valid for 24 hours. Follow up if unpaid after 12h.`,
+      });
+    } else {
+      toast.error("Failed to send payment link. Try again.");
+    }
   };
 
   const handleEndCall = () => {
@@ -411,6 +431,31 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
             </Card>
           )}
 
+          {/* C3 FIX: Plan selector — TSE was locked to recommended plan with no way to change */}
+          {availablePlans.length > 1 && (
+            <Card className="p-4">
+              <div className="text-sm font-semibold text-gray-900 mb-2">Select Plan</div>
+              <div className="flex flex-col gap-1">
+                {availablePlans.map((plan) => (
+                  <div
+                    key={plan.id}
+                    onClick={() => handlePlanChange(plan)}
+                    className={`px-3 py-2 rounded-lg border-2 cursor-pointer text-sm transition-colors ${
+                      selectedPlan?.id === plan.id
+                        ? "border-blue-500 bg-blue-50 font-semibold"
+                        : "border-gray-200 bg-white hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="flex justify-between">
+                      <span>{plan.displayName ?? plan.tierName}</span>
+                      <span className="font-bold">₹{plan.baseMonthlyPrice.toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
           {/* Selected Plan Display */}
           <Card className="p-4">
             <div className="text-sm font-semibold text-gray-900 mb-3">
@@ -446,7 +491,11 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
               </div>
             )}
             <div className="text-xs text-gray-600 mt-2 italic">
-              💡 {SCRIPTS.PRICING_INTRO}
+              {/* C7 FIX: dynamic script with real values instead of unsubstituted placeholders */}
+              💡 &ldquo;For your {lead.vehicleCategory?.toLowerCase() ?? "vehicle"}, our{" "}
+              {pricingCalculation.basePlan.name} is{" "}
+              ₹{pricingCalculation.basePlan.monthlyPrice.toLocaleString()}/month — that&apos;s{" "}
+              ₹{pricingCalculation.basePlan.costPerWash}/wash, {pricingCalculation.basePlan.washesPerMonth} washes/month.&rdquo;
             </div>
           </Card>
 

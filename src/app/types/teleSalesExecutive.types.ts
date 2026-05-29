@@ -220,7 +220,8 @@ export const SALES_PROCESS_STEPS: SalesProcessStep[] = [
     stepNumber: 3,
     title: "Suggest Appropriate Plan",
     description: "Use pricing engine - start at base price, never pre-discount",
-    scriptSuggestion: "For your SUV, our Shampoo + Wax is ₹1,999/month - that's ₹77 per wash including microfibre drying and glass polish.",
+    // F2 FIX: was wrong plan name, wrong price, wrong per-wash. Use dynamic values in component.
+    scriptSuggestion: "For your [vehicle], our Smart Wash is ₹1,599/month (H) / ₹1,999 (SUV) — that's ₹53/wash (H) or ₹67/wash (SUV). Our Elite Wash is ₹1,999 (H) / ₹2,499 (SUV). Use the pricing panel on the right for the exact figure.",
     keyRule: "Start at base price - do not pre-discount",
     completed: false,
   },
@@ -236,7 +237,8 @@ export const SALES_PROCESS_STEPS: SalesProcessStep[] = [
     stepNumber: 5,
     title: "Confirm Payment",
     description: "Mark Converted in CRM immediately - subscription activates automatically",
-    scriptSuggestion: "Thank you for subscribing! Your service starts within 24 hours. You'll get a confirmation SMS.",
+    // C5+F2 FIX: activation is 2 working days, not 24 hours
+    scriptSuggestion: "Thank you for subscribing! Your service activates within 2 working days. You'll receive a WhatsApp confirmation with your washer's details.",
     keyRule: "Mark Converted only after payment confirmed",
     completed: false,
   },
@@ -263,7 +265,8 @@ export const OBJECTION_RESPONSES: ObjectionResponse[] = [
   {
     objection: "Competitor is cheaper",
     category: "COMPETITOR",
-    response: "I appreciate that. What we offer is daily doorstep service, premium products, and 26 washes per month - that's ₹77 per wash.",
+    // F3 FIX: was 26 washes (should be 30) and ₹77 wrong for all plans
+    response: "I appreciate that. What we offer is daily doorstep service, premium products, and 30 washes per month — that's ₹53/wash on Smart Wash (Hatchback). Compare that to any washing centre at ₹500–800 per visit.",
     action: "OFFER_ADD_ON",
   },
   {
@@ -323,7 +326,7 @@ export interface SystemSafeguard {
 
 export const PRICING_SAFEGUARDS = {
   NO_DISCOUNT_BUTTON: "System does not have a price reduction field. TSE cannot manually enter a lower price.",
-  ADD_ON_LIMIT: "Maximum 1 add-on per deal. System marks it as 'One Time' and blocks a second add-on.",
+  ADD_ON_LIMIT: "Up to 3 add-ons per deal. Each must maintain EBITDA ≥ 30%."  // F1 FIX,
   BUNDLE_EBITDA_GATE: "System calculates EBITDA in real time. LOW price only available if EBITDA ≥ 30%.",
   AUDIT_LOG: "Every deal is logged: who gave add-on, who used LOW price, margin per deal.",
 } as const;

@@ -72,6 +72,8 @@ export function TSECRMUpdate({
   const [notes, setNotes] = useState(callNotes);
   const [tags, setTags] = useState<string[]>(callTags);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  // D3 FIX: explicit checkbox
+  const [paymentLinkSent, setPaymentLinkSent] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -100,10 +102,9 @@ export function TSECRMUpdate({
     // Lost validation
     if (outcome === "LOST") {
       if (lead.attemptCount < LEAD_ATTEMPT_LIMITS.MIN_BEFORE_LOST) {
-        newErrors.outcome = SAFEGUARD_MESSAGES.LOST_ATTEMPT_LIMIT.replace(
-          "[count]",
-          lead.attemptCount.toString()
-        );
+        // D4 FIX: show remaining attempts needed
+        const remaining = LEAD_ATTEMPT_LIMITS.MIN_BEFORE_LOST - lead.attemptCount;
+        newErrors.outcome = `Cannot mark Lost yet — need ${remaining} more attempt${remaining !== 1 ? "s" : ""} (${lead.attemptCount}/${LEAD_ATTEMPT_LIMITS.MIN_BEFORE_LOST} made).`;
       }
       if (!lostReason) {
         newErrors.lostReason = "Lost reason is required";
@@ -113,6 +114,14 @@ export function TSECRMUpdate({
     // Converted validation
     if (outcome === "CONVERTED" && !paymentConfirmed) {
       newErrors.paymentConfirmed = "Payment must be confirmed before marking Converted";
+    }
+
+    // D6 FIX: NO_ANSWER — auto-suggest +2h follow-up if none set
+    if (outcome === "NO_ANSWER" && !followUpDate) {
+      const suggested = new Date();
+      suggested.setHours(suggested.getHours() + 2);
+      setFollowUpDate(suggested.toISOString().split("T")[0]);
+      setFollowUpTime(suggested.toTimeString().slice(0, 5));
     }
 
     // Notes required
@@ -144,15 +153,15 @@ export function TSECRMUpdate({
       tags,
       addOnOffered: pricingData.selectedAddOn?.name,
       bundleTierOffered: pricingData.selectedBundle?.tier,
-      paymentLinkSent: outcome === "CONVERTED" || outcome === "INTERESTED",
+      paymentLinkSent,  // D3 FIX: explicit checkbox — was auto-true for INTERESTED
       updatedAt: new Date(),
     };
 
     onSubmit(crmUpdate);
   };
 
-  const isConvertedDisabled =
-    lead.attemptCount < LEAD_ATTEMPT_LIMITS.MIN_BEFORE_LOST && !paymentConfirmed;
+  // D1 FIX: CONVERTED only blocked by missing payment confirmation — not attempt count
+  const isConvertedDisabled = !paymentConfirmed;
   const isLostDisabled = lead.attemptCount < LEAD_ATTEMPT_LIMITS.MIN_BEFORE_LOST;
 
   return (
@@ -294,6 +303,21 @@ export function TSECRMUpdate({
             </div>
           )}
 
+          {/* D3 FIX: Payment link sent — explicit per-call checkbox for INTERESTED */}
+          {outcome === "INTERESTED" && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="paymentLinkSent"
+                  checked={paymentLinkSent}
+                  onChange={(e) => setPaymentLinkSent(e.target.checked)}
+                  className="w-4 h-4" />
+                <label htmlFor="paymentLinkSent" className="text-sm font-medium text-gray-900">
+                  Payment link was sent to this customer
+                </label>
+              </div>
+            </div>
+          )}
+
           {/* Payment Confirmation (conditional) */}
           {outcome === "CONVERTED" && (
             <div className="p-4 bg-green-50 border border-green-300 rounded-lg">
@@ -323,10 +347,11 @@ export function TSECRMUpdate({
             <Label htmlFor="notes" className="flex items-center gap-2 mb-2">
               <FileText className="w-4 h-4" />
               Call Notes *
+              <span className="text-xs font-normal text-gray-500 ml-1">(pre-filled from in-call notes — edit or append)</span>
             </Label>
             <Textarea
               id="notes"
-              placeholder="Enter detailed notes about the conversation..."
+              placeholder="Add post-call notes here..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={5}

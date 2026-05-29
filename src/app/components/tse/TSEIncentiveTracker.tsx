@@ -1,4 +1,3 @@
-import { SubscriptionIncentiveTracker } from "../incentives/SubscriptionIncentiveTracker";
 /**
  * TSE Incentive Tracker
  * Read-only dashboard showing real-time earnings breakdown
@@ -38,7 +37,7 @@ import {
   REFRESH_INTERVALS,
 } from "../../constants/teleSalesExecutive.constants";
 
-export function TSEIncentiveTrackerLegacy() {
+export function TSEIncentiveTracker() {
   const [incentives, setIncentives] = useState<TSEIncentives | null>(null);
 
   useEffect(() => {
@@ -92,7 +91,11 @@ export function TSEIncentiveTrackerLegacy() {
               />
             </div>
             <div className="text-xs text-gray-600 mt-1">
-              {variableProgress.toFixed(1)}% of max variable
+              {/* E3 FIX: cap display at 100% — renewals can push total above commission max */}
+              {Math.min(variableProgress, 100).toFixed(1)}% of max variable
+              {variableProgress > 100 && (
+                <span className="text-green-700 ml-1">(max exceeded 🎉)</span>
+              )}
             </div>
           </div>
         </div>
@@ -126,7 +129,8 @@ export function TSEIncentiveTrackerLegacy() {
               {incentives.mtdPerformance.callsMade}
             </div>
             <div className="text-xs text-gray-500 mt-1">
-              Target: {incentives.mtdPerformance.callsTarget}/day
+              {/* E2 FIX: callsTarget=2000 is MTD total, not daily — was showing "Target: 2000/day" */}
+              Target: {Math.round(incentives.mtdPerformance.callsTarget / 20)}/day
             </div>
           </div>
           <div>
@@ -158,10 +162,12 @@ export function TSEIncentiveTrackerLegacy() {
               <div>
                 <div className="text-gray-600">Revenue Range</div>
                 <div className="font-medium text-gray-900">
-                  ₹
-                  {(incentives.commissionBreakdown.tierThreshold.min / 1000).toFixed(0)}K
-                  -{(incentives.commissionBreakdown.tierThreshold.max / 1000).toFixed(0)}
-                  K
+                  {/* E1 FIX: Infinity/1000 renders as "InfinityK" — guard with check */}
+                  ₹{(incentives.commissionBreakdown.tierThreshold.min / 1000).toFixed(0)}K
+                  {" – "}
+                  {incentives.commissionBreakdown.tierThreshold.max === Infinity
+                    ? "Unlimited"
+                    : `₹${(incentives.commissionBreakdown.tierThreshold.max / 1000).toFixed(0)}K`}
                 </div>
               </div>
               <div>
@@ -432,16 +438,5 @@ export function TSEIncentiveTrackerLegacy() {
         </div>
       </Card>
     </div>
-  );
-}
-
-export function TSEIncentiveTracker({ tseId, tseName }: { tseId?: string; tseName?: string }) {
-  const id = tseId || "EDB-TSE-SUR1";
-  return (
-    <SubscriptionIncentiveTracker
-      employeeId={id}
-      role="TSE"
-      employeeName={tseName || id}
-    />
   );
 }

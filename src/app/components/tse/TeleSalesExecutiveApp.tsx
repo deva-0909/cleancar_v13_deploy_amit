@@ -71,6 +71,8 @@ export function TeleSalesExecutiveApp() {
   const [activeCallSession, setActiveCallSession] = useState<ActiveCallSession | null>(null);
   const [dailyStats, setDailyStats] = useState<TSEDailyStats | null>(null);
   const [alerts, setAlerts] = useState<TSEAlert[]>([]);
+  // A4 FIX: track dismissed IDs in a ref so reload interval doesn't re-show them
+  const dismissedAlertIds = useState<Set<string>>(() => new Set())[0];
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Update screen when URL tab parameter changes
@@ -99,7 +101,8 @@ export function TeleSalesExecutiveApp() {
   useEffect(() => {
     const loadAlerts = () => {
       const activeAlerts = teleSalesExecutiveService.getActiveAlerts();
-      setAlerts(activeAlerts.filter((a) => !a.dismissed));
+      // A4 FIX: filter out alerts the user has dismissed this session
+      setAlerts(activeAlerts.filter((a) => !a.dismissed && !dismissedAlertIds.has(a.id)));
     };
 
     loadAlerts();
@@ -132,20 +135,27 @@ export function TeleSalesExecutiveApp() {
   // Handle ending a call
   const handleEndCall = (notes: string, tags: string[], pricingData: PricingCalculation) => {
     if (activeCallSession) {
+      // A6 FIX: pricingData here is the FINAL state from TSEActiveCall (not the opening pricing)
+      // TSEActiveCall passes its latest pricingCalculation state via this callback
       setActiveCallSession({
         ...activeCallSession,
         notes,
         tags,
-        pricingData,
+        pricingData,  // this is now the final, TSE-selected pricing
       });
       setCurrentScreen("CRM_UPDATE");
     }
   };
 
-  // Handle canceling a call
+  // Handle canceling a call — A3 FIX: require confirmation to prevent accidental mid-call cancel
   const handleCancelCall = () => {
-    setActiveCallSession(null);
-    setCurrentScreen("LEAD_QUEUE");
+    const confirmCancel = window.confirm(
+      "Cancel this call? All call notes and pricing selections will be lost."
+    );
+    if (confirmCancel) {
+      setActiveCallSession(null);
+      setCurrentScreen("LEAD_QUEUE");
+    }
   };
 
   // Handle CRM update submission
@@ -157,15 +167,19 @@ export function TeleSalesExecutiveApp() {
         notes: crmUpdate.notes,
         tags: crmUpdate.tags || [],
       };
-      if (crmUpdate.outcome === "CALLBACK" && crmUpdate.callbackTime) {
-        (updates as any).nextFollowUpAt = new Date(crmUpdate.callbackTime);
+      // A1 FIX: followUpDate (Date object) not callbackTime (field doesn't exist on CRMUpdate)
+      if (crmUpdate.outcome === "CALLBACK" && crmUpdate.followUpDate) {
+        (updates as any).nextFollowUpAt = crmUpdate.followUpDate;
       }
       teleSalesExecutiveService.updateLeadCRM(activeCallSession.lead.id, updates);
       if (crmUpdate.outcome === "CONVERTED") {
+        // A2 FIX: finalPrice and dealType come from pricingData, not CRMUpdate (those fields don't exist)
+        const finalPrice = activeCallSession.pricingData?.finalPrice ?? 0;
+        const dealType   = activeCallSession.pricingData?.dealType   ?? "BASE";
         teleSalesExecutiveService.convertLead(
           activeCallSession.lead.id,
-          crmUpdate.finalPrice || 0,
-          crmUpdate.dealType || "standard"
+          finalPrice,
+          dealType
         );
       } else if (crmUpdate.outcome === "LOST") {
         teleSalesExecutiveService.markLeadLost(
@@ -194,6 +208,8 @@ export function TeleSalesExecutiveApp() {
 
   // Dismiss alert
   const dismissAlert = (alertId: string) => {
+    // A4 FIX: persist dismissal in session set so it survives the 30s reload
+    dismissedAlertIds.add(alertId);
     setAlerts((prev) => prev.filter((a) => a.id !== alertId));
   };
 
@@ -353,6 +369,20 @@ export function TeleSalesExecutiveApp() {
                 disabled={currentScreen === "ACTIVE_CALL" || currentScreen === "CRM_UPDATE"}
               >
                 My Incentives
+              </Button>
+              {/* A5 FIX: Renewals screen was declared but had no nav button */}
+              <Button
+                variant={currentScreen === ("RENEWALS" as any) ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentScreen("RENEWALS" as any)}
+                disabled={currentScreen === "ACTIVE_CALL" || currentScreen === "CRM_UPDATE"}
+              >
+                Renewals
+                {dailyStats && dailyStats.leadsInQueue > 0 && (
+                  <Badge className="ml-2 bg-purple-600 px-1.5 py-0 text-xs">
+                    {teleSalesExecutiveService.getRenewalLeads().length}
+                  </Badge>
+                )}
               </Button>
             </div>
           </div>
