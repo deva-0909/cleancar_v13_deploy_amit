@@ -4,13 +4,14 @@ import "./styles/index.css";
 import App from "./app/App";
 import MinimalTest from "./app/MinimalTest";
 import { EmergencyFallback } from "./app/EmergencyFallback";
-import { seedAllData } from "./app/utils/seedAllData";
+import { seedAllData, seedExtendedModules } from "./app/utils/seedAllData";
 
 // ── Run seed SYNCHRONOUSLY before React mounts ────────────────────────────
 // MUST run before createRoot so every Context useState(() => DataService.get())
 // reads fresh seeded data. Running in a useEffect is too late — all contexts
 // already captured stale localStorage in their useState lazy initialisers.
 try { seedAllData(); } catch (e) { console.error("Seed failed:", e); }
+try { seedExtendedModules(); } catch (e) { console.error("Extended seed failed:", e); }
 
 // EMERGENCY DEBUG MODE
 const USE_MINIMAL_TEST = false;
