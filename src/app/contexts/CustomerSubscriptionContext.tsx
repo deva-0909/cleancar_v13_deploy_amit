@@ -150,6 +150,15 @@ export function CustomerSubscriptionProvider({ children }: { children: ReactNode
 
   const updateSubscriptionStatus = (subscriptionId: string, status: CustomerSubscription["status"]) => {
     updateSubscription(subscriptionId, { status });
+    // G2 FIX: emit lifecycle events so FinanceContext MRR stays accurate
+    if (status === "Cancelled") {
+      emit("SUBSCRIPTION_CANCELLED" as any, { subscriptionId });
+      window.dispatchEvent(new CustomEvent("cc360_mrr_remove", { detail: { subscriptionId } }));
+    } else if (status === "Paused") {
+      emit("SUBSCRIPTION_PAUSED" as any, { subscriptionId });
+    } else if (status === "Active") {
+      emit("SUBSCRIPTION_ACTIVATED" as any, { subscriptionId });
+    }
   };
 
   const getSubscriptionById = (subscriptionId: string): CustomerSubscription | undefined => {

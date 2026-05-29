@@ -734,6 +734,7 @@ export function SMDailyActivity() {
     function handleStartTrip() {
       if (!vehicleNumber.trim()) { toast.error("Vehicle number required"); return; }
       if (startReading === "")   { toast.error("Start odometer reading required"); return; }
+      if (!startPhotoData) { toast.error("📸 Start odometer photo is mandatory — tap the camera icon above"); return; } // G7 FIX
       if (activeDraftTrip && activeDraftTrip.id !== visit.tripId) {
         toast.error("End the current trip in progress before starting a new one"); return;
       }
@@ -773,6 +774,7 @@ export function SMDailyActivity() {
     function handleEndTrip() {
       if (!linkedTrip) return;
       if (endReading === "")  { toast.error("End odometer reading required"); return; }
+      if (!endPhotoData) { toast.error("📸 End odometer photo is mandatory — tap the camera icon above"); return; } // G7 FIX
       if (Number(endReading) <= linkedTrip.startReading) {
         toast.error("End reading must be greater than start reading"); return;
       }
@@ -951,7 +953,7 @@ export function SMDailyActivity() {
 
                     {/* Start photo */}
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">Start Odometer Photo</label>
+                      <label className="text-xs font-semibold text-red-600 mb-1 block flex items-center gap-1"><Camera className="w-3 h-3" /> Start Odometer Photo <span className="text-red-500">*</span> <span className="font-normal text-gray-400">(mandatory)</span></label>
                       <input ref={startFileRef} type="file" accept="image/*" capture="environment" className="hidden"
                         onChange={e => e.target.files?.[0] && capturePhoto(e.target.files[0], setStartPhotoData)} />
                       {startPhotoData ? (
@@ -962,8 +964,8 @@ export function SMDailyActivity() {
                         </div>
                       ) : (
                         <button onClick={() => startFileRef.current?.click()}
-                          className="w-full h-16 border-2 border-dashed border-purple-200 rounded-lg flex items-center justify-center gap-2 text-xs text-purple-500 hover:bg-purple-50">
-                          <Camera className="w-4 h-4" /> Capture odometer
+                          className="w-full h-16 border-2 border-dashed border-red-300 rounded-lg flex items-center justify-center gap-2 text-xs text-red-500 bg-red-50/30 hover:bg-red-50 font-medium">
+                          <Camera className="w-4 h-4" /> Tap to capture (required)
                         </button>
                       )}
                     </div>
@@ -1008,7 +1010,7 @@ export function SMDailyActivity() {
 
                     {/* End photo */}
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">End Odometer Photo</label>
+                      <label className="text-xs font-semibold text-red-600 mb-1 block flex items-center gap-1"><Camera className="w-3 h-3" /> End Odometer Photo <span className="text-red-500">*</span> <span className="font-normal text-gray-400">(mandatory)</span></label>
                       <input ref={endFileRef} type="file" accept="image/*" capture="environment" className="hidden"
                         onChange={e => e.target.files?.[0] && capturePhoto(e.target.files[0], setEndPhotoData)} />
                       {endPhotoData ? (
@@ -1019,8 +1021,8 @@ export function SMDailyActivity() {
                         </div>
                       ) : (
                         <button onClick={() => endFileRef.current?.click()}
-                          className="w-full h-16 border-2 border-dashed border-purple-200 rounded-lg flex items-center justify-center gap-2 text-xs text-purple-500 hover:bg-purple-50">
-                          <Camera className="w-4 h-4" /> Capture odometer
+                          className="w-full h-16 border-2 border-dashed border-red-300 rounded-lg flex items-center justify-center gap-2 text-xs text-red-500 bg-red-50/30 hover:bg-red-50 font-medium">
+                          <Camera className="w-4 h-4" /> Tap to capture (required)
                         </button>
                       )}
                     </div>

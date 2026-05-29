@@ -211,6 +211,12 @@ export function JobProvider({ children }: { children: ReactNode }) {
     };
 
     setAllJobs((prev) => [...prev, newJob]);
+    // G3 FIX: emit JOB_CREATED so Inventory, Finance, Supervisor get the signal
+    emit('JOB_CREATED', {
+      jobId: newJob.jobId, customerId: newJob.customerId,
+      cityId: newJob.cityId, packageType: newJob.packageType,
+      amount: newJob.amount ?? 0, scheduledDate: newJob.scheduledDate,
+    });
     return newJob;
   };
 

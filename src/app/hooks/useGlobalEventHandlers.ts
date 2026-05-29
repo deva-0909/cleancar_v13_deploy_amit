@@ -133,8 +133,13 @@ export function useGlobalEventHandlers() {
       if (washerId) {
         const currentIncentive = incentiveContext.getEmployeeIncentive(washerId);
         if (currentIncentive) {
-          incentiveContext.updateAchievement(washerId, currentIncentive.achieved + 1);
-          logger.debug("Incentive achievement updated", { washerId, achieved: currentIncentive.achieved + 1 });
+          // G5 FIX: use incrementAchievement (race-safe) instead of absolute updateAchievement
+          if (incentiveContext.incrementAchievement) {
+            incentiveContext.incrementAchievement(washerId, 1);
+          } else {
+            incentiveContext.updateAchievement(washerId, currentIncentive.achieved + 1);
+          }
+          logger.debug("Incentive achievement incremented", { washerId });
         }
       }
 
@@ -256,10 +261,13 @@ export function useGlobalEventHandlers() {
       employeeContext.addAttendanceRecord({
         employeeId,
         date: today,
-        checkIn: checkInTime,
+        checkInTime: checkInTime,
         status: "Present",
         lateMinutes: lateMinutes || 0,
-        location: location || "Unknown",
+        cityId: event.data.cityId || "", // G6 FIX: cityId required for multi-city queries
+        location: location && typeof location === "object"
+          ? { latitude: location.lat ?? location.latitude, longitude: location.lng ?? location.longitude }
+          : undefined, // G6 FIX: was string 'Unknown' — must be {latitude,longitude} or undefined
         selfieVerified: event.data.selfieVerified || false,
         jobsCompleted: 0
       });

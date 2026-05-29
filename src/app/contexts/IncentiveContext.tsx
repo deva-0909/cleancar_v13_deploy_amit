@@ -108,6 +108,7 @@ interface IncentiveContextType {
   // Calculations
   calculateIncentive: (employeeId: string, achieved: number) => number;
   updateAchievement: (employeeId: string, achieved: number) => void;
+  incrementAchievement: (employeeId: string, delta?: number) => void; // G5 FIX: race-safe increment
 
   // Approval workflow
   approveIncentive: (employeeId: string, approvedBy: string) => void;
@@ -316,6 +317,15 @@ export function IncentiveProvider({ children }: { children: ReactNode }) {
     return calculatedAmount;
   }, [getEmployeeIncentive, getIncentivePlan]);
 
+  // G5 FIX: incrementAchievement is race-condition safe (reads fresh state each call)
+  const incrementAchievement = useCallback((employeeId: string, delta: number = 1) => {
+    setIncentives(prev => prev.map(inc =>
+      inc.employeeId === employeeId
+        ? { ...inc, achieved: inc.achieved + delta, updatedAt: new Date().toISOString() }
+        : inc
+    ));
+  }, []);
+
   const updateAchievement = useCallback((employeeId: string, achieved: number) => {
     const employeeInc = getEmployeeIncentive(employeeId);
     if (!employeeInc) return;
@@ -404,6 +414,7 @@ export function IncentiveProvider({ children }: { children: ReactNode }) {
     getEmployeeIncentive,
     calculateIncentive,
     updateAchievement,
+    incrementAchievement,
     approveIncentive,
     markIncentiveAsPaid,
   }), [incentivePlans, addIncentivePlan, updateIncentivePlan, deleteIncentivePlan, getIncentivePlan, getActivePlans, getConfigForRole, employeeIncentives, assignIncentivePlan, updateEmployeeIncentive]);

@@ -430,11 +430,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       } catch { /* non-critical */ }
     };
     window.addEventListener("cc360_payroll_approved", handlePayrollApproved);
+    // G14 FIX: bridge EventSystem PAYROLL_APPROVED → window cc360_payroll_approved
+    // so modules using EventSystem.emit() still reach FinanceContext
+    const unsubPayroll = subscribe("PAYROLL_APPROVED", (data: any) => {
+      if (data?.amount) handlePayrollApproved({ detail: data } as any);
+    });
+    const unsubSubscriptionCancelled = subscribe("SUBSCRIPTION_CANCELLED" as any, (data: any) => {
+      if (data?.subscriptionId) {
+        window.dispatchEvent(new CustomEvent("cc360_mrr_remove", { detail: data }));
+      }
+    });
     window.addEventListener("cc360_mrr_add", handleMRRAdd);
     window.addEventListener("cc360_mrr_remove", handleMRRRemove);
     window.addEventListener("cc360_accounting_entry_created", handleAccountingEntry);
     return () => {
       window.removeEventListener("cc360_payroll_approved", handlePayrollApproved);
+    unsubPayroll(); unsubSubscriptionCancelled();
       window.removeEventListener("cc360_mrr_add", handleMRRAdd);
       window.removeEventListener("cc360_mrr_remove", handleMRRRemove);
       window.removeEventListener("cc360_accounting_entry_created", handleAccountingEntry);
@@ -622,9 +633,17 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
       };
       setLedgerEntries(prev => [...prev,
-        { ...entryBase, ledgerEntryId: `LED-${Date.now()}-DR`, accountCode: "2000", accountName: "Accounts Payable", entryType: "DEBIT" as const, amount: payable.amount },
+        { ...entryBase, ledgerEntryId: `LED-${Date.now()}-DR`, accountCode: "2000", accountName: payable.vendorName ? `AP — ${payable.vendorName}` : "Accounts Payable", entryType: "DEBIT" as const, amount: payable.amount },
         { ...entryBase, ledgerEntryId: `LED-${Date.now() + 1}-CR`, accountCode: "1000", accountName: "Bank Account", entryType: "CREDIT" as const, amount: payable.amount },
       ]);
+      // G9 FIX: fire PAYMENT_MADE so downstream modules (Supervisor, Reports) can react
+      window.dispatchEvent(new CustomEvent("cc360_payment_made", {
+        detail: {
+          payableId, type: payable.type, amount: payable.amount,
+          vendorName: payable.vendorName, cityId: payable.cityId,
+          paymentMethod, paidAt: new Date().toISOString(),
+        }
+      }));
     }
   };
 

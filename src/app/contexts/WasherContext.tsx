@@ -438,7 +438,7 @@ export function WasherProvider({ children }: WasherProviderProps) {
   const completeStep = (stepId: string) => {
     if (!shouldActivate || !activeJob) return;
 
-    washerDataService.completeJobStep(activeJob.id, stepId);
+    washerDataService.completeStep(activeJob.id, stepId); // G1 FIX: was completeJobStep (wrong method name)
     const updatedExecution = washerDataService.getJobExecution(activeJob.id);
     setJobExecution(updatedExecution);
   };

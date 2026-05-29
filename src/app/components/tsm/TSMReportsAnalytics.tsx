@@ -387,9 +387,9 @@ export function TSMReportsAnalytics() {
                   <div className="text-xs text-gray-500">Avg EBITDA</div>
                   <div
                     className={`text-lg font-bold ${
-                      bundle.avgEBITDA >= 25
+                      bundle.avgEBITDA >= EBITDA_THRESHOLDS.FLOOR
                         ? "text-green-600"
-                        : bundle.avgEBITDA >= 20
+                        : bundle.avgEBITDA >= (EBITDA_THRESHOLDS.FLOOR - 10) // G17 FIX
                         ? "text-amber-600"
                         : "text-red-600"
                     }`}

@@ -24,7 +24,12 @@ export type SystemEventType =
   | "INVENTORY_ISSUED"         // Inventory issued to washer/supervisor
   | "INVENTORY_LOW_STOCK"      // Stock below reorder level
   | "PAYROLL_PROCESSED"        // Payroll run processed
-  | "PAYROLL_APPROVED"         // Payroll approved by finance
+  | "PAYROLL_APPROVED"
+  | "TRIAL_STARTED"
+  | "INVENTORY_PROCURED"
+  | "INCENTIVE_PAID"
+  | "DEMO_REJECTED"
+  | "DEMO_FOLLOW_UP_REQUIRED" // G13 FIX: emitted but missing from type union         // Payroll approved by finance
   | "PAYMENT_RECEIVED"         // Customer payment received
   | "PAYMENT_MADE"             // Vendor/salary payment made
   | "QA_AUDIT_SUBMITTED"       // QA audit completed
