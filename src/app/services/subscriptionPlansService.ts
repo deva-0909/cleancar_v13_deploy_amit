@@ -234,64 +234,101 @@ class SubscriptionPlansService {
 
     let features: Partial<PlanFeature>[] = [];
 
-    switch (tierName) {
-      case "EXPRESS_WASH":
-        features = [...commonEveryWash, ...commonMonthly];
-        break;
+    // v1.9 display name map — use PLAN_DISPLAY_NAMES from constants for UI rendering
+    // Internal IDs (SHINE/PROTECT/ELITE) kept for backward compat — do NOT rename
+    // Display: SHINE → "Express Wash", PROTECT → "Smart Wash", ELITE → "Elite Wash"
 
-      case "SMART_WASH":
+    switch (tierName) {
+      case "SHINE":
+        // Express Wash — v1.9 contents
         features = [
           ...commonEveryWash,
+          // WEEKLY (4×/month)
           {
-            featureName: "Car-safe shampoo foam wash",
-            frequency: "EVERY_WASH" as const,
-          },
-          {
-            featureName: "Microfibre dry + glass polish",
-            frequency: "EVERY_WASH" as const,
-          },
-          {
-            featureName: "Tyre dressing application (wax)",
+            featureName: "Tyre & rim spray-clean",
             frequency: "WEEKLY" as const,
           },
-          ...commonMonthly,
+          // MONTHLY (1×/month)
+          ...commonMonthly,  // underbody flush
+          {
+            featureName: "Windshield clean (outside)",
+            frequency: "MONTHLY" as const,
+          },
+          {
+            featureName: "Shampoo wash",
+            frequency: "MONTHLY" as const,
+          },
         ];
         break;
 
-      case "ELITE_WASH":
+      case "PROTECT":
+        // Smart Wash — v1.9 contents
         features = [
           ...commonEveryWash,
-          {
-            featureName: "Car-safe shampoo foam wash",
-            frequency: "EVERY_WASH" as const,
-          },
           {
             featureName: "Microfibre dry + glass polish",
             frequency: "EVERY_WASH" as const,
           },
+          // FORTNIGHTLY (2×/month)
           {
-            featureName: "Tyre dressing application (wax)",
-            frequency: "WEEKLY" as const,
+            featureName: "Shampoo foam wash",
+            frequency: "FORTNIGHTLY" as const,
           },
           {
-            featureName: "Interior dashboard wipe",
-            frequency: "WEEKLY" as const,
+            featureName: "Interior vacuum & mat clean",
+            frequency: "FORTNIGHTLY" as const,
           },
+          // MONTHLY (1×/month)
+          ...commonMonthly,  // underbody flush
           {
-            featureName: "Interior full vacuum",
-            frequency: "WEEKLY" as const,
-          },
-          ...commonMonthly,
-          {
-            featureName: "Interior vacuum (deep clean)",
+            featureName: "Tyre dressing & shine coat (full 4)",
             frequency: "MONTHLY" as const,
           },
           {
-            featureName: "Full hand wax polish (whole body)",
+            featureName: "Car fragrance",
+            frequency: "MONTHLY" as const,
+          },
+        ];
+        break;
+
+      case "ELITE":
+        // Elite Wash — v1.9 contents
+        features = [
+          ...commonEveryWash,
+          {
+            featureName: "Microfibre dry + glass polish",
+            frequency: "EVERY_WASH" as const,
+          },
+          // WEEKLY (4×/month)
+          {
+            featureName: "Shampoo foam wash",
+            frequency: "WEEKLY" as const,
+          },
+          // FORTNIGHTLY (2×/month)
+          {
+            featureName: "Dashboard & console deep clean",
+            frequency: "FORTNIGHTLY" as const,
+          },
+          {
+            featureName: "Interior vacuum & mat clean",
+            frequency: "FORTNIGHTLY" as const,
+          },
+          // MONTHLY (1×/month)
+          ...commonMonthly,  // underbody flush
+          {
+            featureName: "Full hand wax polish (outer body)",
             frequency: "MONTHLY" as const,
           },
           {
-            featureName: "Door sill & boot area clean",
+            featureName: "Engine bay dry blow (no water)",
+            frequency: "MONTHLY" as const,
+          },
+          {
+            featureName: "Tyre dressing & shine coat (full 4)",
+            frequency: "FORTNIGHTLY" as const,   // 2×/month
+          },
+          {
+            featureName: "Premium fragrance + cabin sanitisation spray",
             frequency: "MONTHLY" as const,
           },
         ];

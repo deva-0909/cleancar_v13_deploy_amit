@@ -71,8 +71,7 @@ export interface CommitmentConfig {
 export interface AddonConfig {
   id: string;
   name: string;
-  price?: number;           // deprecated — use prices
-  prices?: { hatchback: number; suv: number; luxury: number };
+  price: number;
   unit: string;
   description: string;
 }
@@ -125,55 +124,113 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
     {
       id: "water",
       name: "Express Wash",
-      icon: "💧",
-      tagline: "Chamakti Subah — Your car, clean every morning.",
+      tagline: "Chamakti Subah — your car, clean every morning",
+      icon: "✨",
       features: [
-        { text: "Full exterior pressure rinse", included: true },
-        { text: "Wheel rim & tyre spray", included: true },
-        { text: "Roof & glass wipe", included: true },
-        { text: "Monthly underbody flush", included: true },
-        { text: "Shampoo foam wash", included: false },
+        // EVERY WASH (30×/month)
+        { text: "Full exterior water wash + microfibre dry", included: true },
+        { text: "Mirrors, door handles, number plate cleaned", included: true },
+        { text: "Before & after photo on WhatsApp daily", included: true },
+        { text: "Dedicated washer — same person every morning", included: true },
+        // WEEKLY (4×/month)
+        { text: "Tyre & rim spray-clean weekly (4×/month)", included: true },
+        // MONTHLY (1×/month)
+        { text: "Underbody flush 1×/month", included: true },
+        { text: "Windshield clean (outside) 1×/month", included: true },
+        { text: "Shampoo wash 1×/month", included: true },
+        // NOT included
         { text: "Interior vacuum", included: false },
+        { text: "Car fragrance", included: false },
       ],
       prices: { hatchback: 1249, suv: 1499, luxury: 1999 },
     },
     {
       id: "shampoo",
       name: "Smart Wash",
-      icon: "🧴",
-      tagline: "Raksha Plan — Clean daily. Protected always.",
+      tagline: "Raksha Plan — clean daily, protected always",
+      icon: "🛡️",
       popular: true,
       features: [
-        { text: "Everything in Water Wash", included: true },
-        { text: "Car-safe shampoo foam wash", included: true },
-        { text: "Microfibre dry + glass polish", included: true },
-        { text: "Weekly tyre dressing", included: true },
-        { text: "Monthly underbody flush", included: true },
-        { text: "Interior vacuum", included: false },
+        // EVERY WASH (30×/month)
+        { text: "Everything in Express Wash daily", included: true },
+        { text: "Dedicated washer — same person, same time", included: true },
+        // FORTNIGHTLY (2×/month)
+        { text: "Shampoo wash 2×/month (fortnightly)", included: true },
+        { text: "Interior vacuum + mat clean 2×/month", included: true },
+        // MONTHLY (1×/month)
+        { text: "Tyre dressing & shine coat 1×/month", included: true },
+        { text: "Car fragrance 1×/month", included: true },
+        // NOT included
+        { text: "Dashboard & console deep clean", included: false },
+        { text: "Full hand wax polish", included: false },
       ],
       prices: { hatchback: 1599, suv: 1999, luxury: 2699 },
     },
     {
       id: "wax",
       name: "Elite Wash",
-      icon: "✨",
-      tagline: "Full care — inside and out",
+      tagline: "Raja Seva — showroom condition, every day",
+      icon: "👑",
       features: [
-        { text: "Everything in Shampoo Wash", included: true },
-        { text: "Weekly interior dashboard wipe", included: true },
-        { text: "Weekly interior vacuum", included: true },
-        { text: "Monthly deep interior vacuum", included: true },
-        { text: "Monthly full hand wax polish", included: true },
-        { text: "Door sill & boot area clean", included: true },
+        // EVERY WASH (30×/month)
+        { text: "Everything in Smart Wash daily", included: true },
+        { text: "Dedicated personal washer — knows your car", included: true },
+        // WEEKLY (4×/month)
+        { text: "Shampoo wash weekly (4×/month)", included: true },
+        // FORTNIGHTLY (2×/month)
+        { text: "Dashboard & console deep clean 2×/month", included: true },
+        { text: "Interior vacuum & mat clean 2×/month", included: true },
+        // MONTHLY (1×/month)
+        { text: "Full hand wax polish 1×/month", included: true },
+        { text: "Engine bay dry blow (no water) 1×/month", included: true },
+        { text: "Tyre dressing & shine coat 2×/month", included: true },
+        { text: "Premium fragrance + cabin sanitisation 1×/month", included: true },
       ],
       prices: { hatchback: 1999, suv: 2499, luxury: 3499 },
     },
   ],
   packs: [
-    { id: "onetime",  name: "One-Time Wash", icon: "1️⃣", price: 199, perLabel: "per wash (Hatchback)",                    discount: "Standard rate" },
-    { id: "biweekly", name: "Bi-Weekly",     icon: "🔁", price: 372, perLabel: "2× per month · ₹186/wash",    discount: "7% off" },
-    { id: "3x",       name: "3× per Month",  icon: "3️⃣", price: 552, perLabel: "3× per month · ₹184/wash",    discount: "8% off" },
-    { id: "weekly",   name: "Weekly",        icon: "📅", price: 720, perLabel: "4× per month · ₹180/wash",    discount: "10% off" },
+    {
+      id: "onetime",
+      name: "One-Time Visit",
+      icon: "1️⃣",
+      description: "Single visit — Water Wash, Shampoo, or Shampoo+Wax",
+      prices: {
+        waterWash:   { hatchback: 199, suv: 299, luxury: 399 },
+        shampoo:     { hatchback: 299, suv: 349, luxury: 499 },
+        shampooWax:  { hatchback: 399, suv: 499, luxury: 699 },
+      },
+      discount: "Standard rate",
+      validityDays: null,
+    },
+    {
+      id: "pack2",
+      name: "Pack of 2",
+      icon: "🔁",
+      description: "Pre-buy 2 visits — 8% saving. Use within 20 days.",
+      prices: {
+        waterWash:   { hatchback: 370,  suv: 550,   luxury: 730   },
+        shampoo:     { hatchback: 550,  suv: 640,   luxury: 920   },
+        shampooWax:  { hatchback: 730,  suv: 920,   luxury: 1290  },
+      },
+      discount: "8% off",
+      validityDays: 20,
+      perVisitLabel: "Save ₹28–₹68 per pack (Hatchback)",
+    },
+    {
+      id: "pack4",
+      name: "Pack of 4",
+      icon: "📅",
+      description: "Pre-buy 4 visits — 15% saving. Use within 30 days.",
+      prices: {
+        waterWash:   { hatchback: 680,  suv: 1020,  luxury: 1360  },
+        shampoo:     { hatchback: 1020, suv: 1180,  luxury: 1700  },
+        shampooWax:  { hatchback: 1360, suv: 1700,  luxury: 2380  },
+      },
+      discount: "15% off",
+      validityDays: 30,
+      perVisitLabel: "Save ₹116–₹236 per pack (Hatchback)",
+    },
   ],
   commitments: [
     { id: "monthly",  term: "Month to Month", discountLabel: "No lock-in",  perk: "Cancel anytime. 7 days' notice." },
@@ -182,13 +239,22 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
     { id: "12month",  term: "12 Months",      discountLabel: "18% off",     perk: "Renewal + vacuum + tyre dressing monthly + priority slots.", highlight: "best" },
   ],
   addons: [
-    { id: "vacuum",      name: "Interior Deep Vacuum",      prices: { hatchback: 199, suv: 249, luxury: 349 }, unit: "per visit", description: "Seats, mats, footwells, boot area. Full interior clean." },
-    { id: "dashboard",   name: "Dashboard & Console Clean", prices: { hatchback: 149, suv: 199, luxury: 249 }, unit: "per visit", description: "Dashboard, centre console, door pads — dust-free finish." },
-    { id: "tyre",        name: "Tyre Dressing",             prices: { hatchback:  99, suv: 149, luxury: 199 }, unit: "per visit", description: "Shine and protect all 4 tyres. Makes them look brand new." },
-    { id: "waxpolish",   name: "Full Hand Wax Polish",      prices: { hatchback: 199, suv: 249, luxury: 399 }, unit: "per visit", description: "Panel-by-panel hand wax application. Outer body only, no glass." },
-    { id: "underbody",   name: "Underbody Wash",            prices: { hatchback: 199, suv: 249, luxury: 349 }, unit: "per visit", description: "Underbody water spray — removes road grime from undercarriage." },
-    { id: "engine",      name: "Engine Bay Wipe-Down",      prices: { hatchback:  99, suv: 149, luxury: 199 }, unit: "per visit", description: "Dry blow of engine bay — strictly no water. Removes dust." },
-    { id: "fragrance",   name: "Car Fragrance",             prices: { hatchback:  49, suv:  49, luxury:  49 }, unit: "per visit", description: "Interior car fragrance spray — single fresh application." },
+    // Prices shown are for Hatchback. SUV: +₹50–100. Luxury: +₹100–200. See v1.9 doc Section 4.
+    { id: "vacuum",    name: "Interior Deep Vacuum",        price: 199, unit: "per visit",
+      description: "Glove box, door pad polish, seats, mats, footwells, boot. Before+after photo. (₹199 H / ₹249 SUV / ₹349 Luxury)" },
+    { id: "dashboard", name: "Dashboard & Console Detail",  price: 149, unit: "per visit",
+      description: "Dashboard polish, console polish, door pads, console vents cleaned by blower. (₹149 H / ₹199 SUV / ₹249 Luxury)" },
+    { id: "tyre",      name: "Tyre Dressing (all 4 tyres)", price: 99,  unit: "per visit",
+      description: "Shampoo wash tyre + mud guard + shine protect application. (₹99 H / ₹149 SUV / ₹199 Luxury)" },
+    { id: "waxpolish", name: "Full Hand Wax Polish",        price: 199, unit: "per visit",
+      description: "Shampoo wash + full body panel-by-panel wax application. Outer body only — no glass. (₹199 H / ₹249 SUV / ₹399 Luxury)" },
+    { id: "underbody", name: "Underbody Wash",              price: 199, unit: "per visit",
+      description: "Under body water spray — removes mud, road grime, salt. (₹199 H / ₹249 SUV / ₹349 Luxury)" },
+    { id: "enginebay", name: "Engine Bay Wipe-Down",        price: 99,  unit: "per visit",
+      description: "Dry blow of engine bay — no water. Removes dust and debris. Strictly dry process only. (₹99 H / ₹149 SUV / ₹199 Luxury)" },
+    { id: "fragrance", name: "Car Fragrance (standalone)",  price: 49,  unit: "per visit",
+      description: "Interior car fragrance spray — single fresh application. All vehicle types ₹49." },
+    // REMOVED: Glass Coating (RainX) — not in current pricing
   ],
   timeSlots: [
     "Early morning (5am – 7am)",
@@ -439,25 +505,9 @@ export function CustomerPlanPage() {
     return p?.price ?? 0;
   }, [selectedPack, cfg.packs]);
 
-  // Get addon price for current vehicle category
-  const getAddonPrice = (id: string): number => {
-    const a = cfg.addons.find(x => x.id === id);
-    if (!a) return 0;
-    if (a.prices) {
-      const isLux = activeCat?.toLowerCase().includes("luxury");
-      const isSuv = activeCat?.toLowerCase().includes("suv") ||
-                    activeCat?.toLowerCase().includes("muv") ||
-                    activeCat?.toLowerCase().includes("sedan");
-      if (isLux) return a.prices.luxury;
-      if (isSuv) return a.prices.suv;
-      return a.prices.hatchback;
-    }
-    return a.price ?? 0;
-  };
-
   const addonTotal = useMemo(() =>
-    addons.reduce((s, id) => s + getAddonPrice(id), 0),
-    [addons, activeCat, cfg.addons]);
+    addons.reduce((s, id) => s + (cfg.addons.find(a => a.id === id)?.price ?? 0), 0),
+    [addons, cfg.addons]);
 
   const basePrice = planMode === "monthly" ? planPrice : packPrice;
   const total = basePrice + addonTotal;
@@ -527,13 +577,17 @@ export function CustomerPlanPage() {
 
       const sub = createSubscription({
         customerId,
-        packageType: selectedPlan === "elite" ? "ELITE_WASH" : selectedPlan === "smart" ? "SMART_WASH" : "EXPRESS_WASH",
+        packageType: selectedPlan === "wax" ? "Premium" : selectedPlan === "shampoo" ? "Standard" : "Basic",
         packageName: planMode === "monthly"
           ? (planObj?.name || selectedPlan || "Plan")
           : (packObj?.name || selectedPack || "Pack"),
                   frequency: isOneTime ? "One-Time" :
-            selectedPack === "biweekly" ? "2x/month" :
-            selectedPack === "3x" ? "3x/month" :
+            selectedPack === "pack2" ? "Pack of 2" :
+            selectedPack === "pack4" ? "Pack of 4" :
+            selectedPack === "pack2" ? "Pack of 2" :
+            selectedPack === "pack4" ? "Pack of 4" :
+            selectedPack === "biweekly" ? "2x/month" :  // legacy
+            selectedPack === "3x" ? "3x/month" :  // legacy
             selectedPack === "weekly" ? "4x/month" : "Daily",
         status: "Active",
         startDate: now.toISOString().split("T")[0],
@@ -585,8 +639,7 @@ export function CustomerPlanPage() {
           ),
           ...addons.map(id => {
             const a = cfg.addons.find(x => x.id === id);
-            const addonPrice = getAddonPrice(id);
-            return { name: a?.name || id, qty: 1, rate: addonPrice, amount: addonPrice };
+            return { name: a?.name || id, qty: 1, rate: a?.price || 0, amount: a?.price || 0 };
           }),
         ],
         subtotal: total,
@@ -681,7 +734,7 @@ export function CustomerPlanPage() {
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{inv.vehicleReg || "Not provided"}</div>
                     <div style={{ fontSize: 13, color: "#6B7280" }}>{catLabel}</div>
                     <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 8 }}>Subscription ID</div>
-                    <div style={{ fontFamily: "monospace", fontSize: 12, color: "#374151" }}>{inv.subscriptionId}</div>
+                    <div style={{ fontFamily: "monospace", fontSize: 12, color: "#1D4ED8" }}>{inv.subscriptionId}</div>
                   </div>
                 </div>
 
@@ -716,7 +769,7 @@ export function CustomerPlanPage() {
                       <span>{k}</span><span>{v}</span>
                     </div>
                   ))}
-                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 16, fontFamily: "'Poppins', sans-serif", color: "#0F172A", borderTop: "2px solid #0F172A", paddingTop: 12, marginTop: 6 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 16, fontFamily: "'Poppins', sans-serif", color: "#1D4ED8", borderTop: "1px solid #E5E7EB", paddingTop: 10, marginTop: 4 }}>
                     <span>Grand Total</span>
                     <span>₹{inv.grandTotal.toLocaleString("en-IN")}</span>
                   </div>
@@ -751,7 +804,7 @@ export function CustomerPlanPage() {
               </a>
               {inv?.customerEmail && (
                 <a href={`mailto:${inv.customerEmail}?subject=Invoice ${inv?.invoiceNumber} — ${cfg.brand.name}&body=Dear ${inv?.customerName},%0A%0AThank you for subscribing to ${cfg.brand.name}.%0A%0AInvoice No: ${inv?.invoiceNumber}%0AAmount: ₹${inv?.grandTotal} (incl. GST)%0A%0AYour service starts within 2 working days.`}
-                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#0F172A", color: "#fff", padding: "12px 20px", borderRadius: 50, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
+                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#1D4ED8", color: "#fff", padding: "12px 20px", borderRadius: 50, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
                   📧 Send by Email
                 </a>
               )}
@@ -763,7 +816,7 @@ export function CustomerPlanPage() {
           </div>
 
           {/* What happens next */}
-          <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 14, padding: "18px 20px", marginBottom: 24 }}>
+          <div style={{ background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 14, padding: "18px 20px", marginBottom: 24 }}>
             <div style={{ fontWeight: 700, color: "#1B5E20", marginBottom: 12, fontSize: 14 }}>📋 What happens next:</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {cfg.postPaymentSteps.map((s, i) => (
@@ -791,7 +844,7 @@ export function CustomerPlanPage() {
           <span style={{ color: "#FFFFFF" }}>{cfg.brand.name.split(" ")[0]}<span style={{ color: "rgba(255,255,255,0.70)" }}> {cfg.brand.name.split(" ").slice(1).join(" ")}</span></span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", letterSpacing: "0.2px" }}>📞 {cfg.brand.phone}</span>
+          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.70)" }}>📞 {cfg.brand.phone}</span>
           <a href={`https://wa.me/${cfg.brand.whatsappNumber}`} target="_blank" rel="noreferrer"
             style={{ background: "#16A34A", color: "#fff", padding: "9px 18px", borderRadius: 50, fontSize: 13, fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
             💬 WhatsApp
@@ -804,7 +857,7 @@ export function CustomerPlanPage() {
         <div style={{ position: "absolute", inset: 0, backgroundImage: "url(https://static.wixstatic.com/media/4ae675_a44950b3d59245f3b09dd9f9bd21a1d6~mv2.jpg/v1/fill/w_1440,h_600,al_c,q_85,usm_0.33_1.00_0.00,enc_avif/hero.jpg)", backgroundSize: "cover", backgroundPosition: "center", opacity: 0.12 }} />
         <div style={{ position: "relative", zIndex: 1 }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.20)", color: "#FBBF24", fontSize: 12, fontWeight: 600, padding: "6px 18px", borderRadius: 50, marginBottom: 20, letterSpacing: "0.5px", textTransform: "uppercase" }}>
-          Trusted in Surat  ·  150+ Cars Serviced  ·  Doorstep Daily Wash
+          Trusted in Surat · 150+ Cars Serviced
         </div>
         <h1 style={{ fontFamily: "'Poppins', sans-serif", fontSize: "clamp(30px,4.5vw,54px)", fontWeight: 700, color: "#fff", lineHeight: 1.15, marginBottom: 16, letterSpacing: "-0.5px" }}>
           {cfg.hero.headline} <em style={{ fontStyle: "normal", color: "#FBBF24" }}>{cfg.hero.headlineAccent}</em>
@@ -843,7 +896,7 @@ export function CustomerPlanPage() {
             <p style={{ fontSize: 15, color: "#6B7280", marginBottom: 32 }}>We only service 4-wheelers — cars, SUVs, and luxury vehicles. Enter your car model to get the right pricing.</p>
 
             {/* 4W Only notice */}
-            <div style={{ background: "#F8FAFC", border: "1px solid #BFDBFE", borderRadius: 12, padding: "14px 18px", marginBottom: 28, maxWidth: 520, fontSize: 14, color: "#0F172A", display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "14px 18px", marginBottom: 28, maxWidth: 520, fontSize: 14, color: "#1D4ED8", display: "flex", gap: 10, alignItems: "flex-start" }}>
               <span style={{ fontSize: 20 }}>🚗</span>
               <div>
                 <strong>4-Wheeler Service Only</strong><br />
@@ -857,7 +910,7 @@ export function CustomerPlanPage() {
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                 {cfg.vehicleCategories.map(cat => (
                   <div key={cat.id} onClick={() => { setDetectedCat(cat.id); setCatConfirmed(true); }}
-                    style={{ border: `2px solid ${activeCat === cat.id ? "#0F172A" : "#E5E7EB"}`, borderRadius: 14, padding: "20px 24px", cursor: "pointer", background: activeCat === cat.id ? "#F8FAFC" : "#fff", textAlign: "center", minWidth: 160, transition: "all 0.2s" }}>
+                    style={{ border: `2px solid ${activeCat === cat.id ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 14, padding: "20px 24px", cursor: "pointer", background: activeCat === cat.id ? "#EFF6FF" : "#fff", textAlign: "center", minWidth: 160, transition: "all 0.2s" }}>
                     <div style={{ fontSize: 36, marginBottom: 8 }}>{cat.icon}</div>
                     <div style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 14 }}>{cat.label}</div>
                   </div>
@@ -872,17 +925,17 @@ export function CustomerPlanPage() {
                 value={carModel}
                 onChange={e => setCarModel(e.target.value)}
                 placeholder="e.g. Maruti Swift, Hyundai Creta, Toyota Fortuner"
-                style={{ width: "100%", padding: "13px 18px", border: "2px solid #E5E7EB", borderRadius: 12, fontFamily: "'Inter', sans-serif", fontSize: 15, outline: "none", background: "#fff", transition: "border-color 0.15s" }}
+                style={{ width: "100%", padding: "13px 18px", border: "2px solid #E5E7EB", borderRadius: 12, fontFamily: "'Inter', sans-serif", fontSize: 15, outline: "none", background: "#fff" }}
               />
               <p style={{ fontSize: 12, color: "#9CA3AF", marginTop: 6 }}>Swift, Baleno, Creta, Innova, Fortuner, XUV700, Nexon…</p>
             </div>
 
             {/* Detected category badge */}
             {activeCat && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#F8FAFC", border: "1px solid #BFDBFE", borderRadius: 12, padding: "13px 18px", marginBottom: 24, maxWidth: 480 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "13px 18px", marginBottom: 24, maxWidth: 480 }}>
                 <span style={{ fontSize: 20 }}>{cfg.vehicleCategories.find(c => c.id === activeCat)?.icon}</span>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{catLabel}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1D4ED8" }}>{catLabel}</div>
                   <div style={{ fontSize: 12, color: "#6B7280" }}>Pricing will be applied for this category</div>
                 </div>
               </div>
@@ -894,7 +947,7 @@ export function CustomerPlanPage() {
                 Next: Check Your Area →
               </button>
               <a href={`https://wa.me/${cfg.brand.whatsappNumber}`} target="_blank" rel="noreferrer"
-                style={{ padding: "13px 24px", background: "#F3F4F6", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
+                style={{ padding: "13px 24px", background: "#f5f5f5", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
                 📞 Prefer a callback?
               </a>
             </div>
@@ -914,7 +967,7 @@ export function CustomerPlanPage() {
                 onChange={e => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 placeholder="e.g. 395007"
                 maxLength={6}
-                style={{ width: "100%", padding: "16px 20px", border: "2px solid #E5E7EB", borderRadius: 12, fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 700, letterSpacing: "6px", outline: "none", color: "#0F172A" }}
+                style={{ width: "100%", padding: "16px 20px", border: "2px solid #E5E7EB", borderRadius: 12, fontFamily: "'Inter', sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: 4, outline: "none" }}
               />
             </div>
 
@@ -942,7 +995,7 @@ export function CustomerPlanPage() {
             </div>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => goTo(1)} style={{ padding: "11px 22px", background: "transparent", color: "#6B7280", border: "1.5px solid #E5E7EB", borderRadius: 50, fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
+              <button onClick={() => goTo(1)} style={{ padding: "12px 24px", background: "#F3F4F6", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
               <button onClick={() => goTo(3)} disabled={!step2Ok}
                 style={{ padding: "13px 32px", background: step2Ok ? "#0F172A" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: step2Ok ? "pointer" : "not-allowed", fontFamily: "'Inter', sans-serif" }}>
                 Next: Choose Your Plan →
@@ -955,7 +1008,7 @@ export function CustomerPlanPage() {
         {step === 3 && (
           <div>
             <h2 style={{ fontFamily: "'Poppins', sans-serif", fontSize: 26, fontWeight: 600, marginBottom: 8, color: "#111827" }}>Choose your plan</h2>
-            <p style={{ fontSize: 15, color: "#6B7280", marginBottom: 28, lineHeight: 1.6 }}>Priced for your <strong>{catLabel}</strong>. All monthly plans include 30 washes/month.</p>
+            <p style={{ fontSize: 15, color: "#6B7280", marginBottom: 28 }}>Priced for your <strong>{catLabel}</strong>. All monthly plans include 30 washes/month.</p>
 
             {/* Toggle */}
             <div style={{ display: "flex", background: "#E2E8F0", borderRadius: 50, padding: 4, maxWidth: 340, marginBottom: 32 }}>
@@ -976,14 +1029,14 @@ export function CustomerPlanPage() {
                     const isSelected = selectedPlan === plan.id;
                     return (
                       <div key={plan.id} onClick={() => setSelectedPlan(plan.id)}
-                        style={{ border: `2px solid ${isSelected || plan.popular ? "#0F172A" : "#E5E7EB"}`, borderRadius: 16, background: "#fff", cursor: "pointer", overflow: "hidden", transition: "all 0.2s", boxShadow: isSelected ? "0 4px 20px rgba(15,23,42,0.12)" : "none" }}>
-                        {plan.popular && <div style={{ background: "#0F172A", color: "#FBBF24", fontSize: 10, fontWeight: 700, padding: "6px 12px", textAlign: "center", letterSpacing: "1px", textTransform: "uppercase" }}>⭐ Most Popular</div>}
+                        style={{ border: `2px solid ${isSelected || plan.popular ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 16, background: "#fff", cursor: "pointer", overflow: "hidden", transition: "transform 0.2s, box-shadow 0.2s", transition: "all 0.2s", boxShadow: isSelected ? "0 8px 32px rgba(33,150,243,0.18)" : "none" }}>
+                        {plan.popular && <div style={{ background: "#0F172A", color: "#FBBF24", fontSize: 11, fontWeight: 700, padding: "5px 12px", textAlign: "center", letterSpacing: 0.8 }}>⭐ Most Popular</div>}
                         <div style={{ padding: 24 }}>
                           <div style={{ fontSize: 28, marginBottom: 10 }}>{plan.icon}</div>
                           <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{plan.name}</div>
                           <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 18 }}>{plan.tagline}</div>
                           <div style={{ marginBottom: 4 }}>
-                            <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: 34, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.5px" }}>{inr(price)}</span>
+                            <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: 32, fontWeight: 800, color: "#1D4ED8" }}>{inr(price)}</span>
                             <span style={{ fontSize: 14, color: "#6B7280" }}>/month</span>
                           </div>
                           <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 18 }}>{perWash(price)}</div>
@@ -995,7 +1048,7 @@ export function CustomerPlanPage() {
                               </div>
                             ))}
                           </div>
-                          <button style={{ width: "100%", marginTop: 18, padding: "12px 0", borderRadius: 50, border: "2px solid #0F172A", background: isSelected ? "#0F172A" : "transparent", color: isSelected ? "#fff" : "#0F172A", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Inter', sans-serif", letterSpacing: "0.3px" }}>
+                          <button style={{ width: "100%", marginTop: 18, padding: 13, borderRadius: 10, border: "2px solid #0F172A", background: isSelected ? "#0F172A" : "none", color: isSelected ? "#fff" : "#0F172A", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
                             {isSelected ? "✓ Selected" : `Select ${plan.name}`}
                           </button>
                         </div>
@@ -1013,10 +1066,10 @@ export function CustomerPlanPage() {
                       const isSelected = commitment === c.id;
                       return (
                         <div key={c.id} onClick={() => setCommitment(c.id)}
-                          style={{ border: `2px solid ${isSelected ? "#0F172A" : c.highlight === "best" ? "#0F172A" : "#E5E7EB"}`, borderRadius: 14, padding: 18, cursor: "pointer", background: isSelected ? "#F8FAFC" : "#fff", transition: "all 0.2s" }}>
-                          {c.highlight && <div style={{ display: "inline-block", background: "#0F172A", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, marginBottom: 8, letterSpacing: 0.5 }}>{c.highlight === "best" ? "BEST DEAL" : "GREAT VALUE"}</div>}
+                          style={{ border: `2px solid ${isSelected ? "#1D4ED8" : c.highlight === "best" ? "#FF6D00" : "#E5E7EB"}`, borderRadius: 14, padding: 18, cursor: "pointer", background: isSelected ? "#EFF6FF" : "#fff", transition: "all 0.2s" }}>
+                          {c.highlight && <div style={{ display: "inline-block", background: c.highlight === "best" ? "#FF6D00" : "#1D4ED8", color: "#fff", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, marginBottom: 8, letterSpacing: 0.5 }}>{c.highlight === "best" ? "BEST DEAL" : "GREAT VALUE"}</div>}
                           <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 15, fontWeight: 700, marginBottom: 6 }}>{c.term}</div>
-                          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>{c.discountLabel}</div>
+                          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 20, fontWeight: 800, color: "#1D4ED8", marginBottom: 4 }}>{c.discountLabel}</div>
                           <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.4 }}>{c.perk}</div>
                         </div>
                       );
@@ -1034,10 +1087,10 @@ export function CustomerPlanPage() {
                     const isSelected = selectedPack === pack.id;
                     return (
                       <div key={pack.id} onClick={() => setSelectedPack(pack.id)}
-                        style={{ border: `2px solid ${isSelected ? "#0F172A" : "#E5E7EB"}`, borderRadius: 14, padding: "20px 16px", textAlign: "center", cursor: "pointer", background: isSelected ? "#F8FAFC" : "#fff", transition: "all 0.2s" }}>
+                        style={{ border: `2px solid ${isSelected ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 14, padding: "20px 16px", textAlign: "center", cursor: "pointer", background: isSelected ? "#EFF6FF" : "#fff", transition: "all 0.2s" }}>
                         <div style={{ fontSize: 28, marginBottom: 10 }}>{pack.icon}</div>
                         <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{pack.name}</div>
-                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 24, fontWeight: 800, color: "#0F172A" }}>{inr(pack.price)}</div>
+                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 24, fontWeight: 800, color: "#1D4ED8" }}>{inr(pack.price)}</div>
                         <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 8 }}>{pack.perLabel}</div>
                         <span style={{ background: "#E8F5E9", color: "#2E7D32", fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 20 }}>{pack.discount}</span>
                       </div>
@@ -1059,7 +1112,9 @@ export function CustomerPlanPage() {
                     <span style={{ fontSize: 18 }}>🔁</span>
                     <div>
                       <strong>Repeat Service</strong> — {
-                        selectedPack === "biweekly" ? "Your car will be washed 2 times per month." :
+                        selectedPack === "pack2" ? "Your 2-visit pack is valid for 20 days from purchase." :
+            selectedPack === "pack4" ? "Your 4-visit pack is valid for 30 days from purchase." :
+            selectedPack === "biweekly" ? "Your car will be washed 2 times per month." :
                         selectedPack === "3x" ? "Your car will be washed 3 times per month." :
                         selectedPack === "weekly" ? "Your car will be washed 4 times per month (every week)." : ""
                       }<br />
@@ -1067,14 +1122,14 @@ export function CustomerPlanPage() {
                     </div>
                   </div>
                 )}
-                <div style={{ background: "#F8FAFC", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#374151", marginBottom: 24 }}>
+                <div style={{ background: "#EFF6FF", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#1D4ED8", marginBottom: 24 }}>
                   💡 <strong>Same ₹200 base price</strong> for all vehicle categories. Volume discount applied automatically. No lock-in.
                 </div>
               </>
             )}
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => goTo(2)} style={{ padding: "11px 22px", background: "transparent", color: "#6B7280", border: "1.5px solid #E5E7EB", borderRadius: 50, fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
+              <button onClick={() => goTo(2)} style={{ padding: "12px 24px", background: "#F3F4F6", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
               <button onClick={() => goTo(4)} disabled={!step3Ok}
                 style={{ padding: "13px 32px", background: step3Ok ? "#0F172A" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: step3Ok ? "pointer" : "not-allowed", fontFamily: "'Inter', sans-serif" }}>
                 Next: Add-ons →
@@ -1088,7 +1143,7 @@ export function CustomerPlanPage() {
           <div>
             <h2 style={{ fontFamily: "'Poppins', sans-serif", fontSize: 26, fontWeight: 600, marginBottom: 8, color: "#111827" }}>Want to add anything?</h2>
             <p style={{ fontSize: 15, color: "#6B7280", marginBottom: 24 }}>Optional add-ons to get more from every wash. Can be added to any plan.</p>
-            <div style={{ background: "#F8FAFC", border: "1px solid #BFDBFE", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#374151", marginBottom: 24 }}>
+            <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#1D4ED8", marginBottom: 24 }}>
               ℹ️ Add-ons are <strong>per visit</strong> unless stated otherwise. You can add or remove them anytime from your account.
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginBottom: 32 }}>
@@ -1096,11 +1151,11 @@ export function CustomerPlanPage() {
                 const selected = addons.includes(addon.id);
                 return (
                   <div key={addon.id} onClick={() => setAddons(prev => selected ? prev.filter(a => a !== addon.id) : [...prev, addon.id])}
-                    style={{ border: `2px solid ${selected ? "#0F172A" : "#E5E7EB"}`, borderRadius: 14, padding: 18, cursor: "pointer", background: selected ? "#F8FAFC" : "#fff", transition: "all 0.2s" }}>
+                    style={{ border: `2px solid ${selected ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 14, padding: 18, cursor: "pointer", background: selected ? "#EFF6FF" : "#fff", transition: "all 0.2s" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{addon.name} {selected && <span style={{ color: "#00C853" }}>✓</span>}</div>
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A" }}>{inr(getAddonPrice(addon.id))}</div>
+                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 18, fontWeight: 800, color: "#1D4ED8" }}>{inr(addon.price)}</div>
                         <div style={{ fontSize: 11, color: "#6B7280" }}>{addon.unit}</div>
                       </div>
                     </div>
@@ -1108,14 +1163,14 @@ export function CustomerPlanPage() {
                     {/* Frequency selector — only shown when addon is selected */}
                     {selected && (
                       <div style={{ marginTop: 8 }} onClick={e => e.stopPropagation()}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 6 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "#1D4ED8", marginBottom: 6 }}>
                           How often? <span style={{ fontWeight: 400, color: "#6B7280" }}>(per month)</span>
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                           {(["1x","2x","3x","4x"] as const).map(freq => (
                             <button key={freq}
                               onClick={e => { e.stopPropagation(); setAddonFreq(prev => ({ ...prev, [addon.id]: freq })); }}
-                              style={{ padding: "5px 14px", borderRadius: 20, border: `2px solid ${addonFreq[addon.id] === freq ? "#0F172A" : "#E5E7EB"}`,
+                              style={{ padding: "5px 14px", borderRadius: 20, border: `2px solid ${addonFreq[addon.id] === freq ? "#1D4ED8" : "#E5E7EB"}`,
                                 background: addonFreq[addon.id] === freq ? "#0F172A" : "#fff",
                                 color: addonFreq[addon.id] === freq ? "#fff" : "#6B7280",
                                 fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
@@ -1148,7 +1203,7 @@ export function CustomerPlanPage() {
               })}
             </div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => goTo(3)} style={{ padding: "11px 22px", background: "transparent", color: "#6B7280", border: "1.5px solid #E5E7EB", borderRadius: 50, fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
+              <button onClick={() => goTo(3)} style={{ padding: "12px 24px", background: "#F3F4F6", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
               <button onClick={() => goTo(5)} style={{ padding: "13px 32px", background: "#0F172A", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
                 Next: Your Details →
               </button>
@@ -1220,8 +1275,8 @@ export function CustomerPlanPage() {
                   </div>
                 ) : (
                   /* SUBSCRIPTION / REPEAT: 2-hour window preference */
-                  <div style={{ background: "#F9FAFB", border: "1.5px solid #E2E8F0", borderRadius: 14, padding: "18px 20px" }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: "#1E293B", marginBottom: 4, display: "flex", gap: 8, alignItems: "center" }}>
+                  <div style={{ background: "#EFF6FF", border: "2px solid #90CAF9", borderRadius: 14, padding: "18px 20px" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#1D4ED8", marginBottom: 4, display: "flex", gap: 8, alignItems: "center" }}>
                       <span>🕐</span> Preferred Wash Window
                     </div>
                     <p style={{ fontSize: 12, color: "#6B7280", marginBottom: 14, lineHeight: 1.5 }}>
@@ -1238,14 +1293,14 @@ export function CustomerPlanPage() {
                         { id: "18:00–20:00", label: "6 PM – 8 PM", icon: "🌇",  note: "After office" },
                       ].map(slot => (
                         <div key={slot.id} onClick={() => setPrefTime(slot.id)}
-                          style={{ border: `2px solid ${prefTime === slot.id ? "#0F172A" : "#E5E7EB"}`,
+                          style={{ border: `2px solid ${prefTime === slot.id ? "#1D4ED8" : "#E5E7EB"}`,
                             borderRadius: 12, padding: "12px 14px", cursor: "pointer",
-                            background: prefTime === slot.id ? "#F8FAFC" : "#fff",
+                            background: prefTime === slot.id ? "#EFF6FF" : "#fff",
                             transition: "all 0.15s" }}>
                           <div style={{ fontSize: 20, marginBottom: 4 }}>{slot.icon}</div>
                           <div style={{ fontWeight: 700, fontSize: 13, color: "#111827" }}>{slot.label}</div>
                           <div style={{ fontSize: 11, color: "#6B7280" }}>{slot.note}</div>
-                          {prefTime === slot.id && <div style={{ fontSize: 11, color: "#0F172A", fontWeight: 600, marginTop: 4 }}>✓ Selected</div>}
+                          {prefTime === slot.id && <div style={{ fontSize: 11, color: "#1D4ED8", fontWeight: 600, marginTop: 4 }}>✓ Selected</div>}
                         </div>
                       ))}
                     </div>
@@ -1277,7 +1332,7 @@ export function CustomerPlanPage() {
                   { id: "random",    label: "Open / Society Parking",        icon: "🏢", desc: "Our team will call you to confirm your spot each day." },
                 ].map(p => (
                   <div key={p.id} onClick={() => setParking(p.id as any)}
-                    style={{ border: `2px solid ${parking === p.id ? "#0F172A" : "#E5E7EB"}`, borderRadius: 14, padding: "16px 20px", cursor: "pointer", background: parking === p.id ? "#F8FAFC" : "#fff", flex: "1 1 220px", transition: "all 0.2s" }}>
+                    style={{ border: `2px solid ${parking === p.id ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 14, padding: "16px 20px", cursor: "pointer", background: parking === p.id ? "#EFF6FF" : "#fff", flex: "1 1 220px", transition: "all 0.2s" }}>
                     <div style={{ fontSize: 24, marginBottom: 8 }}>{p.icon}</div>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{p.label}</div>
                     <div style={{ fontSize: 12, color: "#6B7280" }}>{p.desc}</div>
@@ -1296,7 +1351,7 @@ export function CustomerPlanPage() {
                   { id: "both",     label: "Both",          icon: "📲" },
                 ].map(opt => (
                   <div key={opt.id} onClick={() => setNotifyPref(opt.id as any)}
-                    style={{ border: `2px solid ${notifyPref === opt.id ? "#0F172A" : "#E5E7EB"}`, borderRadius: 12, padding: "12px 20px", cursor: "pointer", background: notifyPref === opt.id ? "#F8FAFC" : "#fff", display: "flex", alignItems: "center", gap: 8, fontWeight: notifyPref === opt.id ? 700 : 500, fontSize: 14, transition: "all 0.15s" }}>
+                    style={{ border: `2px solid ${notifyPref === opt.id ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 12, padding: "12px 20px", cursor: "pointer", background: notifyPref === opt.id ? "#EFF6FF" : "#fff", display: "flex", alignItems: "center", gap: 8, fontWeight: notifyPref === opt.id ? 700 : 500, fontSize: 14, transition: "all 0.15s" }}>
                     <span>{opt.icon}</span>{opt.label}
                   </div>
                 ))}
@@ -1307,7 +1362,7 @@ export function CustomerPlanPage() {
             </div>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => goTo(4)} style={{ padding: "11px 22px", background: "transparent", color: "#6B7280", border: "1.5px solid #E5E7EB", borderRadius: 50, fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
+              <button onClick={() => goTo(4)} style={{ padding: "12px 24px", background: "#F3F4F6", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
               <button onClick={() => goTo(6)} disabled={!step5Ok}
                 style={{ padding: "13px 32px", background: step5Ok ? "#0F172A" : "#CBD5E1", color: "#fff", border: "none", borderRadius: 50, fontWeight: 700, fontSize: 15, cursor: step5Ok ? "pointer" : "not-allowed", fontFamily: "'Inter', sans-serif" }}>
                 Review & Accept T&C →
@@ -1323,13 +1378,13 @@ export function CustomerPlanPage() {
             <p style={{ fontSize: 15, color: "#6B7280", marginBottom: 24 }}>Review your order, read and accept our policies, then pay securely.</p>
 
             {/* Photos promise */}
-            <div style={{ background: "#F8FAFC", border: "1px solid #BFDBFE", borderRadius: 14, padding: "16px 20px", display: "flex", gap: 14, alignItems: "center", marginBottom: 24, maxWidth: 640 }}>
+            <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 14, padding: "16px 20px", display: "flex", gap: 14, alignItems: "center", marginBottom: 24, maxWidth: 640 }}>
               <span style={{ fontSize: 24 }}>📸</span>
               <span style={{ fontSize: 14 }}>After <strong>every single wash</strong>, your washer will send <strong>before & after photos directly to your WhatsApp</strong>. You don't need to be present.</span>
             </div>
 
             <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 16, maxWidth: 640, marginBottom: 24, overflow: "hidden" }}>
-              <div style={{ padding: "16px 20px", fontFamily: "'Poppins', sans-serif", fontWeight: 600, fontSize: 15, borderBottom: "1px solid #E5E7EB", background: "#0F172A", color: "#fff", borderRadius: "16px 16px 0 0" }}>Order Summary</div>
+              <div style={{ padding: "16px 20px", fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 16, borderBottom: "1px solid #E5E7EB" }}>Order Summary</div>
               {[
                 ["Vehicle", `${carModel} ${custReg ? "· " + custReg : ""}`],
                 ["Category", catLabel],
@@ -1349,9 +1404,9 @@ export function CustomerPlanPage() {
                   <span style={{ fontWeight: 600, textAlign: "right", maxWidth: "60%" }}>{v}</span>
                 </div>
               ))}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", background: "#0F172A" }}>
-                <span style={{ fontWeight: 700, fontSize: 16, color: "#fff" }}>Amount to pay</span>
-                <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: 28, fontWeight: 700, color: "#0F172A" }}>{inr(total)}{planMode === "monthly" ? "/month" : ""}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 20px", background: "#F9FAFB" }}>
+                <span style={{ fontWeight: 700, fontSize: 16 }}>Amount to pay</span>
+                <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: 28, fontWeight: 700, color: "#1D4ED8" }}>{inr(total)}{planMode === "monthly" ? "/month" : ""}</span>
               </div>
               <div style={{ padding: "14px 20px", fontSize: 13, color: "#6B7280", background: "#F9FAFB", borderTop: "1px solid #E5E7EB" }}>
                 🔒 <strong>Razorpay secure payment</strong> — Cards, UPI, Net Banking, Wallets. No cash at doorstep.
@@ -1366,7 +1421,7 @@ export function CustomerPlanPage() {
             </div>
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={() => goTo(5)} style={{ padding: "11px 22px", background: "transparent", color: "#6B7280", border: "1.5px solid #E5E7EB", borderRadius: 50, fontWeight: 500, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
+              <button onClick={() => goTo(5)} style={{ padding: "12px 24px", background: "#F3F4F6", color: "#6B7280", border: "none", borderRadius: 50, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>← Back</button>
             </div>
 
             {/* ── T&C CONSENT SECTION ──────────────────────────────────────── */}
@@ -1375,14 +1430,14 @@ export function CustomerPlanPage() {
               <p style={{ fontSize: 13, color: "#6B7280", marginBottom: 20 }}>Please read and accept all three policies before proceeding to payment.</p>
 
               {/* T&C 1 — Terms of Service */}
-              <div style={{ border: `1.5px solid ${consentTerms ? "#16A34A" : "#E5E7EB"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 12, background: consentTerms ? "#F0FDF4" : "#FAFAFA" }}>
+              <div style={{ border: `2px solid ${consentTerms ? "#16A34A" : "#E5E7EB"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 12, background: consentTerms ? "#F0FDF4" : "#fff" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>📄 Terms of Service</div>
                     <div style={{ fontSize: 12, color: "#6B7280" }}>Service schedule, washer conduct, quality standards, service area</div>
                   </div>
                   <button onClick={() => setShowTnC("terms")}
-                    style={{ padding: "5px 14px", background: "#F8FAFC", color: "#0F172A", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
+                    style={{ padding: "5px 14px", background: "#EFF6FF", color: "#1D4ED8", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
                     Read →
                   </button>
                 </div>
@@ -1394,14 +1449,14 @@ export function CustomerPlanPage() {
               </div>
 
               {/* T&C 2 — Refund Policy */}
-              <div style={{ border: `1.5px solid ${consentRefund ? "#16A34A" : "#E5E7EB"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 12, background: consentRefund ? "#F0FDF4" : "#FAFAFA" }}>
+              <div style={{ border: `2px solid ${consentRefund ? "#16A34A" : "#E5E7EB"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 12, background: consentRefund ? "#F0FDF4" : "#fff" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>💰 Refund Policy</div>
                     <div style={{ fontSize: 12, color: "#6B7280" }}>Conditions for refund, pro-rata billing, dispute resolution</div>
                   </div>
                   <button onClick={() => setShowTnC("refund")}
-                    style={{ padding: "5px 14px", background: "#F8FAFC", color: "#0F172A", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
+                    style={{ padding: "5px 14px", background: "#EFF6FF", color: "#1D4ED8", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
                     Read →
                   </button>
                 </div>
@@ -1413,14 +1468,14 @@ export function CustomerPlanPage() {
               </div>
 
               {/* T&C 3 — Cancellation Policy */}
-              <div style={{ border: `1.5px solid ${consentCancel ? "#16A34A" : "#E5E7EB"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 24, background: consentCancel ? "#F0FDF4" : "#FAFAFA" }}>
+              <div style={{ border: `2px solid ${consentCancel ? "#16A34A" : "#E5E7EB"}`, borderRadius: 14, padding: "18px 20px", marginBottom: 24, background: consentCancel ? "#F0FDF4" : "#fff" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 3 }}>🚫 Cancellation Policy</div>
                     <div style={{ fontSize: 12, color: "#6B7280" }}>7-day notice, no lock-in, pause options, penalty-free exit</div>
                   </div>
                   <button onClick={() => setShowTnC("cancel")}
-                    style={{ padding: "5px 14px", background: "#F8FAFC", color: "#0F172A", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
+                    style={{ padding: "5px 14px", background: "#EFF6FF", color: "#1D4ED8", border: "none", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", marginLeft: 12 }}>
                     Read →
                   </button>
                 </div>
@@ -1449,7 +1504,7 @@ export function CustomerPlanPage() {
                 disabled={!consentOk || isProcessing}
                 style={{
                   width: "100%", padding: "16px", borderRadius: 14, border: "none",
-                  background: consentOk && !isProcessing ? "#0F172A" : "#D1D5DB",
+                  background: consentOk && !isProcessing ? "#0F172A" : "#CBD5E1",
                   color: "#fff", fontFamily: "'Poppins', sans-serif", fontWeight: 800, fontSize: 18,
                   cursor: consentOk && !isProcessing ? "pointer" : "not-allowed",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
@@ -1473,11 +1528,11 @@ export function CustomerPlanPage() {
                 onClick={() => setShowTnC(null)}>
                 <div style={{ background: "#fff", borderRadius: 18, maxWidth: 560, width: "100%", maxHeight: "80vh", overflow: "hidden", display: "flex", flexDirection: "column" }}
                   onClick={e => e.stopPropagation()}>
-                  <div style={{ padding: "18px 24px", borderBottom: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#0F172A" }}>
-                    <h3 style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 17, margin: 0, color: "#fff" }}>
+                  <div style={{ padding: "20px 24px", borderBottom: "1px solid #E5E7EB", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h3 style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 800, fontSize: 18, margin: 0 }}>
                       {showTnC === "terms" ? "📄 Terms of Service" : showTnC === "refund" ? "💰 Refund Policy" : "🚫 Cancellation Policy"}
                     </h3>
-                    <button onClick={() => setShowTnC(null)} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: "rgba(255,255,255,0.70)" }}>✕</button>
+                    <button onClick={() => setShowTnC(null)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6B7280" }}>✕</button>
                   </div>
                   <div style={{ padding: "20px 24px", overflowY: "auto", fontSize: 13, lineHeight: 1.8, color: "#374151" }}>
                     {showTnC === "terms" && <>

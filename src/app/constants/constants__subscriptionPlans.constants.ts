@@ -122,28 +122,30 @@ export const VEHICLE_CATEGORIES = {
  * Base Monthly Prices by Vehicle Category and Plan Tier
  * Source of truth for all billing calculations
  */
+// v1.9 pricing — updated May 2026
+// Plan IDs: EXPRESS_WASH (SHINE), SMART_WASH (PROTECT), ELITE_WASH (ELITE)
 export const PLAN_BASE_PRICES = {
   HATCHBACK_COMPACT_SEDAN: {
-    WATER_WASH: 699,
-    WATER_SHAMPOO: 1299,
-    WATER_SHAMPOO_WAX: 1999,
+    EXPRESS_WASH: 1249,   // was WATER_WASH — "Express Wash"
+    SMART_WASH:   1599,   // was WATER_SHAMPOO — "Smart Wash"
+    ELITE_WASH:   1999,   // was WATER_SHAMPOO_WAX — "Elite Wash"
   },
   SUV_MUV_SEDAN: {
-    WATER_WASH: 899,
-    WATER_SHAMPOO: 1699,
-    WATER_SHAMPOO_WAX: 2699,
+    EXPRESS_WASH: 1499,
+    SMART_WASH:   1999,
+    ELITE_WASH:   2499,
   },
   LUXURY_LARGE_SUV: {
-    WATER_WASH: 1099,
-    WATER_SHAMPOO: 1999,
-    WATER_SHAMPOO_WAX: 2999,
+    EXPRESS_WASH: 1999,
+    SMART_WASH:   2699,
+    ELITE_WASH:   3499,
   },
   STANDARD_COMMUTER_BIKE: {
-    WATER_WASH: 299,
+    WATER_WASH:  299,
     WATER_SHAMPOO: 699,
   },
   SPORTS_PREMIUM_BIKE: {
-    WATER_WASH: 399,
+    WATER_WASH:  399,
     WATER_SHAMPOO: 899,
   },
   SCOOTER: {
@@ -156,10 +158,25 @@ export const PLAN_BASE_PRICES = {
 // ============================================
 
 export const PLAN_TIER_NAMES = {
+  // Legacy keys — kept for backward compatibility
   WATER_WASH: "Water Wash",
   WATER_SHAMPOO: "Water + Shampoo",
   WATER_SHAMPOO_WAX: "Water + Shampoo + Wax",
 } as const;
+
+// v1.9 display names — use these in all UI
+export const PLAN_DISPLAY_NAMES: Record<string, string> = {
+  EXPRESS_WASH: "Express Wash",   // internal ID: SHINE
+  SMART_WASH:   "Smart Wash",     // internal ID: PROTECT
+  ELITE_WASH:   "Elite Wash",     // internal ID: ELITE
+  // Backward compat
+  WATER_WASH:        "Express Wash",
+  WATER_SHAMPOO:     "Smart Wash",
+  WATER_SHAMPOO_WAX: "Elite Wash",
+  SHINE:             "Express Wash",
+  PROTECT:           "Smart Wash",
+  ELITE:             "Elite Wash",
+};
 
 // ============================================
 // ADD-ON SERVICES
@@ -168,61 +185,88 @@ export const PLAN_TIER_NAMES = {
 /**
  * Add-On Service Configurations
  */
+// v1.9 add-on pricing — prices are for HATCHBACK
+// SUV prices: Interior +₹50, Dashboard +₹50, Tyre +₹50, Wax +₹50, Underbody +₹50, EngBay +₹50
+// Luxury prices: Interior +₹150, Dashboard +₹100, Tyre +₹100, Wax +₹200, Underbody +₹150, EngBay +₹100
 export const ADDON_SERVICES = [
   {
+    id: "vacuum",
     name: "Interior Deep Vacuum",
-    description: "Seats, mats, footwells, boot area",
-    price: 199,
+    description: "Glove box, door pad polish, seats, mats, footwells, boot. Before+after photo.",
+    prices: { hatchback: 199, suv: 249, luxury: 349 },
+    price: 199,  // hatchback base, kept for backward compat
     billingType: "PER_VISIT" as const,
-    bestPairedWith: ["WATER_WASH", "WATER_SHAMPOO"],
-    marginPercent: 78,
+    bestPairedWith: ["EXPRESS_WASH", "SMART_WASH", "SHINE", "PROTECT"],
+    marginPercent: 79,
     isOperationallyConfirmed: true,
   },
   {
-    name: "Dashboard & Console Clean",
-    description: "Dash, console, door pads",
+    id: "dashboard",
+    name: "Dashboard & Console Detail",
+    description: "Dashboard polish, console polish, door pads, vents cleaned by blower.",
+    prices: { hatchback: 149, suv: 199, luxury: 249 },
     price: 149,
     billingType: "PER_VISIT" as const,
-    bestPairedWith: ["WATER_WASH", "WATER_SHAMPOO", "WATER_SHAMPOO_WAX", "WATER_SHAMPOO"],
+    bestPairedWith: ["EXPRESS_WASH", "SMART_WASH", "ELITE_WASH", "SHINE", "PROTECT", "ELITE"],
     marginPercent: 80,
     isOperationallyConfirmed: true,
   },
   {
-    name: "Tyre Dressing",
-    description: "Shine & protect all 4 tyres",
+    id: "tyre",
+    name: "Tyre Dressing (all 4 tyres)",
+    description: "Shampoo wash tyre + mud guard + shine protect application.",
+    prices: { hatchback: 99, suv: 149, luxury: 199 },
     price: 99,
     billingType: "PER_VISIT" as const,
-    bestPairedWith: ["WATER_WASH", "WATER_SHAMPOO"],
+    bestPairedWith: ["EXPRESS_WASH", "SMART_WASH", "SHINE", "PROTECT"],
     marginPercent: 75,
     isOperationallyConfirmed: true,
   },
   {
-    name: "Glass Coating (RainX)",
-    description: "Applied 1x/month on all glass",
-    price: 349,
-    billingType: "PER_MONTH" as const,
-    bestPairedWith: ["WATER_SHAMPOO", "WATER_SHAMPOO_WAX"],
-    marginPercent: 72,
+    id: "waxpolish",
+    name: "Full Hand Wax Polish",
+    description: "Shampoo wash + full body panel-by-panel wax application. Outer body only — no glass.",
+    prices: { hatchback: 199, suv: 249, luxury: 399 },
+    price: 199,
+    billingType: "PER_VISIT" as const,
+    bestPairedWith: ["EXPRESS_WASH", "SMART_WASH", "SHINE", "PROTECT"],
+    marginPercent: 73,
     isOperationallyConfirmed: true,
   },
   {
-    name: "One-time Wax Polish",
-    description: "For Basic/Shampoo plan users",
-    price: 599,
+    id: "underbody",
+    name: "Underbody Wash",
+    description: "Under body water spray — removes mud, road grime, salt.",
+    prices: { hatchback: 199, suv: 249, luxury: 349 },
+    price: 199,
     billingType: "PER_VISIT" as const,
-    bestPairedWith: ["WATER_WASH", "WATER_SHAMPOO"],
+    bestPairedWith: ["EXPRESS_WASH", "SMART_WASH", "ELITE_WASH"],
     marginPercent: 70,
     isOperationallyConfirmed: true,
   },
   {
-    name: "Underbody Anti-Rust Spray",
-    description: "Protective coating, quarterly",
-    price: 799,
+    id: "enginebay",
+    name: "Engine Bay Wipe-Down",
+    description: "Dry blow of engine bay — no water. Removes dust and debris. Strictly dry process only.",
+    prices: { hatchback: 99, suv: 149, luxury: 199 },
+    price: 99,
     billingType: "PER_VISIT" as const,
-    bestPairedWith: ["WATER_SHAMPOO_WAX"],
-    marginPercent: 65,
-    isOperationallyConfirmed: false, // PENDING OPERATIONAL CONFIRMATION
+    bestPairedWith: ["SMART_WASH", "ELITE_WASH", "PROTECT", "ELITE"],
+    marginPercent: 72,
+    isOperationallyConfirmed: true,
   },
+  {
+    id: "fragrance",
+    name: "Car Fragrance (standalone)",
+    description: "Interior car fragrance spray — single fresh application.",
+    prices: { hatchback: 49, suv: 49, luxury: 49 },
+    price: 49,
+    billingType: "PER_VISIT" as const,
+    bestPairedWith: ["EXPRESS_WASH", "SMART_WASH", "ELITE_WASH"],
+    marginPercent: 85,
+    isOperationallyConfirmed: true,
+  },
+  // REMOVED: Glass Coating (RainX) ₹349 — not in v1.9 pricing
 ] as const;
 
 // ============================================
