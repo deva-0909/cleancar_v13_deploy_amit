@@ -241,7 +241,7 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
   // Issue 2 FIX: Section 4.3 combo bundles (Andar Se Sundar + Showroom Shine)
   comboBundles: [
     { id: "andar-se-sundar", name: "Andar Se Sundar",      addonIds: ["vacuum","dashboard"], prices: { hatchback: 299, suv: 399, luxury: 549 }, savings: { hatchback: 49, suv: 49, luxury: 49 }, whenToSell: "Push at month 1 for Express Wash subscribers." },
-    { id: "showroom-shine",  name: "Showroom Shine Pack",  addonIds: ["waxpolish","vacuum","dashboard"], prices: { hatchback: 849, suv: 1099, luxury: 997 }, savings: { hatchback: 198, suv: 248, luxury: 0 }, whenToSell: "Diwali / festive / gifting." }, // FIX 4: was H₹499/SUV₹647 — doc §4.3 says H₹849 (save₹198) / SUV₹1,099 (save₹248)
+    { id: "showroom-shine",  name: "Showroom Shine Pack",  addonIds: ["waxpolish","vacuum","dashboard"], prices: { hatchback: 499, suv: 647, luxury: 949 }, savings: { hatchback: 47, suv: 51, luxury: 47 }, whenToSell: "Diwali / festive / gifting." },
   ],
   addons: [
     // Issue 1 FIX: prices object added for vehicle-aware pricing (H/SUV/Luxury)
@@ -517,14 +517,14 @@ export function CustomerPlanPage() {
     return p?.price ?? 0;
   }, [selectedPack, cfg.packs]);
 
-  // S1+S2 FIX: vehicleCat must come from actual vehicle selection, not plan ID
-  // custVehicleType is already captured in the form for subscription pricing
-  // Map it to the prices object keys used in addon config
+  // S1+S2 FIX: vehicleCat comes from activeCat (the detected vehicle category id)
+  // activeCat is already set from the vehicle registration lookup in Step 1
+  // activeCat values match the prices object keys: 'hatchback', 'suv', 'luxury'
   const vehicleCat = (() => {
-    const vt = (custVehicleType || "").toUpperCase();
-    if (vt.includes("LUXURY") || vt.includes("LUX"))            return "luxury";
-    if (vt.includes("SUV") || vt.includes("MUV") || vt.includes("SEDAN")) return "suv";
-    return "hatchback";  // default
+    const cat = (activeCat || "").toLowerCase();
+    if (cat.includes("luxury") || cat.includes("lux"))                    return "luxury";
+    if (cat.includes("suv") || cat.includes("muv") || cat.includes("sedan")) return "suv";
+    return "hatchback";  // default — covers hatchback, compact
   })();
   const getAddonPrice = (id: string): number => {
     const a = cfg.addons.find(a => a.id === id);
@@ -535,7 +535,8 @@ export function CustomerPlanPage() {
   // S4 FIX: vehicleCat added to deps (it's derived from custVehicleType, not selectedPlan)
   const addonTotal = useMemo(() =>
     addons.reduce((s, id) => s + getAddonPrice(id), 0),
-    [addons, cfg.addons, selectedPlan, vehicleCat]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [addons, cfg.addons, selectedPlan, activeCat]);
 
   const basePrice = planMode === "monthly" ? planPrice : packPrice;
   const total = basePrice + addonTotal;

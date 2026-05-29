@@ -791,21 +791,8 @@ JOURNALS.push({ id:"JV-ADVTAX-1", voucherNumber:jvNo2(), date:"2026-03-15", narr
 // SEEDER FUNCTION
 // ═════════════════════════════════════════════════════════════════════════════
 export function seedAllData(): void {
-  // Quota-safe write helpers — defined inside fn to avoid Rollup tree-shake issues
-  const _set = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch (_e) { console.warn("[seed] quota:", k); } };
-  const _city = (base: string, recs: any[]) => {
-    const s = recs.filter((r: any) => (r.cityId || "CITY-SURAT") === "CITY-SURAT");
-    const m = recs.filter((r: any) => r.cityId === "CITY-MUMBAI");
-    _set(`cleancar_${base}`, JSON.stringify(recs));
-    _set(`cleancar_CITY-SURAT_${base}`, JSON.stringify(s));
-    _set(`cleancar_CITY-MUMBAI_${base}`, JSON.stringify(m));
-  };
-
   try {
     if (localStorage.getItem(SEED_FLAG)) return;
-
-    // FIX: set flag FIRST — quota errors in later sections won't re-run seed on reload
-    localStorage.setItem(SEED_FLAG, "true");
 
     // Clear ALL previous seed flags so every browser gets fresh data
     ["HISTORIC_DATA_SEEDED_V1","HISTORIC_DATA_SEEDED_V2","HISTORIC_DATA_SEEDED_V3",
@@ -814,54 +801,57 @@ export function seedAllData(): void {
      "ALL_DATA_SEEDED_V5","ALL_DATA_SEEDED_V6"
     ].forEach(f => localStorage.removeItem(f));
 
+    // FIX: Set SEED_FLAG first — prevents infinite re-seed if quota hit mid-run
+    localStorage.setItem(SEED_FLAG, "true");
+
     // ── 1. EMPLOYEES ─────────────────────────────────────────────────────────
     const existEmp = JSON.parse(localStorage.getItem("EMPLOYEE_DATABASE_RECORDS")||"[]");
     const existIds = new Set(existEmp.map((e:any)=>e.id));
     const allEmp   = [...existEmp, ...EMPLOYEES_RAW.filter(e=>!existIds.has(e.id))];
-    _set("EMPLOYEE_DATABASE_RECORDS", JSON.stringify(allEmp)); // auth
-    _set("cleancar_employees",              JSON.stringify(EMPLOYEES));       // legacy fallback
-    _set("cleancar_CITY-SURAT_employees",   JSON.stringify(SUR_EMPS));
-    _set("cleancar_CITY-MUMBAI_employees",  JSON.stringify(MUM_EMPS));
+    localStorage.setItem("EMPLOYEE_DATABASE_RECORDS", JSON.stringify(allEmp)); // auth
+    localStorage.setItem("cleancar_employees",              JSON.stringify(EMPLOYEES));       // legacy fallback
+    localStorage.setItem("cleancar_CITY-SURAT_employees",   JSON.stringify(SUR_EMPS));
+    localStorage.setItem("cleancar_CITY-MUMBAI_employees",  JSON.stringify(MUM_EMPS));
 
     // ── 2. SALARY STRUCTURES ─────────────────────────────────────────────────
-    _city("salary_structures", SALARY_STRUCTURES);
+    writeByCityId("salary_structures", SALARY_STRUCTURES);
 
     // ── 3. INCENTIVE PLANS ───────────────────────────────────────────────────
-    _city("incentive_plans", INCENTIVE_PLANS);
+    writeByCityId("incentive_plans", INCENTIVE_PLANS);
 
     // ── 4. PAYROLL RUNS ──────────────────────────────────────────────────────
-    _city("payroll_runs", PAYROLL_RUNS);
+    writeByCityId("payroll_runs", PAYROLL_RUNS);
 
     // ── 5. EMPLOYEE INCENTIVES ───────────────────────────────────────────────
-    _city("employee_incentives", EMPLOYEE_INCENTIVES);
+    writeByCityId("employee_incentives", EMPLOYEE_INCENTIVES);
 
     // ── 6. ATTENDANCE ────────────────────────────────────────────────────────
-    _city("attendance_records", ATTENDANCE_RECORDS);
+    writeByCityId("attendance_records", ATTENDANCE_RECORDS);
 
     // ── 7. CUSTOMERS ─────────────────────────────────────────────────────────
     // Force-clear stale customers so real Indian names always replace generic ones
     ["cleancar_customers","cleancar_CITY-SURAT_customers","cleancar_CITY-MUMBAI_customers"]
       .forEach(k => localStorage.removeItem(k));
-    _city("customers", CUSTOMERS);
+    writeByCityId("customers", CUSTOMERS);
 
     // ── 8. LEADS ─────────────────────────────────────────────────────────────
-    _city("leads", LEADS);
+    writeByCityId("leads", LEADS);
 
     // ── 9. DEMOS ─────────────────────────────────────────────────────────────
-    _city("demos", DEMOS);
+    writeByCityId("demos", DEMOS);
 
     // ── 10. SUBSCRIPTIONS ────────────────────────────────────────────────────
     // Force-clear stale subscriptions so packageName field is always present
     ["cleancar_subscriptions","cleancar_CITY-SURAT_subscriptions","cleancar_CITY-MUMBAI_subscriptions"]
       .forEach(k => localStorage.removeItem(k));
-    _city("subscriptions", SUBS);
+    writeByCityId("subscriptions", SUBS);
 
     // ── 11. JOBS ─────────────────────────────────────────────────────────────
-    _city("jobs", JOBS);
+    writeByCityId("jobs", JOBS);
 
     // ── 12. COMPLAINTS (DataService + raw key for customerCareExecutiveService)
-    _city("complaints", COMPLAINTS_DS);
-    _set("cleancar_complaints", JSON.stringify(COMPLAINTS_RAW));
+    writeByCityId("complaints", COMPLAINTS_DS);
+    localStorage.setItem("cleancar_complaints", JSON.stringify(COMPLAINTS_RAW));
 
     // ── 13. INVENTORY ────────────────────────────────────────────────────────
     const invByCityId: Record<string,any[]> = {};
@@ -871,40 +861,40 @@ export function seedAllData(): void {
       invByCityId[cid].push(item);
     }
     for (const [cid, items] of Object.entries(invByCityId)) {
-      _set(`cleancar_${cid}_inventory_items`, JSON.stringify(items));
+      localStorage.setItem(`cleancar_${cid}_inventory_items`, JSON.stringify(items));
     }
 
     // ── 14. STOCK TRANSACTIONS ───────────────────────────────────────────────
-    _city("stock_transactions", STOCK_TRANSACTIONS);
+    writeByCityId("stock_transactions", STOCK_TRANSACTIONS);
 
     // ── 15. FINANCE ──────────────────────────────────────────────────────────
-    _city("mrr",      FINANCE_MRR);
-    _city("payables", FINANCE_PAYABLES);
+    writeByCityId("mrr",      FINANCE_MRR);
+    writeByCityId("payables", FINANCE_PAYABLES);
     // Force-clear stale revenue data so customerName + packageName fields are always fresh
     ["cleancar_revenues","cleancar_CITY-SURAT_revenues","cleancar_CITY-MUMBAI_revenues"]
       .forEach(k => localStorage.removeItem(k));
-    _city("revenues", FINANCE_REVENUES);
+    writeByCityId("revenues", FINANCE_REVENUES);
 
     // ── 16. ADVANCES ─────────────────────────────────────────────────────────
-    _city("advance_management", ADVANCES);
+    writeByCityId("advance_management", ADVANCES);
 
     // ── 17. CLOTH TRACKING ───────────────────────────────────────────────────
-    _city("cloth_tracking", CLOTH);
+    writeByCityId("cloth_tracking", CLOTH);
 
     // ── 18. ACCOUNTING LEDGERS ───────────────────────────────────────────────
     // Force-clear stale SYS-... duplicate system ledgers; seed writes canonical LM-... IDs
     localStorage.removeItem("cleancar_ledger_masters");
-    _set("cleancar_ledger_masters", JSON.stringify(LEDGERS));
+    localStorage.setItem("cleancar_ledger_masters", JSON.stringify(LEDGERS));
 
     // ── 19. ACCOUNTING ENTRIES ───────────────────────────────────────────────
     // Force-clear so entries always match the canonical ledger IDs from LEDGERS[]
     localStorage.removeItem("cleancar_accounting_entries");
-    _set("cleancar_accounting_entries", JSON.stringify(ACC_ENTRIES));
+    localStorage.setItem("cleancar_accounting_entries", JSON.stringify(ACC_ENTRIES));
 
     // ── 20. JOURNAL ENTRIES ──────────────────────────────────────────────────
     const existJournals: any[] = JSON.parse(localStorage.getItem("cleancar_journal_entries")||"[]");
     const existJvIds = new Set(existJournals.map((j:any)=>j.id));
-    _set("cleancar_journal_entries",
+    localStorage.setItem("cleancar_journal_entries",
       JSON.stringify([...existJournals, ...JOURNALS.filter(j=>!existJvIds.has(j.id))]));
 
     // ── 21. GST VENDORS (for AccountingEntry + ExpenseVoucher dropdowns) ─────
@@ -919,7 +909,7 @@ export function seedAllData(): void {
       const key = `cleancar_${cid}_gst_vendors`;
       const existV: any[] = JSON.parse(localStorage.getItem(key)||"[]");
       const existVIds = new Set(existV.map((v:any)=>v.id));
-      _set(key, JSON.stringify([...existV, ...SEED_GST_VENDORS.filter(v=>!existVIds.has(v.id))]));
+      localStorage.setItem(key, JSON.stringify([...existV, ...SEED_GST_VENDORS.filter(v=>!existVIds.has(v.id))]));
     });
 
     // ── 22. SEED INVOICES from FINANCE_REVENUES ───────────────────────────────
@@ -946,7 +936,7 @@ export function seedAllData(): void {
       const key = `cleancar_${cid}_payments`;
       const existP: any[] = JSON.parse(localStorage.getItem(key)||"[]");
       const existPIds = new Set(existP.map((p:any)=>p.id));
-      _set(key, JSON.stringify([...existP, ...SEED_PAYMENTS.filter(p=>!existPIds.has(p.id) && p.city === cid)]));
+      localStorage.setItem(key, JSON.stringify([...existP, ...SEED_PAYMENTS.filter(p=>!existPIds.has(p.id) && p.city === cid)]));
     });
 
     // ── 24. BTL ASSIGNMENTS (for Supervisor BTL Activity Mode) ───────────────
@@ -1012,7 +1002,7 @@ export function seedAllData(): void {
     const btlAssignKey = "cleancar_btl_assignments";
     const existingBTL: any[] = JSON.parse(localStorage.getItem(btlAssignKey)||"[]");
     const existBTLIds = new Set(existingBTL.map((a:any)=>a.assignmentId));
-    _set(btlAssignKey, JSON.stringify([
+    localStorage.setItem(btlAssignKey, JSON.stringify([
       ...existingBTL,
       ...SEED_BTL_ASSIGNMENTS.filter(a=>!existBTLIds.has(a.assignmentId))
     ]));
@@ -1036,8 +1026,8 @@ export function seedAllData(): void {
       { id:"BD-002", locationId:"LOC-002", locationName:"Reliance Corporate Park", smId:"EDB-SMGR-SUR1", vehicleCount:22, packageType:"PROTECT",       commitmentTerm:6,  status:"Approved", approvedDate:daysAgoSM(5),  activeVehicles:0,  phase1Paid:false, phase1Amount:7500, phase2Amount:3750, phase2CheckDate:daysAgoSM(-90), phase2Status:"pending", additionalVehicles:0 },
     ];
     // Only seed if not already present (so user-added data isn't wiped)
-    if (!localStorage.getItem("sm_locations"))   _set("sm_locations",   JSON.stringify(SM_LOCATIONS_SEED));
-    if (!localStorage.getItem("sm_block_deals")) _set("sm_block_deals", JSON.stringify(SM_BLOCK_DEALS_SEED));
+    if (!localStorage.getItem("sm_locations"))   localStorage.setItem("sm_locations",   JSON.stringify(SM_LOCATIONS_SEED));
+    if (!localStorage.getItem("sm_block_deals")) localStorage.setItem("sm_block_deals", JSON.stringify(SM_BLOCK_DEALS_SEED));
 
     // ── 26. SH MODULE — sh_tce_performance with real TSE employee IDs ─────────
     // SalesHeadService reads sh_tce_performance first before falling back to seedTCEStatuses().
@@ -1047,11 +1037,11 @@ export function seedAllData(): void {
       { id:"EDB-TSE-SUR2", name:"Ankit Trivedi", closuresMTD:14, gateColor:"RED",   slaCompliancePct:72, planMixPct:48, churnCount30d:3, lastCallTime:minsAgoSM(95), incentiveForecast:1800, status:"ACTIVE"  },
     ];
     if (!localStorage.getItem("sh_tce_performance")) {
-      _set("sh_tce_performance", JSON.stringify(SH_TCE_PERF));
+      localStorage.setItem("sh_tce_performance", JSON.stringify(SH_TCE_PERF));
     }
     // Also seed sh_tce_statuses (what SalesHeadService.STORE_KEYS.TCE_STATUSES reads)
     if (!localStorage.getItem("sh_tce_statuses")) {
-      _set("sh_tce_statuses", JSON.stringify(SH_TCE_PERF));
+      localStorage.setItem("sh_tce_statuses", JSON.stringify(SH_TCE_PERF));
     }
 
     // ── 27. SM MODULE — per-SM leads with real customer IDs ──────────────────────
@@ -1068,7 +1058,7 @@ export function seedAllData(): void {
       { id:"SH-L-008", customerName:"Nita Varma",     phone:"+91 98765 43226", vehicleType:"4W", vehicleCategory:"Hatchback",source:"SM-Alliance-Supervisor", status:"No Response", assignedTo:"EDB-TSE-SUR1",ageMinutes:360, estimatedValue:999,  smId:"EDB-SMGR-SUR3", smLocationName:"Adajan Heights Society",  cityId:"CITY-SURAT" },
     ];
     if (!localStorage.getItem("sh_leads")) {
-      _set("sh_leads", JSON.stringify(SM_LEADS_SEED));
+      localStorage.setItem("sh_leads", JSON.stringify(SM_LEADS_SEED));
     }
 
     // ── 28. BUY PAGE → SYSTEM SYNC: Seed 5 web-purchased subscriptions ─────────
@@ -1123,7 +1113,7 @@ export function seedAllData(): void {
       };
       existingWebInvoices.push(invoice);
     });
-    _set("cleancar_web_invoices", JSON.stringify(existingWebInvoices));
+    localStorage.setItem("cleancar_web_invoices", JSON.stringify(existingWebInvoices));
 
     // Sync web customers into CUSTOMERS DataService key
     const customersDSKey = `cleancar_CITY-SURAT_customers`;
@@ -1148,7 +1138,7 @@ export function seedAllData(): void {
         updatedAt:      dAgo(wc.daysAgo),
       });
     });
-    _set(customersDSKey, JSON.stringify(existingCustDS));
+    localStorage.setItem(customersDSKey, JSON.stringify(existingCustDS));
 
     // Sync web subscriptions into SUBSCRIPTIONS DataService key
     const subsDSKey = `cleancar_CITY-SURAT_subscriptions`;
@@ -1177,7 +1167,7 @@ export function seedAllData(): void {
         createdAt:      dAgo(wc.daysAgo),
       });
     });
-    _set(subsDSKey, JSON.stringify(existingSubsDS));
+    localStorage.setItem(subsDSKey, JSON.stringify(existingSubsDS));
 
     // Sync web revenues into FINANCE_REVENUES DataService key
     const revKey = `cleancar_CITY-SURAT_revenues`;
@@ -1201,7 +1191,7 @@ export function seedAllData(): void {
         createdAt:      dAgo(wc.daysAgo),
       });
     });
-    _set(revKey, JSON.stringify(existingRevs));
+    localStorage.setItem(revKey, JSON.stringify(existingRevs));
 
     // ── 29. SH MODULE — sh_leads with SM attribution for web customers ─────────
     // Leads from buy page attributed to SM alliance locations appear in SH pipeline
@@ -1215,7 +1205,7 @@ export function seedAllData(): void {
       { id:"SH-L-W05", customerName:"Sneha Agarwal",  phone:"9423456785", vehicleType:"4W", vehicleCategory:"Hatchback", source:"SM-Alliance-WhatsApp",status:"Converted",assignedTo:"EDB-TSE-SUR1",ageMinutes:11520,estimatedValue:1499, smId:"EDB-SMGR-SUR3", smLocationName:"Piplod Township Society", cityId:"CITY-SURAT", convertedAt:dAgo(8),  invoiceNumber:"INV-WEB-08-WEBCUST-005" },
     ];
     WEB_SH_LEADS.forEach(l => { if (!existingSHIds.has(l.id)) existingSHLeads.push(l); });
-    _set("sh_leads", JSON.stringify(existingSHLeads));
+    localStorage.setItem("sh_leads", JSON.stringify(existingSHLeads));
 
     // ── 30. SM LOCATIONS — update conversion counts from web customers ─────────
     // Reflect the web-purchased customers in the SM location conversion counts
@@ -1229,11 +1219,11 @@ export function seedAllData(): void {
         // Update LOC-003 (HP Petrol Pump) +1 conversion (Rakesh)
         const loc3 = smLocs.find((l: any) => l.id === "LOC-003");
         if (loc3) { loc3.conversionsMTD = Math.max(loc3.conversionsMTD, 3); loc3.payingCustomers = Math.max(loc3.payingCustomers, 3); loc3.status = "Active"; }
-        _set("sm_locations", JSON.stringify(smLocs));
+        localStorage.setItem("sm_locations", JSON.stringify(smLocs));
       }
     } catch (_) {}
 
-    // SEED_FLAG already set at top of function
+    // SEED_FLAG already set at start
     console.log(`[seedAllData] ✅ Complete seed done:\n` +
       `  Employees: ${EMPLOYEES.length} | Payroll: ${PAYROLL_RUNS.length} | Attendance: ${ATTENDANCE_RECORDS.length}\n` +
       `  Customers: ${CUSTOMERS.length} | Leads: ${LEADS.length} | Demos: ${DEMOS.length}\n` +
