@@ -335,7 +335,7 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
       tagline: "Raksha Plan — Clean daily. Protected always.",
       popular: true,
       features: [
-        { text: "Everything in Water Wash", included: true },
+        { text: "Everything in Express Wash", included: true },
         { text: "Car-safe shampoo foam wash", included: true },
         { text: "Microfibre dry + glass polish", included: true },
         { text: "Weekly tyre dressing", included: true },
@@ -346,12 +346,12 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
     },
     {
       id: "elite",
-      name: "ELITE",
-      packageType: "ELITE",
+      name: "Elite Wash",
+      packageType: "ELITE_WASH",
       icon: "✨",
       tagline: "Raja Seva — Showroom condition, every day.",
       features: [
-        { text: "Everything in Shampoo Wash", included: true },
+        { text: "Everything in Smart Wash", included: true },
         { text: "Weekly interior dashboard wipe", included: true },
         { text: "Weekly interior vacuum", included: true },
         { text: "Monthly deep interior vacuum", included: true },
@@ -574,7 +574,7 @@ export function CustomerPlanPage() {
 
       const sub = createSubscription({
         customerId,
-        packageType: selectedPlan === "wax" ? "Premium" : selectedPlan === "shampoo" ? "Standard" : "Basic",
+        packageType: selectedPlan === "elite" ? "ELITE_WASH" : selectedPlan === "smart" ? "SMART_WASH" : "EXPRESS_WASH",
         packageName: planMode === "monthly"
           ? (planObj?.name || selectedPlan || "Plan")
           : (packObj?.name || selectedPack || "Pack"),

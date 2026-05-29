@@ -169,7 +169,7 @@ export const POOL_SPLIT_PCT: Record<IncentiveSource, Partial<Record<IncentiveRol
 
 // §2.3: Express Wash Hatchback = ₹0 for ALL roles
 export function isZeroPool(planType: string, vehicleCategory: string): boolean {
-  const isExpressWash = ["EXPRESS_WASH", "Express Wash", "SHINE"].includes(planType);
+  const isExpressWash = ["EXPRESS_WASH", "Express Wash", "SHINE", "Express Wash Hatchback"].includes(planType);
   const isHatchback   = vehicleCategory.toLowerCase().includes("hatchback") ||
                         vehicleCategory.toLowerCase().includes("compact sedan");
   return isExpressWash && isHatchback;
@@ -247,6 +247,7 @@ const PLAN_INCLUDED_ADDONS: Record<string, string[]> = {
   EXPRESS_WASH: [],   // no addons included
   SMART_WASH:   ["vacuum"],           // vacuum 2×/month included
   ELITE_WASH:   ["vacuum","dashboard","tyre","waxpolish","engine"], // all included
+  ELITE:        ["vacuum","dashboard","tyre","waxpolish","engine"], // legacy alias
 };
 
 export function isAddonTopUp(addonId: string, planType: string): boolean {

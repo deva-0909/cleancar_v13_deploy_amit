@@ -509,10 +509,11 @@ export const PITCH_ANCHOR =
 export const WASHES_PER_MONTH = 30;
 
 export const PLAN_TIER_NAMES: Record<string, string> = {
-  EXPRESS_WASH: "EXPRESS_WASH",
-  SMART_WASH:   "SMART_WASH",
-  ELITE:        "ELITE_WASH",
-  ELITE_2W:     "ELITE (2-Wheeler)",
+  EXPRESS_WASH: "Express Wash",
+  SMART_WASH:   "Smart Wash",
+  ELITE_WASH:   "Elite Wash",
+  ELITE:        "Elite Wash",   // legacy alias
+  ELITE_2W:     "Elite Wash (2-Wheeler)",
 };
 
 export const VEHICLE_CATEGORIES_CONFIG: Record<string, {

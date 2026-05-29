@@ -258,7 +258,7 @@ class SubscriptionPlansService {
         ];
         break;
 
-      case "ELITE":
+      case "ELITE_WASH":
         features = [
           ...commonEveryWash,
           {

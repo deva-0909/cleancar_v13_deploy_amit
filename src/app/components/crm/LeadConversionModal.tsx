@@ -66,7 +66,7 @@ export function LeadConversionModal({ lead, open, onOpenChange, onSuccess }: Lea
   const [paymentNotes, setPaymentNotes] = useState("");
 
   const [selectedPackage, setSelectedPackage] = useState<"EXPRESS_WASH" | "SMART_WASH" | "ELITE_WASH">("SMART_WASH");
-  const [packageName, setPackageName] = useState("SMART_WASH");
+  const [packageName, setPackageName] = useState("Smart Wash");
   const [frequency, setFrequency] = useState<"Daily" | "Alternate Days" | "Weekly" | "Bi-Weekly" | "Monthly">("Weekly");
   const [billingCycle, setBillingCycle] = useState<"Monthly" | "Quarterly" | "Annual">("Monthly");
   const [basePrice, setBasePrice] = useState(() => {
@@ -74,7 +74,7 @@ export function LeadConversionModal({ lead, open, onOpenChange, onSuccess }: Lea
     const prices: Record<string, Record<string, number>> = {
       EXPRESS_WASH: { Hatchback: 1249, SUV: 1499, Luxury: 1999 },
       SMART_WASH:   { Hatchback: 1599, SUV: 1999, Luxury: 2699 },
-      ELITE:        { Hatchback: 1999, SUV: 2499, Luxury: 3499 },
+      ELITE_WASH:   { Hatchback: 1999, SUV: 2499, Luxury: 3499 },
     };
     const cat = (lead?.vehicleCategory || "Hatchback").includes("SUV") ? "SUV"
       : (lead?.vehicleCategory || "").includes("Luxury") ? "Luxury" : "Hatchback";
@@ -298,9 +298,9 @@ export function LeadConversionModal({ lead, open, onOpenChange, onSuccess }: Lea
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="EXPRESS_WASH">Basic</SelectItem>
-                        <SelectItem value="SMART_WASH">Standard</SelectItem>
-                        <SelectItem value="Premium">Premium</SelectItem>
+                        <SelectItem value="EXPRESS_WASH">Express Wash</SelectItem>
+                        <SelectItem value="SMART_WASH">Smart Wash</SelectItem>
+                        <SelectItem value="ELITE_WASH">Elite Wash</SelectItem>
                         <SelectItem value="ELITE_WASH">Deluxe</SelectItem>
                       </SelectContent>
                     </Select>
