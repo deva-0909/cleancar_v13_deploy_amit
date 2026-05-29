@@ -1,5 +1,4 @@
 import { incentiveV6, type IncentiveTerm } from "../../services/incentiveStructureV6";
-import { incentiveStructureService } from "../../services/incentiveStructureService";
 /**
  * LeadConversionModal - Payment-driven lead conversion
  * Enforces: Payment FIRST, then subscription details, then conversion

@@ -22,6 +22,7 @@ import {
   TrendingUp, AlertTriangle, IndianRupee, Users, Info,
 } from "lucide-react";
 import {
+  incentiveV6,
   incentiveStructureService,
   type RoleIncentiveSummary,
   type SubscriptionIncentiveRecord,

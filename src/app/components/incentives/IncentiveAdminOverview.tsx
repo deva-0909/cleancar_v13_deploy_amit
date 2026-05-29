@@ -15,6 +15,7 @@ import {
   AlertTriangle, ChevronDown, ChevronUp,
 } from "lucide-react";
 import {
+  incentiveV6,
   incentiveStructureService,
   type SubscriptionIncentiveRecord,
   type ExitPayoutSummary,
