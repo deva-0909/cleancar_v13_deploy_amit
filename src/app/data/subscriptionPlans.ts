@@ -80,7 +80,7 @@ export interface OneTimeWashPricing {
   vehicleCategory: VehicleCategory;
   memberPrice: number;
   nonMemberPrice: number;
-  washType: "EXPRESS_WASH" | "Premium" | "Elite";
+  washType: "EXPRESS_WASH" | "SMART_WASH" | "ELITE_WASH";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

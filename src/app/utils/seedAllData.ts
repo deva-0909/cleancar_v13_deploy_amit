@@ -524,7 +524,7 @@ for (let i = 0; i < 30; i++) {
 const PKG_MAP: Record<string,string> = {
   // CustomerSubscriptionContext interface: "EXPRESS_WASH"|"SMART_WASH"|"Premium"|"ELITE_WASH"
   // These display names match what the Subscription screens expect
-  "EXPRESS_WASH":"EXPRESS_WASH","SMART_WASH":"SMART_WASH","ELITE_WASH":"Premium"
+  "EXPRESS_WASH":"Express Wash","SMART_WASH":"Smart Wash","ELITE_WASH":"Premium"
 };
 const PLAN_PRICES: Record<string,number> = {
   "EXPRESS_WASH":1249,"SMART_WASH":1599,"ELITE_WASH":1999
@@ -1196,7 +1196,7 @@ export function seedAllData(): void {
       existingSubsDS.push({
         subscriptionId: subId,
         customerId:     wc.customerId,
-        packageType:    wc.plan.includes("Wax") ? "Premium" : wc.plan.includes("Shampoo") ? "SMART_WASH" : "EXPRESS_WASH",
+        packageType:    wc.plan.includes("Wax") ? "ELITE_WASH" : wc.plan.includes("Shampoo") ? "SMART_WASH" : "EXPRESS_WASH",
         packageName:    wc.plan,
         frequency:      "Daily",
         status:         "Active",
