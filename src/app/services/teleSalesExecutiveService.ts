@@ -29,7 +29,7 @@ import type {
 } from "../types/teleSalesExecutive.types";
 import {
   ADD_ON_OPTIONS,
-  BUNDLE_TEMPLATES,
+  BUNDLE_DISCOUNT_TIERS,
   EBITDA_FLOOR,
   INCENTIVE_MULTIPLIERS,
   FIXED_SALARY,
@@ -296,21 +296,30 @@ class TeleSalesExecutiveService {
   }
 
   /**
-   * Calculate bundle options for a vehicle type
+   * Calculate bundle options dynamically from the actual plan base price.
+   * Uses BUNDLE_DISCOUNT_TIERS (% discounts) applied to the real plan price.
+   * No more hardcoded SUV_COMBO prices.
+   *
+   * @param vehicleCategory - e.g. "HATCHBACK" | "SUV" | "LUXURY"
+   * @param basePrice - actual monthly plan price for this lead (from getPlanTiersByCategory)
    */
   calculateBundleOptions(vehicleCategory: string, basePrice: number): BundleOption[] {
-    const templates = BUNDLE_TEMPLATES.SUV_COMBO; // Simplified for demo
+    // Ensure we have a real price — if basePrice is 0 or very low something is wrong upstream
+    const safeBasePrice = basePrice > 0 ? basePrice : 1599; // fallback to Smart Wash Hatchback
 
     const calculateEBITDA = (price: number) => {
-      const assumedCost = price * 0.65; // 65% assumed cost
+      const assumedCost = price * 0.65; // 65% assumed cost ratio
       const ebitda = ((price - assumedCost) / price) * 100;
       return Math.round(ebitda);
     };
 
-    const getBundleOption = (tier: "HIGH" | "MID" | "LOW", price: number): BundleOption => {
-      const normalPrice = tier === "HIGH" ? price : templates.HIGH;
-      const savings = normalPrice - price;
-      const savingsPercent = Math.round((savings / normalPrice) * 100);
+    const tiers = (["HIGH", "MID", "LOW"] as const);
+
+    return tiers.map((tier) => {
+      const config = BUNDLE_DISCOUNT_TIERS[tier];
+      const price = Math.round(safeBasePrice * (1 - config.discountPercent / 100));
+      const savings = safeBasePrice - price;
+      const savingsPercent = config.discountPercent;
       const ebitda = calculateEBITDA(price);
 
       let ebitdaStatus: "SAFE" | "WARNING" | "BLOCKED" = "SAFE";
@@ -320,33 +329,23 @@ class TeleSalesExecutiveService {
         ebitdaStatus = "WARNING";
       }
 
-      const multiplier = tier === "MID" ? INCENTIVE_MULTIPLIERS.BUNDLE_MID :
-                        tier === "LOW" ? INCENTIVE_MULTIPLIERS.BUNDLE_LOW :
-                        INCENTIVE_MULTIPLIERS.BUNDLE_HIGH;
+      const multiplier = tier === "MID"  ? INCENTIVE_MULTIPLIERS.BUNDLE_MID  :
+                         tier === "LOW"  ? INCENTIVE_MULTIPLIERS.BUNDLE_LOW  :
+                                          INCENTIVE_MULTIPLIERS.BUNDLE_HIGH;
 
       return {
         tier,
-        label: tier === "HIGH" ? "Full Price" : tier === "MID" ? "Best Value" : "Lowest Price",
+        label:           config.label,
         price,
-        normalPrice,
+        normalPrice:     safeBasePrice,
         savings,
         savingsPercent,
         ebitda,
         ebitdaStatus,
         incentiveMultiplier: multiplier,
-        description: tier === "HIGH"
-          ? "Complete package at full price"
-          : tier === "MID"
-          ? "Recommended bundle with great value"
-          : "Absolute lowest price - margin floor",
+        description:     config.description,
       };
-    };
-
-    return [
-      getBundleOption("HIGH", templates.HIGH),
-      getBundleOption("MID", templates.MID),
-      getBundleOption("LOW", templates.LOW),
-    ];
+    });
   }
 
   /**
@@ -382,15 +381,15 @@ class TeleSalesExecutiveService {
     }
 
     // Use actual plan name if provided, otherwise fallback to generic name
-    const planName = plan ? plan.displayName : "Shampoo + Wax";
+    const planName = plan ? plan.displayName : "Smart Wash";  // Smart Wash is the default pitch
     const planPrice = plan ? plan.baseMonthlyPrice : basePlanPrice;
 
     return {
       basePlan: {
         name: planName,
         monthlyPrice: planPrice,
-        costPerWash: Math.round(planPrice / 26),
-        washesPerMonth: 26,
+        costPerWash: Math.round(planPrice / 30),
+        washesPerMonth: 30,
       },
       selectedAddOn: addOn,
       selectedBundle: bundle,

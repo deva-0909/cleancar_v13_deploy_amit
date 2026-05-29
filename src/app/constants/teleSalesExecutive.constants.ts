@@ -1,5 +1,3 @@
-// TSE incentive values — see incentiveStructureV6.ts TSE constants
-// TSE.POOL_TSE_SOURCED_3M = ₹79.50 (53%), TSE.POOL_BTL_3M = ₹30 (20%), TSE.GATE_CLOSURES = 10
 /**
  * TELE SALES EXECUTIVE (TSE) - CONSTANTS & CONFIGURATION
  * System-Enforced Business Rules
@@ -68,38 +66,61 @@ export const ADD_ON_OPTIONS = [
   },
   {
     id: "addon-tyre",
-    name: "Tyre Polish",
+    name: "Tyre Dressing",
     internalCost: 50,
     perceivedValue: 99,
-    description: "Shine & protect all 4 tyres",
+    description: "Shampoo wash tyre + mud guard + shine protect application. All 4 tyres.",
     marginPercent: 75,
   },
   {
     id: "addon-dashboard",
-    name: "Dashboard Polish",
+    name: "Dashboard & Console Detail",
     internalCost: 30,
     perceivedValue: 149,
-    description: "Dash, console, door pads",
+    description: "Dashboard polish, console polish, door pads, vents cleaned by blower.",
     marginPercent: 82,
+  },
+  {
+    id: "addon-enginebay",
+    name: "Engine Bay Wipe-Down",
+    internalCost: 25,
+    perceivedValue: 99,
+    description: "Dry blow of engine bay — no water. Removes dust and debris.",
+    marginPercent: 75,
+  },
+  {
+    id: "addon-fragrance",
+    name: "Car Fragrance",
+    internalCost: 8,
+    perceivedValue: 49,
+    description: "Interior car fragrance spray — single fresh application.",
+    marginPercent: 85,
   },
 ] as const;
 
-/** Bundle pricing templates */
-export const BUNDLE_TEMPLATES = {
-  SUV_COMBO: {
-    HIGH: 2897, // Anchor - sum of all base prices
-    MID: 2399, // 15-20% discount - push target
-    LOW: 2199, // Floor - only if EBITDA ≥ 30%
-  },
-  SEDAN_COMBO: {
-    HIGH: 2497,
-    MID: 2099,
-    LOW: 1899,
-  },
-  BIKE_COMBO: {
-    HIGH: 1497,
-    MID: 1249, // Bike combo mid tier — NOTE: coincides with EXPRESS_WASH Hatchback price by coincidence only. Do NOT derive from plan pricing.
-    LOW: 1099,
+/**
+ * Bundle discount tiers (applied as % of the base plan price)
+ * HIGH = full price (no discount), MID = 5% off, LOW = at 30% EBITDA floor
+ * These are discount percentages — not hardcoded prices.
+ * calculateBundleOptions() applies these to the actual lead plan price.
+ */
+export const BUNDLE_DISCOUNT_TIERS = {
+  HIGH: { discountPercent: 0,  label: "Full Price",    description: "Complete package at full price" },
+  MID:  { discountPercent: 5,  label: "Best Value",    description: "Recommended — 5% off, same incentive" },
+  LOW:  { discountPercent: 10, label: "Lowest Price",  description: "10% off — use only if customer resists. Incentive reduced." },
+} as const;
+
+/**
+ * Add-on bundle combos — extra add-ons bundled with subscription at a combined price
+ * Vehicle-specific prices driven by v1.9 pricing document
+ * High = full plan + add-on price, Mid = ~5% off, Low = ~10% off (EBITDA floor)
+ */
+export const ADDON_BUNDLE_PRICES = {
+  // Vacuum + Subscription bundle prices (most popular add-on)
+  VACUUM_BUNDLE: {
+    HATCHBACK: { HIGH: 1448, MID: 1376, LOW: 1303 }, // Smart Wash ₹1,599 × tiers… placeholder shown
+    SUV:       { HIGH: 1848, MID: 1756, LOW: 1663 },
+    LUXURY:    { HIGH: 2848, MID: 2706, LOW: 2563 },
   },
 } as const;
 
@@ -265,7 +286,7 @@ export const SCRIPTS = {
 /** System safeguard messages */
 export const SAFEGUARD_MESSAGES = {
   NO_DISCOUNT_BUTTON: "System does not allow direct price reduction. Use add-on or bundle instead.",
-  ADD_ON_LIMIT_REACHED: "Maximum 1 add-on per deal. This lead already has an add-on assigned.",
+  ADD_ON_LIMIT_REACHED: "Up to 3 add-ons can be added per subscription deal.",  // Business allows multiple add-ons
   EBITDA_BLOCKED: "EBITDA is below 30% floor. Cannot proceed with this price. Consider bundle MID instead.",
   CRM_UPDATE_REQUIRED: "CRM update required before accessing next lead. Please complete all mandatory fields.",
   SLA_BREACH_WARNING: "This lead is approaching 10-minute SLA. Call immediately.",

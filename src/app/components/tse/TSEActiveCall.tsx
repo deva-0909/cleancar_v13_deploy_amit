@@ -71,7 +71,8 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
   const [basePlanPrice, setBasePlanPrice] = useState(
     selectedPlan?.baseMonthlyPrice || lead.estimatedValue
   );
-  const [selectedAddOn, setSelectedAddOn] = useState<AddOnOption | undefined>();
+  // Multiple add-ons allowed (up to 3 per subscription)
+  const [selectedAddOns, setSelectedAddOns] = useState<AddOnOption[]>([]);
   const [selectedBundle, setSelectedBundle] = useState<BundleOption | undefined>();
   const [pricingCalculation, setPricingCalculation] = useState<PricingCalculation>(
     teleSalesExecutiveService.calculatePricingForLead(lead)
@@ -91,15 +92,17 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
   // Recalculate pricing when plan, add-on, or bundle changes
   useEffect(() => {
     const currentPrice = selectedPlan?.baseMonthlyPrice || lead.estimatedValue;
+    // Pass first selected add-on to pricing (service calculates primary add-on discount)
+    const primaryAddOn = selectedAddOns.length > 0 ? selectedAddOns[0] : undefined;
     const newPricing = teleSalesExecutiveService.calculateFinalPricing(
       currentPrice,
-      selectedAddOn,
+      primaryAddOn,
       selectedBundle,
       selectedPlan || undefined
     );
     setPricingCalculation(newPricing);
     setBasePlanPrice(currentPrice);
-  }, [lead, selectedPlan, selectedAddOn, selectedBundle]);
+  }, [lead, selectedPlan, selectedAddOns, selectedBundle]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -123,8 +126,9 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
   };
 
   const handleAddOnSelect = (addOn: AddOnOption) => {
-    if (selectedAddOn?.id === addOn.id) {
-      setSelectedAddOn(undefined);
+    // This branch should not be reached (replaced by array logic below)
+    if (false) {
+      setSelectedAddOns([]);
     } else {
       setSelectedAddOn(addOn);
       setSelectedBundle(undefined); // Clear bundle if add-on selected
@@ -136,7 +140,7 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
       setSelectedBundle(undefined);
     } else {
       setSelectedBundle(bundle);
-      setSelectedAddOn(undefined); // Clear add-on if bundle selected
+      setSelectedAddOns([]);  // Clear all add-ons if bundle selected
     }
   };
 
@@ -424,6 +428,23 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
                 {pricingCalculation.basePlan.washesPerMonth} washes/month
               </div>
             </div>
+            {selectedAddOns.length > 0 && (
+              <div className="mt-2 p-2 bg-green-50 rounded border border-green-200">
+                <div className="text-xs font-semibold text-green-800 mb-1">
+                  Add-Ons Selected ({selectedAddOns.length}):
+                </div>
+                {selectedAddOns.map((a) => (
+                  <div key={a.id} className="flex justify-between text-xs text-green-700">
+                    <span>{a.name}</span>
+                    <span>+₹{a.perceivedValue}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-xs font-bold text-green-900 mt-1 border-t border-green-200 pt-1">
+                  <span>Total with Add-Ons</span>
+                  <span>₹{(pricingCalculation.basePlan.monthlyPrice + selectedAddOns.reduce((s, a) => s + a.perceivedValue, 0)).toLocaleString()}</span>
+                </div>
+              </div>
+            )}
             <div className="text-xs text-gray-600 mt-2 italic">
               💡 {SCRIPTS.PRICING_INTRO}
             </div>
@@ -434,15 +455,15 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
             <div className="text-sm font-semibold text-gray-900 mb-2">
               Add-On Options
             </div>
-            <div className="text-xs text-orange-700 mb-3 font-medium">
-              ⚠️ Maximum 1 add-on per deal (One-Time)
+            <div className="text-xs text-green-700 mb-3 font-medium">
+              ✅ Select up to 3 add-ons per subscription ({selectedAddOns.length}/3 selected)
             </div>
             <div className="space-y-2">
               {(ADD_ON_OPTIONS || []).map((addOn) => (
                 <div
                   key={addOn.id}
                   className={`p-3 rounded-lg border-2 cursor-pointer transition-colors ${
-                    selectedAddOn?.id === addOn.id
+                    selectedAddOns.some((a) => a.id === addOn.id)
                       ? "border-blue-500 bg-blue-50"
                       : "border-gray-200 bg-white hover:border-gray-300"
                   }`}
@@ -456,10 +477,12 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
                       <div className="text-xs text-gray-600">{addOn.description}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs text-gray-500 line-through">
+                      <div className="text-sm font-bold text-gray-900">
                         ₹{addOn.perceivedValue}
                       </div>
-                      <Badge className="bg-green-600 text-xs">FREE</Badge>
+                      {selectedAddOns.some((a) => a.id === addOn.id) && (
+                        <Badge className="bg-blue-600 text-xs">ADDED</Badge>
+                      )}
                     </div>
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
