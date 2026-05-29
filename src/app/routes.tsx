@@ -170,7 +170,7 @@ import { ExpansionOpportunities } from "./components/modules/ExpansionOpportunit
 import { SupplierDetail } from "./components/procurement/SupplierDetail";
 import { CostTrackingIntegrationDemo } from "./components/demo/CostTrackingIntegrationDemo";
 import { DesignSystemTest } from "./design-system/tests/DesignSystemTest";
-// import { ClothExchange } from "./components/cloth-tracking/ClothExchange";
+import { ClothExchange } from "./components/cloth-tracking/ClothExchange";
 import { ClothAdminDashboard } from "./components/cloth-tracking/ClothAdminDashboard";
 import { AdvanceTypeSelection } from "./components/advance/AdvanceTypeSelection";
 import { LongTermAdvanceForm } from "./components/advance/LongTermAdvanceForm";
