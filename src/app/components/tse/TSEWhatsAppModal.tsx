@@ -80,7 +80,7 @@ We noticed your interest in keeping your ${vehicleLabel(lead)} clean! 🚗✨
 ✅ Doorstep service daily
 ✅ Professional-grade products
 ✅ Trained & verified washers
-✅ Plans starting at just *${p.wash}/month*
+✅ Plans starting at just *${p.expressWash}/month*
 
 Can I take 2 minutes to share the best plan for your ${vehicleLabel(lead)}?
 
@@ -99,14 +99,14 @@ Can I take 2 minutes to share the best plan for your ${vehicleLabel(lead)}?
 Here are the plans for your *${vehicleLabel(lead)}* 🚗
 
 ━━━━━━━━━━━━━━━━━━
-💧 *Water Wash* — ${p.wash}/month
-   Daily rinse, dust & light dirt
+✨ *Express Wash* — ${p.expressWash}/month
+   Daily water wash, tyre spray weekly, shampoo 1×/month, underbody flush
 
-🧴 *Water + Shampoo* — ${p.shampoo}/month
-   Deep clean, stubborn grime
+🛡️ *Smart Wash* — ${p.smartWash}/month
+   + Shampoo 2×/month, interior vacuum 2×/month, tyre dressing monthly, car fragrance
 
-✨ *Water + Shampoo + Wax* — ${p.wax}/month
-   Premium finish, UV protection
+👑 *Elite Wash* — ${p.eliteWash}/month
+   + Shampoo weekly, dashboard fortnightly, hand wax + engine bay + premium fragrance monthly
 ━━━━━━━━━━━━━━━━━━
 
 ⭐ *Recommended for you:* ${p.est}/month
@@ -147,10 +147,17 @@ I'll call shortly — if it's not a good time, just reply and we'll reschedule. 
 
 For your *${vehicleLabel(lead)}*, pre-buy visits and save 15%:
 
-💧 *Pack of 4 Water Washes* — 15% off single-visit price, valid 30 days
-🧴 *Pack of 4 Shampoo Washes* — 15% off, valid 30 days
+💧 *Pack of 4 Water Washes* — 15% off, valid 30 days
+   ${p.planNames ? `H ₹680 · SUV ₹1,020 · Luxury ₹1,360` : "H ₹680 · SUV ₹1,020"}
 
-Or go daily with *Smart Wash* at ${p.smartWash}/month — same washer every morning.
+🧴 *Pack of 4 Shampoo Washes* — 15% off, valid 30 days
+   ${p.planNames ? `H ₹1,020 · SUV ₹1,180 · Luxury ₹1,700` : "H ₹1,020 · SUV ₹1,180"}
+
+✨ *Pack of 4 Shampoo + Wax* — 15% off, valid 30 days
+   H ₹1,360 · SUV ₹1,700 · Luxury ₹2,380
+
+Or go daily with *Smart Wash* at ${p.smartWash}/month — same washer every morning, zero effort.
+Pack of 2 also available at 8% off with 20-day validity.
 
 Reply *YES* for details! 👇
 

@@ -270,6 +270,33 @@ export const ADDON_SERVICES = [
 ] as const;
 
 // ============================================
+// ADD-ON COMBO BUNDLES (Section 4.3 of Package Architecture v1.9)
+// Bundles increase per-transaction value — push at month 1 for Express Wash subscribers
+// ============================================
+export const ADD_ON_COMBO_BUNDLES = [
+  {
+    id: "andar-se-sundar",
+    name: "Andar Se Sundar",
+    nameEnglish: "Clean Inside Out",
+    includes: ["vacuum", "dashboard"],
+    description: "Interior Deep Vacuum + Dashboard & Console Detail",
+    whenToSell: "Any time. Push at month 1 for all Express Wash subscribers.",
+    prices: { hatchback: 299, suv: 399, luxury: 549 },
+    savings:  { hatchback: 49,  suv: 49,  luxury: 49  },
+  },
+  {
+    id: "showroom-shine",
+    name: "Showroom Shine Pack",
+    nameEnglish: "Complete Showroom Finish",
+    includes: ["waxpolish", "vacuum", "dashboard"],
+    description: "Full Hand Wax Polish + Interior Deep Vacuum + Dashboard & Console Detail",
+    whenToSell: "Diwali / festive / gifting. \'Gift your family a showroom car.\'",
+    prices: { hatchback: 499, suv: 647,  luxury: 949 },
+    savings:  { hatchback: 47,  suv: 51,   luxury: 47  },
+  },
+] as const;
+
+// ============================================
 // COMBO OFFERS
 // ============================================
 

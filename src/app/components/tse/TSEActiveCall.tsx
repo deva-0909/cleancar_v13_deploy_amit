@@ -153,6 +153,17 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
     }
   };
 
+  // Issue 8 FIX: get vehicle-aware add-on price (SUV/Luxury pay more)
+  const getAddOnPrice = (addOn: AddOnOption): number => {
+    const cat = lead.vehicleCategory?.toUpperCase() ?? "H";
+    // Use prices object if available, otherwise fall back to perceivedValue
+    const p = (addOn as any).prices;
+    if (!p) return addOn.perceivedValue;
+    if (cat.includes("LUXURY") || cat.includes("LUX"))    return p.Lux ?? addOn.perceivedValue;
+    if (cat.includes("SUV") || cat.includes("MUV") || cat.includes("SEDAN")) return p.SUV ?? addOn.perceivedValue;
+    return p.H ?? addOn.perceivedValue;
+  };
+
   // C2 FIX: generatePaymentLink was previously just a toast with no actual call
   const generatePaymentLink = () => {
     if (!pricingCalculation.paymentLinkEnabled) return;
@@ -481,12 +492,12 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
                 {selectedAddOns.map((a) => (
                   <div key={a.id} className="flex justify-between text-xs text-green-700">
                     <span>{a.name}</span>
-                    <span>+₹{a.perceivedValue}</span>
+  <span>+₹{getAddOnPrice(a)}</span>  {/* Issue 8 FIX */
                   </div>
                 ))}
                 <div className="flex justify-between text-xs font-bold text-green-900 mt-1 border-t border-green-200 pt-1">
                   <span>Total with Add-Ons</span>
-                  <span>₹{(pricingCalculation.basePlan.monthlyPrice + selectedAddOns.reduce((s, a) => s + a.perceivedValue, 0)).toLocaleString()}</span>
+                  <span>₹{(pricingCalculation.basePlan.monthlyPrice + selectedAddOns.reduce((s, a) => s + getAddOnPrice(a), 0)).toLocaleString()}  /* Issue 8+9 FIX */</span>
                 </div>
               </div>
             )}
@@ -527,7 +538,8 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-bold text-gray-900">
-                        ₹{addOn.perceivedValue}
+                        {/* Issue 8 FIX: vehicle-aware price */}
+                        ₹{getAddOnPrice(addOn)}
                       </div>
                       {selectedAddOns.some((a) => a.id === addOn.id) && (
                         <Badge className="bg-blue-600 text-xs">ADDED</Badge>
@@ -545,6 +557,8 @@ export function TSEActiveCall({ lead, onEndCall, onCancel }: TSEActiveCallProps)
             </div>
           </Card>
 
+          {/* Bundle Builder — Issue 9 NOTE: bundle price = plan price × discount.
+               Add-ons are shown separately above and added to final total. */}
           {/* Bundle Builder */}
           <Card className="p-4">
             <div className="text-sm font-semibold text-gray-900 mb-3">

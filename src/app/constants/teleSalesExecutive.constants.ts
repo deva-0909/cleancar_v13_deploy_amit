@@ -55,37 +55,62 @@ export const EBITDA_FLOOR = {
 } as const;
 
 /** Add-on options */
+// v1.9 add-on pricing — all 7 add-ons with per-vehicle prices
+// Issue 5 FIX: prices object added so TSE quotes correct SUV/Luxury amounts
+// Issue 6 FIX: Full Hand Wax + Underbody Wash added (were missing)
 export const ADD_ON_OPTIONS = [
   {
     id: "addon-vacuum",
     name: "Interior Deep Vacuum",
     internalCost: 40,
     perceivedValue: 199,
-    description: "Seats, mats, footwells, boot area",
-    marginPercent: 80,
-  },
-  {
-    id: "addon-tyre",
-    name: "Tyre Dressing",
-    internalCost: 50,
-    perceivedValue: 99,
-    description: "Shampoo wash tyre + mud guard + shine protect application. All 4 tyres.",
-    marginPercent: 75,
+    prices: { H: 199, SUV: 249, Lux: 349 },
+    description: "Glove box, cooling box, door pad polish, seats, mats, footwells, boot. Before+after photo.",
+    marginPercent: 79,
   },
   {
     id: "addon-dashboard",
     name: "Dashboard & Console Detail",
     internalCost: 30,
     perceivedValue: 149,
-    description: "Dashboard polish, console polish, door pads, vents cleaned by blower.",
-    marginPercent: 82,
+    prices: { H: 149, SUV: 199, Lux: 249 },
+    description: "Dashboard polish, console polish, door pads cleaning + polish, vents cleaned by blower.",
+    marginPercent: 80,
+  },
+  {
+    id: "addon-tyre",
+    name: "Tyre Dressing (all 4 tyres)",
+    internalCost: 25,
+    perceivedValue: 99,
+    prices: { H: 99, SUV: 149, Lux: 199 },
+    description: "Shampoo wash tyre + mud guard + shine protect application. All 4 tyres.",
+    marginPercent: 75,
+  },
+  {
+    id: "addon-wax",
+    name: "Full Hand Wax Polish",
+    internalCost: 55,
+    perceivedValue: 199,
+    prices: { H: 199, SUV: 249, Lux: 399 },
+    description: "Shampoo wash + full body panel-by-panel wax application. Outer body only — no glass.",
+    marginPercent: 73,
+  },
+  {
+    id: "addon-underbody",
+    name: "Underbody Wash",
+    internalCost: 58,
+    perceivedValue: 199,
+    prices: { H: 199, SUV: 249, Lux: 349 },
+    description: "Under body water spray — removes mud, road grime, salt.",
+    marginPercent: 71,
   },
   {
     id: "addon-enginebay",
     name: "Engine Bay Wipe-Down",
     internalCost: 25,
     perceivedValue: 99,
-    description: "Dry blow of engine bay — no water. Removes dust and debris.",
+    prices: { H: 99, SUV: 149, Lux: 199 },
+    description: "Dry blow of engine bay — no water. Strictly dry process only.",
     marginPercent: 75,
   },
   {
@@ -93,8 +118,31 @@ export const ADD_ON_OPTIONS = [
     name: "Car Fragrance",
     internalCost: 8,
     perceivedValue: 49,
-    description: "Interior car fragrance spray — single fresh application.",
+    prices: { H: 49, SUV: 49, Lux: 49 },
+    description: "Interior car fragrance spray — single fresh application. All vehicle types ₹49.",
     marginPercent: 85,
+  },
+] as const;
+
+// Issue 7: Add-on combo bundles for TSE upsell (Section 4.3 Package Architecture v1.9)
+export const ADD_ON_COMBOS_TSE = [
+  {
+    id: "andar-se-sundar",
+    name: "Andar Se Sundar",
+    addonIds: ["addon-vacuum", "addon-dashboard"],
+    prices: { H: 299, SUV: 399, Lux: 549 },
+    savings:  { H: 49,  SUV: 49,  Lux: 49  },
+    pitch: "Sir, vacuum + dashboard clean together — H ₹299, SUV ₹399. Save ₹49 vs booking separately.",
+    whenToSell: "Push at month 1 for every Express Wash subscriber.",
+  },
+  {
+    id: "showroom-shine",
+    name: "Showroom Shine Pack",
+    addonIds: ["addon-wax", "addon-vacuum", "addon-dashboard"],
+    prices: { H: 499, SUV: 647, Lux: 949 },
+    savings:  { H: 47,  SUV: 51,  Lux: 47  },
+    pitch: "Wax + interior + dashboard together — H ₹499. Car looks showroom-new. Perfect for Diwali.",
+    whenToSell: "Festive / Diwali / gifting occasions.",
   },
 ] as const;
 
