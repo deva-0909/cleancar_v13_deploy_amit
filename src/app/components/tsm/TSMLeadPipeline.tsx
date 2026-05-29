@@ -24,14 +24,27 @@ import {
 import { teleSalesManagerService } from "../../services/teleSalesManagerService";
 import type { Lead, LeadStage, LeadSource } from "../../types/teleSalesManager.types";
 
-export function TSMLeadPipeline() {
-  const [selectedStage, setSelectedStage] = useState<LeadStage | "ALL">("ALL");
+interface TSMLeadPipelineProps {
+  initialStageFilter?: string;
+}
+
+export function TSMLeadPipeline({ initialStageFilter = "ALL" }: TSMLeadPipelineProps) {
+  // A3 FIX: accept initialStageFilter from parent drill-down
+  const [selectedStage, setSelectedStage] = useState<LeadStage | "ALL">(
+    (initialStageFilter as LeadStage | "ALL") || "ALL"
+  );
   const [selectedSLA, setSelectedSLA] = useState<"MET" | "AT_RISK" | "BREACHED" | "ALL">("ALL");
+  // D3 FIX: date range filter (was declared in type but never implemented)
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [leads, setLeads] = useState(teleSalesManagerService.getLeadPipeline());
 
   const filteredLeads = leads.filter((lead) => {
     if (selectedStage !== "ALL" && lead.stage !== selectedStage) return false;
     if (selectedSLA !== "ALL" && lead.slaStatus !== selectedSLA) return false;
+    // D3 FIX: apply date range filter
+    if (dateFrom && new Date(lead.createdAt) < new Date(dateFrom)) return false;
+    if (dateTo   && new Date(lead.createdAt) > new Date(dateTo + "T23:59:59")) return false;
     return true;
   });
 
@@ -76,18 +89,17 @@ export function TSMLeadPipeline() {
     return colors[source];
   };
 
-  const handleReassignLead = (leadId: string, toTSEId: string) => {
-    const success = teleSalesManagerService.reassignLead(leadId, toTSEId, "TSM-001");
-    if (success) {
-      setLeads(teleSalesManagerService.getLeadPipeline());
-    }
+  const handleReassignLead = (leadId: string, toTSEId: string, reason: string) => {
+    // D1 FIX: service returns void — always refresh (was checking undefined as truthy)
+    teleSalesManagerService.reassignLead(leadId, toTSEId, reason);
+    setLeads(teleSalesManagerService.getLeadPipeline());
   };
 
   const handleApproveLost = (leadId: string, reason: string) => {
-    const success = teleSalesManagerService.approveLostLead(leadId, reason, "TSM-001");
-    if (success) {
-      setLeads(teleSalesManagerService.getLeadPipeline());
-    }
+    // D2 FIX: correct arg order — service is approveLostLead(leadId, tsmId, notes)
+    // was called as (leadId, reason, "TSM-001") — reason was used as tsmId
+    teleSalesManagerService.approveLostLead(leadId, "TSM-001", reason);
+    setLeads(teleSalesManagerService.getLeadPipeline());
   };
 
   // Pipeline summary stats
@@ -185,6 +197,23 @@ export function TSMLeadPipeline() {
               >
                 Follow-up ({pipelineStats.followUp})
               </Button>
+              {/* D7 FIX: CONVERTED and LOST filter buttons were missing */}
+              <Button
+                variant={selectedStage === "CONVERTED" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedStage("CONVERTED")}
+                className={selectedStage === "CONVERTED" ? "bg-green-600" : ""}
+              >
+                Converted ({pipelineStats.converted})
+              </Button>
+              <Button
+                variant={selectedStage === "LOST" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedStage("LOST")}
+                className={selectedStage === "LOST" ? "bg-red-600" : ""}
+              >
+                Lost ({pipelineStats.lost})
+              </Button>
             </div>
           </div>
 
@@ -218,6 +247,23 @@ export function TSMLeadPipeline() {
             </div>
           </div>
 
+          {/* D3 FIX: date range filter */}
+          <div className="flex items-center gap-2 ml-4">
+            <span className="text-xs text-gray-600">From:</span>
+            <input type="date" value={dateFrom}
+              onChange={e => setDateFrom(e.target.value)}
+              className="text-xs border border-gray-300 rounded px-2 py-1" />
+            <span className="text-xs text-gray-600">To:</span>
+            <input type="date" value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              className="text-xs border border-gray-300 rounded px-2 py-1" />
+            {(dateFrom || dateTo) && (
+              <button className="text-xs text-red-600 underline"
+                onClick={() => { setDateFrom(""); setDateTo(""); }}>
+                Clear
+              </button>
+            )}
+          </div>
           <div className="ml-auto text-sm text-gray-600">
             Showing {filteredLeads.length} of {pipelineStats.total} leads
           </div>
@@ -322,35 +368,37 @@ export function TSMLeadPipeline() {
                   </div>
                 </div>
 
-                {lead.slaMinutesRemaining !== undefined && (
-                  <div className="text-center">
-                    <div className="text-xs text-gray-500">SLA Remaining</div>
-                    <div
-                      className={`text-sm font-semibold ${
-                        lead.slaMinutesRemaining < 0
-                          ? "text-red-600"
-                          : lead.slaMinutesRemaining < 60
-                          ? "text-amber-600"
-                          : "text-green-600"
-                      }`}
-                    >
-                      {lead.slaMinutesRemaining < 0
-                        ? `${Math.abs(lead.slaMinutesRemaining)} min overdue`
-                        : `${lead.slaMinutesRemaining} min`}
+                {/* D6 FIX: compute SLA countdown live from createdAt + 10min threshold */}
+                {(() => {
+                  const deadlineMs = new Date(lead.createdAt).getTime() + 10 * 60 * 1000;
+                  const minsLeft = Math.floor((deadlineMs - Date.now()) / 60000);
+                  if (lead.slaStatus === "MET" && minsLeft > 30) return null;
+                  return (
+                    <div className="text-center">
+                      <div className="text-xs text-gray-500">SLA Remaining</div>
+                      <div className={`text-sm font-semibold ${
+                        minsLeft < 0 ? "text-red-600" : minsLeft < 60 ? "text-amber-600" : "text-green-600"
+                      }`}>
+                        {minsLeft < 0 ? `${Math.abs(minsLeft)}m overdue` : `${minsLeft}m left`}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
 
               {/* Actions */}
               <div className="flex items-center gap-2">
                 {lead.stage === "LOST" && !lead.approvedBy && (
+                  // D5 FIX: require confirmation with reason before approving lost
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      const reason = lead.lostReason || "Price too high";
-                      handleApproveLost(lead.id, reason);
+                      const reason = window.prompt(
+                        `Approve LOST for ${lead.customerName}?\nEnter/confirm reason:`,
+                        lead.lostReason || "Price too high"
+                      );
+                      if (reason) handleApproveLost(lead.id, reason);
                     }}
                   >
                     <CheckCircle2 className="w-4 h-4 mr-1" />
@@ -359,12 +407,16 @@ export function TSMLeadPipeline() {
                 )}
 
                 {lead.attemptCount >= 10 && lead.stage !== "CONVERTED" && (
+                  // D4 FIX: prompt for target TSE instead of hardcoding TSE-002
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => {
-                      // In real app, would show TSE selection modal
-                      handleReassignLead(lead.id, "TSE-002");
+                      const targetTSE = window.prompt(
+                        `Reassign ${lead.customerName} to which TSE?\n(TSE-001 Rahul / TSE-002 Priya / TSE-003 Amit / TSE-004 Sneha / TSE-005 Karan)`,
+                        "TSE-002"
+                      );
+                      if (targetTSE) handleReassignLead(lead.id, targetTSE.trim(), `TSM reassignment: high attempt count (${lead.attemptCount})`);
                     }}
                   >
                     <RefreshCw className="w-4 h-4 mr-1" />

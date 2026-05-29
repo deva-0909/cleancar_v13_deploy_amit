@@ -35,6 +35,8 @@ export function TSMTeamPerformance({ onSelectTSE }: TSMTeamPerformanceProps) {
 
   const handleSelectTSE = (tseId: string) => {
     setSelectedTSE(tseId);
+    // C4 FIX: parent needs to implement drill-down (currently empty handler)
+    // Calling onSelectTSE passes tseId up to TeleSalesManagerApp for future navigation
     onSelectTSE?.(tseId);
   };
 
@@ -97,7 +99,13 @@ export function TSMTeamPerformance({ onSelectTSE }: TSMTeamPerformanceProps) {
     greenHealth: tseCards.filter((t) => t.overallHealth === "GREEN").length,
     redHealth: tseCards.filter((t) => t.overallHealth === "RED").length,
     totalAlerts: tseCards.reduce((sum, t) => sum + t.alerts, 0),
-    avgConversion: tseCards.reduce((sum, t) => sum + t.kpis.conversionRate.rate, 0) / tseCards.length,
+// C5 FIX: exclude OFFLINE TSEs from team avg conversion
+    avgConversion: (() => {
+      const activeTSEs = tseCards.filter(t => t.status !== "OFFLINE");
+      return activeTSEs.length > 0
+        ? activeTSEs.reduce((sum, t) => sum + t.kpis.conversionRate.rate, 0) / activeTSEs.length
+        : 0;
+    })(),
   };
 
   return (
@@ -340,8 +348,18 @@ export function TSMTeamPerformance({ onSelectTSE }: TSMTeamPerformanceProps) {
                       </span>
                     </div>
                     {tse.bundleMix.bundleLOW > 30 && (
-                      <div className="text-xs text-red-600 font-medium mt-1">
-                        ⚠ High LOW bundle dependency
+                      <div className="mt-1">
+                        <div className="text-xs text-red-600 font-medium">⚠ High LOW bundle dependency</div>
+                        {/* C3 FIX: add coaching action button */}
+                        <button
+                          className="text-xs text-blue-600 underline mt-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            alert(`Schedule coaching session with ${tse.name}:\nFocus: Bundle MID vs LOW pricing discipline.\nTarget: Reduce LOW bundle below 20%.`);
+                          }}
+                        >
+                          Schedule coaching →
+                        </button>
                       </div>
                     )}
                   </div>

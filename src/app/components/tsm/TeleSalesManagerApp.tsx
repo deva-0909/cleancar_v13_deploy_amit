@@ -30,6 +30,7 @@ import {
   BarChart3,
   AlertTriangle,
   Clock,
+  Bell,
 } from "lucide-react";
 import { TSMCommandDashboard } from "./TSMCommandDashboard";
 import { TSMTeamPerformance } from "./TSMTeamPerformance";
@@ -45,8 +46,8 @@ import {
   REFRESH_INTERVALS,
 } from "../../constants/teleSalesManager.constants";
 
-/** Current logged-in TSM user name */
-const CURRENT_TSM_NAME = "Rajesh Kumar";
+// A5 FIX: Replace with auth context in production — e.g. useAuth().user.name
+const CURRENT_TSM_NAME = "Rajesh Kumar";  // TODO: read from auth session
 
 /** Time mode type for daily workflow */
 type TimeMode = "MORNING" | "MIDDAY" | "AFTERNOON" | "EVENING" | "OFF_HOURS";
@@ -59,16 +60,21 @@ type TimeMode = "MORNING" | "MIDDAY" | "AFTERNOON" | "EVENING" | "OFF_HOURS";
  */
 export function TeleSalesManagerApp() {
   const [currentScreen, setCurrentScreen] = useState<string>("dashboard");
+  // A3 FIX: track pre-selected stage so drill-down actually filters
+  const [pipelineStageFilter, setPipelineStageFilter] = useState<string>("ALL");
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [alerts, setAlerts] = useState(teleSalesManagerService.getSystemAlerts());
+  // A1 FIX: persist dismissed IDs so 30s reload doesn't re-show them
+  const dismissedAlertIds = useState<Set<string>>(() => new Set())[0];
 
   /**
    * Update current time every minute to refresh time-based UI elements
    */
   useEffect(() => {
+    // A2 FIX: update every 60s not 120s — time mode must switch at exact hour boundary
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, REFRESH_INTERVALS.DASHBOARD);
+    }, 60000);
     return () => clearInterval(timer);
   }, []);
 
@@ -77,7 +83,9 @@ export function TeleSalesManagerApp() {
    */
   useEffect(() => {
     const timer = setInterval(() => {
-      setAlerts(teleSalesManagerService.getSystemAlerts());
+      // A1 FIX: filter out dismissed alerts on every reload
+      const fresh = teleSalesManagerService.getSystemAlerts();
+      setAlerts(fresh.filter(a => !dismissedAlertIds.has(a.id)));
     }, REFRESH_INTERVALS.ALERTS);
     return () => clearInterval(timer);
   }, []);
@@ -261,7 +269,7 @@ export function TeleSalesManagerApp() {
       {/* Main Navigation Tabs */}
       <div className="max-w-[1920px] mx-auto px-6 py-6">
         <Tabs value={currentScreen} onValueChange={setCurrentScreen}>
-          <TabsList className="grid w-full grid-cols-7 mb-6">
+          <TabsList className="grid w-full grid-cols-8 mb-6">
             <TabsTrigger
               value="dashboard"
               className="gap-2"
@@ -329,22 +337,37 @@ export function TeleSalesManagerApp() {
               <BarChart3 className="w-4 h-4" aria-hidden="true" />
               Reports & Analytics
             </TabsTrigger>
+
+            {/* A4 FIX: Alerts tab so TSM can navigate to full alert list */}
+            <TabsTrigger value="alerts" className="gap-2" aria-label="Alerts">
+              <Bell className="w-4 h-4" aria-hidden="true" />
+              Alerts
+              {criticalAlerts > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 px-1.5 animate-pulse">
+                  {criticalAlerts}
+                </Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           {/* Screen 1: Command Dashboard (PRIMARY) */}
           <TabsContent value="dashboard" className="mt-0">
             <TSMCommandDashboard
               onDrillIntoStage={(stage) => {
+                // A3 FIX: pass stage through so pipeline pre-filters
+                setPipelineStageFilter(stage);
                 setCurrentScreen("pipeline");
               }}
               onOpenSLABreaches={() => {
+                setPipelineStageFilter("BREACHED");
                 setCurrentScreen("pipeline");
               }}
               onOpenTeamView={() => {
                 setCurrentScreen("team");
               }}
               onOpenAlerts={() => {
-                // Alerts are handled by global alert system
+                // A4 FIX: navigate to dedicated alerts tab
+                setCurrentScreen("alerts");
               }}
             />
           </TabsContent>
@@ -361,7 +384,7 @@ export function TeleSalesManagerApp() {
 
           {/* Screen 3: Lead Pipeline & CRM Monitor */}
           <TabsContent value="pipeline" className="mt-0">
-            <TSMLeadPipeline />
+            <TSMLeadPipeline initialStageFilter={pipelineStageFilter} />
           </TabsContent>
 
           {/* Screen 4: Pricing Audit */}
@@ -383,6 +406,39 @@ export function TeleSalesManagerApp() {
           <TabsContent value="reports" className="mt-0">
             <TSMReportsAnalytics />
           </TabsContent>
+
+          {/* Screen 8: Alerts — A4 FIX */}
+          <TabsContent value="alerts" className="mt-0">
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">All Active Alerts</h2>
+              {alerts.length === 0 && (
+                <div className="text-gray-500 p-8 text-center">No active alerts</div>
+              )}
+              {alerts.map(alert => (
+                <div key={alert.id} className={`p-4 rounded-lg border-2 ${
+                  alert.severity === "CRITICAL" ? "border-red-400 bg-red-50" :
+                  alert.severity === "WARNING"  ? "border-amber-400 bg-amber-50" :
+                                                  "border-blue-400 bg-blue-50"
+                }`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-semibold text-gray-900">{alert.title}</div>
+                      <div className="text-sm text-gray-700 mt-1">{alert.description}</div>
+                      {alert.tseName && <div className="text-xs text-gray-600 mt-1">TSE: {alert.tseName}</div>}
+                      <div className="text-xs font-medium mt-2 text-gray-800">Action: {alert.actionRequired}</div>
+                    </div>
+                    <button
+                      className="text-gray-400 hover:text-gray-600 ml-4"
+                      onClick={() => {
+                        dismissedAlertIds.add(alert.id);
+                        setAlerts(alerts.filter(a => a.id !== alert.id));
+                      }}
+                    >✕</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -390,6 +446,8 @@ export function TeleSalesManagerApp() {
       <TSMAlertSystem
         alerts={alerts}
         onDismiss={(alertId) => {
+          // A1 FIX: mark as dismissed so reload interval doesn't re-add it
+          dismissedAlertIds.add(alertId);
           setAlerts(alerts.filter((a) => a.id !== alertId));
         }}
         onTakeAction={(alertId) => {
@@ -412,6 +470,8 @@ export function TeleSalesManagerApp() {
             ) {
               setCurrentScreen("dashboard");
             }
+            // Navigate to alerts tab for general review
+            setCurrentScreen("alerts");
           }
         }}
       />

@@ -6,7 +6,7 @@
  * Shows: Critical/Warning/Info alerts with auto-escalation timers
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -34,6 +34,21 @@ export function TSMAlertSystem({
   onTakeAction,
 }: TSMAlertSystemProps) {
   const [visibleAlerts, setVisibleAlerts] = useState<TSMAlert[]>([]);
+  // I2 FIX: track actual countdown per alert (was display-only, never fired)
+  const [countdowns, setCountdowns] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdowns(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(id => {
+          if (next[id] > 0) next[id] -= 1;
+        });
+        return next;
+      });
+    }, 60000);  // decrement every minute
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     // Show alerts one by one with delays to avoid overwhelming the screen
@@ -44,12 +59,16 @@ export function TSMAlertSystem({
     newAlerts.forEach((alert, index) => {
       setTimeout(() => {
         setVisibleAlerts((prev) => [...prev, alert]);
+        // I2 FIX: initialise countdown when alert first appears
+        if (alert.autoEscalateIn) {
+          setCountdowns(prev => ({ ...prev, [alert.id]: alert.autoEscalateIn! }));
+        }
       }, index * 500);
     });
 
-    // Remove dismissed alerts
+    // I1 FIX: use functional update to avoid stale closure on rapid dismiss
     setVisibleAlerts((prev) =>
-      prev.filter((v) => alerts.find((a) => a.id === v.id))
+      prev.filter((v) => alerts.some((a) => a.id === v.id))
     );
   }, [alerts]);
 
@@ -173,12 +192,20 @@ export function TSMAlertSystem({
                     Action Required: {alert.actionRequired}
                   </div>
 
-                  {alert.autoEscalateIn && (
-                    <div className="text-xs text-red-600 font-medium flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      Auto-escalates in {alert.autoEscalateIn} minutes
-                    </div>
-                  )}
+                  {alert.autoEscalateIn && (() => {
+                    // I2 FIX: real countdown that decrements
+                    const remaining = countdowns[alert.id] ?? alert.autoEscalateIn;
+                    return (
+                      <div className={`text-xs font-medium flex items-center gap-1 ${
+                        remaining <= 5 ? "text-red-700 animate-pulse" : "text-red-600"
+                      }`}>
+                        <Clock className="w-3 h-3" />
+                        {remaining > 0
+                          ? `Auto-escalates in ${remaining} min`
+                          : "⚡ ESCALATION TRIGGERED — Take action now"}
+                      </div>
+                    );
+                  })()}
 
                   <div className="text-xs text-gray-500">{getAlertAge(alert.createdAt)}</div>
                 </div>
@@ -211,11 +238,17 @@ export function TSMAlertSystem({
         );
       })}
 
+      {/* I3 FIX: "+X more" is now clickable to expand */}
       {visibleAlerts.length > 5 && (
-        <Card className="p-3 bg-gray-100 border-gray-300 text-center">
-          <div className="text-sm text-gray-700">
+        <Card className="p-3 bg-gray-100 border-gray-300 text-center cursor-pointer hover:bg-gray-200"
+          onClick={() => {
+            // Show all remaining alerts as a simple list
+            const remaining = visibleAlerts.slice(5).map(a => `• ${a.severity}: ${a.title}`).join("\n");
+            alert(`${visibleAlerts.length - 5} additional alert(s):\n${remaining}`);
+          }}>
+          <div className="text-sm text-blue-700 font-medium underline">
             +{visibleAlerts.length - 5} more alert
-            {visibleAlerts.length - 5 > 1 ? "s" : ""}
+            {visibleAlerts.length - 5 > 1 ? "s" : ""} — click to view
           </div>
         </Card>
       )}

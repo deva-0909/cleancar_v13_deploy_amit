@@ -89,10 +89,15 @@ export function TSMReportsAnalytics() {
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-2">
             <Target className="w-5 h-5 text-indigo-600" />
-            <div className="text-xs text-gray-600">Overall Conversion Rate</div>
+            <div className="text-xs text-gray-600">Source-Weighted Conversion Rate</div>
+          {/* H3 FIX: this is conversion/totalLeads; dashboard shows TSE-avg — different methods */}
           </div>
           <div className="text-3xl font-bold text-indigo-600">
             {overallMetrics.overallConversionRate.toFixed(1)}%
+          </div>
+          <div className="text-xs text-amber-600 mt-1">
+            {/* H3 FIX: note methodology differs from dashboard (42.3% TSE-avg vs {rate}% here) */}
+            Lead-to-conversion ratio (differs from TSE avg on dashboard)
           </div>
         </Card>
 
@@ -116,7 +121,11 @@ export function TSMReportsAnalytics() {
           {analytics.leadSourcePerformance.map((source) => (
             <div
               key={source.source}
-              className="p-4 bg-gray-50 rounded-lg border border-gray-200"
+              className={`p-4 rounded-lg border ${
+                source.source === "WALK_IN"
+                  ? "bg-amber-50 border-amber-200"  // H4 FIX: walk-in is a different channel
+                  : "bg-gray-50 border-gray-200"
+              }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4">
@@ -124,6 +133,12 @@ export function TSMReportsAnalytics() {
                   <div>
                     <div className="font-semibold text-gray-900">
                       {source.source}
+                      {/* H4 FIX: flag walk-in as non-TSE channel */}
+                      {source.source === "WALK_IN" && (
+                        <span className="ml-2 text-xs font-normal text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                          Walk-in channel — excludes TSE pipeline
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-gray-600 mt-1">
                       {source.totalLeads} leads • {source.conversions} conversions
@@ -346,7 +361,7 @@ export function TSMReportsAnalytics() {
                       : "bg-red-600"
                   }
                 >
-                  {DEAL_TYPE_LABELS[bundle.dealType as keyof typeof DEAL_TYPE_LABELS] ?? bundle.dealType}
+                  {bundle.dealType.replace("_", " ")}
                 </Badge>
               </div>
 

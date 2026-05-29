@@ -1,4 +1,3 @@
-import { SubscriptionIncentiveTracker } from "../incentives/SubscriptionIncentiveTracker";
 /**
  * TSM INCENTIVE & PAYROLL TRACKER
  * Team and individual commission forecasting
@@ -30,7 +29,7 @@ import {
   INCENTIVE_ELIGIBILITY,
 } from "../../constants/teleSalesManager.constants";
 
-export function TSMIncentiveTrackerLegacy() {
+export function TSMIncentiveTracker() {
   const incentiveData = teleSalesManagerService.getTeamIncentiveMetrics();
 
   // Calculate TSM's personal incentive based on team performance
@@ -47,23 +46,35 @@ export function TSMIncentiveTrackerLegacy() {
       revenueBonus = TEAM_REVENUE_BONUS.TIER_1.bonus;
     }
 
-    // Conversion Bonus (if team > 22%)
-    const conversionBonusEarned =
-      incentiveData.teamConversionRate > CONVERSION_BONUS.THRESHOLD
-        ? CONVERSION_BONUS.AMOUNT
-        : 0;
-
-    // Renewal Bonus (if team > 75%)
-    const renewalBonusEarned =
-      incentiveData.teamRenewalRate > RENEWAL_BONUS.THRESHOLD
-        ? RENEWAL_BONUS.AMOUNT
-        : 0;
+      // G1 FIX: 4-tier slabs per Incentive Structure v5 (was binary threshold)
+    const conversionBonusEarned = (() => {
+      const pct = (incentiveData.teamConversionRate / CONVERSION_BONUS.THRESHOLD) * 100;
+      if (pct > 150) return 20000;
+      if (pct > 125) return 15000;
+      if (pct > 100) return 10000;
+      return 5000;
+    })();
+    const renewalBonusEarned = (() => {
+      const r = incentiveData.teamRenewalRate;
+      if (r > 95) return 10000;
+      if (r > 85) return 8500;
+      if (r > 75) return 7000;
+      if (r >= 70) return 3000;
+      return 0;
+    })();
 
     // Total variable
     const totalVariable = revenueBonus + conversionBonusEarned + renewalBonusEarned;
 
     // Apply CRM compliance penalty if applicable
-    const crmComplianceRate = 100; // TODO: Get from actual data
+    // G2 FIX: derive from actual team incentive data (was hardcoded 100%)
+    const crmComplianceRate = Math.round(
+      incentiveData.tseBreakdowns.reduce((s, t) => {
+        // Use qualityBonus as proxy: ₹5K = 100%, ₹2.5K = 95–99%, ₹0 = <95%
+        const score = t.qualityBonus >= 5000 ? 100 : t.qualityBonus >= 2500 ? 97 : 90;
+        return s + score;
+      }, 0) / Math.max(1, incentiveData.tseBreakdowns.length)
+    );
     const penaltyApplied = crmComplianceRate < INCENTIVE_ELIGIBILITY.CRM_COMPLIANCE_MIN;
     const finalVariable = penaltyApplied
       ? totalVariable * (1 - INCENTIVE_ELIGIBILITY.CRM_PENALTY_PERCENT / 100)
@@ -180,7 +191,7 @@ export function TSMIncentiveTrackerLegacy() {
         <div className="mb-4">
           <div className="flex justify-between text-xs text-gray-600 mb-2">
             <span>Variable Achievement</span>
-            <span>₹{(tsmIncentive.finalVariable / 1000).toFixed(0)}K / ₹{(TSM_VARIABLE.MAX_MONTHLY / 1000).toFixed(0)}K max</span>
+<span>Variable: ₹{(tsmIncentive.finalVariable / 1000).toFixed(0)}K / ₹{(TSM_VARIABLE.MAX_MONTHLY / 1000).toFixed(0)}K max · Fixed: ₹{(tsmIncentive.fixedSalary/1000).toFixed(0)}K always earned</span>
           </div>
           <div className="w-full h-8 bg-gray-200 rounded-full overflow-hidden">
             <div
@@ -551,16 +562,5 @@ export function TSMIncentiveTrackerLegacy() {
         </div>
       </Card>
     </div>
-  );
-}
-
-export function TSMIncentiveTracker({ tsmId, name }: { tsmId?: string; name?: string }) {
-  const id = tsmId || "EDB-TSM-SUR1";
-  return (
-    <SubscriptionIncentiveTracker
-      employeeId={id}
-      role="TSM"
-      employeeName={name || id}
-    />
   );
 }

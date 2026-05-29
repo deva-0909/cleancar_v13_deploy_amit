@@ -30,6 +30,21 @@ import type {
   DealType,
 } from "../types/teleSalesManager.types";
 
+function getTSMConversionBonus(teamRate: number): number {
+  const achievement = (teamRate / 22) * 100;  // 22% is business target
+  if (achievement > 150) return 20000;
+  if (achievement > 125) return 15000;
+  if (achievement > 100) return 10000;
+  return 5000;
+}
+function getTSMRenewalBonus(renewalRate: number): number {
+  if (renewalRate > 95) return 10000;
+  if (renewalRate > 85) return 8500;
+  if (renewalRate > 75) return 7000;
+  if (renewalRate >= 70) return 3000;
+  return 0;
+}
+
 class TeleSalesManagerService {
   // ============================================
   // 1️⃣ COMMAND DASHBOARD
@@ -37,16 +52,16 @@ class TeleSalesManagerService {
 
   getCommandMetrics(): TSMCommandMetrics {
     // In production: GET /api/tsm/command-metrics
+    const tseCards = this.getTSEPerformanceCards();
+    const derivedRate = Math.round(
+      tseCards.reduce((s, t) => s + t.kpis.conversionRate.rate, 0) / tseCards.length * 10
+    ) / 10;
     return {
       leadStages: {
-        new: 45,
-        attempted: 78,
-        followUp: 112,
-        converted: 35,
-        lost: 23,
+        new: 45, attempted: 78, followUp: 112, converted: 35, lost: 23,
       },
-      teamConversionRate: 19.5,
-      teamConversionTarget: 22.0,
+      teamConversionRate: derivedRate,
+      teamConversionTarget: 22,  // B1 FIX: business rule
       slaBreachesToday: 12,
       revenue: {
         mtd: 4850000,
@@ -75,8 +90,8 @@ class TeleSalesManagerService {
         overallHealth: "GREEN",
         kpis: {
           callsMade: { today: 45, target: 50, percentage: 90 },
-          conversionRate: { rate: 48.5, target: 22, status: "GREEN" },
-          crmCompliance: { score: 95, target: 90, status: "GREEN" },
+          conversionRate: { rate: 48.5, target: 25, status: "GREEN" },
+          crmCompliance: { score: 95, target: 100, status: "AMBER" },
           revenueGenerated: { mtd: 1250000, target: 1200000, percentage: 104.2 },
         },
         bundleMix: {
@@ -97,8 +112,8 @@ class TeleSalesManagerService {
         overallHealth: "GREEN",
         kpis: {
           callsMade: { today: 52, target: 50, percentage: 104 },
-          conversionRate: { rate: 46.2, target: 22, status: "GREEN" },
-          crmCompliance: { score: 92, target: 90, status: "GREEN" },
+          conversionRate: { rate: 46.2, target: 25, status: "GREEN" },
+          crmCompliance: { score: 92, target: 100, status: "AMBER" },
           revenueGenerated: { mtd: 1180000, target: 1200000, percentage: 98.3 },
         },
         bundleMix: {
@@ -119,8 +134,8 @@ class TeleSalesManagerService {
         overallHealth: "AMBER",
         kpis: {
           callsMade: { today: 38, target: 50, percentage: 76 },
-          conversionRate: { rate: 38.7, target: 22, status: "RED" },
-          crmCompliance: { score: 78, target: 90, status: "RED" },
+          conversionRate: { rate: 38.7, target: 25, status: "GREEN" },
+          crmCompliance: { score: 78, target: 100, status: "RED" },
           revenueGenerated: { mtd: 920000, target: 1200000, percentage: 76.7 },
         },
         bundleMix: {
@@ -141,8 +156,8 @@ class TeleSalesManagerService {
         overallHealth: "GREEN",
         kpis: {
           callsMade: { today: 48, target: 50, percentage: 96 },
-          conversionRate: { rate: 44.1, target: 22, status: "AMBER" },
-          crmCompliance: { score: 93, target: 90, status: "GREEN" },
+          conversionRate: { rate: 44.1, target: 25, status: "GREEN" },
+          crmCompliance: { score: 93, target: 100, status: "AMBER" },
           revenueGenerated: { mtd: 1150000, target: 1200000, percentage: 95.8 },
         },
         bundleMix: {
@@ -163,8 +178,8 @@ class TeleSalesManagerService {
         overallHealth: "RED",
         kpis: {
           callsMade: { today: 0, target: 50, percentage: 0 },
-          conversionRate: { rate: 32.5, target: 22, status: "RED" },
-          crmCompliance: { score: 65, target: 90, status: "RED" },
+          conversionRate: { rate: 32.5, target: 25, status: "GREEN" },
+          crmCompliance: { score: 65, target: 100, status: "RED" },
           revenueGenerated: { mtd: 750000, target: 1200000, percentage: 62.5 },
         },
         bundleMix: {
@@ -333,7 +348,7 @@ class TeleSalesManagerService {
         ebitdaStatus: "CRITICAL",
         addOnUsed: true,
         systemBlockEvent: true,
-        blockReason: "EBITDA below 20% threshold",
+        blockReason: "EBITDA 18.5% — below 30% floor (E4 FIX: floor is 30%)",
         overrideApproved: true,
         approvedBy: "TSM-001",
         closedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
@@ -376,8 +391,8 @@ class TeleSalesManagerService {
         customerName: "Deepak Mehta",
         assignedTSE: "TSE-001",
         tseName: "Rahul Sharma",
-        currentPlan: "SHINE",
-        monthlyValue: 1249,
+        currentPlan: "Smart Wash - Hatchback",
+        monthlyValue: 1599,
         expiryDate: new Date(Date.now() + 6 * 60 * 60 * 1000),
         daysUntilExpiry: 0,
         urgency: "TODAY",
@@ -390,8 +405,8 @@ class TeleSalesManagerService {
         customerName: "Ritu Bansal",
         assignedTSE: "TSE-002",
         tseName: "Priya Patel",
-        currentPlan: "PROTECT",
-        monthlyValue: 1599,
+        currentPlan: "Express Wash - Standard Bike",
+        monthlyValue: 699,
         expiryDate: new Date(Date.now() + 1.5 * 24 * 60 * 60 * 1000),
         daysUntilExpiry: 1,
         urgency: "2_DAYS",
@@ -404,8 +419,8 @@ class TeleSalesManagerService {
         customerName: "Arun Kapoor",
         assignedTSE: "TSE-004",
         tseName: "Sneha Desai",
-        currentPlan: "SHINE",
-        monthlyValue: 1249,
+        currentPlan: "Elite Wash - Hatchback",
+        monthlyValue: 1999,
         expiryDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
         daysUntilExpiry: 5,
         urgency: "7_DAYS",
@@ -419,8 +434,8 @@ class TeleSalesManagerService {
         customerName: "Neha Gupta",
         assignedTSE: "TSE-005",
         tseName: "Karan Singh",
-        currentPlan: "PROTECT",
-        monthlyValue: 1599,
+        currentPlan: "Smart Wash - SUV",
+        monthlyValue: 1999,
         expiryDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
         daysUntilExpiry: -2,
         urgency: "TODAY",
@@ -458,23 +473,30 @@ class TeleSalesManagerService {
     // In production: GET /api/tsm/incentive-metrics
     const tseCards = this.getTSEPerformanceCards();
 
-    const tseBreakdowns: TSEIncentiveBreakdown[] = tseCards.map((tse) => ({
-      tseId: tse.id,
-      tseName: tse.name,
-      baseIncentive: 20000,
-      conversionBonus: Math.round((tse.kpis.conversionRate.rate / 100) * 15000),
-      renewalBonus: tse.renewalBonus,
-      qualityBonus: tse.kpis.crmCompliance.score >= 90 ? 5000 : 0,
-      totalProjected: tse.incentiveForecast,
-      month: new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-      revenueGenerated: tse.kpis.revenueGenerated.mtd,
-      conversionsCount: Math.floor(0.44 * 30) + 10,
-      renewalsCount: Math.floor(0.44 * 15) + 5,
-    }));
+    // G3+G4+J1 FIX: per-sub pool share + derived conversion counts
+    const AVG_DEAL_VALUE = 1599;
+    const TSE_POOL_PER_SUB_3M = 79.5;
+    const tseBreakdowns: TSEIncentiveBreakdown[] = tseCards.map((tse) => {
+      const conversionsCount = Math.max(1, Math.round(tse.kpis.revenueGenerated.mtd / (AVG_DEAL_VALUE * 3)));
+      const renewalsCount    = Math.max(0, Math.round(conversionsCount * (tse.renewalBonus > 0 ? 0.65 : 0.4)));
+      const baseIncentive    = Math.round(conversionsCount * TSE_POOL_PER_SUB_3M);
+      const conversionBonus  = tse.kpis.conversionRate.rate >= 25 ? Math.round(conversionsCount * 10) : 0;
+      const qualityBonus     = tse.kpis.crmCompliance.score >= 100 ? 5000 :
+                               tse.kpis.crmCompliance.score >= 95  ? 2500 : 0;
+      const totalProjected   = baseIncentive + conversionBonus + tse.renewalBonus + qualityBonus;
+      return {
+        tseId: tse.id, tseName: tse.name,
+        baseIncentive, conversionBonus,
+        renewalBonus: tse.renewalBonus, qualityBonus, totalProjected,
+        month: new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+        revenueGenerated: tse.kpis.revenueGenerated.mtd,
+        conversionsCount, renewalsCount,
+      };
+    });
 
     return {
       totalTeamRevenue: tseCards.reduce((sum, tse) => sum + tse.kpis.revenueGenerated.mtd, 0),
-      teamConversionRate: 19.5,
+      teamConversionRate: 42.3,
       teamRenewalRate: 68.5,
       totalBonusForecast: tseBreakdowns.reduce((sum, breakdown) => sum + breakdown.totalProjected, 0),
       tseBreakdowns,
@@ -514,6 +536,19 @@ class TeleSalesManagerService {
         actionRequired: "Update CRM or flag for review",
       },
       {
+        id: "ALERT-TSM-004",
+        type: "SLA_BREACH_SPIKE",
+        severity: "CRITICAL",
+        title: "High-Risk Lead — 14/15 Attempts, CRM Non-Compliant",
+        description: "Lead LEAD-003 (Vikram Reddy, TSE Amit Kumar): 14/15 attempts used, SLA breached, CRM not updated in 48h, follow-up was 12h ago. Requires immediate TSM intervention.",
+        tseId: "TSE-003",
+        tseName: "Amit Kumar",
+        leadId: "LEAD-003",
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        actionRequired: "Reassign lead or intervene directly — 1 attempt remains before max",
+        autoEscalateIn: 15,
+      },
+      {
         id: "ALERT-TSM-003",
         type: "15_ATTEMPTS_REACHED",
         severity: "CRITICAL",
@@ -548,18 +583,21 @@ class TeleSalesManagerService {
         { stage: "New Leads", count: 393, percentage: 100, dropOff: 0 },
         { stage: "Attempted", count: 312, percentage: 79.4, dropOff: 81 },
         { stage: "Follow-up", count: 235, percentage: 59.8, dropOff: 77 },
-        { stage: "Converted", count: 86,  percentage: 21.9, dropOff: 149 },
+        { stage: "Converted", count: 175, percentage: 44.5, dropOff: 60 },
       ],
       tseRevenueRanking: tseCards
-        .map((tse, idx) => ({
-          rank: idx + 1,
-          tseId: tse.id,
-          tseName: tse.name,
-          revenue: tse.kpis.revenueGenerated.mtd,
-          conversions: Math.floor(0.44 * 30) + 10,
-          avgDealValue: Math.round(tse.kpis.revenueGenerated.mtd / (Math.floor(0.44 * 30) + 10)),
-          conversionRate: tse.kpis.conversionRate.rate,
-        }))
+        // H2 FIX: derive conversions per TSE (was hardcoded 23 for all)
+        .map((tse) => {
+          const conversions = Math.max(1, Math.round(tse.kpis.revenueGenerated.mtd / (1599 * 3)));
+          return {
+            rank: 0,
+            tseId: tse.id, tseName: tse.name,
+            revenue: tse.kpis.revenueGenerated.mtd,
+            conversions,
+            avgDealValue: Math.round(tse.kpis.revenueGenerated.mtd / conversions),
+            conversionRate: tse.kpis.conversionRate.rate,
+          };
+        })
         .sort((a, b) => b.revenue - a.revenue)
         .map((tse, idx) => ({ ...tse, rank: idx + 1 })),
       bundleTrends: [
@@ -574,12 +612,14 @@ class TeleSalesManagerService {
         score: tse.kpis.crmCompliance.score,
         status: tse.kpis.crmCompliance.status,
       })),
-      renewalRateByTSE: tseCards.map((tse) => ({
-        tseId: tse.id,
-        tseName: tse.name,
-        renewalRate: 0.44 * 30 + 60,
-        renewalsCount: Math.floor(0.44 * 15) + 5,
-      })),
+      // H1 FIX: varied per-TSE renewal rates derived from performance data
+      renewalRateByTSE: tseCards.map((tse, i) => {
+        const base = tse.kpis.conversionRate.rate * 1.3 + tse.kpis.crmCompliance.score * 0.2;
+        const renewalRate = Math.min(95, Math.max(40, Math.round(base * 10) / 10));
+        const conversions = Math.max(1, Math.round(tse.kpis.revenueGenerated.mtd / (1599 * 3)));
+        const renewalsCount = Math.max(1, Math.round(conversions * renewalRate / 100));
+        return { tseId: tse.id, tseName: tse.name, renewalRate, renewalsCount };
+      }),
     };
   }
 

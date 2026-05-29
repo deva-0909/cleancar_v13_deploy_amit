@@ -7,7 +7,7 @@
  * Purpose: Ensure healthy margins and pricing discipline
  */
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -26,6 +26,18 @@ import type { DealType, PricingAuditEntry } from "../../types/teleSalesManager.t
 export function TSMPricingAudit() {
   const auditLog = teleSalesManagerService.getPricingAuditLog();
   const [selectedDealType, setSelectedDealType] = useState<DealType | "ALL">("ALL");
+  // E2+E3 FIX: detail/flag state — View Details was dead button
+  const [detailEntry, setDetailEntry] = useState<typeof auditLog[0] | null>(null);
+  const [flaggedIds, setFlaggedIds] = useState<Set<string>>(new Set());
+
+  const handleFlagAnomaly = useCallback((entryId: string, tseId: string) => {
+    const reason = window.prompt("Enter reason for flagging this pricing anomaly:");
+    if (reason) {
+      teleSalesManagerService.flagPricingAnomaly(entryId, tseId, reason);
+      setFlaggedIds(prev => new Set([...prev, entryId]));
+      alert(`Anomaly flagged. Audit entry ${entryId} has been marked for review.`);
+    }
+  }, []);
   const [selectedEBITDAStatus, setSelectedEBITDAStatus] = useState<
     "HEALTHY" | "WARNING" | "CRITICAL" | "ALL"
   >("ALL");
@@ -115,7 +127,7 @@ export function TSMPricingAudit() {
           <div className="text-xs text-gray-500 mb-1">Avg EBITDA</div>
           <div
             className={`text-2xl font-bold ${
-              auditStats.avgEBITDA >= 25
+              auditStats.avgEBITDA >= 35  /* E1 FIX */
                 ? "text-green-600"
                 : auditStats.avgEBITDA >= 20
                 ? "text-amber-600"
@@ -124,7 +136,7 @@ export function TSMPricingAudit() {
           >
             {auditStats.avgEBITDA.toFixed(1)}%
           </div>
-          <div className="text-xs text-gray-600 mt-1">Target: {EBITDA_THRESHOLDS.FLOOR}%+ (floor)</div>
+          <div className="text-xs text-gray-600 mt-1">Floor: 30%+ (Healthy: 35%+)</div>  {/* E1 FIX */}
         </Card>
 
         <Card className="p-4 border-2 border-green-200 bg-green-50">
@@ -132,7 +144,7 @@ export function TSMPricingAudit() {
           <div className="text-2xl font-bold text-green-600">
             {auditStats.healthyCount}
           </div>
-          <div className="text-xs text-gray-600 mt-1">EBITDA ≥{EBITDA_THRESHOLDS.FLOOR}%</div>
+          <div className="text-xs text-gray-600 mt-1">EBITDA ≥35% (healthy)</div>  {/* E1 FIX */
         </Card>
 
         <Card className="p-4 border-2 border-red-200 bg-red-50">
@@ -140,7 +152,7 @@ export function TSMPricingAudit() {
           <div className="text-2xl font-bold text-red-600">
             {auditStats.criticalCount}
           </div>
-          <div className="text-xs text-gray-600 mt-1">EBITDA &lt;20%</div>
+          <div className="text-xs text-gray-600 mt-1">EBITDA &lt;30% (below floor)</div>  {/* E1 FIX */
         </Card>
 
         <Card className="p-4 border-2 border-purple-200 bg-purple-50">
@@ -360,9 +372,17 @@ export function TSMPricingAudit() {
                 </div>
 
                 {/* Actions */}
-                <div>
-                  <Button size="sm" variant="outline">
+                <div className="flex gap-2">
+                  {/* E2 FIX: View Details now opens detail panel */}
+                  <Button size="sm" variant="outline"
+                    onClick={() => setDetailEntry(entry)}>
                     View Details
+                  </Button>
+                  {/* E3 FIX: Flag anomaly now has state + service call */}
+                  <Button size="sm" variant="outline"
+                    className={flaggedIds.has(entry.id) ? "border-red-400 text-red-600" : ""}
+                    onClick={() => handleFlagAnomaly(entry.id, entry.tseId)}>
+                    {flaggedIds.has(entry.id) ? "⚑ Flagged" : "Flag"}
                   </Button>
                 </div>
               </div>
@@ -481,6 +501,44 @@ export function TSMPricingAudit() {
           </div>
         </div>
       </Card>
+      {/* E2 FIX: Detail modal */}
+      {detailEntry && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
+          onClick={() => setDetailEntry(null)}>
+          <div className="bg-white rounded-xl p-6 max-w-lg w-full shadow-xl"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-bold">Pricing Audit Detail</h3>
+              <button onClick={() => setDetailEntry(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div><span className="font-medium text-gray-600">Customer:</span> {detailEntry.customerName}</div>
+              <div><span className="font-medium text-gray-600">TSE:</span> {detailEntry.tseName} ({detailEntry.tseId})</div>
+              <div><span className="font-medium text-gray-600">Deal Type:</span> {detailEntry.dealType}</div>
+              <div><span className="font-medium text-gray-600">Deal Value:</span> ₹{detailEntry.dealValue.toLocaleString()}</div>
+              <div><span className="font-medium text-gray-600">EBITDA:</span>
+                <span className={detailEntry.ebitdaPercentage >= 30 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
+                  {" "}{detailEntry.ebitdaPercentage.toFixed(1)}%
+                  {detailEntry.ebitdaPercentage < 30 && " ⚠ Below 30% floor"}
+                </span>
+              </div>
+              <div><span className="font-medium text-gray-600">Add-On Used:</span> {detailEntry.addOnUsed ? "Yes" : "No"}</div>
+              <div><span className="font-medium text-gray-600">System Block:</span> {detailEntry.systemBlockEvent ? "Yes" : "No"}</div>
+              {detailEntry.blockReason && <div><span className="font-medium text-gray-600">Block Reason:</span> {detailEntry.blockReason}</div>}
+              {detailEntry.overrideApproved && <div className="text-amber-700 font-medium">Override approved by: {detailEntry.approvedBy}</div>}
+              {detailEntry.flags.length > 0 && (
+                <div><span className="font-medium text-gray-600">Flags:</span> {detailEntry.flags.join(", ")}</div>
+              )}
+              <div><span className="font-medium text-gray-600">Closed:</span> {new Date(detailEntry.closedAt).toLocaleString()}</div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button size="sm" onClick={() => handleFlagAnomaly(detailEntry.id, detailEntry.tseId)}
+                className="bg-red-600 text-white">Flag Anomaly</Button>
+              <Button size="sm" variant="outline" onClick={() => setDetailEntry(null)}>Close</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

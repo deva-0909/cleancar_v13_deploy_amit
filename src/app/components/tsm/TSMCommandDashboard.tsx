@@ -525,7 +525,7 @@ export function TSMCommandDashboard({
             </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 mb-1">Win Rate</div>
+<div className="text-xs text-gray-500 mb-1">Closed Win Rate</div>
             <div className="text-2xl font-bold text-green-600">
               {metrics.leadStages.converted + metrics.leadStages.lost > 0
                 ? (
@@ -539,9 +539,13 @@ export function TSMCommandDashboard({
             <div className="text-xs text-gray-600 mt-1">
               {metrics.leadStages.converted} won vs {metrics.leadStages.lost} lost
             </div>
+            <div className="text-xs text-amber-600 mt-1">
+              {/* B4 FIX: clarify this excludes active leads */}
+              (vs closed leads only — excludes {metrics.leadStages.new + metrics.leadStages.attempted + metrics.leadStages.followUp} active)
+            </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 mb-1">Pipeline Value</div>
+            <div className="text-xs text-gray-500 mb-1">Pipeline Value (Annual Est.)</div>
             <div className="text-2xl font-bold text-indigo-600">
               ₹
               {(
@@ -554,7 +558,8 @@ export function TSMCommandDashboard({
               L
             </div>
             <div className="text-xs text-gray-600 mt-1">
-              Estimated at ₹{(DEAL_VALUE_DEFAULTS.AVERAGE / 1000).toFixed(0)}K avg deal size
+              {/* B2 FIX: DEAL_VALUE_DEFAULTS.AVERAGE=₹25K is annual; label as such */}
+              Est. at ₹{(DEAL_VALUE_DEFAULTS.AVERAGE / 1000).toFixed(0)}K avg annual value per lead
             </div>
           </div>
         </div>

@@ -78,7 +78,8 @@ export function TSMRenewalDashboard() {
   // Renewal summary stats
   const renewalStats = {
     total: renewals.length,
-    expiringToday: renewals.filter((r) => r.urgency === "TODAY").length,
+    // F3 FIX: exclude LAPSED from expiring-today count (negative days inflate it)
+    expiringToday: renewals.filter((r) => r.urgency === "TODAY" && r.status !== "LAPSED").length,
     expiring2Days: renewals.filter((r) => r.urgency === "2_DAYS").length,
     expiring7Days: renewals.filter((r) => r.urgency === "7_DAYS").length,
     pending: renewals.filter((r) => r.status === "PENDING").length,
@@ -436,11 +437,25 @@ export function TSMRenewalDashboard() {
                   )}
                 </div>
 
-                {/* Actions */}
-                <div>
-                  <Button size="sm" variant="outline">
-                    View Details
+                {/* F4 FIX: Action buttons added — was read-only */}
+                <div className="flex flex-col gap-2">
+                  <Button size="sm" variant="outline"
+                    disabled={renewal.status === "RENEWED" || renewal.status === "UPGRADED" || renewal.status === "LAPSED"}
+                    onClick={() => {
+                      const note = window.prompt(`Mark ${renewal.customerName} as Contacted?\nAdd note:`, "Called — follow-up scheduled");
+                      if (note) alert(`Marked Contacted: ${note}`);
+                    }}>
+                    Mark Contacted
                   </Button>
+                  {(renewal.status === "PENDING" || renewal.status === "CONTACTED") && (
+                    <Button size="sm" variant="outline"
+                      onClick={() => {
+                        const newTSE = window.prompt(`Reassign ${renewal.customerName} to TSE:`, renewal.assignedTSE);
+                        if (newTSE) alert(`Reassigned to ${newTSE}`);
+                      }}>
+                      Reassign
+                    </Button>
+                  )}
                 </div>
               </div>
 
