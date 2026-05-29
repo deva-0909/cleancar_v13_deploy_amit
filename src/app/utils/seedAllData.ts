@@ -1236,3 +1236,13 @@ export function seedAllData(): void {
     console.error("[seedAllData] Failed:", err);
   }
 }
+
+/**
+ * seedExtendedModules — extended module seed (alias for seedAllData).
+ * All modules are seeded in seedAllData(). This export exists for
+ * compatibility with main.tsx imports.
+ */
+export function seedExtendedModules(): void {
+  // All data is seeded in seedAllData() — nothing extra needed here.
+  // This function is called by main.tsx after seedAllData() completes.
+}
