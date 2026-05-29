@@ -71,7 +71,8 @@ export interface CommitmentConfig {
 export interface AddonConfig {
   id: string;
   name: string;
-  price: number;
+  price?: number;           // deprecated — use prices
+  prices?: { hatchback: number; suv: number; luxury: number };
   unit: string;
   description: string;
 }
@@ -123,7 +124,7 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
   monthlyPlans: [
     {
       id: "water",
-      name: "EXPRESS_WASH",
+      name: "Express Wash",
       icon: "💧",
       tagline: "Chamakti Subah — Your car, clean every morning.",
       features: [
@@ -138,7 +139,7 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
     },
     {
       id: "shampoo",
-      name: "SMART_WASH",
+      name: "Smart Wash",
       icon: "🧴",
       tagline: "Raksha Plan — Clean daily. Protected always.",
       popular: true,
@@ -154,7 +155,7 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
     },
     {
       id: "wax",
-      name: "ELITE_WASH",
+      name: "Elite Wash",
       icon: "✨",
       tagline: "Full care — inside and out",
       features: [
@@ -181,12 +182,13 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
     { id: "12month",  term: "12 Months",      discountLabel: "18% off",     perk: "Renewal + vacuum + tyre dressing monthly + priority slots.", highlight: "best" },
   ],
   addons: [
-    { id: "vacuum",   name: "Interior Deep Vacuum",      price: 299, unit: "per visit", description: "Seats, mats, footwells, boot area. Full interior clean." },
-    { id: "dashboard",name: "Dashboard & Console Clean", price: 149, unit: "per visit", description: "Dashboard, centre console, door pads — dust-free finish." },
-    { id: "tyre",     name: "Tyre Dressing",             price: 99,  unit: "per visit", description: "Shine and protect all 4 tyres. Makes them look brand new." },
-    { id: "glass",    name: "Glass Coating (RainX)",     price: 349, unit: "per month", description: "Applied once/month on all glass. Repels rain, better visibility." },
-    { id: "waxpolish",name: "One-time Wax Polish",       price: 599, unit: "per visit", description: "For Water/Shampoo plan users wanting full wax protection occasionally." },
-    { id: "antirust", name: "Underbody Anti-Rust Spray", price: 499, unit: "per visit", description: "Protective coating for underbody. Recommended quarterly." },
+    { id: "vacuum",      name: "Interior Deep Vacuum",      prices: { hatchback: 199, suv: 249, luxury: 349 }, unit: "per visit", description: "Seats, mats, footwells, boot area. Full interior clean." },
+    { id: "dashboard",   name: "Dashboard & Console Clean", prices: { hatchback: 149, suv: 199, luxury: 249 }, unit: "per visit", description: "Dashboard, centre console, door pads — dust-free finish." },
+    { id: "tyre",        name: "Tyre Dressing",             prices: { hatchback:  99, suv: 149, luxury: 199 }, unit: "per visit", description: "Shine and protect all 4 tyres. Makes them look brand new." },
+    { id: "waxpolish",   name: "Full Hand Wax Polish",      prices: { hatchback: 199, suv: 249, luxury: 399 }, unit: "per visit", description: "Panel-by-panel hand wax application. Outer body only, no glass." },
+    { id: "underbody",   name: "Underbody Wash",            prices: { hatchback: 199, suv: 249, luxury: 349 }, unit: "per visit", description: "Underbody water spray — removes road grime from undercarriage." },
+    { id: "engine",      name: "Engine Bay Wipe-Down",      prices: { hatchback:  99, suv: 149, luxury: 199 }, unit: "per visit", description: "Dry blow of engine bay — strictly no water. Removes dust." },
+    { id: "fragrance",   name: "Car Fragrance",             prices: { hatchback:  49, suv:  49, luxury:  49 }, unit: "per visit", description: "Interior car fragrance spray — single fresh application." },
   ],
   timeSlots: [
     "Early morning (5am – 7am)",
@@ -437,9 +439,25 @@ export function CustomerPlanPage() {
     return p?.price ?? 0;
   }, [selectedPack, cfg.packs]);
 
+  // Get addon price for current vehicle category
+  const getAddonPrice = (id: string): number => {
+    const a = cfg.addons.find(x => x.id === id);
+    if (!a) return 0;
+    if (a.prices) {
+      const isLux = activeCat?.toLowerCase().includes("luxury");
+      const isSuv = activeCat?.toLowerCase().includes("suv") ||
+                    activeCat?.toLowerCase().includes("muv") ||
+                    activeCat?.toLowerCase().includes("sedan");
+      if (isLux) return a.prices.luxury;
+      if (isSuv) return a.prices.suv;
+      return a.prices.hatchback;
+    }
+    return a.price ?? 0;
+  };
+
   const addonTotal = useMemo(() =>
-    addons.reduce((s, id) => s + (cfg.addons.find(a => a.id === id)?.price ?? 0), 0),
-    [addons, cfg.addons]);
+    addons.reduce((s, id) => s + getAddonPrice(id), 0),
+    [addons, activeCat, cfg.addons]);
 
   const basePrice = planMode === "monthly" ? planPrice : packPrice;
   const total = basePrice + addonTotal;
@@ -509,7 +527,7 @@ export function CustomerPlanPage() {
 
       const sub = createSubscription({
         customerId,
-        packageType: selectedPlan === "wax" ? "Premium" : selectedPlan === "shampoo" ? "SMART_WASH" : "EXPRESS_WASH",
+        packageType: selectedPlan === "elite" ? "ELITE_WASH" : selectedPlan === "smart" ? "SMART_WASH" : "EXPRESS_WASH",
         packageName: planMode === "monthly"
           ? (planObj?.name || selectedPlan || "Plan")
           : (packObj?.name || selectedPack || "Pack"),
@@ -567,7 +585,8 @@ export function CustomerPlanPage() {
           ),
           ...addons.map(id => {
             const a = cfg.addons.find(x => x.id === id);
-            return { name: a?.name || id, qty: 1, rate: a?.price || 0, amount: a?.price || 0 };
+            const addonPrice = getAddonPrice(id);
+            return { name: a?.name || id, qty: 1, rate: addonPrice, amount: addonPrice };
           }),
         ],
         subtotal: total,
@@ -1081,7 +1100,7 @@ export function CustomerPlanPage() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{addon.name} {selected && <span style={{ color: "#00C853" }}>✓</span>}</div>
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A" }}>{inr(addon.price)}</div>
+                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 20, fontWeight: 700, color: "#0F172A" }}>{inr(getAddonPrice(addon.id))}</div>
                         <div style={{ fontSize: 11, color: "#6B7280" }}>{addon.unit}</div>
                       </div>
                     </div>
