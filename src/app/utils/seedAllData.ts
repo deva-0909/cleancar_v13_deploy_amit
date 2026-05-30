@@ -1367,6 +1367,7 @@ export function seedAllData(): void {
       localStorage.removeItem("sm_alerts");
       localStorage.removeItem("sm_expenses");
       localStorage.removeItem("sh_tce_performance");
+      localStorage.removeItem("sh_tce_statuses"); // force reload from new sh_tce_performance
     }
 
     // ── 36. SM MODULE — enrich sm_locations with more realistic data ─────────
@@ -1491,6 +1492,8 @@ export function seedAllData(): void {
             monthlyTarget:35, leadsContacted:38, conversionRate:18 },
         ];
         localStorage.setItem("sh_tce_performance", JSON.stringify(SH_TCE_FULL));
+        // Also write to sh_tce_statuses — this is the key salesHeadService actually reads
+        localStorage.setItem("sh_tce_statuses", JSON.stringify(SH_TCE_FULL));
       }
     }
 

@@ -241,7 +241,7 @@ function LeadPipeline() {
                         <Button key={tce.id} size="sm" variant="outline"
                           className="text-xs px-2 py-1 h-auto"
                           onClick={() => handleAssign(lead.id, tce.id)}>
-                          {tce.name.split(" ")[0]}
+                          {(tce.name || tce.id || "TCE").split(" ")[0]}
                         </Button>
                       ))}
                       <Button size="sm" variant="outline"
