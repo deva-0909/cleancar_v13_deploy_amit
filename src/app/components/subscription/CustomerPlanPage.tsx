@@ -321,8 +321,10 @@ export function CustomerPlanPage() {
 
   // Step 4 state
   const [addons, setAddons] = useState<string[]>([]);
-  // Addon repeat frequency: addonId → "1x" | "2x" | "3x" | "4x"
+  // Addon repeat frequency: addonId → "2x" | "3x" | "4x" | "one-time"
   const [addonFreq, setAddonFreq] = useState<Record<string, string>>({});
+  // Bundle frequency: bundleId → "2x" | "3x" | "4x" | "one-time"
+  const [bundleFreq, setBundleFreq] = useState<Record<string, string>>({});
 
   // Step 5 state
   const [custName, setCustName] = useState("");
@@ -514,30 +516,17 @@ export function CustomerPlanPage() {
 
   const packPrice = useMemo(() => {
     const p = cfg.packs.find(p => p.id === selectedPack);
-    if (!p) return 0;
-    // Handle both flat price and nested prices (vehicle-aware) structures
-    if (typeof p.price === "number") return p.price;
-    const nested = (p as any).prices;
-    if (nested) {
-      const washType = nested.shampoo ?? nested.waterWash ?? Object.values(nested)[0];
-      if (washType && typeof washType === "object") {
-        const _cat = (activeCat || "").toLowerCase().includes("suv") ? "suv" : (activeCat || "").toLowerCase().includes("lux") ? "luxury" : "hatchback";
-      const catPrice = (washType as any)[_cat] ?? (washType as any).hatchback ?? Object.values(washType as any)[0];
-        return typeof catPrice === "number" ? catPrice : 0;
-      }
-    }
-    return 0;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPack, cfg.packs, activeCat]);
+    return p?.price ?? 0;
+  }, [selectedPack, cfg.packs]);
 
-  // S1+S2 FIX: vehicleCat comes from activeCat (the detected vehicle category id)
-  // activeCat is already set from the vehicle registration lookup in Step 1
-  // activeCat values match the prices object keys: 'hatchback', 'suv', 'luxury'
+  // S1+S2 FIX: vehicleCat must come from actual vehicle selection, not plan ID
+  // custVehicleType is already captured in the form for subscription pricing
+  // Map it to the prices object keys used in addon config
   const vehicleCat = (() => {
-    const cat = (activeCat || "").toLowerCase();
-    if (cat.includes("luxury") || cat.includes("lux"))                    return "luxury";
-    if (cat.includes("suv") || cat.includes("muv") || cat.includes("sedan")) return "suv";
-    return "hatchback";  // default — covers hatchback, compact
+    const vt = (custVehicleType || "").toUpperCase();
+    if (vt.includes("LUXURY") || vt.includes("LUX"))            return "luxury";
+    if (vt.includes("SUV") || vt.includes("MUV") || vt.includes("SEDAN")) return "suv";
+    return "hatchback";  // default
   })();
   const getAddonPrice = (id: string): number => {
     const a = cfg.addons.find(a => a.id === id);
@@ -548,8 +537,7 @@ export function CustomerPlanPage() {
   // S4 FIX: vehicleCat added to deps (it's derived from custVehicleType, not selectedPlan)
   const addonTotal = useMemo(() =>
     addons.reduce((s, id) => s + getAddonPrice(id), 0),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [addons, cfg.addons, selectedPlan, activeCat]);
+    [addons, cfg.addons, selectedPlan, vehicleCat]);
 
   const basePrice = planMode === "monthly" ? planPrice : packPrice;
   const total = basePrice + addonTotal;
@@ -703,7 +691,7 @@ export function CustomerPlanPage() {
 
       // 6️⃣ Simulate WhatsApp / Email dispatch
       const waMsg = encodeURIComponent(
-        `Hi ${firstName}! 🎉\n\nYour ${invoice.items[0].name} is confirmed!\n\nInvoice: ${invNum}\nAmount Paid: ₹${(invoice?.grandTotal ?? 0).toLocaleString("en-IN")} (incl. GST)\n\nService starts within 2 working days. Your washer will send before & after photos after every wash.\n\nThank you for choosing ${cfg.brand.name}! 🚗✨`
+        `Hi ${firstName}! 🎉\n\nYour ${invoice.items[0].name} is confirmed!\n\nInvoice: ${invNum}\nAmount Paid: ₹${invoice.grandTotal.toLocaleString("en-IN")} (incl. GST)\n\nService starts within 2 working days. Your washer will send before & after photos after every wash.\n\nThank you for choosing ${cfg.brand.name}! 🚗✨`
       );
       if (notifyPref === "whatsapp" || notifyPref === "both") {
         window._pendingWAInvoice = `https://wa.me/${cfg.brand.whatsappNumber}?text=${waMsg}`;
@@ -792,7 +780,7 @@ export function CustomerPlanPage() {
                       <tr key={i} style={{ borderBottom: "1px solid #F3F4F6" }}>
                         <td style={{ padding: "10px", fontSize: 13 }}>{item.name}</td>
                         <td style={{ padding: "10px", textAlign: "center", fontSize: 13 }}>{item.qty}</td>
-                        <td style={{ padding: "10px", textAlign: "right", fontSize: 13, fontWeight: 600 }}>₹{((item as any)?.amount ?? 0).toLocaleString("en-IN")}</td>
+                        <td style={{ padding: "10px", textAlign: "right", fontSize: 13, fontWeight: 600 }}>₹{item.amount.toLocaleString("en-IN")}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -801,9 +789,9 @@ export function CustomerPlanPage() {
                 {/* Tax breakdown */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "14px 10px", background: "#F9FAFB", borderRadius: 10, marginBottom: 16 }}>
                   {[
-                    ["Subtotal (Taxable Value)", `₹${(inv?.subtotal ?? 0).toLocaleString("en-IN")}`],
-                    ["CGST @ 9%", `₹${(inv?.cgst ?? 0).toLocaleString("en-IN")}`],
-                    ["SGST @ 9%", `₹${(inv?.sgst ?? 0).toLocaleString("en-IN")}`],
+                    ["Subtotal (Taxable Value)", `₹${inv.subtotal.toLocaleString("en-IN")}`],
+                    ["CGST @ 9%", `₹${inv.cgst.toLocaleString("en-IN")}`],
+                    ["SGST @ 9%", `₹${inv.sgst.toLocaleString("en-IN")}`],
                   ].map(([k, v]) => (
                     <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#6B7280" }}>
                       <span>{k}</span><span>{v}</span>
@@ -811,7 +799,7 @@ export function CustomerPlanPage() {
                   ))}
                   <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 16, fontFamily: "'Poppins', sans-serif", color: "#1D4ED8", borderTop: "1px solid #E5E7EB", paddingTop: 10, marginTop: 4 }}>
                     <span>Grand Total</span>
-                    <span>₹{(inv?.grandTotal ?? 0).toLocaleString("en-IN")}</span>
+                    <span>₹{inv.grandTotal.toLocaleString("en-IN")}</span>
                   </div>
                 </div>
 
@@ -1069,7 +1057,7 @@ export function CustomerPlanPage() {
                     const isSelected = selectedPlan === plan.id;
                     return (
                       <div key={plan.id} onClick={() => setSelectedPlan(plan.id)}
-                        style={{ border: `2px solid ${isSelected || plan.popular ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 16, background: "#fff", cursor: "pointer", overflow: "hidden", transition: "all 0.2s", boxShadow: isSelected ? "0 8px 32px rgba(33,150,243,0.18)" : "none" }}>
+                        style={{ border: `2px solid ${isSelected || plan.popular ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 16, background: "#fff", cursor: "pointer", overflow: "hidden", transition: "transform 0.2s, box-shadow 0.2s", transition: "all 0.2s", boxShadow: isSelected ? "0 8px 32px rgba(33,150,243,0.18)" : "none" }}>
                         {plan.popular && <div style={{ background: "#0F172A", color: "#FBBF24", fontSize: 11, fontWeight: 700, padding: "5px 12px", textAlign: "center", letterSpacing: 0.8 }}>⭐ Most Popular</div>}
                         <div style={{ padding: 24 }}>
                           <div style={{ fontSize: 28, marginBottom: 10 }}>{plan.icon}</div>
@@ -1130,17 +1118,8 @@ export function CustomerPlanPage() {
                         style={{ border: `2px solid ${isSelected ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 14, padding: "20px 16px", textAlign: "center", cursor: "pointer", background: isSelected ? "#EFF6FF" : "#fff", transition: "all 0.2s" }}>
                         <div style={{ fontSize: 28, marginBottom: 10 }}>{pack.icon}</div>
                         <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{pack.name}</div>
-                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 24, fontWeight: 800, color: "#1D4ED8" }}>{(() => {
-                          if (typeof (pack as any).price === "number") return inr((pack as any).price);
-                          const nested = (pack as any).prices;
-                          if (nested) {
-                            const wt = nested.shampoo ?? nested.waterWash ?? Object.values(nested)[0];
-                            const p = wt?.[vehicleCat] ?? wt?.hatchback ?? (typeof wt === "number" ? wt : 0);
-                            return inr(typeof p === "number" ? p : 0);
-                          }
-                          return inr(0);
-                        })()}</div>
-                        <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 8 }}>{(pack as any).perLabel ?? (pack as any).discount ?? ""}</div>
+                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 24, fontWeight: 800, color: "#1D4ED8" }}>{inr(pack.price)}</div>
+                        <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 8 }}>{pack.perLabel}</div>
                         <span style={{ background: "#E8F5E9", color: "#2E7D32", fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 20 }}>{pack.discount}</span>
                       </div>
                     );
@@ -1210,6 +1189,8 @@ export function CustomerPlanPage() {
                             ? addons.filter((id: string) => !bundle.addonIds.includes(id))
                             : [...new Set([...addons, ...bundle.addonIds])];
                           setAddons(next as string[]);
+                          // Clear freq when deselected
+                          if (allSelected) setBundleFreq(prev => { const n = {...prev}; delete n[bundle.id]; return n; });
                         }}
                         style={{ padding: "14px 20px", borderRadius: 14,
                           border: `2px solid ${allSelected ? "#FF6D00" : "#E5E7EB"}`,
@@ -1231,6 +1212,47 @@ export function CustomerPlanPage() {
                         )}
                         {allSelected && (
                           <div style={{ marginTop: 4, fontSize: 12, color: "#00C853", fontWeight: 600 }}>✓ Selected</div>
+                        )}
+                        {/* Frequency selector — shown when bundle is selected */}
+                        {allSelected && (
+                          <div style={{ marginTop: 10 }} onClick={e => e.stopPropagation()}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: "#FF6D00", marginBottom: 6 }}>
+                              How often? <span style={{ fontWeight: 400, color: "#6B7280" }}>(per month)</span>
+                            </div>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                              {(["2x","3x","4x"] as const).map(freq => (
+                                <button key={freq}
+                                  onClick={e => { e.stopPropagation(); setBundleFreq(prev => ({ ...prev, [bundle.id]: freq })); }}
+                                  style={{ padding: "4px 12px", borderRadius: 20,
+                                    border: `2px solid ${bundleFreq[bundle.id] === freq ? "#FF6D00" : "#E5E7EB"}`,
+                                    background: bundleFreq[bundle.id] === freq ? "#FF6D00" : "#fff",
+                                    color: bundleFreq[bundle.id] === freq ? "#fff" : "#6B7280",
+                                    fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+                                  {freq}
+                                </button>
+                              ))}
+                              <div style={{ width: 1, height: 20, background: "#E5E7EB", margin: "0 2px" }} />
+                              <button
+                                onClick={e => { e.stopPropagation(); setBundleFreq(prev => ({ ...prev, [bundle.id]: "one-time" })); }}
+                                style={{ padding: "4px 12px", borderRadius: 20,
+                                  border: `2px solid ${bundleFreq[bundle.id] === "one-time" ? "#E65100" : "#E5E7EB"}`,
+                                  background: bundleFreq[bundle.id] === "one-time" ? "#E65100" : "#fff",
+                                  color: bundleFreq[bundle.id] === "one-time" ? "#fff" : "#4A5568",
+                                  fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+                                One-time only
+                              </button>
+                            </div>
+                            {bundleFreq[bundle.id] === "one-time" && (
+                              <p style={{ fontSize: 10, color: "#E65100", marginTop: 5 }}>
+                                ⚠️ This bundle will be applied once only and will not repeat.
+                              </p>
+                            )}
+                            {allSelected && !bundleFreq[bundle.id] && (
+                              <p style={{ fontSize: 10, color: "#F59E0B", marginTop: 5 }}>
+                                Please select how often you'd like this bundle.
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                     );
@@ -1259,8 +1281,8 @@ export function CustomerPlanPage() {
                         <div style={{ fontSize: 12, fontWeight: 600, color: "#1D4ED8", marginBottom: 6 }}>
                           How often? <span style={{ fontWeight: 400, color: "#6B7280" }}>(per month)</span>
                         </div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          {(["1x","2x","3x","4x"] as const).map(freq => (
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                          {(["2x","3x","4x"] as const).map(freq => (
                             <button key={freq}
                               onClick={e => { e.stopPropagation(); setAddonFreq(prev => ({ ...prev, [addon.id]: freq })); }}
                               style={{ padding: "5px 14px", borderRadius: 20, border: `2px solid ${addonFreq[addon.id] === freq ? "#1D4ED8" : "#E5E7EB"}`,
@@ -1270,6 +1292,7 @@ export function CustomerPlanPage() {
                               {freq}
                             </button>
                           ))}
+                          <div style={{ width: 1, height: 24, background: "#E5E7EB", margin: "0 4px" }} />
                           <button
                             onClick={e => { e.stopPropagation(); setAddonFreq(prev => ({ ...prev, [addon.id]: "one-time" })); }}
                             style={{ padding: "5px 14px", borderRadius: 20, border: `2px solid ${addonFreq[addon.id] === "one-time" ? "#FF6D00" : "#E5E7EB"}`,
