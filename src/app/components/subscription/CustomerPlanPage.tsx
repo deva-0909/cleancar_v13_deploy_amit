@@ -514,8 +514,21 @@ export function CustomerPlanPage() {
 
   const packPrice = useMemo(() => {
     const p = cfg.packs.find(p => p.id === selectedPack);
-    return p?.price ?? 0;
-  }, [selectedPack, cfg.packs]);
+    if (!p) return 0;
+    // Handle both flat price and nested prices (vehicle-aware) structures
+    if (typeof p.price === "number") return p.price;
+    const nested = (p as any).prices;
+    if (nested) {
+      const washType = nested.shampoo ?? nested.waterWash ?? Object.values(nested)[0];
+      if (washType && typeof washType === "object") {
+        const _cat = (activeCat || "").toLowerCase().includes("suv") ? "suv" : (activeCat || "").toLowerCase().includes("lux") ? "luxury" : "hatchback";
+      const catPrice = (washType as any)[_cat] ?? (washType as any).hatchback ?? Object.values(washType as any)[0];
+        return typeof catPrice === "number" ? catPrice : 0;
+      }
+    }
+    return 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPack, cfg.packs, activeCat]);
 
   // S1+S2 FIX: vehicleCat comes from activeCat (the detected vehicle category id)
   // activeCat is already set from the vehicle registration lookup in Step 1
@@ -690,7 +703,7 @@ export function CustomerPlanPage() {
 
       // 6️⃣ Simulate WhatsApp / Email dispatch
       const waMsg = encodeURIComponent(
-        `Hi ${firstName}! 🎉\n\nYour ${invoice.items[0].name} is confirmed!\n\nInvoice: ${invNum}\nAmount Paid: ₹${invoice.grandTotal.toLocaleString("en-IN")} (incl. GST)\n\nService starts within 2 working days. Your washer will send before & after photos after every wash.\n\nThank you for choosing ${cfg.brand.name}! 🚗✨`
+        `Hi ${firstName}! 🎉\n\nYour ${invoice.items[0].name} is confirmed!\n\nInvoice: ${invNum}\nAmount Paid: ₹${(invoice?.grandTotal ?? 0).toLocaleString("en-IN")} (incl. GST)\n\nService starts within 2 working days. Your washer will send before & after photos after every wash.\n\nThank you for choosing ${cfg.brand.name}! 🚗✨`
       );
       if (notifyPref === "whatsapp" || notifyPref === "both") {
         window._pendingWAInvoice = `https://wa.me/${cfg.brand.whatsappNumber}?text=${waMsg}`;
@@ -779,7 +792,7 @@ export function CustomerPlanPage() {
                       <tr key={i} style={{ borderBottom: "1px solid #F3F4F6" }}>
                         <td style={{ padding: "10px", fontSize: 13 }}>{item.name}</td>
                         <td style={{ padding: "10px", textAlign: "center", fontSize: 13 }}>{item.qty}</td>
-                        <td style={{ padding: "10px", textAlign: "right", fontSize: 13, fontWeight: 600 }}>₹{item.amount.toLocaleString("en-IN")}</td>
+                        <td style={{ padding: "10px", textAlign: "right", fontSize: 13, fontWeight: 600 }}>₹{((item as any)?.amount ?? 0).toLocaleString("en-IN")}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -788,9 +801,9 @@ export function CustomerPlanPage() {
                 {/* Tax breakdown */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "14px 10px", background: "#F9FAFB", borderRadius: 10, marginBottom: 16 }}>
                   {[
-                    ["Subtotal (Taxable Value)", `₹${inv.subtotal.toLocaleString("en-IN")}`],
-                    ["CGST @ 9%", `₹${inv.cgst.toLocaleString("en-IN")}`],
-                    ["SGST @ 9%", `₹${inv.sgst.toLocaleString("en-IN")}`],
+                    ["Subtotal (Taxable Value)", `₹${(inv?.subtotal ?? 0).toLocaleString("en-IN")}`],
+                    ["CGST @ 9%", `₹${(inv?.cgst ?? 0).toLocaleString("en-IN")}`],
+                    ["SGST @ 9%", `₹${(inv?.sgst ?? 0).toLocaleString("en-IN")}`],
                   ].map(([k, v]) => (
                     <div key={k} style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#6B7280" }}>
                       <span>{k}</span><span>{v}</span>
@@ -798,7 +811,7 @@ export function CustomerPlanPage() {
                   ))}
                   <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 16, fontFamily: "'Poppins', sans-serif", color: "#1D4ED8", borderTop: "1px solid #E5E7EB", paddingTop: 10, marginTop: 4 }}>
                     <span>Grand Total</span>
-                    <span>₹{inv.grandTotal.toLocaleString("en-IN")}</span>
+                    <span>₹{(inv?.grandTotal ?? 0).toLocaleString("en-IN")}</span>
                   </div>
                 </div>
 
@@ -1117,8 +1130,17 @@ export function CustomerPlanPage() {
                         style={{ border: `2px solid ${isSelected ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 14, padding: "20px 16px", textAlign: "center", cursor: "pointer", background: isSelected ? "#EFF6FF" : "#fff", transition: "all 0.2s" }}>
                         <div style={{ fontSize: 28, marginBottom: 10 }}>{pack.icon}</div>
                         <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{pack.name}</div>
-                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 24, fontWeight: 800, color: "#1D4ED8" }}>{inr(pack.price)}</div>
-                        <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 8 }}>{pack.perLabel}</div>
+                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 24, fontWeight: 800, color: "#1D4ED8" }}>{(() => {
+                          if (typeof (pack as any).price === "number") return inr((pack as any).price);
+                          const nested = (pack as any).prices;
+                          if (nested) {
+                            const wt = nested.shampoo ?? nested.waterWash ?? Object.values(nested)[0];
+                            const p = wt?.[vehicleCat] ?? wt?.hatchback ?? (typeof wt === "number" ? wt : 0);
+                            return inr(typeof p === "number" ? p : 0);
+                          }
+                          return inr(0);
+                        })()}</div>
+                        <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 8 }}>{(pack as any).perLabel ?? (pack as any).discount ?? ""}</div>
                         <span style={{ background: "#E8F5E9", color: "#2E7D32", fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 20 }}>{pack.discount}</span>
                       </div>
                     );
