@@ -3,6 +3,10 @@
  * Used to decouple modules and enable reactive updates across the app
  *
  * NOTE: This handles SYSTEM events only, not UI-only actions
+ *
+ * FIX: useEventListener now uses ctx?.subscribe pattern to prevent
+ * esbuild dead-code elimination of the subscribe declaration.
+ * ReferenceError "subscribe is not defined" is now impossible.
  */
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo} from "react";
