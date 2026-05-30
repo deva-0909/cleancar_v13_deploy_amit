@@ -128,7 +128,41 @@ const WAIT_PROMPT_MINUTES = 30;
 function loadReport(): DailyReport {
   try {
     const s = localStorage.getItem(STORAGE_KEY);
-    if (s) return JSON.parse(s);
+    if (s) {
+      const raw = JSON.parse(s);
+      // Defensive merge — if stored data is from an older schema version,
+      // fill in all missing fields rather than crashing
+      if (!raw || typeof raw !== "object") throw new Error("bad data");
+      const parsed = raw as any;
+      // Backfill field section
+      if (!parsed.field)                         parsed.field = {};
+      if (!Array.isArray(parsed.field.completedTrips)) parsed.field.completedTrips = [];
+      if (!Array.isArray(parsed.field.visitsActual))   parsed.field.visitsActual   = [];
+      if (typeof parsed.field.locked !== "boolean")    parsed.field.locked         = false;
+      if (typeof parsed.field.totalKm !== "number")    parsed.field.totalKm        = 0;
+      if (typeof parsed.field.totalLeads !== "number") parsed.field.totalLeads     = 0;
+      if (typeof parsed.field.totalConversions !== "number") parsed.field.totalConversions = 0;
+      if (typeof parsed.field.unplannedVisits !== "number")  parsed.field.unplannedVisits  = 0;
+      if (parsed.field.activeTrip && typeof parsed.field.activeTrip === "object") {
+        if (typeof parsed.field.activeTrip.visitLogDone !== "boolean")    parsed.field.activeTrip.visitLogDone    = false;
+        if (typeof parsed.field.activeTrip.waitPromptShown !== "boolean") parsed.field.activeTrip.waitPromptShown = false;
+      }
+      // Backfill morning section
+      if (!parsed.morning)                              parsed.morning = {};
+      if (!Array.isArray(parsed.morning.plannedVisits)) parsed.morning.plannedVisits = [];
+      if (typeof parsed.morning.locked !== "boolean")   parsed.morning.locked = false;
+      if (typeof parsed.morning.priorityForDay !== "string") parsed.morning.priorityForDay = "";
+      if (typeof parsed.morning.openAlerts !== "number")     parsed.morning.openAlerts = 0;
+      // Backfill evening section
+      if (!parsed.evening)                                parsed.evening = {};
+      if (typeof parsed.evening.locked !== "boolean")     parsed.evening.locked = false;
+      if (typeof parsed.evening.dayRating !== "number")   parsed.evening.dayRating = 3;
+      if (typeof parsed.evening.biggestWin !== "string")  parsed.evening.biggestWin = "";
+      if (typeof parsed.evening.biggestBlock !== "string") parsed.evening.biggestBlock = "";
+      if (typeof parsed.evening.tomorrowTop3 !== "string") parsed.evening.tomorrowTop3 = "";
+      if (typeof parsed.evening.escalationsRaised !== "number") parsed.evening.escalationsRaised = 0;
+      return parsed as DailyReport;
+    }
   } catch { /**/ }
 
   const locs    = salesManagerService.getLocations();
@@ -424,7 +458,7 @@ function TripPanel({
   const visitLogRef = useRef<HTMLDivElement>(null);
 
   // Start-trip form state
-  const [vehicleType,  setVehicleType]  = useState<VehicleType>("4W");
+  const [vehicleType,  setVehicleType]  = useState<VehicleType>("2W"); // SM default is 2-wheeler
   const [vehicleNum,   setVehicleNum]   = useState("");
   const [odoStart,     setOdoStart]     = useState<number|"">("");
   const [toLabel,      setToLabel]      = useState("");
@@ -897,6 +931,13 @@ function DestinationUpdater({ current, onSave }: { current: string; onSave: (v:s
 export function SMDailyActivity() {
   const [report, setReport] = useState<DailyReport>(loadReport);
   const [openSession, setOpenSession] = useState<SessionId>("morning");
+
+  // One-time migration: patch in-memory state if loaded from old localStorage schema
+  // (runs synchronously before first render via lazy init, but also guards on mount)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  if (!report.field.completedTrips)       (report.field as any).completedTrips = [];
+  if (!report.field.visitsActual)         (report.field as any).visitsActual   = [];
+  if (!report.morning.plannedVisits)      (report.morning as any).plannedVisits = [];
   const [saving, setSaving] = useState(false);
   const [travelRefresh, setTravelRefresh] = useState(0);
 
@@ -1111,6 +1152,7 @@ export function SMDailyActivity() {
             onTripEnd={(km, amt) => {
               update(r => {
                 if (r.field.activeTrip) {
+                  if (!r.field.completedTrips) r.field.completedTrips = [];
                   r.field.completedTrips.push(r.field.activeTrip.id);
                 }
                 r.field.activeTrip = null;
