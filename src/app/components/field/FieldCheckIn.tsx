@@ -1,17 +1,20 @@
 /**
  * FieldCheckIn.tsx
  *
- * Check-In / Check-Out widget for Sales Head and Sales Manager.
- * Embedded as a tab inside both SalesHeadApp and SalesManagerApp.
+ * Field attendance widget for Sales Manager and Sales Head.
  *
- * Flow:
- *   1. User taps "Start Field Day"
- *   2. Camera opens → selfie captured
- *   3. GPS captured → session created
- *   4. GPS trail starts silently in background
- *   5. User taps "End Field Day" → selfie + final GPS → session closed
- *   6. If location revoked from phone → auto checkout + toast warning
- *   7. Reinstatement request form shown for auto-checked-out sessions
+ * Rules implemented:
+ *   1. Compulsory selfie + GPS at check-in AND check-out
+ *   2. Check-in opens at 10:00 AM. Suggested checkout: 7:00 PM.
+ *   3. Auto-checkout fires at 23:59 if user is still checked in
+ *      → flagged as auto-checkout, highlighted in red, attendance reg required
+ *   4. While checked in: full GPS trail (every 10 m or 2 min, whichever first)
+ *   5. GPS unavailable (lift/basement/no network) → points queued offline,
+ *      flushed automatically once network/signal returns
+ *   6. If user turns off location from phone settings → PERMISSION_DENIED →
+ *      auto check-out + reinstatement request required
+ *   7. After checkout: VIEW ONLY — no data can be punched in the system
+ *   8. Trail visible to Admin / Super Admin only (not the user)
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -19,17 +22,17 @@ import { toast } from "sonner";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import {
   Camera, MapPin, Clock, CheckCircle2, XCircle,
   AlertTriangle, Navigation, RefreshCw, Send,
-  Footprints, Shield, Info,
+  Footprints, Shield, Info, WifiOff, Eye, Lock,
 } from "lucide-react";
 import { useRole } from "../../contexts/RoleContext";
 import {
   fieldTrackingService,
+  FIELD_HOURS,
   type FieldSession,
   type TrackingState,
 } from "../../services/fieldTrackingService";
@@ -51,7 +54,10 @@ function formatCoords(lat: number, lng: number): string {
   return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 }
 
-// ── Selfie Capture ─────────────────────────────────────────────────────────────
+function nowHour(): number { return new Date().getHours(); }
+function nowMinute(): number { return new Date().getMinutes(); }
+
+// ── Selfie Capturer ───────────────────────────────────────────────────────────
 
 function SelfieCapturer({
   onCapture, onCancel, label,
@@ -60,215 +66,306 @@ function SelfieCapturer({
   onCancel: () => void;
   label: string;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef  = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [captured, setCaptured] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]       = useState<string | null>(null);
+  const [ready, setReady]       = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false })
+      .then(s => {
+        if (cancelled) { s.getTracks().forEach(t => t.stop()); return; }
+        streamRef.current = s;
+        if (videoRef.current) { videoRef.current.srcObject = s; }
+        setReady(true);
+      })
+      .catch(() => setError("Camera access denied. Please allow camera access and try again."));
+    return () => {
+      cancelled = true;
+      streamRef.current?.getTracks().forEach(t => t.stop());
+    };
+  }, []);
+
+  const retake = () => {
+    setCaptured(null);
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "user" }, audio: false })
       .then(s => {
-        setStream(s);
+        streamRef.current = s;
         if (videoRef.current) videoRef.current.srcObject = s;
-      })
-      .catch(() => setError("Camera access denied. Please allow camera access."));
-    return () => { stream?.getTracks().forEach(t => t.stop()); };
-  }, []);
+        setReady(true);
+      });
+  };
 
   const takeSelfie = () => {
     if (!videoRef.current || !canvasRef.current) return;
-    const v = videoRef.current;
-    const c = canvasRef.current;
-    c.width = v.videoWidth;
-    c.height = v.videoHeight;
+    const v = videoRef.current, c = canvasRef.current;
+    c.width = v.videoWidth || 320; c.height = v.videoHeight || 240;
     c.getContext("2d")!.drawImage(v, 0, 0);
-    const base64 = c.toDataURL("image/jpeg", 0.7);
+    const base64 = c.toDataURL("image/jpeg", 0.75);
+    streamRef.current?.getTracks().forEach(t => t.stop());
     setCaptured(base64);
-    stream?.getTracks().forEach(t => t.stop());
   };
 
-  if (error) {
-    return (
-      <div className="text-center p-6 space-y-3">
-        <AlertTriangle className="w-10 h-10 text-red-500 mx-auto" />
-        <p className="text-sm text-red-700">{error}</p>
-        <Button variant="outline" onClick={onCancel}>Back</Button>
-      </div>
-    );
-  }
+  if (error) return (
+    <div className="text-center p-6 space-y-3">
+      <AlertTriangle className="w-10 h-10 text-red-500 mx-auto" />
+      <p className="text-sm text-red-700">{error}</p>
+      <Button variant="outline" onClick={onCancel}>Back</Button>
+    </div>
+  );
 
-  if (captured) {
-    return (
-      <div className="space-y-3 text-center">
-        <p className="text-sm font-medium text-gray-700">{label}</p>
-        <img src={captured} alt="selfie" className="w-40 h-40 rounded-full object-cover border-4 border-green-400 mx-auto" />
-        <div className="flex gap-3 justify-center">
-          <Button onClick={() => { setCaptured(null); navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false }).then(s => { setStream(s); if (videoRef.current) videoRef.current.srcObject = s; }); }}>
-            Retake
-          </Button>
-          <Button className="bg-green-600 hover:bg-green-700" onClick={() => onCapture(captured)}>
-            <CheckCircle2 className="w-4 h-4 mr-1" /> Use This
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3 text-center">
-      <p className="text-sm font-medium text-gray-700">{label}</p>
-      <div className="relative mx-auto w-48 h-48 rounded-full overflow-hidden border-4 border-blue-400 bg-gray-900">
-        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-      </div>
-      <canvas ref={canvasRef} className="hidden" />
+  if (captured) return (
+    <div className="space-y-4 text-center">
+      <p className="text-sm font-semibold text-gray-700">{label}</p>
+      <img src={captured} alt="selfie"
+        className="w-44 h-44 rounded-full object-cover border-4 border-green-400 mx-auto shadow" />
       <div className="flex gap-3 justify-center">
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={takeSelfie} className="gap-2">
-          <Camera className="w-4 h-4" /> Take Selfie
+        <Button variant="outline" onClick={retake}><Camera className="w-4 h-4 mr-1" />Retake</Button>
+        <Button className="bg-green-600 hover:bg-green-700" onClick={() => onCapture(captured)}>
+          <CheckCircle2 className="w-4 h-4 mr-1" /> Use This
         </Button>
       </div>
     </div>
   );
+
+  return (
+    <div className="space-y-4 text-center">
+      <p className="text-sm font-semibold text-gray-700">{label}</p>
+      <div className="relative mx-auto w-52 h-52 rounded-full overflow-hidden border-4 border-blue-400 bg-gray-900 shadow-lg">
+        <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+        {!ready && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+            <RefreshCw className="w-6 h-6 text-white animate-spin" />
+          </div>
+        )}
+      </div>
+      <canvas ref={canvasRef} className="hidden" />
+      <div className="flex gap-3 justify-center">
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button onClick={takeSelfie} disabled={!ready} className="gap-2">
+          <Camera className="w-4 h-4" /> Take Selfie
+        </Button>
+      </div>
+      <p className="text-xs text-gray-400">
+        📍 GPS will be captured automatically with your selfie
+      </p>
+    </div>
+  );
 }
 
-// ── Trail Map Preview (static SVG path) ───────────────────────────────────────
+// ── Trail Map Preview (SVG path) ─────────────────────────────────────────────
 
 function TrailPreview({ trail }: { trail: FieldSession["trail"] }) {
-  if (trail.length < 2) {
-    return <p className="text-xs text-gray-400 text-center py-4">Trail starts after first movement</p>;
-  }
+  if (trail.length < 2) return (
+    <div className="flex items-center justify-center h-20 text-xs text-gray-400">
+      <Navigation className="w-4 h-4 mr-1" /> Trail appears after first movement
+    </div>
+  );
 
-  // Normalise to SVG space
-  const lats = trail.map(p => p.lat);
-  const lngs = trail.map(p => p.lng);
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-  const W = 280, H = 140, PAD = 20;
+  const lats = trail.map(p => p.lat), lngs = trail.map(p => p.lng);
+  const [minLat, maxLat] = [Math.min(...lats), Math.max(...lats)];
+  const [minLng, maxLng] = [Math.min(...lngs), Math.max(...lngs)];
+  const W = 300, H = 150, PAD = 24;
 
-  const tx = (lng: number) => PAD + ((lng - minLng) / (maxLng - minLng || 1)) * (W - 2 * PAD);
-  const ty = (lat: number) => H - PAD - ((lat - minLat) / (maxLat - minLat || 1)) * (H - 2 * PAD);
+  const tx = (lng: number) => PAD + ((lng - minLng) / (maxLng - minLng || 0.0001)) * (W - 2 * PAD);
+  const ty = (lat: number) => H - PAD - ((lat - minLat) / (maxLat - minLat || 0.0001)) * (H - 2 * PAD);
 
   const d = trail.map((p, i) => `${i === 0 ? "M" : "L"}${tx(p.lng).toFixed(1)},${ty(p.lat).toFixed(1)}`).join(" ");
   const first = trail[0], last = trail[trail.length - 1];
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full border rounded-lg bg-gray-50">
-      <path d={d} fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      {/* Start */}
-      <circle cx={tx(first.lng)} cy={ty(first.lat)} r="5" fill="#22c55e" />
-      {/* End */}
-      <circle cx={tx(last.lng)} cy={ty(last.lat)} r="5" fill="#ef4444" />
-      <text x="8" y="14" fontSize="9" fill="#22c55e">Start</text>
-      <text x={W - 24} y="14" fontSize="9" fill="#ef4444">Now</text>
-    </svg>
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full border rounded-lg bg-blue-50">
+        <defs>
+          <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#3b82f6" />
+          </marker>
+        </defs>
+        <path d={d} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          markerMid="url(#arrowhead)" />
+        <circle cx={tx(first.lng)} cy={ty(first.lat)} r="6" fill="#22c55e" />
+        <circle cx={tx(last.lng)}  cy={ty(last.lat)}  r="6" fill="#ef4444" />
+        <text x="10" y="14" fontSize="9" fill="#16a34a" fontWeight="bold">▲ Start</text>
+        <text x={W - 38} y="14" fontSize="9" fill="#dc2626" fontWeight="bold">● Now</text>
+      </svg>
+      <p className="text-xs text-gray-400 mt-1 text-center">
+        {trail.length} points · {trail[0]?.ts ? formatTime(trail[0].ts) : ""} → {last.ts ? formatTime(last.ts) : ""}
+      </p>
+    </div>
   );
 }
 
-// ── Reinstatement Form ─────────────────────────────────────────────────────────
+// ── Attendance Regularisation Form ────────────────────────────────────────────
 
-function ReinstateForm({ session, onDone }: { session: FieldSession; onDone: () => void }) {
-  const [reason, setReason] = useState("");
+function AttendanceRegForm({ session, onDone }: { session: FieldSession; onDone: () => void }) {
+  const [reason, setReason]       = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const isAutoMidnight = session.checkOutReason === "auto_23_59";
+  const isRevoked      = session.checkOutReason === "location_revoked";
+
   const submit = () => {
-    if (!reason.trim()) { toast.error("Please provide a reason"); return; }
+    if (!reason.trim()) { toast.error("Please enter a reason for regularisation"); return; }
     setSubmitting(true);
-    const result = fieldTrackingService.submitReinstateRequest(session.id, reason);
+    const result = fieldTrackingService.submitAttendanceReg(session.id, reason);
     if (result.ok) {
-      toast.success("Reinstatement request submitted", {
-        description: "Your manager will review within 24 hours.",
+      toast.success("Attendance regularisation request submitted", {
+        description: "Your Admin / Super Admin will review within 24 hours.",
       });
       onDone();
     } else {
-      toast.error(result.error);
+      toast.error(result.error || "Submission failed");
     }
     setSubmitting(false);
   };
 
   return (
-    <Card className="p-5 border-2 border-orange-200 bg-orange-50 space-y-4">
+    <Card className="p-5 border-2 border-orange-300 bg-orange-50 space-y-4">
       <div className="flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 text-orange-600 mt-0.5 shrink-0" />
         <div>
-          <p className="font-semibold text-orange-900">Attendance Auto-Checked-Out</p>
+          <p className="font-semibold text-orange-900">Attendance Regularisation Required</p>
           <p className="text-sm text-orange-700 mt-0.5">
-            Your field attendance was automatically closed at {formatTime(session.checkOutTime!)} because
-            location access was revoked on your device. Submit a reinstatement request to restore your attendance.
+            {isAutoMidnight
+              ? `Your field attendance was auto-closed at 23:59 because you did not check out before midnight. Your check-out time is recorded as 23:59.`
+              : isRevoked
+              ? `Your attendance was auto-closed at ${formatTime(session.checkOutTime!)} because location access was turned off on your device.`
+              : "Auto-checkout triggered."}
+            {" "}Submit a regularisation request to correct your attendance record.
           </p>
         </div>
       </div>
 
+      {/* View-only notice */}
+      <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+        <Lock className="w-3.5 h-3.5 shrink-0" />
+        <span><strong>View only mode.</strong> No activity can be logged until regularisation is approved.</span>
+      </div>
+
       <div className="space-y-1.5">
-        <Label className="text-sm">Reason for location turning off *</Label>
+        <Label className="text-sm font-medium">Reason for regularisation *</Label>
         <Textarea
           rows={3}
-          placeholder="e.g. Phone battery saver mode activated automatically, or accidentally denied location in settings..."
+          placeholder={isAutoMidnight
+            ? "e.g. Was travelling back from outstation visit and could not check out in time..."
+            : "e.g. Phone battery saver turned off GPS automatically while at client site..."}
           value={reason}
           onChange={e => setReason(e.target.value)}
           className="bg-white"
         />
+        <p className="text-xs text-gray-400">Mention exact location and reason clearly. Admin will verify with GPS trail.</p>
       </div>
 
       <div className="flex gap-3">
         <Button onClick={submit} disabled={submitting} className="gap-2 bg-orange-600 hover:bg-orange-700">
           {submitting
             ? <><RefreshCw className="w-4 h-4 animate-spin" /> Submitting…</>
-            : <><Send className="w-4 h-4" /> Submit Request</>
-          }
+            : <><Send className="w-4 h-4" /> Submit Request</>}
         </Button>
-        <Button variant="ghost" onClick={onDone}>Skip for now</Button>
+        <Button variant="ghost" onClick={onDone}>Dismiss</Button>
       </div>
     </Card>
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
+// ── View-Only Overlay ────────────────────────────────────────────────────────
+
+function ViewOnlyBanner() {
+  return (
+    <div className="flex items-center gap-2 p-3 bg-red-50 border-2 border-red-300 rounded-lg text-sm text-red-800 font-medium">
+      <Eye className="w-4 h-4 shrink-0" />
+      <span>
+        <strong>View Only</strong> — You are checked out. No attendance data can be modified.
+        Check in tomorrow to start a new field day.
+      </span>
+    </div>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
 
 export function FieldCheckIn() {
   const { currentUser, currentRole } = useRole();
-  const [state, setState] = useState<TrackingState>(() => fieldTrackingService.getState());
-  const [uiStep, setUiStep] = useState<"idle" | "selfie-in" | "selfie-out" | "reinstate">("idle");
+  const [state, setState]     = useState<TrackingState>(() => fieldTrackingService.getState());
+  const [uiStep, setUiStep]   = useState<"idle" | "selfie-in" | "selfie-out" | "reg">("idle");
   const [elapsed, setElapsed] = useState("");
-  const [showTrail, setShowTrail] = useState(false);
+  const [showTrail, setShowTrail]   = useState(false);
+  const [offlineCount, setOfflineCount] = useState(0);
 
-  // Subscribe to service state changes
+  // ── Subscribe to service state changes ──
   useEffect(() => {
     return fieldTrackingService.subscribe(s => {
       setState(s);
-      // Show reinstate form automatically on auto-checkout
-      if (!s.isCheckedIn && s.session?.checkOutReason === "location_revoked") {
-        if (!s.session.reinstateRequest) setUiStep("reinstate");
-        toast.error("Location access revoked — attendance auto-closed", {
-          description: "Please submit a reinstatement request.",
-          duration: 8000,
-        });
+      if (!s.isCheckedIn && s.session) {
+        const reason = s.session.checkOutReason;
+        if (reason === "location_revoked") {
+          if (!s.session.attendanceReg?.submittedAt) setUiStep("reg");
+          toast.error("Location access revoked — attendance auto-closed", {
+            description: "Submit an attendance regularisation request.",
+            duration: 10000,
+          });
+        } else if (reason === "auto_23_59") {
+          if (!s.session.attendanceReg?.submittedAt) setUiStep("reg");
+          toast.warning("Auto check-out at 23:59 — regularisation required", {
+            description: "You were checked out automatically as you did not check out before midnight.",
+            duration: 10000,
+          });
+        }
       }
     });
   }, []);
 
-  // Live timer
+  // ── Live timer ──
   useEffect(() => {
     if (!state.isCheckedIn || !state.session) return;
-    const interval = setInterval(() => {
-      setElapsed(formatDuration(state.session!.checkInTime));
-    }, 10000);
+    const t = setInterval(() => setElapsed(formatDuration(state.session!.checkInTime)), 10000);
     setElapsed(formatDuration(state.session.checkInTime));
-    return () => clearInterval(interval);
+    return () => clearInterval(t);
   }, [state.isCheckedIn, state.session]);
 
+  // ── Auto-checkout check (every minute) + offline queue flush ──
+  useEffect(() => {
+    const t = setInterval(() => {
+      fieldTrackingService.checkAutoCheckout();
+      // Flush offline GPS queue on every tick (network may have returned)
+      fieldTrackingService.flushOfflineQueue();
+      // Count pending offline points
+      try {
+        const q = JSON.parse(localStorage.getItem("field_offline_gps_queue") || "[]");
+        setOfflineCount(q.length);
+      } catch { /* */ }
+    }, 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  // ── Online event → flush queue immediately ──
+  useEffect(() => {
+    const flush = () => {
+      fieldTrackingService.flushOfflineQueue();
+      setOfflineCount(0);
+    };
+    window.addEventListener("online", flush);
+    return () => window.removeEventListener("online", flush);
+  }, []);
+
+  // ── Handlers ──
   const handleCheckIn = async (selfieBase64: string) => {
     setUiStep("idle");
     const result = await fieldTrackingService.checkIn({
-      employeeId: currentUser.employeeId || "EMP-SH-001",
-      employeeName: currentUser.name || currentRole,
+      employeeId:   currentUser?.employeeId || "EMP-SM-001",
+      employeeName: currentUser?.name       || currentRole,
       role: currentRole as "Sales Head" | "Sales Manager",
       selfieBase64,
     });
     if (result.ok) {
-      toast.success("Field day started!", {
-        description: "Your location is now being tracked.",
+      toast.success("Field day started — location tracking active", {
+        description: "Your GPS trail is being recorded.",
+        duration: 5000,
       });
     } else {
       toast.error(result.error || "Check-in failed");
@@ -280,108 +377,128 @@ export function FieldCheckIn() {
     const result = await fieldTrackingService.checkOut(selfieBase64);
     if (result.ok) {
       toast.success("Field day ended", {
-        description: `Total: ${state.session ? formatDuration(state.session.checkInTime) : ""} · ${state.session?.totalDistanceKm ?? 0} km`,
+        description: `${state.session ? formatDuration(state.session.checkInTime) : ""} · ${state.session?.totalDistanceKm ?? 0} km covered`,
       });
     }
   };
 
   const session = state.session;
+  const today   = new Date().toISOString().slice(0, 10);
+  const hour    = nowHour();
 
   // ── Selfie screens ──
-  if (uiStep === "selfie-in") {
-    return (
-      <Card className="p-6">
-        <SelfieCapturer
-          label="Take your check-in selfie"
-          onCapture={handleCheckIn}
-          onCancel={() => setUiStep("idle")}
-        />
-      </Card>
-    );
+  if (uiStep === "selfie-in") return (
+    <Card className="p-6">
+      <SelfieCapturer label="Check-In Selfie — with live location" onCapture={handleCheckIn} onCancel={() => setUiStep("idle")} />
+    </Card>
+  );
+
+  if (uiStep === "selfie-out") return (
+    <Card className="p-6">
+      <SelfieCapturer label="Check-Out Selfie — with live location" onCapture={handleCheckOut} onCancel={() => setUiStep("idle")} />
+    </Card>
+  );
+
+  // ── Regularisation screen ──
+  if (uiStep === "reg" && session?.isAutoCheckout && !session.attendanceReg?.submittedAt) {
+    return <AttendanceRegForm session={session} onDone={() => setUiStep("idle")} />;
   }
 
-  if (uiStep === "selfie-out") {
-    return (
-      <Card className="p-6">
-        <SelfieCapturer
-          label="Take your check-out selfie"
-          onCapture={handleCheckOut}
-          onCancel={() => setUiStep("idle")}
-        />
-      </Card>
-    );
-  }
-
-  // ── Reinstate screen ──
-  if (uiStep === "reinstate" && session?.checkOutReason === "location_revoked" && !session.reinstateRequest) {
-    return <ReinstateForm session={session} onDone={() => setUiStep("idle")} />;
-  }
-
-  // ── Checked IN state ──
+  // ── CHECKED IN ──
   if (state.isCheckedIn && session) {
+    const isLate7PM     = hour >= FIELD_HOURS.SUGGESTED_CHECKOUT;
+    const isNearMidnight = hour >= 22;
+
     return (
       <div className="space-y-4">
-        {/* Status banner */}
-        <Card className="p-5 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300">
-          <div className="flex items-start justify-between flex-wrap gap-3">
+        {/* Active session banner */}
+        <Card className={`p-5 border-2 ${isNearMidnight ? "border-red-400 bg-red-50" : "border-green-300 bg-green-50"}`}>
+          <div className="flex items-start justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-green-400">
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-green-400 shrink-0">
                 {session.checkInSelfieBase64
                   ? <img src={session.checkInSelfieBase64} alt="selfie" className="w-full h-full object-cover" />
-                  : <div className="w-full h-full bg-green-200 flex items-center justify-center"><Camera className="w-5 h-5 text-green-700" /></div>
-                }
+                  : <div className="w-full h-full bg-green-200 flex items-center justify-center"><Camera className="w-5 h-5 text-green-700" /></div>}
               </div>
               <div>
                 <p className="font-semibold text-green-900">Field Day Active</p>
                 <p className="text-sm text-green-700">
                   Checked in {formatTime(session.checkInTime)} · {elapsed} elapsed
                 </p>
+                <p className="text-xs text-gray-500">
+                  📍 {session.checkInLocation
+                    ? formatCoords(session.checkInLocation.lat, session.checkInLocation.lng)
+                    : "Location pending"}
+                </p>
               </div>
             </div>
-            <Badge className="bg-green-600 animate-pulse">Live Tracking</Badge>
+            <Badge className={`${isNearMidnight ? "bg-red-600 animate-pulse" : "bg-green-600 animate-pulse"} shrink-0`}>
+              ● Live
+            </Badge>
           </div>
 
-          {/* Trail stats */}
-          <div className="grid grid-cols-3 gap-3 mt-4">
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-2 mt-4">
             {[
-              { icon: <Footprints className="w-4 h-4" />, label: "Distance",  val: `${session.totalDistanceKm} km` },
-              { icon: <Navigation className="w-4 h-4" />,  label: "GPS Points", val: session.trail.length },
-              { icon: <MapPin className="w-4 h-4" />,      label: "Accuracy",  val: `~${session.trail[session.trail.length-1]?.accuracy ?? "—"}m` },
+              { icon: <Footprints className="w-3.5 h-3.5" />, label: "Distance",    val: `${session.totalDistanceKm} km` },
+              { icon: <Navigation className="w-3.5 h-3.5" />, label: "GPS Points",  val: session.trail.length },
+              { icon: <MapPin      className="w-3.5 h-3.5" />, label: "Accuracy",   val: `~${session.trail.at(-1)?.accuracy ?? "—"}m` },
             ].map(m => (
-              <div key={m.label} className="bg-white rounded-lg p-3 text-center border">
-                <div className="flex justify-center text-green-600 mb-1">{m.icon}</div>
-                <p className="text-xs text-gray-500">{m.label}</p>
-                <p className="font-bold text-gray-900">{m.val}</p>
+              <div key={m.label} className="bg-white rounded-lg p-2 text-center border">
+                <div className="flex justify-center text-green-600 mb-0.5">{m.icon}</div>
+                <p className="text-xs text-gray-400">{m.label}</p>
+                <p className="font-bold text-xs">{m.val}</p>
               </div>
             ))}
           </div>
-        </Card>
 
-        {/* Location trail toggle */}
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium flex items-center gap-2">
-              <Navigation className="w-4 h-4 text-blue-600" /> Location Trail
-            </p>
-            <Button size="sm" variant="ghost" onClick={() => setShowTrail(s => !s)}>
-              {showTrail ? "Hide" : "Show"} Trail
-            </Button>
-          </div>
-          {showTrail && <TrailPreview trail={session.trail} />}
-          {showTrail && session.trail.length > 0 && (
-            <p className="text-xs text-gray-400 mt-2 text-center">
-              Last point: {formatCoords(session.trail[session.trail.length-1].lat, session.trail[session.trail.length-1].lng)}
-              · {formatTime(session.trail[session.trail.length-1].ts)}
-            </p>
+          {/* Offline queue badge */}
+          {offlineCount > 0 && (
+            <div className="mt-3 flex items-center gap-2 p-2 bg-amber-50 border border-amber-300 rounded text-xs text-amber-800">
+              <WifiOff className="w-3.5 h-3.5 shrink-0" />
+              {offlineCount} GPS point{offlineCount > 1 ? "s" : ""} queued offline (lift/basement) — will sync when network returns
+            </div>
           )}
         </Card>
 
-        {/* Info box */}
+        {/* 7 PM reminder */}
+        {isLate7PM && (
+          <div className={`flex items-start gap-2 p-3 rounded-lg border text-sm ${
+            isNearMidnight
+              ? "bg-red-50 border-red-300 text-red-800"
+              : "bg-amber-50 border-amber-300 text-amber-800"
+          }`}>
+            <Clock className="w-4 h-4 shrink-0 mt-0.5" />
+            <div>
+              {isNearMidnight
+                ? <><strong>⚠️ After 23:59, you will be auto-checked out.</strong> Please check out now to avoid an attendance regularisation request.</>
+                : <><strong>Suggested check-out time is 7:00 PM.</strong> Please end your field day when done.</>}
+            </div>
+          </div>
+        )}
+
+        {/* Location trail */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium flex items-center gap-2">
+              <Navigation className="w-4 h-4 text-blue-600" /> GPS Trail (Admin view only)
+            </p>
+            <Button size="sm" variant="ghost" className="text-xs" onClick={() => setShowTrail(v => !v)}>
+              {showTrail ? "Hide" : "View"}
+            </Button>
+          </div>
+          {showTrail && <TrailPreview trail={session.trail} />}
+          <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+            <Shield className="w-3 h-3" /> Trail data is visible to Admin and Super Admin only
+          </p>
+        </Card>
+
+        {/* GPS offline info */}
         <div className="flex gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
-          <Info className="w-4 h-4 shrink-0 mt-0.5" />
+          <WifiOff className="w-4 h-4 shrink-0 mt-0.5" />
           <span>
-            If you turn off location access on your phone, attendance will be auto-closed and you'll
-            need to submit a reinstatement request. Network issues won't trigger auto-checkout.
+            In lifts or basements with no GPS signal, points are queued and synced automatically when signal returns.
+            Network loss does <strong>not</strong> trigger auto-checkout — only turning off location access does.
           </span>
         </div>
 
@@ -394,7 +511,6 @@ export function FieldCheckIn() {
           <XCircle className="w-5 h-5" /> End Field Day
         </Button>
 
-        {/* Error state */}
         {state.lastError && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0" />{state.lastError}
@@ -404,66 +520,119 @@ export function FieldCheckIn() {
     );
   }
 
-  // ── Checked OUT state ──
-  if (!state.isCheckedIn && session) {
+  // ── CHECKED OUT ──
+  if (!state.isCheckedIn && session && session.date === today) {
     const durationStr = formatDuration(session.checkInTime, session.checkOutTime ?? undefined);
+    const needsReg    = session.isAutoCheckout && !session.attendanceReg?.submittedAt;
+    const regStatus   = session.attendanceReg?.status;
+
     return (
       <div className="space-y-4">
-        {/* Summary card */}
+        <ViewOnlyBanner />
+
+        {/* Auto-checkout alert */}
+        {session.isAutoCheckout && (
+          <div className={`p-4 rounded-lg border-2 flex items-start gap-3 ${
+            regStatus === "Approved" ? "border-green-300 bg-green-50"
+            : regStatus === "Rejected" ? "border-red-300 bg-red-50"
+            : "border-orange-300 bg-orange-50"
+          }`}>
+            <AlertTriangle className={`w-5 h-5 mt-0.5 shrink-0 ${
+              regStatus === "Approved" ? "text-green-600" : regStatus === "Rejected" ? "text-red-600" : "text-orange-600"
+            }`} />
+            <div className="flex-1">
+              <p className="font-semibold text-sm">
+                {session.checkOutReason === "auto_23_59"
+                  ? "Auto check-out at 23:59"
+                  : "Auto check-out — Location revoked"}
+              </p>
+              <p className="text-xs text-gray-600 mt-0.5">
+                Check-out time recorded: {session.checkOutTime ? formatTime(session.checkOutTime) : "—"}
+              </p>
+              {regStatus && (
+                <Badge className={`mt-2 text-xs ${
+                  regStatus === "Approved" ? "bg-green-600"
+                  : regStatus === "Rejected" ? "bg-red-600"
+                  : "bg-orange-500"
+                }`}>
+                  Regularisation: {regStatus}
+                  {session.attendanceReg?.reviewedBy && ` — by ${session.attendanceReg.reviewedBy}`}
+                </Badge>
+              )}
+              {needsReg && (
+                <Button size="sm" variant="outline" className="mt-2 text-xs h-7 border-orange-400 text-orange-700"
+                  onClick={() => setUiStep("reg")}>
+                  Submit Regularisation Request
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Summary */}
         <Card className="p-5 border-2 border-gray-200">
           <div className="flex items-center gap-3 mb-4">
             <CheckCircle2 className="w-8 h-8 text-gray-400" />
             <div>
-              <p className="font-semibold text-gray-900">Field Day Complete</p>
-              <p className="text-sm text-gray-500">{session.date}</p>
+              <p className="font-semibold">Field Day Complete</p>
+              <p className="text-xs text-gray-500">{session.date}</p>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Duration",  val: durationStr },
-              { label: "Distance",  val: `${session.totalDistanceKm} km` },
-              { label: "GPS Points",val: session.trail.length },
+              { label: "Check-In",   val: formatTime(session.checkInTime) },
+              { label: "Check-Out",  val: session.checkOutTime ? formatTime(session.checkOutTime) : "—" },
+              { label: "Duration",   val: durationStr },
+              { label: "Distance",   val: `${session.totalDistanceKm} km` },
             ].map(m => (
               <div key={m.label} className="bg-gray-50 rounded-lg p-3 text-center">
-                <p className="text-xs text-gray-500">{m.label}</p>
-                <p className="font-bold">{m.val}</p>
+                <p className="text-xs text-gray-400">{m.label}</p>
+                <p className="font-bold text-sm">{m.val}</p>
               </div>
             ))}
           </div>
 
-          {session.checkOutReason === "location_revoked" && (
-            <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg text-xs text-orange-800 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              Auto-checked out — location access was revoked
-              {session.reinstateRequest
-                ? ` · Reinstatement: ${session.reinstateRequest.status}`
-                : <Button size="sm" variant="ghost" className="ml-auto text-xs h-auto py-0.5" onClick={() => setUiStep("reinstate")}>Submit Request</Button>
-              }
+          {/* Selfie comparison */}
+          {(session.checkInSelfieBase64 || session.checkOutSelfieBase64) && (
+            <div className="flex gap-3 mt-4 justify-center">
+              {session.checkInSelfieBase64 && (
+                <div className="text-center">
+                  <img src={session.checkInSelfieBase64} alt="check-in"
+                    className="w-16 h-16 rounded-full border-2 border-green-400 object-cover mx-auto" />
+                  <p className="text-xs text-gray-400 mt-1">Check-In</p>
+                </div>
+              )}
+              {session.checkOutSelfieBase64 && (
+                <div className="text-center">
+                  <img src={session.checkOutSelfieBase64} alt="check-out"
+                    className="w-16 h-16 rounded-full border-2 border-red-400 object-cover mx-auto" />
+                  <p className="text-xs text-gray-400 mt-1">Check-Out</p>
+                </div>
+              )}
             </div>
           )}
 
-          <Button
-            variant="ghost" size="sm"
-            className="w-full mt-3 text-xs"
-            onClick={() => setShowTrail(s => !s)}
-          >
-            {showTrail ? "Hide" : "View"} Trail
+          {/* Trail */}
+          <Button variant="ghost" size="sm" className="w-full mt-3 text-xs"
+            onClick={() => setShowTrail(v => !v)}>
+            {showTrail ? "Hide" : "View"} GPS Trail
           </Button>
           {showTrail && <TrailPreview trail={session.trail} />}
+          <p className="text-xs text-gray-400 text-center mt-1 flex items-center justify-center gap-1">
+            <Shield className="w-3 h-3" /> GPS trail visible to Admin / Super Admin only
+          </p>
         </Card>
 
-        {/* Start new day */}
-        <Button
-          className="w-full bg-green-600 hover:bg-green-700 gap-2 py-6 text-base font-semibold"
-          onClick={() => setUiStep("selfie-in")}
-        >
-          <Camera className="w-5 h-5" /> Start Field Day
-        </Button>
+        <p className="text-center text-xs text-gray-400">
+          Field day complete for {today}. Check in tomorrow to start a new day.
+        </p>
       </div>
     );
   }
 
-  // ── Not yet checked in ──
+  // ── NOT CHECKED IN ──
+  const beforeTime = hour < FIELD_HOURS.CHECK_IN_HOUR;
+
   return (
     <div className="space-y-5">
       <Card className="p-6 text-center space-y-4 border-2 border-dashed border-gray-300">
@@ -472,9 +641,15 @@ export function FieldCheckIn() {
         </div>
         <div>
           <p className="font-semibold text-gray-900 text-lg">Not Checked In</p>
-          <p className="text-sm text-gray-500 mt-1">
-            Start your field day to begin location tracking and attendance.
-          </p>
+          {beforeTime ? (
+            <p className="text-sm text-amber-600 mt-1 font-medium">
+              ⏰ Check-in opens at {FIELD_HOURS.CHECK_IN_HOUR}:00 AM
+            </p>
+          ) : (
+            <p className="text-sm text-gray-500 mt-1">
+              Start your field day to begin location tracking and attendance.
+            </p>
+          )}
         </div>
         <Button
           className="w-full bg-green-600 hover:bg-green-700 gap-2 py-5 text-base font-semibold"
@@ -484,20 +659,22 @@ export function FieldCheckIn() {
         </Button>
       </Card>
 
-      <Card className="p-4 space-y-2">
-        <p className="text-sm font-medium flex items-center gap-2">
-          <Shield className="w-4 h-4 text-blue-600" /> How it works
+      <Card className="p-4 space-y-2.5">
+        <p className="text-sm font-semibold flex items-center gap-2">
+          <Shield className="w-4 h-4 text-blue-600" /> Field Day Rules
         </p>
         {[
-          "Take a selfie to check in — GPS is captured automatically",
-          "Your location is tracked in the background while you're in the field",
-          "Tap End Field Day and take a check-out selfie when done",
-          "Turning off phone location auto-closes attendance — a reinstatement request is needed",
-          "Network issues don't trigger auto-checkout — only location revocation does",
-        ].map((t, i) => (
+          { icon: "📸", text: "Selfie + GPS location required at check-in and check-out" },
+          { icon: "🕙", text: `Scheduled check-in: ${FIELD_HOURS.CHECK_IN_HOUR}:00 AM · Suggested check-out: ${FIELD_HOURS.SUGGESTED_CHECKOUT}:00 PM` },
+          { icon: "🕛", text: "If not checked out by midnight, auto-checkout triggers at 23:59 — attendance regularisation required" },
+          { icon: "📍", text: "GPS trail recorded throughout the day — visible to Admin / Super Admin only" },
+          { icon: "📶", text: "No GPS in lifts or basements? Points queued offline and synced when signal returns" },
+          { icon: "🔒", text: "Turning off phone location triggers auto-checkout — submit regularisation with reason" },
+          { icon: "👁️", text: "After checkout: view-only mode. No data can be punched until next check-in" },
+        ].map((item, i) => (
           <div key={i} className="flex items-start gap-2 text-xs text-gray-600">
-            <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold shrink-0 text-xs">{i + 1}</span>
-            {t}
+            <span className="text-base shrink-0">{item.icon}</span>
+            <span>{item.text}</span>
           </div>
         ))}
       </Card>
