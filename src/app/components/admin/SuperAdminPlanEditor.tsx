@@ -25,6 +25,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRole } from "../../contexts/RoleContext";
+import { syncPageConfigToPlanTiers } from "../../utils/syncPlanPrices";
 import { DEFAULT_CONFIG, type PlanPageConfig, type MonthlyPlanConfig, type AddonConfig, type PackConfig } from "../subscription/CustomerPlanPage";
 import { BackButton } from "../ui/back-button";
 
@@ -42,6 +43,8 @@ function saveConfig(cfg: PlanPageConfig) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
   window.dispatchEvent(new Event("planConfigUpdated"));
   window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }));
+  // SYNC FIX: push new prices into PLAN_TIERS so ERP reflects buy-page changes
+  syncPageConfigToPlanTiers();
 }
 
 // ─── Small reusable field components ─────────────────────────────────────────

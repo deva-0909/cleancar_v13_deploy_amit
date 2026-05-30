@@ -37,6 +37,7 @@ import {
 import { toast } from "sonner";
 import { subscriptionPlansService } from "../../services/subscriptionPlansService";
 import { DataService } from "../../services/DataService";
+import { syncPlanPricesToPageConfig } from "../../utils/syncPlanPrices";
 import { useRole } from "../../contexts/RoleContext";
 import type {
   VehicleCategory, PlanTier, Addon, ComboOffer, BillingDurationType,
@@ -212,7 +213,7 @@ export default function AdminPlanManagement() {
   // ── Audit helper ─────────────────────────────────────────────────────────────
   const addAudit = useCallback((action: string, entity: string, details: string, oldVal?: string, newVal?: string) => {
     const entry: AuditEntry = {
-      id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      id: `log--${Date.now().toString(36)}-${(typeof crypto!=="undefined"&&crypto.getRandomValues?crypto.getRandomValues(new Uint32Array(1))[0]:Date.now()%999999).toString(36)}`,
       timestamp: new Date().toISOString(),
       user: currentRole,
       action, entity, details,
@@ -229,8 +230,11 @@ export default function AdminPlanManagement() {
   const err = (msg: string) => { setErrorMsg(msg);   setTimeout(() => setErrorMsg(""), 4000);   toast.error(msg); };
 
   // ✅ FIX 7: broadcast price change so PlanDefinitionContext consumers re-read
-  const broadcastPriceChange = () =>
+  // SYNC FIX: also push prices to plan_page_config so buy-page stays up to date
+  const broadcastPriceChange = () => {
     window.dispatchEvent(new CustomEvent("cc360_plan_price_changed"));
+    syncPlanPricesToPageConfig();
+  };
 
   // ─────────────────────────────────────────────────────────────────────────────
   // PLAN TIER CRUD
@@ -878,7 +882,7 @@ export default function AdminPlanManagement() {
                 {/* ✅ FIX 6: removed duplicate/invalid "Shampoo+Polish" option */}
                 <Select value={String(newPlanData.name)} onValueChange={v => setNewPlanData(p => ({
                   ...p, name: v as any,
-                  displayName: v === "WATER_WASH" ? "Water Wash" : v === "WATER_SHAMPOO" ? "Water + Shampoo" : "Water + Shampoo + Wax",
+                  displayName: v === "WATER_WASH" ? "EXPRESS_WASH" : v === "WATER_SHAMPOO" ? "SMART_WASH" : "ELITE_WASH",
                 }))}>
                   <SelectTrigger><SelectValue placeholder="Select tier" /></SelectTrigger>
                   <SelectContent>

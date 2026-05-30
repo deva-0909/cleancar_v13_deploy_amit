@@ -5,6 +5,7 @@ import App from "./app/App";
 import MinimalTest from "./app/MinimalTest";
 import { EmergencyFallback } from "./app/EmergencyFallback";
 import { seedAllData, seedExtendedModules } from "./app/utils/seedAllData";
+import { reconcilePlanPricesOnStartup } from "./app/utils/syncPlanPrices";
 
 // ── Run seed SYNCHRONOUSLY before React mounts ────────────────────────────
 // MUST run before createRoot so every Context useState(() => DataService.get())
@@ -12,6 +13,8 @@ import { seedAllData, seedExtendedModules } from "./app/utils/seedAllData";
 // already captured stale localStorage in their useState lazy initialisers.
 try { seedAllData(); } catch (e) { console.error("Seed failed:", e); }
 try { seedExtendedModules(); } catch (e) { console.error("Extended seed failed:", e); }
+// Reconcile plan prices across both storage systems on startup
+try { reconcilePlanPricesOnStartup(); } catch (e) { console.warn("Plan price reconcile failed:", e); }
 
 // EMERGENCY DEBUG MODE
 const USE_MINIMAL_TEST = false;
