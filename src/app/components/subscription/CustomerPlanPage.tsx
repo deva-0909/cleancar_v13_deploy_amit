@@ -10,7 +10,7 @@
  * Route: /buy  (public, no auth required)
  */
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useFinance } from "../../contexts/FinanceContext";
 import { useCustomers } from "../../contexts/AppProvider";
 import { useCustomerSubscriptions } from "../../contexts/AppProvider";
@@ -325,6 +325,13 @@ export function CustomerPlanPage() {
   // Addon repeat frequency: addonId → "1x" | "2x" | "3x" | "4x"
   const [addonFreq, setAddonFreq] = useState<Record<string, string>>({});
   const [bundleFreq, setBundleFreq] = useState<Record<string, string>>({});
+  // washType for pack plans — stored ONLY in ref, no derived const (esbuild-proof)
+  const _washRef = useRef<string>("shampoo");
+  const [, _forceWashRender] = useState(0);
+  const setSelectedWashType = useCallback((v: string) => {
+    _washRef.current = v;
+    _forceWashRender(n => n + 1);
+  }, []);
 
   // Step 5 state
   const [custName, setCustName] = useState("");
@@ -519,7 +526,7 @@ export function CustomerPlanPage() {
     if (!p) return 0;
     const nested = (p as any).prices;
     if (nested) {
-      const washObj = nested[selectedWashType] ?? nested.shampoo ?? nested.waterWash ?? Object.values(nested)[0];
+      const washObj = nested[_washRef.current] ?? nested.shampoo ?? nested.waterWash ?? Object.values(nested)[0];
       if (washObj && typeof washObj === "object") {
         const _cat = (activeCat || "").toLowerCase().includes("suv") ? "suv" : (activeCat || "").toLowerCase().includes("lux") ? "luxury" : "hatchback";
         const catPrice = (washObj as any)[_cat] ?? (washObj as any).hatchback ?? 0;
@@ -529,7 +536,7 @@ export function CustomerPlanPage() {
     if (typeof (p as any).price === "number") return (p as any).price;
     return 0;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPack, selectedWashType, cfg.packs, activeCat]);
+  }, [selectedPack, _washRef.current, cfg.packs, activeCat]);
 
   // S1+S2 FIX: vehicleCat comes from activeCat (the detected vehicle category id)
   // activeCat is already set from the vehicle registration lookup in Step 1
@@ -1154,11 +1161,11 @@ export function CustomerPlanPage() {
                         ?? (cfg.packs[0] as any).prices?.[wt.id]?.hatchback ?? 0;
                       return (
                         <div key={wt.id} onClick={() => setSelectedWashType(wt.id)}
-                          style={{ flex: "1 1 140px", border: `2px solid ${selectedWashType === wt.id ? "#1D4ED8" : "#E5E7EB"}`,
+                          style={{ flex: "1 1 140px", border: `2px solid ${_washRef.current === wt.id ? "#1D4ED8" : "#E5E7EB"}`,
                             borderRadius: 12, padding: "12px 14px", cursor: "pointer",
-                            background: selectedWashType === wt.id ? "#EFF6FF" : "#fff", transition: "all 0.15s" }}>
+                            background: _washRef.current === wt.id ? "#EFF6FF" : "#fff", transition: "all 0.15s" }}>
                           <div style={{ fontWeight: 700, fontSize: 13 }}>
-                            {wt.label}{selectedWashType === wt.id && <span style={{ color: "#00C853", marginLeft: 4 }}>✓</span>}
+                            {wt.label}{_washRef.current === wt.id && <span style={{ color: "#00C853", marginLeft: 4 }}>✓</span>}
                           </div>
                           <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>{wt.desc}</div>
                           <div style={{ marginTop: 6, fontFamily: "'Poppins', sans-serif", fontSize: 15, fontWeight: 800, color: "#1D4ED8" }}>
@@ -1176,7 +1183,7 @@ export function CustomerPlanPage() {
                   {cfg.packs.map(pack => {
                     const isSelected = selectedPack === pack.id;
                     const nested = (pack as any).prices;
-                    const washObj = nested?.[selectedWashType] ?? nested?.shampoo ?? nested?.waterWash;
+                    const washObj = nested?.[_washRef.current] ?? nested?.shampoo ?? nested?.waterWash;
                     const displayPrice = washObj?.[vehicleCat] ?? washObj?.hatchback ?? 0;
                     const visits = pack.id === "pack2" ? 2 : pack.id === "pack4" ? 4 : 1;
                     const perVisit = visits > 1 ? Math.round(displayPrice / visits) : 0;
