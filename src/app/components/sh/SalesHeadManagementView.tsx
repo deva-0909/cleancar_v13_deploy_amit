@@ -117,7 +117,7 @@ function TSMCard({ tsm }: { tsm: ReporteesSummary["tsmSummary"] }) {
                 <span><strong>{tse.closuresMTD}</strong> closes</span>
                 <span>SLA {tse.slaCompliancePct}%</span>
                 <span>Mix {tse.planMixPct}%</span>
-                <span className="font-semibold text-green-700">₹{tse.incentiveForecast.toLocaleString()}</span>
+                <span className="font-semibold text-green-700">₹{(tse.incentiveForecast ?? 0).toLocaleString()}</span>
               </div>
             </div>
           ))}
@@ -189,7 +189,7 @@ function SMCards({ sms }: { sms: ReporteesSummary["smSummaries"] }) {
 
           <div className="mt-2 pt-2 border-t flex justify-between text-xs">
             <span className="text-gray-500">Incentive Forecast</span>
-            <span className="font-bold text-green-700">₹{sm.incentiveForecast.toLocaleString()}</span>
+            <span className="font-bold text-green-700">₹{(sm.incentiveForecast ?? 0).toLocaleString()}</span>
           </div>
         </Card>
       ))}
@@ -246,7 +246,7 @@ function AllTCEsTable({ tces }: { tces: ReporteesSummary["allTCEs"] }) {
                 </span>
               </td>
               <td className="px-4 py-2 font-semibold text-green-700">
-                ₹{tce.incentiveForecast.toLocaleString()}
+                ₹{(tce.incentiveForecast ?? 0).toLocaleString()}
               </td>
             </tr>
           ))}
@@ -291,7 +291,7 @@ function TrancheLiability({ items }: { items: ReporteesSummary["trancheLiability
               }`}>
                 {t.subscriptionActive ? "Active ✓" : "Churned ⚠"}
               </span>
-              <p className="font-bold text-gray-900">₹{t.amount.toLocaleString()}</p>
+              <p className="font-bold text-gray-900">₹{(t.amount ?? 0).toLocaleString()}</p>
             </div>
           </div>
         ))}
@@ -304,10 +304,10 @@ function TrancheLiability({ items }: { items: ReporteesSummary["trancheLiability
 
 function IncentiveCostSummary({ summary }: { summary: ReporteesSummary }) {
   const rows = [
-    { label: "Sales Head (You)",      amount: summary.shPersonalForecast, color: "text-blue-700",   bg: "bg-blue-50"   },
-    { label: "TSM — Kiran Desai",     amount: summary.tsmForecast,        color: "text-indigo-700", bg: "bg-indigo-50" },
-    { label: "Sales Managers (×2)",   amount: summary.smsTotalForecast,   color: "text-purple-700", bg: "bg-purple-50" },
-    { label: "All TCEs (6 total)",    amount: summary.tcesForecast,       color: "text-teal-700",   bg: "bg-teal-50"   },
+    { label: "Sales Head (You)",      amount: summary.shPersonalForecast ?? 0, color: "text-blue-700",   bg: "bg-blue-50"   },
+    { label: "TSM — Kiran Desai",     amount: summary.tsmForecast ?? 0,        color: "text-indigo-700", bg: "bg-indigo-50" },
+    { label: "Sales Managers (×2)",   amount: summary.smsTotalForecast ?? 0,   color: "text-purple-700", bg: "bg-purple-50" },
+    { label: "All TCEs (6 total)",    amount: summary.tcesForecast ?? 0,       color: "text-teal-700",   bg: "bg-teal-50"   },
   ];
 
   return (
@@ -320,14 +320,14 @@ function IncentiveCostSummary({ summary }: { summary: ReporteesSummary }) {
         {rows.map(r => (
           <div key={r.label} className={`flex items-center justify-between p-3 rounded-lg ${r.bg}`}>
             <p className="text-sm font-medium text-gray-900">{r.label}</p>
-            <p className={`font-bold ${r.color}`}>₹{r.amount.toLocaleString()}</p>
+            <p className={`font-bold ${r.color}`}>₹{(r.amount ?? 0).toLocaleString()}</p>
           </div>
         ))}
       </div>
       <div className="flex items-center justify-between p-4 bg-gray-900 rounded-xl text-white">
         <p className="font-semibold">Total Team Incentive Liability</p>
         <p className="text-2xl font-bold text-green-400">
-          ₹{summary.totalTeamIncentiveForecast.toLocaleString()}
+          ₹{(summary.totalTeamIncentiveForecast ?? 0).toLocaleString()}
         </p>
       </div>
       <p className="text-xs text-gray-400 mt-2">

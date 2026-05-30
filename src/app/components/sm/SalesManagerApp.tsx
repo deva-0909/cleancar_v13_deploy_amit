@@ -316,13 +316,13 @@ function BlockSubscriptions() {
             <div className={`p-3 rounded ${deal.phase1Paid ? "bg-green-50" : "bg-gray-50"}`}>
               <p className="text-xs text-gray-500">Phase 1 Bonus (M1)</p>
               <p className="font-bold">
-                ₹{deal.phase1Amount.toLocaleString()}
+                ₹{(deal.phase1Amount ?? 0).toLocaleString()}
                 {deal.phase1Paid && <span className="text-green-600 ml-1">✓ Paid</span>}
               </p>
             </div>
             <div className={`p-3 rounded ${deal.phase2Status === "paid" ? "bg-green-50" : "bg-blue-50"}`}>
               <p className="text-xs text-gray-500">Phase 2 (M3 pro-rata)</p>
-              <p className="font-bold">₹{deal.phase2Amount.toLocaleString()}</p>
+              <p className="font-bold">₹{(deal.phase2Amount ?? 0).toLocaleString()}</p>
               <p className="text-xs text-gray-400">Due {deal.phase2CheckDate}</p>
             </div>
             <div className="p-3 bg-purple-50 rounded">
@@ -376,9 +376,9 @@ function IncentiveTracker() {
       {/* Forecast */}
       <Card className="p-5 bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200">
         <p className="text-sm text-gray-600">Fixed Salary</p>
-        <p className="text-3xl font-bold text-gray-900">₹{data.fixedSalary.toLocaleString()}</p>
+        <p className="text-3xl font-bold text-gray-900">₹{(data.fixedSalary ?? 0).toLocaleString()}</p>
         <p className="text-sm text-gray-600 mt-3">Variable Incentive Forecast</p>
-        <p className="text-3xl font-bold text-purple-700">+ ₹{data.totalForecast.toLocaleString()}</p>
+        <p className="text-3xl font-bold text-purple-700">+ ₹{(data.totalForecast ?? 0).toLocaleString()}</p>
       </Card>
 
       {/* Breakdown */}
@@ -398,7 +398,7 @@ function IncentiveTracker() {
               {row.note && <p className="text-xs text-gray-400">{row.note}</p>}
             </div>
             <p className={`font-bold ${row.amount > 0 ? "text-green-700" : "text-gray-400"}`}>
-              {row.amount > 0 ? `₹${row.amount.toLocaleString()}` : "—"}
+              {row.amount > 0 ? `₹${(row.amount ?? 0).toLocaleString()}` : "—"}
             </p>
           </div>
         ))}
@@ -438,7 +438,7 @@ function BTLExpenses() {
               </div>
             </div>
             <div className="text-right">
-              <p className="font-bold">₹{c.amount.toLocaleString()}</p>
+              <p className="font-bold">₹{(c.amount ?? 0).toLocaleString()}</p>
               <Badge className={
                 c.status === "Paid" ? "bg-green-600" :
                 c.status === "Approved" ? "bg-blue-600" :

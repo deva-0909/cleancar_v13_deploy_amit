@@ -552,7 +552,7 @@ function SMIncentiveStatement() {
                     <span className={b.phase1Paid ? "text-green-600" : "text-gray-400"}>
                       Phase 1: {b.phase1Paid ? "Paid ✓" : "₹3,750 pending"}
                     </span>
-                    <span className="text-blue-600">Phase 2: ₹{b.phase2Amount.toLocaleString()} at {b.phase2CheckDate}</span>
+                    <span className="text-blue-600">Phase 2: ₹{(b.phase2Amount ?? 0).toLocaleString()} at {b.phase2CheckDate || "TBD"}</span>
                   </div>
                 </div>
               ))}

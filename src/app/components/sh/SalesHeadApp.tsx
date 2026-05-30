@@ -233,7 +233,7 @@ function LeadPipeline() {
                     ? (lead.assignedTo === "SELF" ? "Self" : tces.find(t => t.id === lead.assignedTo)?.name ?? lead.assignedTo)
                     : <span className="text-red-600 font-medium">Unassigned</span>}
                 </td>
-                <td className="px-4 py-3 font-semibold">₹{lead.estimatedValue.toLocaleString()}</td>
+                <td className="px-4 py-3 font-semibold">₹{(lead.estimatedValue ?? 0).toLocaleString()}</td>
                 <td className="px-4 py-3">
                   {!lead.assignedTo && (
                     <div className="flex gap-1 flex-wrap">
@@ -316,7 +316,7 @@ function TCEPerformance() {
                 { label: "SLA %", val: `${tce.slaCompliancePct}%`, warn: tce.slaCompliancePct < 90 },
                 { label: "Plan Mix %", val: `${tce.planMixPct}%`, warn: tce.planMixPct < 60 },
                 { label: "30d Churn", val: tce.churnCount30d, warn: tce.churnCount30d > 2 },
-                { label: "Forecast", val: `₹${tce.incentiveForecast.toLocaleString()}` },
+                { label: "Forecast", val: `₹${(tce.incentiveForecast ?? 0).toLocaleString()}` },
               ].map(m => (
                 <div key={m.label} className={`p-2 rounded ${m.warn ? "bg-red-100" : "bg-gray-50"}`}>
                   <p className="text-gray-500">{m.label}</p>
@@ -396,7 +396,7 @@ function IncentiveTracker() {
       {/* Total forecast */}
       <Card className="p-6 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200">
         <p className="text-sm text-gray-600 mb-1">Total Incentive Forecast This Month</p>
-        <p className="text-4xl font-bold text-purple-700">₹{data.totalForecast.toLocaleString()}</p>
+        <p className="text-4xl font-bold text-purple-700">₹{(data.totalForecast ?? 0).toLocaleString()}</p>
         <p className="text-xs text-gray-400 mt-1">Recalculated nightly at midnight</p>
       </Card>
 
@@ -411,7 +411,7 @@ function IncentiveTracker() {
                 <p className="text-xs text-gray-500">{row.note}</p>
               </div>
               <p className={`font-bold text-lg ${row.amount > 0 ? "text-green-700" : "text-gray-400"}`}>
-                {row.amount > 0 ? `₹${row.amount.toLocaleString()}` : "—"}
+                {row.amount > 0 ? `₹${(row.amount ?? 0).toLocaleString()}` : "—"}
               </p>
             </div>
           ))}
@@ -477,7 +477,7 @@ function MyClosures() {
                 </div>
                 <div className="text-right">
                   <Badge>{l.status}</Badge>
-                  <p className="text-xs text-gray-500 mt-1">₹{l.estimatedValue.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 mt-1">₹{(l.estimatedValue ?? 0).toLocaleString()}</p>
                 </div>
               </div>
             ))}
