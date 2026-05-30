@@ -388,7 +388,7 @@ for (const city of ["Surat","Mumbai"] as const) {
   const areas = city === "Surat" ? AREAS_SUR : AREAS_MUM;
   const pins  = city === "Surat" ? PINS_SUR  : PINS_MUM;
   for (const m of MONTHS) {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 80; i++) {
       const stage = LEAD_STAGES[i % LEAD_STAGES.length];
       LEADS.push({
         leadId:     `LEAD-${city.slice(0,3).toUpperCase()}-${String(leadIdx++).padStart(3,"0")}`,
@@ -1224,6 +1224,137 @@ export function seedAllData(): void {
     } catch (_) {}
 
     // SEED_FLAG already set at start
+
+    // ── 31. SHIFTS ───────────────────────────────────────────────────────────
+    if (!localStorage.getItem("cleancar_shifts")) {
+      const SHIFTS = [
+        { id: "SHIFT-A", name: "Morning Shift", startTime: "06:00", endTime: "10:00", timeBand: "BAND_A",
+          days: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], active: true, cityId: "CITY-SURAT",
+          description: "Early morning doorstep wash — before office hours" },
+        { id: "SHIFT-B", name: "Day Shift",     startTime: "10:00", endTime: "14:00", timeBand: "BAND_B",
+          days: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], active: true, cityId: "CITY-SURAT",
+          description: "Mid-morning wash — society & office parking" },
+        { id: "SHIFT-C", name: "Evening Shift", startTime: "17:00", endTime: "21:00", timeBand: "BAND_C",
+          days: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], active: true, cityId: "CITY-SURAT",
+          description: "Post-office hours — return from work" },
+        { id: "SHIFT-D", name: "Morning Shift (Mumbai)", startTime: "06:00", endTime: "10:00", timeBand: "BAND_A",
+          days: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], active: true, cityId: "CITY-MUMBAI",
+          description: "Mumbai early morning shift" },
+        { id: "SHIFT-E", name: "Day Shift (Mumbai)",     startTime: "10:00", endTime: "14:00", timeBand: "BAND_B",
+          days: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"], active: true, cityId: "CITY-MUMBAI",
+          description: "Mumbai mid-morning shift" },
+      ];
+      _set("cleancar_shifts", JSON.stringify(SHIFTS));
+    }
+
+    // ── 32. HR DEPARTMENTS & DESIGNATIONS ─────────────────────────────────────
+    if (!localStorage.getItem("hrdata:departments")) {
+      const DEPARTMENTS = [
+        { id: "DEPT-OPS",   name: "Operations",       code: "OPS",  headcount: 0 },
+        { id: "DEPT-SALES", name: "Sales",             code: "SALES",headcount: 0 },
+        { id: "DEPT-MGMT",  name: "Management",        code: "MGMT", headcount: 0 },
+        { id: "DEPT-SUP",   name: "Customer Support",  code: "CS",   headcount: 0 },
+        { id: "DEPT-FIN",   name: "Finance & Accounts",code: "FIN",  headcount: 0 },
+        { id: "DEPT-HR",    name: "Human Resources",   code: "HR",   headcount: 0 },
+        { id: "DEPT-STORE", name: "Store & Inventory", code: "STORE",headcount: 0 },
+      ];
+      _set("hrdata:departments", JSON.stringify(DEPARTMENTS));
+    }
+    if (!localStorage.getItem("hrdata:designations")) {
+      const DESIGNATIONS = [
+        { id: "DES-SA",  name: "Super Admin",            department: "DEPT-MGMT",  level: 10, isOps: false },
+        { id: "DES-ADM", name: "Admin",                   department: "DEPT-MGMT",  level: 9,  isOps: false },
+        { id: "DES-CM",  name: "City Manager",            department: "DEPT-MGMT",  level: 8,  isOps: true  },
+        { id: "DES-CLM", name: "Cluster Manager",         department: "DEPT-OPS",   level: 7,  isOps: true  },
+        { id: "DES-SOM", name: "Sr Operations Manager",   department: "DEPT-OPS",   level: 6,  isOps: true  },
+        { id: "DES-OM",  name: "Operations Manager",      department: "DEPT-OPS",   level: 5,  isOps: true  },
+        { id: "DES-SUP", name: "Supervisor",              department: "DEPT-OPS",   level: 4,  isOps: true  },
+        { id: "DES-CW",  name: "Car Washer",              department: "DEPT-OPS",   level: 1,  isOps: true  },
+        { id: "DES-TSM", name: "TSM",                     department: "DEPT-SALES", level: 6,  isOps: false },
+        { id: "DES-TSE", name: "TSE",                     department: "DEPT-SALES", level: 3,  isOps: false },
+        { id: "DES-CCE", name: "CCE",                     department: "DEPT-SUP",   level: 3,  isOps: false },
+        { id: "DES-SH",  name: "Sales Head",              department: "DEPT-SALES", level: 7,  isOps: false },
+        { id: "DES-SM",  name: "Sales Manager",           department: "DEPT-SALES", level: 5,  isOps: false },
+        { id: "DES-STM", name: "Store Manager",           department: "DEPT-STORE", level: 5,  isOps: false },
+        { id: "DES-HR",  name: "HR",                      department: "DEPT-HR",    level: 5,  isOps: false },
+        { id: "DES-ACC", name: "Accounts",                department: "DEPT-FIN",   level: 5,  isOps: false },
+      ];
+      _set("hrdata:designations", JSON.stringify(DESIGNATIONS));
+    }
+    if (!localStorage.getItem("hrdata:holidays")) {
+      const HOLIDAYS_2026 = [
+        { id: "HOL-01", name: "Republic Day",       date: "2026-01-26", type: "National", cityId: "ALL" },
+        { id: "HOL-02", name: "Holi",               date: "2026-03-04", type: "Festival", cityId: "ALL" },
+        { id: "HOL-03", name: "Ram Navami",         date: "2026-04-07", type: "Festival", cityId: "ALL" },
+        { id: "HOL-04", name: "Ambedkar Jayanti",   date: "2026-04-14", type: "National", cityId: "ALL" },
+        { id: "HOL-05", name: "Maharashtra Day",    date: "2026-05-01", type: "State",    cityId: "CITY-MUMBAI" },
+        { id: "HOL-06", name: "Independence Day",   date: "2026-08-15", type: "National", cityId: "ALL" },
+        { id: "HOL-07", name: "Gandhi Jayanti",     date: "2026-10-02", type: "National", cityId: "ALL" },
+        { id: "HOL-08", name: "Dussehra",           date: "2026-10-10", type: "Festival", cityId: "ALL" },
+        { id: "HOL-09", name: "Diwali",             date: "2026-10-30", type: "Festival", cityId: "ALL" },
+        { id: "HOL-10", name: "Diwali Day 2",       date: "2026-10-31", type: "Festival", cityId: "ALL" },
+        { id: "HOL-11", name: "Christmas",          date: "2026-12-25", type: "National", cityId: "ALL" },
+      ];
+      _set("cleancar_public_holidays", JSON.stringify(HOLIDAYS_2026));
+    }
+
+    // ── 33. CLOTH TRACKING ────────────────────────────────────────────────────
+    if (!localStorage.getItem("cc360_cloth_items_seeded")) {
+      const CLOTH_ITEMS_SEED = [];
+      const CLOTH_TYPES = [
+        { type: "microfibre_cloth", name: "Microfibre Cloth",    issuedTo: "washer", lifeWashes: 50  },
+        { type: "wash_mitt",        name: "Wash Mitt",           issuedTo: "washer", lifeWashes: 100 },
+        { type: "apron",            name: "Apron",               issuedTo: "washer", lifeWashes: 200 },
+        { type: "gloves",           name: "Nitrile Gloves (pair)",issuedTo:"washer", lifeWashes: 30  },
+        { type: "drying_towel",     name: "Drying Towel",        issuedTo: "washer", lifeWashes: 80  },
+      ];
+      const SUR_WASHERS = EMPLOYEES.filter((e: any) =>
+        (e.designation === "Car Washer" || e.designation === "Supervisor") && e.cityId === "CITY-SURAT"
+      );
+      let clothSeq = 1;
+      for (const washer of SUR_WASHERS) {
+        for (const ct of CLOTH_TYPES) {
+          CLOTH_ITEMS_SEED.push({
+            id: `CLOTH-${String(clothSeq++).padStart(4,"0")}`,
+            clothType: ct.type,
+            name: ct.name,
+            assignedTo: washer.id,
+            assignedToName: washer.fullName,
+            issuedDate: "2026-01-01",
+            condition: clothSeq % 5 === 0 ? "Replace Soon" : "Good",
+            washCount: Math.floor(Math.random() * ct.lifeWashes * 0.6),
+            maxWashLife: ct.lifeWashes,
+            cityId: "CITY-SURAT",
+            status: "Active",
+          });
+        }
+      }
+      const DataSvc = { setAll: (k: string, v: any[]) => _set(k.startsWith("cleancar_") ? k : `cleancar_${k}`, JSON.stringify(v)) };
+      _set("cleancar_CLOTH_ITEMS", JSON.stringify(CLOTH_ITEMS_SEED));
+      _set("cleancar_CITY-SURAT_CLOTH_ITEMS", JSON.stringify(CLOTH_ITEMS_SEED));
+      _set("cc360_cloth_items_seeded", "true");
+    }
+
+    // ── 34. LEAVE ADJUSTMENT POLICY ──────────────────────────────────────────
+    if (!localStorage.getItem("cc360_leaveAdjustmentPolicy")) {
+      const LEAVE_POLICY = {
+        version: 1,
+        effectiveFrom: "2026-01-01",
+        casualLeave:  { entitled: 12, carryForward: 0, encashment: false },
+        sickLeave:    { entitled: 7,  carryForward: 0, encashment: false },
+        earnedLeave:  { entitled: 15, carryForward: 30, encashment: true },
+        lopPerDay:    "salary / 26",
+        graceAbsents: 1,  // absences ignored before LOP kicks in
+        notes: "LOP = gross / 26 × absent days. 1 grace absent per month.",
+      };
+      _set("cc360_leaveAdjustmentPolicy", JSON.stringify(LEAVE_POLICY));
+    }
+
+    // ── 35. SHIFT PERSONAL CLOSURES (Sales Head) ──────────────────────────────
+    if (!localStorage.getItem("sh_personal_closures_count")) {
+      _set("sh_personal_closures_count", JSON.stringify({ count: 7, target: 10, month: "2026-04" }));
+    }
+
     console.log(`[seedAllData] ✅ Complete seed done:\n` +
       `  Employees: ${EMPLOYEES.length} | Payroll: ${PAYROLL_RUNS.length} | Attendance: ${ATTENDANCE_RECORDS.length}\n` +
       `  Customers: ${CUSTOMERS.length} | Leads: ${LEADS.length} | Demos: ${DEMOS.length}\n` +
