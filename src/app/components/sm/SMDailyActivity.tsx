@@ -435,10 +435,12 @@ function TripPanel({
   const startFileRef = useRef<HTMLInputElement>(null);
 
   // End-trip form state
-  const [odoEnd,     setOdoEnd]     = useState<number|"">("");
-  const [endPhoto,   setEndPhoto]   = useState("");
-  const [endTime,    setEndTime]    = useState(new Date().toTimeString().slice(0,5));
-  const endFileRef = useRef<HTMLInputElement>(null);
+  const [odoEnd,       setOdoEnd]     = useState<number|"">("");
+  const [odoEndError,  setOdoEndError] = useState(false);
+  const [endPhoto,     setEndPhoto]   = useState("");
+  const [endTime,      setEndTime]    = useState(new Date().toTimeString().slice(0,5));
+  const endFileRef  = useRef<HTMLInputElement>(null);
+  const odoEndRef   = useRef<HTMLInputElement>(null);
 
   // Visit-log state (30-min prompt)
   const [showVisitLog, setShowVisitLog]   = useState(false);
@@ -541,33 +543,49 @@ function TripPanel({
 
   function handleEndTrip() {
     if (!activeTrip) return;
+    // Visit log check
     if (!activeTrip.visitLogDone) {
       setShowVisitLog(true);
       setTimeout(() => visitLogRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
-      toast.error("Fill in the visit log above — then tap End Trip");
+      toast.error("Complete the visit log above first");
       return;
     }
-    if (odoEnd === "")              { toast.error("Enter end odometer reading"); return; }
-    if (Number(odoEnd) <= activeTrip.startOdometer) {
-      toast.error("End reading must be greater than start reading"); return;
+    // Odometer check — highlight + scroll
+    if (odoEnd === "" || Number(odoEnd) === 0) {
+      setOdoEndError(true);
+      setTimeout(() => odoEndRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+      odoEndRef.current?.focus();
+      toast.error("Enter the end odometer reading");
+      return;
     }
-    if (!endPhoto) { toast.error("📸 End odometer photo required"); return; }
-
-    const photoRec = travelReimbursementService.savePhoto({
-      tripId: activeTrip.id, type: "end_odometer",
-      dataUrl: endPhoto, capturedAt: new Date().toISOString(),
-      fileName: `end_${Date.now()}.jpg`,
-    });
-
+    if (Number(odoEnd) <= activeTrip.startOdometer) {
+      setOdoEndError(true);
+      setTimeout(() => odoEndRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+      toast.error(`End reading must be > ${activeTrip.startOdometer} km`);
+      return;
+    }
+    setOdoEndError(false);
+    // Save end photo if provided (recommended but not blocking)
+    let endPhotoId: string | undefined;
+    if (endPhoto) {
+      const pr = travelReimbursementService.savePhoto({
+        tripId: activeTrip.id, type: "end_odometer",
+        dataUrl: endPhoto, capturedAt: new Date().toISOString(),
+        fileName: `end_${Date.now()}.jpg`,
+      });
+      endPhotoId = pr.id;
+    }
     const updated = travelReimbursementService.endTrip(activeTrip.id, {
-      endTime,
-      endReading: Number(odoEnd),
+      endTime, endReading: Number(odoEnd),
       outcomeOfVisit: activeTrip.visitOutcome || "Visit completed",
-      endPhotoId: photoRec.id,
+      endPhotoId,
     });
     travelReimbursementService.submitTrip(updated.id);
     onTripEnd(updated.totalKm ?? 0, updated.netPayableAmount ?? 0);
-    toast.success(`Trip ended — ${updated.totalKm} km · ₹${(updated.netPayableAmount??0).toLocaleString()} reimbursement`);
+    toast.success(
+      `✅ Trip ended — ${updated.totalKm} km · ₹${(updated.netPayableAmount??0).toLocaleString()}`,
+      { duration: 6000 }
+    );
   }
 
   // ── If no active trip → Start form ────────────────────────────────────────
@@ -793,10 +811,16 @@ function TripPanel({
                 className="h-8 text-sm" />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">End Odometer (km) *</label>
-              <Input type="number" min={activeTrip.startOdometer + 1} value={odoEnd}
-                onChange={e => setOdoEnd(Number(e.target.value))}
-                className="h-8 text-sm" placeholder={`> ${activeTrip.startOdometer}`} />
+              <label className={`text-xs mb-1 block font-medium ${odoEndError ? "text-red-600" : "text-gray-500"}`}>
+                End Odometer (km){odoEndError ? " ⚠️ Required" : " *"}
+              </label>
+              <Input ref={odoEndRef} type="number" min={activeTrip.startOdometer + 1} value={odoEnd}
+                onChange={e => { setOdoEnd(Number(e.target.value)); setOdoEndError(false); }}
+                className={`h-8 text-sm ${odoEndError ? "border-red-500 ring-1 ring-red-400 bg-red-50" : ""}`}
+                placeholder={`> ${activeTrip.startOdometer}`} />
+              {odoEndError && (
+                <p className="text-xs text-red-500 mt-0.5">⚠ Must be &gt; {activeTrip.startOdometer} km</p>
+              )}
             </div>
           </div>
 
@@ -814,8 +838,9 @@ function TripPanel({
 
           {/* End photo */}
           <div>
-            <label className="text-xs font-semibold text-red-600 mb-1 flex items-center gap-1 block">
-              <Camera className="w-3 h-3"/> End Odometer Photo <span className="text-red-500">*</span>
+            <label className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1 block">
+              <Camera className="w-3 h-3"/> End Odometer Photo
+              <span className="text-gray-400 font-normal ml-1">(recommended)</span>
             </label>
             <input ref={endFileRef} type="file" accept="image/*" capture="environment"
               className="hidden" onChange={e => e.target.files?.[0] && capturePhoto(e.target.files[0], setEndPhoto)} />
@@ -845,8 +870,7 @@ function TripPanel({
           )}
 
           <Button onClick={handleEndTrip}
-            disabled={!activeTrip.visitLogDone}
-            className="w-full bg-green-600 hover:bg-green-700 gap-2 disabled:opacity-50">
+            className="w-full bg-green-600 hover:bg-green-700 gap-2 font-semibold text-base py-3">
             <CheckCircle2 className="w-4 h-4"/> End Trip & Submit
           </Button>
         </Card>
