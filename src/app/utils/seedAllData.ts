@@ -1330,7 +1330,16 @@ export function seedAllData(): void {
       localStorage.setItem("cleancar_material_requisitions", JSON.stringify([]));
     }
 
-        localStorage.setItem(SEED_FLAG, "true");
+        // Force re-seed incentive v6 records if they're missing or have empty tranches
+    try {
+      const _iv6raw = localStorage.getItem("cleancar_incentive_v6_records");
+      const _iv6 = _iv6raw ? JSON.parse(_iv6raw) : [];
+      if (_iv6.length === 0 || (_iv6[0] && (_iv6[0].tranches || []).length === 0)) {
+        localStorage.removeItem("ALL_EXTENDED_SEEDED_V3");
+        localStorage.removeItem("ALL_EXTENDED_SEEDED_V2");
+      }
+    } catch(e_) { /* ignore */ }
+    localStorage.setItem(SEED_FLAG, "true");
     console.log(`[seedAllData] ✅ Complete seed done:\n` +
       `  Employees: ${EMPLOYEES.length} | Payroll: ${PAYROLL_RUNS.length} | Attendance: ${ATTENDANCE_RECORDS.length}\n` +
       `  Customers: ${CUSTOMERS.length} | Leads: ${LEADS.length} | Demos: ${DEMOS.length}\n` +
@@ -1354,7 +1363,7 @@ export function seedAllData(): void {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function seedExtendedModules(): void {
-  const EXTENDED_FLAG = "ALL_EXTENDED_SEEDED_V2";
+  const EXTENDED_FLAG = "ALL_EXTENDED_SEEDED_V3";
   if (localStorage.getItem(EXTENDED_FLAG)) return;
 
   const NOW   = new Date().toISOString();
@@ -1602,13 +1611,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR1",
-    "tseName": "Divya Nair",
+    "tseName": "Pooja Sharma",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 150,
     "isZeroPool": false,
     "tranches": [
@@ -1622,7 +1631,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 9.0,
             "pct": 20,
             "status": "PAID"
@@ -1646,7 +1655,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 3.38,
             "pct": 7.5,
             "status": "PAID"
@@ -1665,7 +1674,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PAID"
@@ -1689,7 +1698,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PAID"
@@ -1716,13 +1725,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR1",
-    "tseName": "Divya Nair",
+    "tseName": "Pooja Sharma",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 600,
     "isZeroPool": false,
     "tranches": [
@@ -1736,7 +1745,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 36.0,
             "pct": 20,
             "status": "PAID"
@@ -1760,7 +1769,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 13.5,
             "pct": 7.5,
             "status": "PAID"
@@ -1779,7 +1788,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PAID"
@@ -1803,7 +1812,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PAID"
@@ -1822,7 +1831,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -1846,7 +1855,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -1865,7 +1874,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -1889,7 +1898,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -1908,7 +1917,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -1932,7 +1941,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -1959,13 +1968,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR1",
-    "tseName": "Divya Nair",
+    "tseName": "Pooja Sharma",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 300,
     "isZeroPool": false,
     "tranches": [
@@ -1979,7 +1988,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 18.0,
             "pct": 20,
             "status": "PAID"
@@ -2003,7 +2012,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 6.75,
             "pct": 7.5,
             "status": "PAID"
@@ -2022,7 +2031,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -2046,7 +2055,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -2065,7 +2074,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -2089,7 +2098,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -2116,13 +2125,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR1",
-    "tseName": "Divya Nair",
+    "tseName": "Pooja Sharma",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 150,
     "isZeroPool": false,
     "tranches": [
@@ -2136,7 +2145,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 9.0,
             "pct": 20,
             "status": "PAID"
@@ -2152,7 +2161,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 3.38,
             "pct": 7.5,
             "status": "PAID"
@@ -2179,7 +2188,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -2195,7 +2204,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -2230,13 +2239,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR1",
-    "tseName": "Divya Nair",
+    "tseName": "Pooja Sharma",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 300,
     "isZeroPool": false,
     "tranches": [
@@ -2250,7 +2259,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 18.0,
             "pct": 20,
             "status": "PAID"
@@ -2274,7 +2283,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 6.75,
             "pct": 7.5,
             "status": "PAID"
@@ -2293,7 +2302,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -2317,7 +2326,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -2336,7 +2345,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -2360,7 +2369,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -2387,13 +2396,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR1",
-    "tseName": "Divya Nair",
+    "tseName": "Pooja Sharma",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 0,
     "isZeroPool": true,
     "tranches": [
@@ -2435,13 +2444,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR1",
-    "tseName": "Divya Nair",
+    "tseName": "Pooja Sharma",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 600,
     "isZeroPool": false,
     "tranches": [
@@ -2455,7 +2464,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 36.0,
             "pct": 20,
             "status": "PAID"
@@ -2479,7 +2488,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 13.5,
             "pct": 7.5,
             "status": "PAID"
@@ -2498,7 +2507,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PAID"
@@ -2522,7 +2531,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PAID"
@@ -2541,7 +2550,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -2565,7 +2574,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -2584,7 +2593,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -2608,7 +2617,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -2627,7 +2636,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -2651,7 +2660,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -2678,13 +2687,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": "2026-04-28",
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR1",
-    "tseName": "Divya Nair",
+    "tseName": "Pooja Sharma",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 150,
     "isZeroPool": false,
     "tranches": [
@@ -2698,7 +2707,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 9.0,
             "pct": 20,
             "status": "PAID"
@@ -2714,7 +2723,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 3.38,
             "pct": 7.5,
             "status": "PAID"
@@ -2741,7 +2750,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PAID"
@@ -2757,7 +2766,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PAID"
@@ -2792,13 +2801,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR2",
-    "tseName": "Karan Shah",
+    "tseName": "Ankit Trivedi",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 150,
     "isZeroPool": false,
     "tranches": [
@@ -2812,7 +2821,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 9.0,
             "pct": 20,
             "status": "PAID"
@@ -2836,7 +2845,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 3.38,
             "pct": 7.5,
             "status": "PAID"
@@ -2855,7 +2864,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -2879,7 +2888,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -2906,13 +2915,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR2",
-    "tseName": "Karan Shah",
+    "tseName": "Ankit Trivedi",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 300,
     "isZeroPool": false,
     "tranches": [
@@ -2926,7 +2935,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 18.0,
             "pct": 20,
             "status": "PAID"
@@ -2942,7 +2951,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 6.75,
             "pct": 7.5,
             "status": "PAID"
@@ -2969,7 +2978,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 21.0,
             "pct": 20,
             "status": "PAID"
@@ -2985,7 +2994,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PAID"
@@ -3012,7 +3021,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -3028,7 +3037,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -3063,13 +3072,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR2",
-    "tseName": "Karan Shah",
+    "tseName": "Ankit Trivedi",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 150,
     "isZeroPool": false,
     "tranches": [
@@ -3083,7 +3092,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 9.0,
             "pct": 20,
             "status": "PAID"
@@ -3107,7 +3116,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 3.38,
             "pct": 7.5,
             "status": "PAID"
@@ -3126,7 +3135,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -3150,7 +3159,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -3177,13 +3186,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR2",
-    "tseName": "Karan Shah",
+    "tseName": "Ankit Trivedi",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 300,
     "isZeroPool": false,
     "tranches": [
@@ -3197,7 +3206,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 18.0,
             "pct": 20,
             "status": "PAID"
@@ -3221,7 +3230,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 6.75,
             "pct": 7.5,
             "status": "PAID"
@@ -3240,7 +3249,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 21.0,
             "pct": 20,
             "status": "PAID"
@@ -3264,7 +3273,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PAID"
@@ -3283,7 +3292,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -3307,7 +3316,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -3334,13 +3343,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSM-SUR1",
-    "tseName": "Rohan Gupta",
+    "tseName": "Sanjay Kapoor",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 150,
     "isZeroPool": false,
     "tranches": [
@@ -3354,7 +3363,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 9.0,
             "pct": 20,
             "status": "PAID"
@@ -3378,7 +3387,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 3.38,
             "pct": 7.5,
             "status": "PAID"
@@ -3397,7 +3406,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -3421,7 +3430,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -3448,13 +3457,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSM-SUR1",
-    "tseName": "Rohan Gupta",
+    "tseName": "Sanjay Kapoor",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 300,
     "isZeroPool": false,
     "tranches": [
@@ -3468,7 +3477,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 18.0,
             "pct": 20,
             "status": "PAID"
@@ -3492,7 +3501,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 6.75,
             "pct": 7.5,
             "status": "PAID"
@@ -3511,7 +3520,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 21.0,
             "pct": 20,
             "status": "PAID"
@@ -3535,7 +3544,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PAID"
@@ -3554,7 +3563,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -3578,7 +3587,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -3605,13 +3614,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR1",
-    "tseName": "Divya Nair",
+    "tseName": "Pooja Sharma",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 450,
     "isZeroPool": false,
     "tranches": [
@@ -3625,7 +3634,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 27.0,
             "pct": 20,
             "status": "PAID"
@@ -3649,7 +3658,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 10.12,
             "pct": 7.5,
             "status": "PAID"
@@ -3668,7 +3677,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PAID"
@@ -3692,7 +3701,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PAID"
@@ -3711,7 +3720,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -3735,7 +3744,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -3754,7 +3763,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -3778,7 +3787,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -3805,13 +3814,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR1",
-    "tseName": "Divya Nair",
+    "tseName": "Pooja Sharma",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 150,
     "isZeroPool": false,
     "tranches": [
@@ -3825,7 +3834,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 9.0,
             "pct": 20,
             "status": "PAID"
@@ -3841,7 +3850,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 3.38,
             "pct": 7.5,
             "status": "PAID"
@@ -3868,7 +3877,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -3884,7 +3893,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -3919,13 +3928,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR1",
-    "tseName": "Divya Nair",
+    "tseName": "Pooja Sharma",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 0,
     "isZeroPool": true,
     "tranches": [
@@ -3967,13 +3976,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR2",
-    "tseName": "Karan Shah",
+    "tseName": "Ankit Trivedi",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 600,
     "isZeroPool": false,
     "tranches": [
@@ -3987,7 +3996,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 36.0,
             "pct": 20,
             "status": "PAID"
@@ -4011,7 +4020,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 13.5,
             "pct": 7.5,
             "status": "PAID"
@@ -4030,7 +4039,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 21.0,
             "pct": 20,
             "status": "PAID"
@@ -4054,7 +4063,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PAID"
@@ -4073,7 +4082,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -4097,7 +4106,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -4116,7 +4125,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -4140,7 +4149,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -4159,7 +4168,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR2",
-            "employeeName": "Karan Shah",
+            "employeeName": "Ankit Trivedi",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -4183,7 +4192,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -4210,13 +4219,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSM-SUR1",
-    "tseName": "Rohan Gupta",
+    "tseName": "Sanjay Kapoor",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 150,
     "isZeroPool": false,
     "tranches": [
@@ -4230,7 +4239,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 9.0,
             "pct": 20,
             "status": "PAID"
@@ -4254,7 +4263,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 3.38,
             "pct": 7.5,
             "status": "PAID"
@@ -4273,7 +4282,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -4297,7 +4306,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -4324,13 +4333,13 @@ export function seedExtendedModules(): void {
     "cancelledDate": null,
     "cityId": "CITY-SURAT",
     "tseId": "EDB-TSE-SUR1",
-    "tseName": "Divya Nair",
+    "tseName": "Pooja Sharma",
     "smId": "EDB-SM-SUR1",
     "smName": "Mohit Verma",
     "shId": "EDB-SH-SUR1",
     "shName": "Anjali Rao",
     "tsmId": "EDB-TSM-SUR1",
-    "tsmName": "Rohan Gupta",
+    "tsmName": "Sanjay Kapoor",
     "poolTotal": 300,
     "isZeroPool": false,
     "tranches": [
@@ -4344,7 +4353,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 18.0,
             "pct": 20,
             "status": "PAID"
@@ -4368,7 +4377,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 6.75,
             "pct": 7.5,
             "status": "PAID"
@@ -4387,7 +4396,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -4411,7 +4420,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -4430,7 +4439,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSE",
             "employeeId": "EDB-TSE-SUR1",
-            "employeeName": "Divya Nair",
+            "employeeName": "Pooja Sharma",
             "amount": 21.0,
             "pct": 20,
             "status": "PENDING"
@@ -4454,7 +4463,7 @@ export function seedExtendedModules(): void {
           {
             "role": "TSM",
             "employeeId": "EDB-TSM-SUR1",
-            "employeeName": "Rohan Gupta",
+            "employeeName": "Sanjay Kapoor",
             "amount": 7.88,
             "pct": 7.5,
             "status": "PENDING"
@@ -5031,6 +5040,7 @@ export function seedExtendedModules(): void {
 
   // Bump flag
   localStorage.removeItem("ALL_EXTENDED_SEEDED_V1");
+  localStorage.removeItem("ALL_EXTENDED_SEEDED_V2");
   localStorage.setItem(EXTENDED_FLAG, "true");
   console.log("[seedExtendedModules] ✅ All module data seeded successfully");
 }
