@@ -14,7 +14,7 @@
  */
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { FieldCheckIn } from "../field/FieldCheckIn";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Card } from "../ui/card";
@@ -123,7 +123,7 @@ function AllianceDashboard({ onTabChange }: { onTabChange: (t: string) => void }
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {Object.entries(statusCounts).map(([status, count]) => (
           <Card key={status} className="p-4 text-center">
-            {statusPin(status as LocationStatus)}
+            {statusPin(status)}
             <p className="text-2xl font-bold text-gray-900 mt-2">{count}</p>
           </Card>
         ))}
@@ -179,9 +179,9 @@ function AllianceDashboard({ onTabChange }: { onTabChange: (t: string) => void }
           </thead>
           <tbody className="divide-y divide-gray-100">
             {locs.map(loc => (
-              <tr key={loc.id} className="hover:bg-gray-50">
+              <tr key={loc.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => onTabChange("detail")}>
                 <td className="px-4 py-3">
-                  <p className="font-medium">{loc.name}</p>
+                  <p className="font-medium text-blue-700 hover:underline">{loc.name}</p>
                   <p className="text-xs text-gray-500">{loc.contactPerson}</p>
                 </td>
                 <td className="px-4 py-3 text-gray-600">{loc.type}</td>
@@ -289,7 +289,7 @@ function BlockSubscriptions() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="font-semibold text-gray-900">Block Subscription Deals</h2>
-        <Button size="sm" onClick={() => toast.info("Block deal submission — contact Sales Head")}>
+        <Button size="sm" onClick={() => toast.info("Block deal submission — contact Sales Head to process via WhatsApp or call", { duration: 5000 })}>
           + Submit New Block Deal
         </Button>
       </div>
@@ -418,7 +418,7 @@ function BTLExpenses() {
           <h2 className="font-semibold">BTL Expense Claims</h2>
           <p className="text-xs text-gray-400">Up to ₹4,000/month · Claims &gt;₹2,000 need Sales Head approval</p>
         </div>
-        <Button size="sm" onClick={() => toast.info("Expense claim form — upload receipt to proceed")}>
+        <Button size="sm" onClick={() => toast.info("Upload receipt via WhatsApp to +91 82387 05601 with claim amount and location name. Approval within 24 hours.", { duration: 6000 })}>
           + New Claim
         </Button>
       </div>
@@ -463,7 +463,7 @@ function SMPayrollView() {
       <Card className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200">
         <p className="text-sm text-gray-600">Net Take-Home This Month (Projected)</p>
         <p className="text-4xl font-bold text-green-700 mt-1">
-          ₹{(preview.totalM1 - Math.abs(preview.payrollLineItems.filter(l=>l.type==="deduction").reduce((s,l)=>s+l.amount,0))).toLocaleString()}
+          ₹{preview.payrollLineItems.reduce((s, l) => s + l.amount, 0).toLocaleString()}
         </p>
         <p className="text-xs text-gray-400 mt-1">After statutory deductions · Recalculated nightly</p>
       </Card>
@@ -512,10 +512,249 @@ function SMPayrollView() {
   );
 }
 
+// ── Location Detail List ──────────────────────────────────────────────────────
+
+function LocationDetailList() {
+  const locs = salesManagerService.getLocations();
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="font-semibold text-gray-900">All Locations ({locs.length})</h2>
+        <p className="text-xs text-gray-400">Tap a location to expand details</p>
+      </div>
+      {locs.map(loc => {
+        const isOpen = expanded === loc.id;
+        const totalLeads = loc.leadsMTDM1 + loc.leadsMTDM2 + loc.leadsMTDM3;
+        const convRate = totalLeads > 0 ? Math.round((loc.conversionsMTD / totalLeads) * 100) : 0;
+        return (
+          <Card key={loc.id} className={`overflow-hidden border-2 ${isOpen ? "border-blue-300" : "border-transparent"}`}>
+            {/* Header — always visible */}
+            <div
+              className="p-4 flex items-start justify-between cursor-pointer hover:bg-gray-50"
+              onClick={() => setExpanded(isOpen ? null : loc.id)}
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold text-gray-900">{loc.name}</p>
+                  <Badge variant="secondary" className="text-xs">{loc.type}</Badge>
+                  {statusPin(loc.status)}
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">{loc.address}</p>
+                <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                  <span>📋 {loc.leadsMTD} leads</span>
+                  <span>✅ {loc.conversionsMTD} converted</span>
+                  <span>💰 {loc.payingCustomers} paying</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 ml-2">
+                {loc.qrCodeActive
+                  ? <Badge className="bg-green-600 text-xs">QR Active</Badge>
+                  : <Badge variant="secondary" className="text-xs">No QR</Badge>}
+                {isOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+              </div>
+            </div>
+
+            {/* Expanded detail */}
+            {isOpen && (
+              <div className="border-t bg-blue-50/40 p-4 space-y-4">
+                {/* Contact */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs text-gray-500">Contact</p>
+                    <p className="font-medium">{loc.contactPerson}</p>
+                    <p className="text-xs text-blue-600">{loc.contactPhone}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Supervisor</p>
+                    <p className="font-medium">{loc.supervisorName || "Not assigned"}</p>
+                    {loc.lastSupervisorActivity ? (
+                      <p className="text-xs text-gray-400">
+                        Last visit: {Math.round((Date.now() - new Date(loc.lastSupervisorActivity).getTime()) / 3600000)}h ago
+                      </p>
+                    ) : (
+                      <p className="text-xs text-red-500">No visit logged</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Mechanism breakdown */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 mb-2">Lead Source Breakdown (MTD)</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: "M1 — Direct", count: loc.leadsMTDM1, color: "bg-purple-100 text-purple-700" },
+                      { label: "M2 — QR Code", count: loc.leadsMTDM2, color: "bg-indigo-100 text-indigo-700" },
+                      { label: "M3 — WhatsApp", count: loc.leadsMTDM3, color: "bg-green-100 text-green-700" },
+                    ].map(m => (
+                      <div key={m.label} className={`p-2 rounded text-xs ${m.color}`}>
+                        <p className="font-bold text-lg">{m.count}</p>
+                        <p>{m.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Conversion funnel */}
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div className="p-2 bg-gray-50 rounded text-center">
+                    <p className="text-xs text-gray-500">Total Leads</p>
+                    <p className="font-bold">{loc.leadsMTD}</p>
+                  </div>
+                  <div className="p-2 bg-gray-50 rounded text-center">
+                    <p className="text-xs text-gray-500">Converted</p>
+                    <p className="font-bold text-green-700">{loc.conversionsMTD}</p>
+                  </div>
+                  <div className="p-2 bg-gray-50 rounded text-center">
+                    <p className="text-xs text-gray-500">Conv. Rate</p>
+                    <p className="font-bold">{convRate}%</p>
+                  </div>
+                </div>
+
+                {/* Activation bonus status */}
+                <div className="flex items-center justify-between p-2 rounded bg-white border text-sm">
+                  <span className="text-gray-600">Activation Bonus (5th customer)</span>
+                  <Badge className={
+                    loc.activationBonusStatus === "paid"      ? "bg-green-600" :
+                    loc.activationBonusStatus === "triggered" ? "bg-blue-600"  : "bg-gray-400"
+                  }>{loc.activationBonusStatus}</Badge>
+                </div>
+
+                {/* GPS coordinates */}
+                {loc.gpsLat && loc.gpsLng && (
+                  <p className="text-xs text-gray-400">
+                    📍 GPS: {loc.gpsLat.toFixed(5)}, {loc.gpsLng.toFixed(5)}
+                    {loc.approvedDate && ` · Approved: ${new Date(loc.approvedDate).toLocaleDateString("en-IN")}`}
+                  </p>
+                )}
+              </div>
+            )}
+          </Card>
+        );
+      })}
+
+      {locs.length === 0 && (
+        <Card className="p-10 text-center text-gray-400">
+          <Building2 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          <p>No locations yet. Submit a new location for Sales Head approval.</p>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ── Supervisor Assignment View ────────────────────────────────────────────────
+
+function SupervisorAssignmentView() {
+  const locs = salesManagerService.getLocations();
+
+  // Group locations by supervisor
+  const bySupervisor: Record<string, { name: string; locs: typeof locs }> = {};
+  for (const loc of locs) {
+    const key = loc.supervisorId || "unassigned";
+    if (!bySupervisor[key]) {
+      bySupervisor[key] = { name: loc.supervisorName || "Unassigned", locs: [] };
+    }
+    bySupervisor[key].locs.push(loc);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="font-semibold text-gray-900">Supervisor Location Assignments</h2>
+        <p className="text-xs text-gray-400">{locs.length} locations · {Object.keys(bySupervisor).length} supervisors</p>
+      </div>
+
+      {Object.entries(bySupervisor).map(([supId, data]) => {
+        const recentVisit = data.locs.reduce((latest, l) =>
+          l.lastSupervisorActivity && l.lastSupervisorActivity > latest
+            ? l.lastSupervisorActivity : latest, "");
+        const hoursAgo = recentVisit
+          ? Math.round((Date.now() - new Date(recentVisit).getTime()) / 3600000)
+          : null;
+
+        return (
+          <Card key={supId} className="p-0 overflow-hidden">
+            {/* Supervisor header */}
+            <div className="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center text-sm font-bold">
+                  {data.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">{data.name}</p>
+                  <p className="text-xs text-gray-500">{data.locs.length} location{data.locs.length > 1 ? "s" : ""} assigned</p>
+                </div>
+              </div>
+              <div className="text-right">
+                {hoursAgo !== null ? (
+                  <Badge variant={hoursAgo < 24 ? "default" : hoursAgo < 72 ? "secondary" : "destructive"}
+                    className="text-xs">
+                    {hoursAgo < 24 ? `${hoursAgo}h ago` : `${Math.round(hoursAgo/24)}d ago`}
+                  </Badge>
+                ) : (
+                  <Badge variant="destructive" className="text-xs">No visits</Badge>
+                )}
+                <p className="text-xs text-gray-400 mt-0.5">Last visit</p>
+              </div>
+            </div>
+
+            {/* Location list under this supervisor */}
+            <div className="divide-y">
+              {data.locs.map(loc => {
+                const locHoursAgo = loc.lastSupervisorActivity
+                  ? Math.round((Date.now() - new Date(loc.lastSupervisorActivity).getTime()) / 3600000)
+                  : null;
+                return (
+                  <div key={loc.id} className="px-4 py-3 flex items-center justify-between text-sm">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{loc.name}</p>
+                        {statusPin(loc.status)}
+                      </div>
+                      <p className="text-xs text-gray-500">{loc.type} · {loc.address}</p>
+                      <div className="flex gap-3 mt-1 text-xs text-gray-400">
+                        <span>Leads: {loc.leadsMTD}</span>
+                        <span>Conv: {loc.conversionsMTD}</span>
+                        <span>Paying: {loc.payingCustomers}</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 ml-2">
+                      {locHoursAgo !== null ? (
+                        <p className={`text-xs font-medium ${locHoursAgo > 72 ? "text-red-600" : "text-gray-600"}`}>
+                          {locHoursAgo < 24 ? `${locHoursAgo}h ago` : `${Math.round(locHoursAgo/24)}d ago`}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-red-500">No visit</p>
+                      )}
+                      <p className="text-xs text-gray-400">last visit</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+
 // ── Main App ──────────────────────────────────────────────────────────────────
 
 export function SalesManagerApp() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => {
+    const t = searchParams.get("tab");
+    const valid = ["dashboard","detail","submit","supervisor","daily","block","incentive","expenses","field","payroll"];
+    return (t && valid.includes(t)) ? t : "dashboard";
+  });
+  const handleTabChange = (t: string) => {
+    setActiveTab(t);
+    setSearchParams(prev => { const p = new URLSearchParams(prev); p.set("tab", t); return p; }, { replace: true });
+  };
   const { currentUser } = useRole();
   const gate    = salesManagerService.getGateStatus();
   const alerts  = salesManagerService.getAlerts().filter(a => a.actionRequired);
@@ -544,8 +783,8 @@ export function SalesManagerApp() {
       </div>
 
       <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-9 min-w-max w-full mb-6 overflow-x-auto">
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="flex min-w-max w-full mb-6 overflow-x-auto gap-0">
             <TabsTrigger value="dashboard" className="text-xs gap-1">
               <MapPin className="w-3 h-3 hidden sm:block" />Alliance
             </TabsTrigger>
@@ -581,10 +820,10 @@ export function SalesManagerApp() {
           </TabsList>
 
           <TabsContent value="dashboard">
-            <AllianceDashboard onTabChange={setActiveTab} />
+            <AllianceDashboard onTabChange={handleTabChange} />
           </TabsContent>
           <TabsContent value="detail">
-            <AllianceDashboard onTabChange={setActiveTab} />
+            <LocationDetailList />
           </TabsContent>
           <TabsContent value="submit">
             <SubmitLocation />
@@ -593,12 +832,7 @@ export function SalesManagerApp() {
             <SMDailyActivity />
           </TabsContent>
           <TabsContent value="supervisor">
-            <Card className="p-8 text-center text-gray-400">
-              <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p className="font-medium">Supervisor Assignment View</p>
-              <p className="text-sm mt-1">Supervisor check-in status and BTL schedule shown here.</p>
-              <p className="text-xs mt-2">All assignments are auto-generated on location approval.</p>
-            </Card>
+            <SupervisorAssignmentView />
           </TabsContent>
           <TabsContent value="block">
             <BlockSubscriptions />
