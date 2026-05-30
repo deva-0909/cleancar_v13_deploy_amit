@@ -264,8 +264,8 @@ class SalesManagerService {
   getGateStatus(): SMGateStatus {
     const locs = this.getLocations();
     const active = locs.filter(l => l.status === "Active" || l.status === "Active Prospect").length;
-    const leads  = locs.reduce((s, l) => s + l.leadsMTD, 0);
-    const conv   = locs.reduce((s, l) => s + l.conversionsMTD, 0);
+    const leads  = locs.reduce((s, l) => s + (Number(l.leadsMTD) || 0), 0);
+    const conv   = locs.reduce((s, l) => s + (Number(l.conversionsMTD) || 0), 0);
     return {
       locationGate:   { current: active, target: 5,  met: active >= 5  },
       leadGate:       { current: leads,  target: 30, met: leads >= 30  },

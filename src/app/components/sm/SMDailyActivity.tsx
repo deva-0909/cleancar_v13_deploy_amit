@@ -1,30 +1,35 @@
 /**
- * SMDailyActivity.tsx
- * Sales Manager — Daily Activity Report
+ * SMDailyActivity.tsx  — v3.0
+ * Sales Manager Daily Activity Report
  *
- * Covers the SM's full day:
- *   Morning  (08:00–10:00) — Plan the day
- *   Field    (10:00–17:00) — Location visits + BTL coordination
- *   Evening  (17:00–19:00) — EOD report + tomorrow's plan
+ * SESSIONS:
+ *   Morning (08:00–10:00) — Plan the day: free-form visits, any order
+ *   Field   (10:00–EOD)   — Trip tracking, 30-min wait prompt, visit log
+ *   Evening (mandatory)   — EOD report (auto-populated) before checkout
  *
- * Plugs into the existing SalesManagerApp as a new tab: value="daily"
- * Reads from salesManagerService (locations, alerts, BTL, gate status)
- * Persists to localStorage under the key "SM_DAILY_REPORT_<YYYY-MM-DD>"
+ * RULES:
+ *   • Morning plan: SM adds locations freely (existing or new) in any order
+ *   • Trip: FROM = GPS auto-captured, TO = optional at start
+ *   • 30-min stop → system prompts visit log (location type + purpose + outcome)
+ *   • Distance = odometer-based (Google Maps link for verification)
+ *   • Cannot start new trip / checkout / do any task with open active trip
+ *   • EOD mandatory before checkout — auto-fills from day's punched data
+ *   • NaN gate fix: all leadsMTD/conversionsMTD guarded with Number()||0
  */
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { Card } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Textarea } from "../ui/textarea";
 import { Input } from "../ui/input";
 import {
-  CheckCircle2, Circle, AlertTriangle, MapPin, Users,
-  TrendingUp, Clock, ChevronRight, ChevronDown,
+  CheckCircle2, Circle, AlertTriangle, MapPin,
+  TrendingUp, Clock, ChevronDown, ChevronUp, ChevronRight,
   Sun, Target, FileText, Zap, Building2,
-  Phone, Star, BarChart2, Save, RotateCcw,
-  CalendarCheck, Lock, Car, Bike, Camera, Receipt,
-  ChevronUp, IndianRupee
+  Star, Save, RotateCcw, CalendarCheck, Lock, Car, Bike,
+  Camera, Receipt, IndianRupee, XCircle, Navigation,
+  Timer, Bell, Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { salesManagerService } from "../../services/salesManagerService";
@@ -37,35 +42,49 @@ import { useRole } from "../../contexts/RoleContext";
 import { useEmployee } from "../../contexts/EmployeeContext";
 import { useCity } from "../../contexts/CityContext";
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type SessionId = "morning" | "field" | "evening";
+
+type LocationType = "Society" | "Corporate" | "Petrol Pump" | "RWA" | "Shop-in-Shop" | "Other";
 
 interface PlannedVisit {
   locationId: string;
   locationName: string;
-  locationType: string;
+  locationType: LocationType;
   priority: "HIGH" | "MEDIUM" | "FOLLOW_UP";
-  objective: string;
-  plannedTime: string;
-  // filled during / after visit
+  objective: string;            // purpose of visit
+  plannedTime: string;          // HH:MM or "--"
   actualVisitDone: boolean;
   outcome?: "Positive" | "Neutral" | "Negative" | "No Answer";
   leadsCollected: number;
   conversionAttempts: number;
   notes: string;
   durationMinutes: number;
-  // Travel — linked trip for this visit
-  tripId?: string; // ID of the TravelTrip record in travelReimbursementService
+  tripId?: string;
 }
 
-interface BTLTask {
-  id: string;
-  supervisorName: string;
-  locationName: string;
-  task: string;
-  status: "Pending" | "Done" | "Escalated";
-  note: string;
+interface ActiveTrip {
+  id: string;                   // links to TravelTrip
+  fromLabel: string;            // human label for from location
+  fromLat?: number;
+  fromLng?: number;
+  toLabel: string;              // destination (can be blank at start)
+  vehicleType: VehicleType;
+  vehicleNumber: string;
+  startOdometer: number;
+  startTime: string;            // HH:MM
+  startPhotoData: string;       // base64
+  // 30-min wait tracking
+  stoppedAt?: string;           // ISO - when GPS stopped moving
+  waitPromptShown: boolean;
+  // visit log after 30-min wait
+  visitLogDone: boolean;
+  visitLocationType?: LocationType;
+  visitPurpose?: string;
+  visitOutcome?: "Positive" | "Neutral" | "Negative" | "No Answer";
+  visitNotes?: string;
+  linkedPlanVisitIdx?: number;  // links back to plannedVisits[]
 }
 
 interface DailyReport {
@@ -74,12 +93,13 @@ interface DailyReport {
     locked: boolean;
     priorityForDay: string;
     plannedVisits: PlannedVisit[];
-    btlTasksAssigned: BTLTask[];
     openAlerts: number;
   };
   field: {
     locked: boolean;
-    visitsActual: PlannedVisit[]; // same array — updated in place
+    activeTrip: ActiveTrip | null;  // single active trip
+    completedTrips: string[];       // TravelTrip IDs
+    visitsActual: PlannedVisit[];
     unplannedVisits: number;
     totalLeads: number;
     totalConversions: number;
@@ -96,104 +116,731 @@ interface DailyReport {
   };
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-const TODAY = new Date().toISOString().split("T")[0];
-const STORAGE_KEY = `SM_DAILY_REPORT_${TODAY}`;
+const TODAY        = new Date().toISOString().split("T")[0];
+const STORAGE_KEY  = `SM_DAILY_REPORT_${TODAY}`;
+const LOC_TYPES: LocationType[] = ["Society","Corporate","Petrol Pump","RWA","Shop-in-Shop","Other"];
+const WAIT_PROMPT_MINUTES = 30;
+
+// ── Storage ───────────────────────────────────────────────────────────────────
 
 function loadReport(): DailyReport {
   try {
     const s = localStorage.getItem(STORAGE_KEY);
     if (s) return JSON.parse(s);
-  } catch { /* ignore */ }
+  } catch { /**/ }
 
-  const locs = salesManagerService.getLocations();
-  const atRisk = locs.filter(l => l.status === "At Risk" || l.status === "Inactive");
-  const prospects = locs.filter(l => l.status === "Active Prospect");
-  const alerts = salesManagerService.getAlerts().filter(a => a.actionRequired);
+  const locs    = salesManagerService.getLocations();
+  const atRisk  = locs.filter(l => l.status === "At Risk" || l.status === "Inactive");
+  const pros    = locs.filter(l => l.status === "Active Prospect");
+  const alerts  = salesManagerService.getAlerts().filter(a => a.actionRequired);
 
-  // Auto-suggest visits: at-risk first, then prospects
-  const suggested = [...atRisk.slice(0, 2), ...prospects.slice(0, 2)];
+  const suggested = [...atRisk.slice(0, 2), ...pros.slice(0, 2)];
   const plannedVisits: PlannedVisit[] = suggested.map((loc, i) => ({
     locationId: loc.id,
     locationName: loc.name,
-    locationType: loc.type,
+    locationType: (loc.type as LocationType) || "Society",
     priority: atRisk.includes(loc) ? "HIGH" : "MEDIUM",
     objective: atRisk.includes(loc)
-      ? "Re-engage — understand churn risk and propose action plan"
+      ? "Re-engage — understand risk and propose action plan"
       : "Progress to paid — present block deal option",
-    plannedTime: i === 0 ? "10:30" : i === 1 ? "12:00" : i === 2 ? "14:30" : "16:00",
-    actualVisitDone: false,
-    leadsCollected: 0,
-    conversionAttempts: 0,
-    notes: "",
-    durationMinutes: 0,
+    plannedTime: ["10:30","12:00","14:30","16:00"][i] || "--",
+    actualVisitDone: false, leadsCollected: 0,
+    conversionAttempts: 0, notes: "", durationMinutes: 0,
   }));
 
   return {
     date: TODAY,
-    morning: {
-      locked: false,
-      priorityForDay: "",
-      plannedVisits,
-      btlTasksAssigned: [],
-      openAlerts: alerts.length,
-    },
-    field: { locked: false, visitsActual: plannedVisits, unplannedVisits: 0, totalLeads: 0, totalConversions: 0, totalKm: 0 },
+    morning: { locked: false, priorityForDay: "", plannedVisits, openAlerts: alerts.length },
+    field: { locked: false, activeTrip: null, completedTrips: [], visitsActual: plannedVisits, unplannedVisits: 0, totalLeads: 0, totalConversions: 0, totalKm: 0 },
     evening: { locked: false, dayRating: 3, biggestWin: "", biggestBlock: "", tomorrowTop3: "", escalationsRaised: 0 },
   };
 }
 
 function saveReport(r: DailyReport) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(r)); } catch { /* ignore */ }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(r)); } catch { /**/ }
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmt(d: string) {
   return new Date(d).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+}
+function minsElapsed(iso: string) {
+  return Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+}
+function mapsLink(from: string, to: string) {
+  const base = "https://www.google.com/maps/dir/";
+  return `${base}${encodeURIComponent(from)}/${encodeURIComponent(to || "")}`;
+}
 
-// ── Sub-components ───────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function SessionHeader({ icon, title, time, status }: {
   icon: React.ReactNode; title: string; time: string;
   status: "locked" | "active" | "upcoming";
 }) {
-  const colors = {
+  const cls = {
     locked:   "bg-teal-600 text-white",
     active:   "bg-orange-500 text-white",
     upcoming: "bg-gray-100 text-gray-500",
-  };
+  }[status];
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-4 ${colors[status]}`}>
+    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl mb-4 ${cls}`}>
       <div className="text-lg">{icon}</div>
       <div className="flex-1">
         <p className="font-bold text-sm">{title}</p>
         <p className="text-xs opacity-80">{time}</p>
       </div>
-      {status === "locked" && <Lock className="w-4 h-4 opacity-60" />}
-      {status === "active" && <Zap className="w-4 h-4" />}
+      {status === "locked"   && <Lock  className="w-4 h-4 opacity-60" />}
+      {status === "active"   && <Zap   className="w-4 h-4" />}
     </div>
   );
 }
 
 function PriorityBadge({ p }: { p: PlannedVisit["priority"] }) {
-  const map = {
-    HIGH: "bg-red-100 text-red-700 border-red-200",
-    MEDIUM: "bg-amber-100 text-amber-700 border-amber-200",
+  const cls = {
+    HIGH:      "bg-red-100 text-red-700 border-red-200",
+    MEDIUM:    "bg-amber-100 text-amber-700 border-amber-200",
     FOLLOW_UP: "bg-blue-100 text-blue-700 border-blue-200",
-  };
-  return <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${map[p]}`}>{p.replace("_", " ")}</span>;
+  }[p];
+  return <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${cls}`}>{p.replace("_"," ")}</span>;
 }
 
-function StarRating({ value, onChange }: { value: number; onChange: (n: 1|2|3|4|5) => void }) {
+function StarRating({ value, onChange }: { value: number; onChange: (n:1|2|3|4|5) => void }) {
   return (
     <div className="flex gap-1">
       {[1,2,3,4,5].map(n => (
         <button key={n} onClick={() => onChange(n as 1|2|3|4|5)}
-          className={`transition-transform hover:scale-110 ${n <= value ? "text-amber-400" : "text-gray-200"}`}>
+          className={`transition-transform hover:scale-110 ${n <= value ? "text-amber-400":"text-gray-200"}`}>
           <Star className="w-6 h-6 fill-current" />
         </button>
       ))}
+    </div>
+  );
+}
+
+// ── Morning Visit Planner ─────────────────────────────────────────────────────
+// SM can add ANY location in ANY order — existing from service OR free-form new
+
+function MorningVisitPlanner({
+  visits, locked, onChange,
+}: {
+  visits: PlannedVisit[];
+  locked: boolean;
+  onChange: (v: PlannedVisit[]) => void;
+}) {
+  const knownLocs = salesManagerService.getLocations();
+  const [showForm, setShowForm]   = useState(false);
+  const [locMode, setLocMode]     = useState<"existing"|"new">("existing");
+  const [name, setName]           = useState("");
+  const [existId, setExistId]     = useState("");
+  const [locType, setLocType]     = useState<LocationType>("Society");
+  const [priority, setPriority]   = useState<PlannedVisit["priority"]>("MEDIUM");
+  const [objective, setObjective] = useState("");
+  const [time, setTime]           = useState("");
+
+  function add() {
+    if (!name.trim() && locMode === "new")   { toast.error("Enter location name"); return; }
+    if (!existId && locMode === "existing")   { toast.error("Select a location"); return; }
+    if (!objective.trim())                    { toast.error("Enter purpose of visit"); return; }
+
+    const kl = knownLocs.find(l => l.id === existId);
+    onChange([...visits, {
+      locationId:     kl?.id || `PLAN-${Date.now()}`,
+      locationName:   kl?.name || name.trim(),
+      locationType:   (kl?.type as LocationType) || locType,
+      priority, objective: objective.trim(),
+      plannedTime:    time || "--",
+      actualVisitDone: false, leadsCollected: 0,
+      conversionAttempts: 0, notes: "", durationMinutes: 0,
+    }]);
+    setName(""); setExistId(""); setObjective(""); setTime("");
+    setShowForm(false);
+    toast.success("Visit added to plan");
+  }
+
+  function remove(i: number) { onChange(visits.filter((_,j) => j !== i)); }
+  function move(i: number, dir: -1|1) {
+    if (i + dir < 0 || i + dir >= visits.length) return;
+    const a = [...visits];
+    [a[i], a[i+dir]] = [a[i+dir], a[i]];
+    onChange(a);
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+          <MapPin className="w-4 h-4 text-teal-600" />
+          Today's Visit Plan
+          <span className="text-xs font-normal text-gray-400 ml-1">({visits.length} planned)</span>
+        </p>
+        {!locked && (
+          <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+            onClick={() => setShowForm(v => !v)}>
+            {showForm ? "✕ Cancel" : "+ Add Visit"}
+          </Button>
+        )}
+      </div>
+
+      {/* ── Add-visit form ── */}
+      {showForm && !locked && (
+        <Card className="p-3 mb-3 border-teal-200 bg-teal-50/30 space-y-3">
+          <p className="text-xs font-bold text-teal-700 uppercase tracking-wide">Add Visit</p>
+
+          {/* Mode toggle */}
+          <div className="flex gap-2">
+            {(["existing","new"] as const).map(m => (
+              <button key={m} onClick={() => { setLocMode(m); setName(""); setExistId(""); }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  locMode === m ? "border-teal-500 bg-teal-50 text-teal-700" : "border-gray-200 text-gray-500"}`}>
+                {m === "existing" ? "📍 Existing Location" : "📝 New / Custom"}
+              </button>
+            ))}
+          </div>
+
+          {locMode === "existing" ? (
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Select location *</label>
+              <select value={existId}
+                onChange={e => setExistId(e.target.value)}
+                className="w-full h-8 text-sm border border-gray-200 rounded-md px-2 bg-white">
+                <option value="">Choose…</option>
+                {knownLocs.map(l => (
+                  <option key={l.id} value={l.id}>{l.name} ({l.status})</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="col-span-2">
+                <label className="text-xs text-gray-500 mb-1 block">Location name *</label>
+                <Input value={name} onChange={e => setName(e.target.value)}
+                  className="h-8 text-sm" placeholder="e.g. Silver Oak Society, Vesu" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Type</label>
+                <select value={locType} onChange={e => setLocType(e.target.value as LocationType)}
+                  className="w-full h-8 text-sm border border-gray-200 rounded-md px-2 bg-white">
+                  {LOC_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Priority</label>
+                <select value={priority} onChange={e => setPriority(e.target.value as any)}
+                  className="w-full h-8 text-sm border border-gray-200 rounded-md px-2 bg-white">
+                  {["HIGH","MEDIUM","FOLLOW_UP"].map(p => <option key={p} value={p}>{p.replace("_"," ")}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Purpose of visit *</label>
+            <Input value={objective} onChange={e => setObjective(e.target.value)}
+              className="h-8 text-sm" placeholder="e.g. Close block deal / QR placement / Follow-up…" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Planned time (optional)</label>
+            <Input type="time" value={time} onChange={e => setTime(e.target.value)} className="h-8 text-sm" />
+          </div>
+
+          <Button onClick={add}
+            className="w-full h-8 text-sm bg-teal-600 hover:bg-teal-700 gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Add to Plan
+          </Button>
+        </Card>
+      )}
+
+      {/* ── Visit list ── */}
+      <div className="space-y-2">
+        {visits.map((v, i) => (
+          <div key={`${v.locationId}-${i}`}
+            className="border border-gray-200 rounded-lg p-3 bg-white flex items-start gap-2">
+            {/* Reorder */}
+            {!locked && (
+              <div className="flex flex-col gap-0.5 pt-1">
+                <button onClick={() => move(i,-1)} disabled={i===0}
+                  className="text-gray-300 hover:text-gray-500 disabled:opacity-20 leading-none text-xs">▲</button>
+                <button onClick={() => move(i,1)} disabled={i===visits.length-1}
+                  className="text-gray-300 hover:text-gray-500 disabled:opacity-20 leading-none text-xs">▼</button>
+              </div>
+            )}
+            <span className="text-xs text-gray-300 font-mono pt-1">#{i+1}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-semibold text-gray-800">{v.locationName}</p>
+                <PriorityBadge p={v.priority} />
+                <span className="text-xs text-gray-400">{v.locationType}</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">{v.objective}</p>
+              {v.plannedTime && v.plannedTime !== "--" && (
+                <p className="text-xs text-teal-600 mt-0.5 flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> {v.plannedTime}
+                </p>
+              )}
+            </div>
+            {!locked && (
+              <button onClick={() => remove(i)} className="text-gray-300 hover:text-red-500 p-1">
+                <XCircle className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        ))}
+        {visits.length === 0 && (
+          <div className="text-center py-6 border border-dashed border-gray-200 rounded-lg text-sm text-gray-400">
+            <MapPin className="w-6 h-6 mx-auto mb-1 text-gray-300" />
+            No visits planned — tap "+ Add Visit" to plan your day
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Trip Panel ────────────────────────────────────────────────────────────────
+// GPS auto-captures FROM. TO is optional. 30-min stop prompts visit log.
+
+function TripPanel({
+  activeTrip, locked, empId, empName, empDes, cityId, cityName,
+  rptMgrId, rptMgrName, onTripStart, onTripEnd, onTripUpdate, travelRefresh,
+}: {
+  activeTrip: ActiveTrip | null;
+  locked: boolean;
+  empId: string; empName: string; empDes: string;
+  cityId: string; cityName: string;
+  rptMgrId: string; rptMgrName: string;
+  onTripStart: (t: ActiveTrip) => void;
+  onTripEnd: (kmCovered: number, reimbAmt: number) => void;
+  onTripUpdate: (changes: Partial<ActiveTrip>) => void;
+  travelRefresh: number;
+}) {
+  // Start-trip form state
+  const [vehicleType,  setVehicleType]  = useState<VehicleType>("4W");
+  const [vehicleNum,   setVehicleNum]   = useState("");
+  const [odoStart,     setOdoStart]     = useState<number|"">("");
+  const [toLabel,      setToLabel]      = useState("");
+  const [startPhoto,   setStartPhoto]   = useState("");
+  const [gpsStatus,    setGpsStatus]    = useState<"idle"|"fetching"|"done"|"error">("idle");
+  const [fromCoords,   setFromCoords]   = useState<{lat:number;lng:number}|null>(null);
+  const [fromLabel,    setFromLabel]    = useState("Your current location");
+  const startFileRef = useRef<HTMLInputElement>(null);
+
+  // End-trip form state
+  const [odoEnd,     setOdoEnd]     = useState<number|"">("");
+  const [endPhoto,   setEndPhoto]   = useState("");
+  const [endTime,    setEndTime]    = useState(new Date().toTimeString().slice(0,5));
+  const endFileRef = useRef<HTMLInputElement>(null);
+
+  // Visit-log state (30-min prompt)
+  const [showVisitLog, setShowVisitLog]   = useState(false);
+  const [vlType,       setVlType]         = useState<LocationType>("Society");
+  const [vlPurpose,    setVlPurpose]      = useState("");
+  const [vlOutcome,    setVlOutcome]      = useState<PlannedVisit["outcome"]|undefined>(undefined);
+  const [vlNotes,      setVlNotes]        = useState("");
+
+  // 30-min wait ticker
+  const [waitMins, setWaitMins] = useState(0);
+  useEffect(() => {
+    if (!activeTrip?.stoppedAt || activeTrip.visitLogDone) return;
+    const interval = setInterval(() => {
+      const mins = minsElapsed(activeTrip.stoppedAt!);
+      setWaitMins(mins);
+      if (mins >= WAIT_PROMPT_MINUTES && !activeTrip.waitPromptShown) {
+        onTripUpdate({ waitPromptShown: true });
+        setShowVisitLog(true);
+        toast.warning("⏱ 30 minutes at this location — please log your visit", { duration: 8000 });
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [activeTrip?.stoppedAt, activeTrip?.visitLogDone, activeTrip?.waitPromptShown]);
+
+  const rate4W = travelReimbursementService.getEffectiveRate(empId, "4W");
+  const rate2W = travelReimbursementService.getEffectiveRate(empId, "2W");
+  const rate   = vehicleType === "4W" ? rate4W : rate2W;
+
+  function capturePhoto(file: File, cb: (d:string)=>void) {
+    const r = new FileReader();
+    r.onload = e => cb(e.target?.result as string);
+    r.readAsDataURL(file);
+  }
+
+  function fetchGPS() {
+    setGpsStatus("fetching");
+    if (!navigator.geolocation) { setGpsStatus("error"); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setFromCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setFromLabel(`${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`);
+        setGpsStatus("done");
+      },
+      () => { setGpsStatus("error"); setFromLabel("GPS unavailable — enter manually"); },
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
+  }
+
+  function handleStartTrip() {
+    if (!vehicleNum.trim())    { toast.error("Enter vehicle number"); return; }
+    if (odoStart === "")       { toast.error("Enter start odometer reading"); return; }
+    if (!startPhoto)           { toast.error("📸 Odometer photo required"); return; }
+
+    const photoRec = travelReimbursementService.savePhoto({
+      tripId: "", type: "start_odometer",
+      dataUrl: startPhoto, capturedAt: new Date().toISOString(),
+      fileName: `start_${Date.now()}.jpg`,
+    });
+
+    const trip = travelReimbursementService.startTrip({
+      employeeId: empId, employeeName: empName, designation: empDes,
+      cityId, city: cityName, reportingManagerId: rptMgrId, reportingManagerName: rptMgrName,
+      vehicleType, vehicleNumber: vehicleNum,
+      tripDate: TODAY, startTime: new Date().toTimeString().slice(0,5),
+      purposeOfVisit: toLabel || "Field visit",
+      visitLocation: toLabel || "Field",
+      startReading: Number(odoStart),
+      startPhotoId: photoRec.id,
+    });
+
+    const at: ActiveTrip = {
+      id: trip.id,
+      fromLabel: fromLabel,
+      fromLat: fromCoords?.lat, fromLng: fromCoords?.lng,
+      toLabel,
+      vehicleType, vehicleNumber: vehicleNum,
+      startOdometer: Number(odoStart),
+      startTime: new Date().toTimeString().slice(0,5),
+      startPhotoData: startPhoto,
+      waitPromptShown: false,
+      visitLogDone: false,
+    };
+    onTripStart(at);
+    toast.success("Trip started — location tracking active");
+  }
+
+  function saveVisitLog() {
+    if (!vlPurpose.trim()) { toast.error("Enter purpose of the visit"); return; }
+    if (!vlOutcome)        { toast.error("Select visit outcome"); return; }
+    onTripUpdate({
+      visitLogDone: true,
+      visitLocationType: vlType,
+      visitPurpose: vlPurpose,
+      visitOutcome: vlOutcome,
+      visitNotes: vlNotes,
+    });
+    setShowVisitLog(false);
+    toast.success("Visit logged ✓");
+  }
+
+  function handleEndTrip() {
+    if (!activeTrip) return;
+    if (!activeTrip.visitLogDone) {
+      setShowVisitLog(true);
+      toast.error("Log this visit before ending the trip");
+      return;
+    }
+    if (odoEnd === "")              { toast.error("Enter end odometer reading"); return; }
+    if (Number(odoEnd) <= activeTrip.startOdometer) {
+      toast.error("End reading must be greater than start reading"); return;
+    }
+    if (!endPhoto) { toast.error("📸 End odometer photo required"); return; }
+
+    const photoRec = travelReimbursementService.savePhoto({
+      tripId: activeTrip.id, type: "end_odometer",
+      dataUrl: endPhoto, capturedAt: new Date().toISOString(),
+      fileName: `end_${Date.now()}.jpg`,
+    });
+
+    const updated = travelReimbursementService.endTrip(activeTrip.id, {
+      endTime,
+      endReading: Number(odoEnd),
+      outcomeOfVisit: activeTrip.visitOutcome || "Visit completed",
+      endPhotoId: photoRec.id,
+    });
+    travelReimbursementService.submitTrip(updated.id);
+    onTripEnd(updated.totalKm ?? 0, updated.netPayableAmount ?? 0);
+    toast.success(`Trip ended — ${updated.totalKm} km · ₹${(updated.netPayableAmount??0).toLocaleString()} reimbursement`);
+  }
+
+  // ── If no active trip → Start form ────────────────────────────────────────
+  if (!activeTrip) {
+    return (
+      <Card className="p-4 border-purple-200 bg-purple-50/30 space-y-4">
+        <p className="text-sm font-bold text-purple-800 flex items-center gap-2">
+          <Car className="w-4 h-4" /> Start New Trip
+        </p>
+        <p className="text-xs text-gray-500">
+          GPS will auto-capture your current location as the starting point.
+        </p>
+
+        {/* GPS capture */}
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">📍 From (auto-GPS)</label>
+          <div className="flex gap-2">
+            <Input value={fromLabel} onChange={e => setFromLabel(e.target.value)}
+              className="h-8 text-sm flex-1" placeholder="Auto-captured on GPS fetch" />
+            <Button size="sm" onClick={fetchGPS} disabled={gpsStatus === "fetching"}
+              variant="outline" className="h-8 px-2 shrink-0 gap-1 text-xs">
+              <Navigation className="w-3.5 h-3.5" />
+              {gpsStatus === "fetching" ? "…" : gpsStatus === "done" ? "✓" : "Get GPS"}
+            </Button>
+          </div>
+          {gpsStatus === "error" && <p className="text-xs text-red-500 mt-1">GPS failed — type location manually</p>}
+        </div>
+
+        {/* Destination */}
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">🏁 To (optional — fill now or later)</label>
+          <Input value={toLabel} onChange={e => setToLabel(e.target.value)}
+            className="h-8 text-sm" placeholder="e.g. Adajan Heights Society (can leave blank)" />
+        </div>
+
+        {/* Vehicle */}
+        <div className="flex gap-2">
+          {(["2W","4W"] as VehicleType[]).map(vt => (
+            <button key={vt} onClick={() => setVehicleType(vt)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-xs font-medium transition-colors ${
+                vehicleType === vt ? "border-purple-500 bg-purple-50 text-purple-700" : "border-gray-200 text-gray-500"}`}>
+              {vt === "2W" ? <Bike className="w-3.5 h-3.5"/> : <Car className="w-3.5 h-3.5"/>}
+              {vt} <span className="opacity-60">₹{vt==="2W"?rate2W:rate4W}/km</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Vehicle No. *</label>
+            <Input value={vehicleNum} onChange={e => setVehicleNum(e.target.value.toUpperCase())}
+              className="h-8 text-sm" placeholder="GJ05AB1234" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Start Odometer (km) *</label>
+            <Input type="number" min={0} value={odoStart}
+              onChange={e => setOdoStart(Number(e.target.value))}
+              className="h-8 text-sm" placeholder="km" />
+          </div>
+        </div>
+
+        {/* Start photo */}
+        <div>
+          <label className="text-xs font-semibold text-red-600 mb-1 flex items-center gap-1 block">
+            <Camera className="w-3 h-3"/> Odometer Photo <span className="text-red-500">*</span>
+          </label>
+          <input ref={startFileRef} type="file" accept="image/*" capture="environment"
+            className="hidden" onChange={e => e.target.files?.[0] && capturePhoto(e.target.files[0], setStartPhoto)} />
+          {startPhoto
+            ? <div className="relative">
+                <img src={startPhoto} alt="odo" className="w-full h-24 object-cover rounded-lg border" />
+                <button onClick={() => setStartPhoto("")}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">✕</button>
+              </div>
+            : <button onClick={() => startFileRef.current?.click()}
+                className="w-full h-14 border-2 border-dashed border-red-300 rounded-lg flex items-center justify-center gap-2 text-xs text-red-500 bg-red-50/30 hover:bg-red-50">
+                <Camera className="w-4 h-4"/> Capture odometer
+              </button>
+          }
+        </div>
+
+        <Button onClick={handleStartTrip}
+          className="w-full bg-purple-600 hover:bg-purple-700 text-white gap-2">
+          <Car className="w-4 h-4"/> Start Trip
+        </Button>
+      </Card>
+    );
+  }
+
+  // ── Active trip ─────────────────────────────────────────────────────────────
+  const linkedSvcTrip: TravelTrip | undefined = travelReimbursementService
+    .getTrips().find(t => t.id === activeTrip.id);
+
+  const elapsedMin = minsElapsed(
+    `${TODAY}T${activeTrip.startTime}:00`
+  );
+
+  return (
+    <div className="space-y-3">
+      {/* Trip status banner */}
+      <Card className="p-4 border-2 border-purple-300 bg-purple-50">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse"/>
+            <p className="text-sm font-bold text-purple-900">Trip in Progress</p>
+          </div>
+          <Badge className="bg-purple-600 text-xs">{activeTrip.vehicleType} · {activeTrip.vehicleNumber}</Badge>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-3">
+          <div><span className="text-gray-400">From:</span> {activeTrip.fromLabel}</div>
+          <div><span className="text-gray-400">To:</span> {activeTrip.toLabel || <span className="italic text-gray-300">Not set</span>}</div>
+          <div><span className="text-gray-400">Started:</span> {activeTrip.startTime}</div>
+          <div><span className="text-gray-400">Elapsed:</span> {elapsedMin} min</div>
+        </div>
+
+        {/* Update destination */}
+        {!activeTrip.toLabel && (
+          <DestinationUpdater current={activeTrip.toLabel} onSave={v => onTripUpdate({ toLabel: v })} />
+        )}
+
+        {/* Google Maps link */}
+        {activeTrip.fromLabel && (
+          <a href={mapsLink(activeTrip.fromLabel, activeTrip.toLabel)}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs text-blue-600 hover:underline mt-2">
+            <Navigation className="w-3 h-3"/> Verify route on Google Maps
+          </a>
+        )}
+
+        {/* 30-min wait indicator */}
+        {activeTrip.stoppedAt && !activeTrip.visitLogDone && (
+          <div className={`mt-3 flex items-center gap-2 p-2 rounded-lg text-xs ${
+            waitMins >= WAIT_PROMPT_MINUTES
+              ? "bg-orange-100 border border-orange-300 text-orange-800"
+              : "bg-amber-50 border border-amber-200 text-amber-700"}`}>
+            <Timer className="w-3.5 h-3.5 shrink-0"/>
+            {waitMins >= WAIT_PROMPT_MINUTES
+              ? `⚠️ Stopped ${waitMins} min — visit log required before you can continue`
+              : `Stopped ${waitMins} min at this location`}
+          </div>
+        )}
+
+        {/* Visit log done indicator */}
+        {activeTrip.visitLogDone && (
+          <div className="mt-3 p-2 rounded-lg bg-green-50 border border-green-200 text-xs text-green-700 flex items-center gap-2">
+            <CheckCircle2 className="w-3.5 h-3.5"/> Visit logged: {activeTrip.visitLocationType} · {activeTrip.visitOutcome}
+          </div>
+        )}
+      </Card>
+
+      {/* ── 30-min visit log prompt ─────────────────────────────────────── */}
+      {(showVisitLog || (activeTrip.waitPromptShown && !activeTrip.visitLogDone)) && (
+        <Card className="p-4 border-2 border-orange-300 bg-orange-50/50 space-y-3">
+          <div className="flex items-center gap-2">
+            <Bell className="w-4 h-4 text-orange-600"/>
+            <p className="text-sm font-bold text-orange-900">Log This Visit</p>
+            <span className="text-xs text-orange-500 ml-auto">Required to end trip</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Location Type *</label>
+              <select value={vlType} onChange={e => setVlType(e.target.value as LocationType)}
+                className="w-full h-8 text-sm border border-gray-200 rounded-md px-2 bg-white">
+                {LOC_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Outcome *</label>
+              <select value={vlOutcome||""} onChange={e => setVlOutcome(e.target.value as any || undefined)}
+                className="w-full h-8 text-sm border border-gray-200 rounded-md px-2 bg-white">
+                <option value="">Select…</option>
+                {["Positive","Neutral","Negative","No Answer"].map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Purpose of visit *</label>
+            <Input value={vlPurpose} onChange={e => setVlPurpose(e.target.value)}
+              className="h-8 text-sm" placeholder="e.g. Close block deal / QR placement / Follow-up" />
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Notes (optional)</label>
+            <Textarea value={vlNotes} onChange={e => setVlNotes(e.target.value)}
+              rows={2} className="text-sm resize-none" placeholder="Key discussion points…" />
+          </div>
+
+          <Button onClick={saveVisitLog}
+            className="w-full h-8 text-sm bg-orange-600 hover:bg-orange-700 gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5"/> Save Visit Log
+          </Button>
+        </Card>
+      )}
+
+      {/* ── End trip section ─────────────────────────────────────────────── */}
+      {!showVisitLog && (
+        <Card className="p-4 border border-gray-200 space-y-3">
+          <p className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-600"/> End This Trip
+          </p>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">End Time *</label>
+              <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)}
+                className="h-8 text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">End Odometer (km) *</label>
+              <Input type="number" min={activeTrip.startOdometer + 1} value={odoEnd}
+                onChange={e => setOdoEnd(Number(e.target.value))}
+                className="h-8 text-sm" placeholder={`> ${activeTrip.startOdometer}`} />
+            </div>
+          </div>
+
+          {/* Live estimate */}
+          {odoEnd !== "" && Number(odoEnd) > activeTrip.startOdometer && (
+            <div className="flex items-center justify-between bg-purple-50 rounded-lg px-3 py-2 border border-purple-100">
+              <span className="text-xs text-purple-700">
+                {Number(odoEnd) - activeTrip.startOdometer} km · {activeTrip.vehicleType}
+              </span>
+              <span className="text-sm font-bold text-purple-700">
+                ₹{Math.round((Number(odoEnd) - activeTrip.startOdometer) * rate).toLocaleString()} est.
+              </span>
+            </div>
+          )}
+
+          {/* End photo */}
+          <div>
+            <label className="text-xs font-semibold text-red-600 mb-1 flex items-center gap-1 block">
+              <Camera className="w-3 h-3"/> End Odometer Photo <span className="text-red-500">*</span>
+            </label>
+            <input ref={endFileRef} type="file" accept="image/*" capture="environment"
+              className="hidden" onChange={e => e.target.files?.[0] && capturePhoto(e.target.files[0], setEndPhoto)} />
+            {endPhoto
+              ? <div className="relative">
+                  <img src={endPhoto} alt="odo-end" className="w-full h-24 object-cover rounded-lg border" />
+                  <button onClick={() => setEndPhoto("")}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">✕</button>
+                </div>
+              : <button onClick={() => endFileRef.current?.click()}
+                  className="w-full h-14 border-2 border-dashed border-red-300 rounded-lg flex items-center justify-center gap-2 text-xs text-red-500 bg-red-50/30 hover:bg-red-50">
+                  <Camera className="w-4 h-4"/> Capture odometer
+                </button>
+            }
+          </div>
+
+          {!activeTrip.visitLogDone && (
+            <div className="flex items-center gap-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0"/>
+              Log this visit before ending trip
+            </div>
+          )}
+
+          <Button onClick={handleEndTrip}
+            disabled={!activeTrip.visitLogDone}
+            className="w-full bg-green-600 hover:bg-green-700 gap-2 disabled:opacity-50">
+            <CheckCircle2 className="w-4 h-4"/> End Trip & Submit
+          </Button>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ── Destination updater (inline) ──────────────────────────────────────────────
+
+function DestinationUpdater({ current, onSave }: { current: string; onSave: (v:string)=>void }) {
+  const [val, setVal] = useState(current);
+  return (
+    <div className="flex gap-2 mt-2">
+      <Input value={val} onChange={e => setVal(e.target.value)}
+        className="h-7 text-xs flex-1" placeholder="Enter destination now (optional)" />
+      <Button size="sm" className="h-7 text-xs px-2" onClick={() => onSave(val)}>Set</Button>
     </div>
   );
 }
@@ -206,38 +853,31 @@ export function SMDailyActivity() {
   const [saving, setSaving] = useState(false);
   const [travelRefresh, setTravelRefresh] = useState(0);
 
-  // Context hooks for travel service
   const { currentUser } = useRole();
-  const { employees } = useEmployee();
+  const { employees }   = useEmployee();
   const { city, cityInfo } = useCity();
 
   const gate = salesManagerService.getGateStatus();
-  const locs = salesManagerService.getLocations();
 
-  // Travel — today's trips for this SM
-  const todayTrips = useMemo(() => {
-    return travelReimbursementService
+  // Travel data
+  const todayTrips = useMemo(() =>
+    travelReimbursementService
       .getTripsByEmployee(currentUser?.employeeId || "")
-      .filter(t => t.tripDate === TODAY);
-  }, [travelRefresh, currentUser?.employeeId]);
-
-  const todayTripKm = todayTrips.reduce((s, t) => s + (t.totalKm ?? 0), 0);
-  const todayTripAmt = todayTrips.reduce((s, t) => s + (t.netPayableAmount ?? 0), 0);
-  const activeDraftTrip = todayTrips.find(t => t.status === "Draft");
-
-  // Travel rate for SM (4W default)
-  const rate4W = travelReimbursementService.getEffectiveRate(currentUser?.employeeId || "", "4W");
-  const rate2W = travelReimbursementService.getEffectiveRate(currentUser?.employeeId || "", "2W");
-
-  const emp = employees.find(e => e.id === currentUser?.employeeId);
-  const reportingMgr = employees.find(e =>
-    e.fullName === emp?.reportingManager || e.id === emp?.reportingManager
+      .filter(t => t.tripDate === TODAY),
+    [travelRefresh, currentUser?.employeeId]
   );
+  const todayKm  = todayTrips.reduce((s,t) => s + (t.totalKm ?? 0), 0);
+  const todayAmt = todayTrips.reduce((s,t) => s + (t.netPayableAmount ?? 0), 0);
 
-  // derived
-  const totalLeads = report.field.visitsActual.reduce((s, v) => s + v.leadsCollected, 0);
-  const totalConversions = report.field.visitsActual.reduce((s, v) => s + v.conversionAttempts, 0);
-  const visitsCompleted = report.field.visitsActual.filter(v => v.actualVisitDone).length;
+  const emp        = employees.find(e => e.id === currentUser?.employeeId);
+  const reportingMgr = employees.find(e => e.fullName === emp?.reportingManager || e.id === emp?.reportingManager);
+
+  const totalLeads       = report.field.visitsActual.reduce((s,v) => s + v.leadsCollected, 0);
+  const totalConversions = report.field.visitsActual.reduce((s,v) => s + v.conversionAttempts, 0);
+  const visitsCompleted  = report.field.visitsActual.filter(v => v.actualVisitDone).length;
+
+  // Active trip blocker — no new trip / checkout / tasks when trip open
+  const hasActiveTrip = !!report.field.activeTrip;
 
   function update(fn: (r: DailyReport) => DailyReport) {
     setReport(prev => {
@@ -248,251 +888,231 @@ export function SMDailyActivity() {
   }
 
   function lockMorning() {
-    if (!report.morning.priorityForDay.trim()) {
-      toast.error("Set today's priority before locking");
-      return;
-    }
+    if (!report.morning.priorityForDay.trim()) { toast.error("Set today's priority first"); return; }
+    if (report.morning.plannedVisits.length === 0) { toast.error("Add at least one planned visit"); return; }
     update(r => { r.morning.locked = true; return r; });
     setOpenSession("field");
     toast.success("Morning plan locked ✓ Head to the field!");
   }
 
   function lockField() {
+    if (hasActiveTrip) { toast.error("Close the active trip before locking field session"); return; }
     update(r => {
       r.field.locked = true;
-      r.field.totalLeads = totalLeads;
+      r.field.totalLeads       = totalLeads;
       r.field.totalConversions = totalConversions;
-      r.field.totalKm = todayTripKm; // pulled from travelReimbursementService
+      r.field.totalKm          = todayKm;
       return r;
     });
     setOpenSession("evening");
-    toast.success("Field session locked ✓ Time for EOD report");
+    toast.success("Field session locked ✓ Complete your EOD report");
   }
 
   function submitEOD() {
-    if (!report.evening.biggestWin.trim() || !report.evening.tomorrowTop3.trim()) {
-      toast.error("Fill biggest win and tomorrow's top 3 before submitting");
-      return;
-    }
+    if (!report.evening.biggestWin.trim())   { toast.error("Fill biggest win"); return; }
+    if (!report.evening.tomorrowTop3.trim()) { toast.error("Fill tomorrow's top 3"); return; }
     setSaving(true);
     setTimeout(() => {
-      update(r => {
-        r.evening.locked = true;
-        r.evening.submittedAt = new Date().toISOString();
-        return r;
-      });
+      update(r => { r.evening.locked = true; r.evening.submittedAt = new Date().toISOString(); return r; });
       setSaving(false);
       toast.success("Daily report submitted to Sales Head ✓");
     }, 800);
   }
 
   function updateVisit(idx: number, changes: Partial<PlannedVisit>) {
-    update(r => {
-      r.field.visitsActual[idx] = { ...r.field.visitsActual[idx], ...changes };
-      return r;
-    });
+    update(r => { r.field.visitsActual[idx] = { ...r.field.visitsActual[idx], ...changes }; return r; });
   }
 
   function addUnplannedVisit() {
+    if (hasActiveTrip) { toast.error("Close active trip before adding unplanned visit"); return; }
     update(r => {
-      const blank: PlannedVisit = {
+      r.field.visitsActual.push({
         locationId: `UNPLANNED-${Date.now()}`,
-        locationName: "",
-        locationType: "Society",
-        priority: "MEDIUM",
-        objective: "Opportunistic visit",
-        plannedTime: "--",
-        actualVisitDone: true,
-        leadsCollected: 0,
-        conversionAttempts: 0,
-        notes: "",
-        durationMinutes: 0,
-      };
-      r.field.visitsActual.push(blank);
+        locationName: "", locationType: "Society",
+        priority: "MEDIUM", objective: "Unplanned visit",
+        plannedTime: "--", actualVisitDone: true,
+        leadsCollected: 0, conversionAttempts: 0, notes: "", durationMinutes: 0,
+      });
       r.field.unplannedVisits++;
       return r;
     });
   }
 
-  // ── MORNING SECTION ──────────────────────────────────────────────────────
+  // ── MORNING SECTION ───────────────────────────────────────────────────────
 
   function MorningSection() {
     const [pv, setPv] = useState(report.morning.priorityForDay);
 
     return (
       <div className="space-y-5">
-        <SessionHeader
-          icon={<Sun />}
-          title="Morning Planning Session"
+        <SessionHeader icon={<Sun/>} title="Morning Planning Session"
           time="8:00 AM – 10:00 AM"
-          status={report.morning.locked ? "locked" : "active"}
-        />
+          status={report.morning.locked ? "locked" : "active"} />
 
         {/* MTD Gate Snapshot */}
         <Card className="p-4 bg-gradient-to-r from-slate-50 to-gray-50 border-slate-200">
           <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">MTD Gate Status</p>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: "Locations", current: gate.locationGate.current, target: 5, met: gate.locationGate.met },
-              { label: "Leads", current: gate.leadGate.current, target: 30, met: gate.leadGate.met },
-              { label: "Conversions", current: gate.conversionGate.current, target: 5, met: gate.conversionGate.met },
+              { label: "Locations",   c: gate.locationGate.current,   t: 5,  met: gate.locationGate.met },
+              { label: "Leads",       c: gate.leadGate.current,       t: 30, met: gate.leadGate.met },
+              { label: "Conversions", c: gate.conversionGate.current, t: 5,  met: gate.conversionGate.met },
             ].map(g => (
-              <div key={g.label} className={`rounded-lg p-3 text-center ${g.met ? "bg-teal-50 border border-teal-200" : "bg-red-50 border border-red-200"}`}>
+              <div key={g.label}
+                className={`rounded-lg p-3 text-center ${g.met ? "bg-teal-50 border border-teal-200" : "bg-red-50 border border-red-200"}`}>
                 <p className="text-xs text-gray-500 mb-1">{g.label}</p>
                 <p className={`text-xl font-bold ${g.met ? "text-teal-700" : "text-red-600"}`}>
-                  {g.current}<span className="text-xs font-normal text-gray-400">/{g.target}</span>
+                  {g.c}<span className="text-xs font-normal text-gray-400">/{g.t}</span>
                 </p>
               </div>
             ))}
           </div>
           {!gate.allMet && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-3 flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0"/>
               Gate not cleared — focus on conversions today to unlock per-conversion fees
             </p>
           )}
         </Card>
 
-        {/* Priority for the day */}
+        {/* Priority */}
         <div>
           <label className="text-sm font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
-            <Target className="w-4 h-4 text-orange-500" />
-            Today's #1 Priority
+            <Target className="w-4 h-4 text-orange-500"/> Today's #1 Priority *
           </label>
-          <Input
-            value={pv}
+          <Input value={pv}
             onChange={e => { setPv(e.target.value); update(r => { r.morning.priorityForDay = e.target.value; return r; }); }}
             placeholder="e.g. Close Adajan Heights block deal — 12 vehicles pending"
-            className="text-sm"
-            disabled={report.morning.locked}
-          />
+            className="text-sm" disabled={report.morning.locked} />
         </div>
 
         {/* Open Alerts */}
         {report.morning.openAlerts > 0 && (
           <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-red-500 shrink-0"/>
             <p className="text-sm text-red-700">
               <strong>{report.morning.openAlerts} active alert(s)</strong> need action today — check Alliance Dashboard
             </p>
           </div>
         )}
 
-        {/* Planned Visits */}
-        <div>
-          <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
-            <MapPin className="w-4 h-4 text-teal-600" />
-            Planned Visits Today
-            <span className="ml-auto text-xs text-gray-400 font-normal">Auto-suggested from at-risk + prospects</span>
-          </p>
-          <div className="space-y-2">
-            {report.morning.plannedVisits.map((v, i) => (
-              <div key={i} className="border border-gray-200 rounded-lg p-3 bg-white flex items-start gap-3">
-                <div className="mt-0.5">
-                  <Building2 className="w-4 h-4 text-gray-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-semibold text-gray-800 truncate">{v.locationName}</p>
-                    <PriorityBadge p={v.priority} />
-                    <span className="text-xs text-gray-400">{v.locationType}</span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-0.5">{v.objective}</p>
-                  <p className="text-xs text-teal-600 mt-0.5 flex items-center gap-1">
-                    <Clock className="w-3 h-3" /> {v.plannedTime}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {report.morning.plannedVisits.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-4">No locations suggested — all locations healthy</p>
-            )}
-          </div>
-        </div>
+        {/* Visit planner */}
+        <MorningVisitPlanner
+          visits={report.morning.plannedVisits}
+          locked={report.morning.locked}
+          onChange={visits => update(r => {
+            r.morning.plannedVisits = visits;
+            r.field.visitsActual    = visits;
+            return r;
+          })}
+        />
 
-        {!report.morning.locked && (
+        {!report.morning.locked ? (
           <Button onClick={lockMorning} className="w-full bg-teal-600 hover:bg-teal-700 text-white gap-2">
-            <Lock className="w-4 h-4" /> Lock Morning Plan & Head Out
+            <Lock className="w-4 h-4"/> Lock Morning Plan & Head Out
           </Button>
-        )}
-        {report.morning.locked && (
+        ) : (
           <div className="text-center py-2 text-sm text-teal-600 font-medium flex items-center justify-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4" /> Morning plan locked
+            <CheckCircle2 className="w-4 h-4"/> Morning plan locked
           </div>
         )}
       </div>
     );
   }
 
-  // ── FIELD SECTION ────────────────────────────────────────────────────────
+  // ── FIELD SECTION ─────────────────────────────────────────────────────────
 
   function FieldSection() {
     return (
       <div className="space-y-5">
-        <SessionHeader
-          icon={<MapPin />}
-          title="Field Execution"
-          time="10:00 AM – 5:00 PM"
-          status={report.field.locked ? "locked" : report.morning.locked ? "active" : "upcoming"}
-        />
+        <SessionHeader icon={<MapPin/>} title="Field Execution"
+          time="10:00 AM onwards"
+          status={report.field.locked ? "locked" : report.morning.locked ? "active" : "upcoming"} />
 
         {!report.morning.locked && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <AlertTriangle className="w-4 h-4 shrink-0"/>
             Lock the Morning Plan first before updating field activity
           </div>
         )}
 
-        {/* Today's Trips mini-summary */}
-        {todayTrips.length > 0 && (
+        {/* Active-trip blocker banner */}
+        {hasActiveTrip && (
+          <div className="p-3 bg-red-50 border-2 border-red-300 rounded-lg text-sm text-red-800 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0"/>
+            <strong>Trip in progress — </strong> end the current trip before starting a new one,
+            adding visits, or checking out.
+          </div>
+        )}
+
+        {/* Trip Panel */}
+        {report.morning.locked && !report.field.locked && (
+          <TripPanel
+            activeTrip={report.field.activeTrip}
+            locked={report.field.locked}
+            empId={currentUser?.employeeId || ""}
+            empName={emp?.fullName || currentUser?.name || ""}
+            empDes={emp?.designation || ""}
+            cityId={city}
+            cityName={cityInfo.displayName}
+            rptMgrId={reportingMgr?.id || emp?.reportingManager || ""}
+            rptMgrName={reportingMgr?.fullName || emp?.reportingManager || ""}
+            travelRefresh={travelRefresh}
+            onTripStart={t => {
+              update(r => { r.field.activeTrip = t; return r; });
+            }}
+            onTripEnd={(km, amt) => {
+              update(r => {
+                if (r.field.activeTrip) {
+                  r.field.completedTrips.push(r.field.activeTrip.id);
+                }
+                r.field.activeTrip = null;
+                r.field.totalKm   += km;
+                return r;
+              });
+              setTravelRefresh(v => v+1);
+            }}
+            onTripUpdate={changes => {
+              update(r => { r.field.activeTrip = { ...r.field.activeTrip!, ...changes }; return r; });
+            }}
+          />
+        )}
+
+        {/* Today's completed trips summary */}
+        {todayTrips.filter(t => t.status !== "Draft").length > 0 && (
           <Card className="p-3 border-purple-200 bg-purple-50/40">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-semibold text-purple-700 flex items-center gap-1.5">
-                <Car className="w-3.5 h-3.5" /> Today's Trips ({todayTrips.length})
-              </p>
-              <span className="text-sm font-bold text-purple-700">
-                {todayTripKm} km · ₹{todayTripAmt.toLocaleString()}
-              </span>
-            </div>
-            <div className="space-y-1">
-              {todayTrips.map(t => (
-                <div key={t.id} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-600 truncate max-w-[60%]">{t.visitLocation}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500">{t.totalKm ?? "—"} km</span>
-                    <span className={`px-1.5 py-0.5 rounded-full border text-xs font-medium ${
-                      t.status === "Draft" ? "bg-gray-100 text-gray-600 border-gray-200" :
-                      t.status === "Approved" ? "bg-green-100 text-green-700 border-green-200" :
-                      "bg-amber-100 text-amber-700 border-amber-200"
-                    }`}>{t.status}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="text-xs font-semibold text-purple-700 flex items-center gap-1.5 mb-2">
+              <Car className="w-3.5 h-3.5"/> Completed Trips ({todayTrips.filter(t=>t.status!=="Draft").length})
+              <span className="ml-auto font-bold">{todayKm} km · ₹{todayAmt.toLocaleString()}</span>
+            </p>
+            {todayTrips.filter(t=>t.status!=="Draft").map(t => (
+              <div key={t.id} className="flex items-center justify-between text-xs py-1 border-t border-purple-100 first:border-0">
+                <span className="text-gray-600 truncate max-w-[55%]">{t.visitLocation || "Field"}</span>
+                <span className="text-gray-500">{t.totalKm??0} km · ₹{(t.netPayableAmount??0).toLocaleString()}</span>
+                <span className={`px-1.5 py-0.5 rounded-full border text-xs font-medium ${
+                  t.status==="Approved" ? "bg-green-100 text-green-700 border-green-200" : "bg-amber-100 text-amber-700 border-amber-200"
+                }`}>{t.status}</span>
+              </div>
+            ))}
           </Card>
         )}
 
-        {/* Visit Cards */}
+        {/* Visit cards */}
         <div className="space-y-3">
           {report.field.visitsActual.map((visit, idx) => (
-            <VisitCard
-              key={visit.locationId}
-              visit={visit}
-              idx={idx}
-              locked={report.field.locked || !report.morning.locked}
-              onChange={(changes) => updateVisit(idx, changes)}
-            />
+            <VisitCard key={`${visit.locationId}-${idx}`}
+              visit={visit} idx={idx}
+              locked={report.field.locked || !report.morning.locked || hasActiveTrip}
+              onChange={ch => updateVisit(idx, ch)} />
           ))}
         </div>
 
         {/* Add unplanned visit */}
         {!report.field.locked && report.morning.locked && (
-          <Button
-            variant="outline"
-            onClick={addUnplannedVisit}
-            className="w-full border-dashed text-sm gap-1.5 text-gray-500"
-          >
-            <MapPin className="w-4 h-4" /> + Add Unplanned Visit
+          <Button variant="outline" onClick={addUnplannedVisit}
+            disabled={hasActiveTrip}
+            className="w-full border-dashed text-sm gap-1.5 text-gray-500 disabled:opacity-40">
+            <MapPin className="w-4 h-4"/> + Add Unplanned Visit
           </Button>
         )}
 
@@ -501,167 +1121,186 @@ export function SMDailyActivity() {
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Field Totals</p>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { label: "Visits Done", value: visitsCompleted, suffix: `/ ${report.field.visitsActual.length}`, color: "text-teal-700" },
-              { label: "Leads Collected", value: totalLeads, suffix: "", color: "text-blue-700" },
-              { label: "Conversions", value: totalConversions, suffix: "", color: "text-green-700" },
-              { label: "Travel Km", value: todayTripKm, suffix: " km", color: "text-purple-700" },
+              { label: "Visits Done",     value: visitsCompleted, suffix: `/${report.field.visitsActual.length}`, color: "text-teal-700" },
+              { label: "Leads",           value: totalLeads,       suffix: "",       color: "text-blue-700" },
+              { label: "Conversions",     value: totalConversions, suffix: "",       color: "text-green-700" },
+              { label: "Travel Km",       value: todayKm,          suffix: " km",   color: "text-purple-700" },
             ].map(s => (
               <div key={s.label} className="bg-white rounded-lg p-3 border border-gray-100 text-center">
                 <p className="text-xs text-gray-400 mb-1">{s.label}</p>
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value}<span className="text-xs font-normal text-gray-400">{s.suffix}</span></p>
+                <p className={`text-2xl font-bold ${s.color}`}>{s.value}
+                  <span className="text-xs font-normal text-gray-400">{s.suffix}</span>
+                </p>
               </div>
             ))}
           </div>
-          {/* Travel reimbursement line */}
-          {todayTripAmt > 0 && (
+          {todayAmt > 0 && (
             <div className="mt-3 flex items-center justify-between bg-purple-50 border border-purple-200 rounded-lg px-3 py-2">
               <span className="text-xs text-purple-700 flex items-center gap-1.5">
-                <IndianRupee className="w-3.5 h-3.5" />
-                Travel reimbursement today
+                <IndianRupee className="w-3.5 h-3.5"/> Travel reimbursement today
               </span>
-              <span className="text-sm font-bold text-purple-700">₹{todayTripAmt.toLocaleString()}</span>
-            </div>
-          )}
-          {activeDraftTrip && (
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              <Clock className="w-3.5 h-3.5 shrink-0" />
-              Trip in progress — {activeDraftTrip.visitLocation}. End the trip from the visit card below.
+              <span className="text-sm font-bold text-purple-700">₹{todayAmt.toLocaleString()}</span>
             </div>
           )}
         </Card>
 
         {!report.field.locked && report.morning.locked && (
-          <Button onClick={lockField} className="w-full bg-orange-500 hover:bg-orange-600 text-white gap-2">
-            <Lock className="w-4 h-4" /> Lock Field Session & Start EOD
+          <Button onClick={lockField} disabled={hasActiveTrip}
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white gap-2 disabled:opacity-40">
+            <Lock className="w-4 h-4"/>
+            {hasActiveTrip ? "Close active trip first" : "Lock Field Session & Start EOD"}
           </Button>
         )}
         {report.field.locked && (
           <div className="text-center py-2 text-sm text-orange-600 font-medium flex items-center justify-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4" /> Field session locked
+            <CheckCircle2 className="w-4 h-4"/> Field session locked
           </div>
         )}
       </div>
     );
   }
 
-  // ── EVENING SECTION ──────────────────────────────────────────────────────
+  // ── EVENING / EOD SECTION ─────────────────────────────────────────────────
+  // Auto-populated from day's data — SM only needs to fill qualitative fields
 
   function EveningSection() {
-    const [win, setWin] = useState(report.evening.biggestWin);
+    const [win,   setWin]   = useState(report.evening.biggestWin);
     const [block, setBlock] = useState(report.evening.biggestBlock);
-    const [tmr, setTmr] = useState(report.evening.tomorrowTop3);
+    const [tmr,   setTmr]   = useState(report.evening.tomorrowTop3);
 
-    function syncText(field: keyof typeof report.evening, value: string) {
-      update(r => { (r.evening as any)[field] = value; return r; });
+    function sync(field: keyof typeof report.evening, v: string) {
+      update(r => { (r.evening as any)[field] = v; return r; });
     }
+
+    // Auto-populate tomorrow's visits from today's incomplete ones
+    const pendingToday = report.field.visitsActual.filter(v => !v.actualVisitDone);
 
     return (
       <div className="space-y-5">
-        <SessionHeader
-          icon={<FileText />}
-          title="EOD Report & Next-Day Plan"
-          time="5:00 PM – 7:00 PM"
-          status={report.evening.locked ? "locked" : report.field.locked ? "active" : "upcoming"}
-        />
+        <SessionHeader icon={<FileText/>} title="EOD Report — Mandatory Before Checkout"
+          time="Complete before checkout"
+          status={report.evening.locked ? "locked" : report.field.locked ? "active" : "upcoming"} />
 
         {!report.field.locked && (
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            Lock the Field Session first before submitting the EOD report
+          <div className="p-3 bg-red-50 border-2 border-red-300 rounded-lg text-sm text-red-700 flex items-center gap-2">
+            <Lock className="w-4 h-4 shrink-0"/>
+            <strong>Lock Field Session first</strong> — EOD report is mandatory before you can check out
           </div>
         )}
 
-        {/* Day Summary */}
+        {/* ── Auto-filled summary ── */}
         <Card className="p-4 bg-gradient-to-br from-teal-50 to-emerald-50 border-teal-200">
-          <p className="text-xs font-semibold text-teal-600 uppercase tracking-wide mb-3">Today's Numbers</p>
+          <p className="text-xs font-semibold text-teal-600 uppercase tracking-wide mb-3">
+            Today's Numbers (auto-filled)
+          </p>
           <div className="grid grid-cols-4 gap-3 text-center">
             <div><p className="text-2xl font-bold text-teal-700">{visitsCompleted}</p><p className="text-xs text-gray-500">Visits</p></div>
             <div><p className="text-2xl font-bold text-blue-700">{totalLeads}</p><p className="text-xs text-gray-500">Leads</p></div>
             <div><p className="text-2xl font-bold text-green-700">{totalConversions}</p><p className="text-xs text-gray-500">Conv.</p></div>
-            <div><p className="text-2xl font-bold text-purple-700">{todayTripKm}</p><p className="text-xs text-gray-500">Km</p></div>
+            <div><p className="text-2xl font-bold text-purple-700">{todayKm}</p><p className="text-xs text-gray-500">Km</p></div>
           </div>
-          {todayTripAmt > 0 && (
-            <div className="mt-3 flex items-center justify-between bg-white/70 rounded-lg px-3 py-2 border border-teal-200">
-              <span className="text-xs text-purple-700 flex items-center gap-1.5">
-                <Receipt className="w-3.5 h-3.5" /> Travel reimbursement pending
-              </span>
-              <span className="text-sm font-bold text-purple-700">₹{todayTripAmt.toLocaleString()}</span>
+
+          {/* Trip summary */}
+          {todayTrips.length > 0 && (
+            <div className="mt-3 space-y-1">
+              <p className="text-xs text-teal-600 font-semibold">Trips ({todayTrips.length})</p>
+              {todayTrips.map(t => (
+                <div key={t.id} className="flex items-center justify-between text-xs bg-white/70 rounded px-2 py-1">
+                  <span className="text-gray-600 truncate">{t.visitLocation || "Field"}</span>
+                  <span className="text-gray-500">{t.totalKm??0} km · ₹{(t.netPayableAmount??0).toLocaleString()}</span>
+                </div>
+              ))}
             </div>
           )}
-          {todayTrips.some(t => t.status === "Draft") && (
-            <p className="text-xs text-amber-700 mt-2 flex items-center gap-1.5">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-              {todayTrips.filter(t => t.status === "Draft").length} trip(s) still in Draft — submit from Field section before locking
-            </p>
+
+          {/* Visit outcomes */}
+          {report.field.visitsActual.filter(v=>v.actualVisitDone).length > 0 && (
+            <div className="mt-3 space-y-1">
+              <p className="text-xs text-teal-600 font-semibold">Visit Outcomes</p>
+              {report.field.visitsActual.filter(v=>v.actualVisitDone).map((v,i) => (
+                <div key={i} className="flex items-center justify-between text-xs bg-white/70 rounded px-2 py-1">
+                  <span className="text-gray-700 truncate">{v.locationName}</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${
+                    v.outcome==="Positive" ? "bg-green-100 text-green-700" :
+                    v.outcome==="Negative" ? "bg-red-100 text-red-700" :
+                    "bg-gray-100 text-gray-600"}`}>
+                    {v.outcome || "—"}
+                  </span>
+                  <span className="text-gray-400">{v.leadsCollected}L · {v.conversionAttempts}C</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {todayAmt > 0 && (
+            <div className="mt-3 flex items-center justify-between bg-white/70 rounded-lg px-3 py-2 border border-teal-200">
+              <span className="text-xs text-purple-700 flex items-center gap-1.5">
+                <Receipt className="w-3.5 h-3.5"/> Travel reimbursement
+              </span>
+              <span className="text-sm font-bold text-purple-700">₹{todayAmt.toLocaleString()}</span>
+            </div>
           )}
         </Card>
 
-        {/* Day Rating */}
+        {/* Pending visits → pre-fill tomorrow */}
+        {pendingToday.length > 0 && (
+          <Card className="p-3 border-amber-200 bg-amber-50/30">
+            <p className="text-xs font-semibold text-amber-700 mb-2 flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5"/> {pendingToday.length} visit(s) not completed today
+            </p>
+            {pendingToday.map((v,i) => (
+              <p key={i} className="text-xs text-gray-600">• {v.locationName} ({v.priority})</p>
+            ))}
+            <p className="text-xs text-amber-600 mt-1">
+              These will appear in tomorrow's plan automatically.
+            </p>
+          </Card>
+        )}
+
+        {/* ── Qualitative feedback ── */}
         <div>
           <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
-            <Star className="w-4 h-4 text-amber-400" />
-            How did the day go?
+            <Star className="w-4 h-4 text-amber-400"/> How did the day go?
           </label>
-          <StarRating
-            value={report.evening.dayRating}
-            onChange={v => update(r => { r.evening.dayRating = v; return r; })}
-          />
+          <StarRating value={report.evening.dayRating}
+            onChange={v => update(r => { r.evening.dayRating = v; return r; })} />
         </div>
 
-        {/* Biggest Win */}
         <div>
           <label className="text-sm font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
-            <TrendingUp className="w-4 h-4 text-green-500" />
-            Biggest Win Today
+            <TrendingUp className="w-4 h-4 text-green-500"/> Biggest Win Today *
           </label>
-          <Textarea
-            value={win}
-            onChange={e => { setWin(e.target.value); syncText("biggestWin", e.target.value); }}
-            placeholder="e.g. Adajan Heights agreed to a 15-vehicle block — send MOU tomorrow"
-            rows={2}
-            className="text-sm resize-none"
-            disabled={report.evening.locked}
-          />
+          <Textarea value={win}
+            onChange={e => { setWin(e.target.value); sync("biggestWin", e.target.value); }}
+            placeholder="e.g. Adajan Heights agreed to 15-vehicle block — MOU to be sent tomorrow"
+            rows={2} className="text-sm resize-none" disabled={report.evening.locked} />
         </div>
 
-        {/* Biggest Block */}
         <div>
           <label className="text-sm font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4 text-red-400" />
-            Biggest Obstacle / Escalation Needed
+            <AlertTriangle className="w-4 h-4 text-red-400"/> Biggest Obstacle / Escalation
           </label>
-          <Textarea
-            value={block}
-            onChange={e => { setBlock(e.target.value); syncText("biggestBlock", e.target.value); }}
-            placeholder="e.g. HP Vesu pump manager unavailable — needs SH intervention for second appointment"
-            rows={2}
-            className="text-sm resize-none"
-            disabled={report.evening.locked}
-          />
+          <Textarea value={block}
+            onChange={e => { setBlock(e.target.value); sync("biggestBlock", e.target.value); }}
+            placeholder="e.g. HP Vesu manager unavailable — SH intervention needed"
+            rows={2} className="text-sm resize-none" disabled={report.evening.locked} />
         </div>
 
-        {/* Tomorrow Top 3 */}
         <div>
           <label className="text-sm font-semibold text-gray-700 mb-1.5 flex items-center gap-1.5">
-            <CalendarCheck className="w-4 h-4 text-teal-600" />
-            Tomorrow's Top 3 Actions
+            <CalendarCheck className="w-4 h-4 text-teal-600"/> Tomorrow's Top 3 Actions *
           </label>
-          <Textarea
-            value={tmr}
-            onChange={e => { setTmr(e.target.value); syncText("tomorrowTop3", e.target.value); }}
-            placeholder={"1. Follow up Adajan Heights — send MOU\n2. Visit HP Vesu pump at 11 AM with SH\n3. Call 5 warm leads from this week"}
-            rows={4}
-            className="text-sm resize-none"
-            disabled={report.evening.locked}
-          />
+          <Textarea value={tmr}
+            onChange={e => { setTmr(e.target.value); sync("tomorrowTop3", e.target.value); }}
+            placeholder={"1. Follow up Adajan Heights — send MOU\n2. Visit HP Vesu pump with SH\n3. Call 5 warm leads from this week"}
+            rows={4} className="text-sm resize-none" disabled={report.evening.locked} />
         </div>
 
-        {/* Escalations */}
         <div className="flex items-center gap-3">
-          <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">Escalations raised today</label>
+          <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">Escalations raised</label>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="h-7 w-7 p-0"
-              onClick={() => update(r => { r.evening.escalationsRaised = Math.max(0, r.evening.escalationsRaised - 1); return r; })}
+              onClick={() => update(r => { r.evening.escalationsRaised = Math.max(0, r.evening.escalationsRaised-1); return r; })}
               disabled={report.evening.locked}>−</Button>
             <span className="w-6 text-center font-bold">{report.evening.escalationsRaised}</span>
             <Button variant="outline" size="sm" className="h-7 w-7 p-0"
@@ -673,17 +1312,17 @@ export function SMDailyActivity() {
         {!report.evening.locked && report.field.locked && (
           <Button onClick={submitEOD} disabled={saving}
             className="w-full bg-teal-600 hover:bg-teal-700 text-white gap-2">
-            {saving ? <RotateCcw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? <RotateCcw className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>}
             {saving ? "Submitting…" : "Submit Daily Report to Sales Head"}
           </Button>
         )}
 
         {report.evening.locked && (
           <div className="p-3 bg-teal-50 border border-teal-200 rounded-lg text-center">
-            <CheckCircle2 className="w-5 h-5 text-teal-600 mx-auto mb-1" />
-            <p className="text-sm font-semibold text-teal-700">Report submitted</p>
+            <CheckCircle2 className="w-5 h-5 text-teal-600 mx-auto mb-1"/>
+            <p className="text-sm font-semibold text-teal-700">Report submitted — you can now check out</p>
             <p className="text-xs text-gray-500 mt-0.5">
-              {report.evening.submittedAt && new Date(report.evening.submittedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+              {report.evening.submittedAt && fmtTime(report.evening.submittedAt)}
             </p>
           </div>
         )}
@@ -691,168 +1330,52 @@ export function SMDailyActivity() {
     );
   }
 
-  // ── VISIT CARD (inline edit during field session) ────────────────────────
-  // Each visit card has an embedded Trip Tracker:
-  //   • If no trip linked yet → show "Start Trip" button
-  //   • If trip is Draft (in progress) → show "End Trip" form
-  //   • If trip is submitted/approved → show summary pill
+  // ── VISIT CARD ─────────────────────────────────────────────────────────────
 
   function VisitCard({ visit, idx, locked, onChange }: {
     visit: PlannedVisit; idx: number; locked: boolean;
     onChange: (c: Partial<PlannedVisit>) => void;
   }) {
     const [expanded, setExpanded] = useState(false);
-    const [tripPanel, setTripPanel] = useState<"closed" | "start" | "end">("closed");
-
-    // Trip state — start form
-    const [vehicleType, setVehicleType] = useState<VehicleType>("4W");
-    const [vehicleNumber, setVehicleNumber] = useState("");
-    const [startReading, setStartReading] = useState<number | "">("");
-    const [startPhotoData, setStartPhotoData] = useState("");
-    const startFileRef = useRef<HTMLInputElement>(null);
-
-    // Trip state — end form
-    const [endTime, setEndTime] = useState(new Date().toTimeString().slice(0, 5));
-    const [endReading, setEndReading] = useState<number | "">("");
-    const [endPhotoData, setEndPhotoData] = useState("");
-    const endFileRef = useRef<HTMLInputElement>(null);
-
-    // Get linked trip if any
-    const linkedTrip: TravelTrip | undefined = useMemo(() =>
-      visit.tripId
-        ? travelReimbursementService.getTrips().find(t => t.id === visit.tripId)
-        : undefined,
-      [visit.tripId, travelRefresh]
-    );
-
-    const capturePhoto = (file: File, cb: (d: string) => void) => {
-      const r = new FileReader();
-      r.onload = e => cb(e.target?.result as string);
-      r.readAsDataURL(file);
-    };
-
-    function handleStartTrip() {
-      if (!vehicleNumber.trim()) { toast.error("Vehicle number required"); return; }
-      if (startReading === "")   { toast.error("Start odometer reading required"); return; }
-      if (!startPhotoData) { toast.error("📸 Start odometer photo is mandatory — tap the camera icon above"); return; } // G7 FIX
-      if (activeDraftTrip && activeDraftTrip.id !== visit.tripId) {
-        toast.error("End the current trip in progress before starting a new one"); return;
-      }
-
-      let startPhotoId: string | undefined;
-      if (startPhotoData) {
-        const p = travelReimbursementService.savePhoto({
-          tripId: "", type: "start_odometer",
-          dataUrl: startPhotoData, capturedAt: new Date().toISOString(),
-          fileName: `start_${Date.now()}.jpg`,
-        });
-        startPhotoId = p.id;
-      }
-
-      const trip = travelReimbursementService.startTrip({
-        employeeId: currentUser?.employeeId || "",
-        employeeName: emp?.fullName || currentUser?.name || "",
-        designation: emp?.designation || "",
-        cityId: city, city: cityInfo.displayName,
-        reportingManagerId: reportingMgr?.id || emp?.reportingManager || "",
-        reportingManagerName: reportingMgr?.fullName || emp?.reportingManager || "",
-        vehicleType, vehicleNumber,
-        tripDate: TODAY,
-        startTime: new Date().toTimeString().slice(0, 5),
-        purposeOfVisit: visit.objective || visit.locationName,
-        visitLocation: visit.locationName,
-        startReading: Number(startReading),
-        startPhotoId,
-      });
-
-      onChange({ tripId: trip.id });
-      setTripPanel("end");
-      setTravelRefresh(r => r + 1);
-      toast.success(`Trip started from ${visit.locationName}`);
-    }
-
-    function handleEndTrip() {
-      if (!linkedTrip) return;
-      if (endReading === "")  { toast.error("End odometer reading required"); return; }
-      if (!endPhotoData) { toast.error("📸 End odometer photo is mandatory — tap the camera icon above"); return; } // G7 FIX
-      if (Number(endReading) <= linkedTrip.startReading) {
-        toast.error("End reading must be greater than start reading"); return;
-      }
-
-      let endPhotoId: string | undefined;
-      if (endPhotoData) {
-        const p = travelReimbursementService.savePhoto({
-          tripId: linkedTrip.id, type: "end_odometer",
-          dataUrl: endPhotoData, capturedAt: new Date().toISOString(),
-          fileName: `end_${Date.now()}.jpg`,
-        });
-        endPhotoId = p.id;
-      }
-
-      const updated = travelReimbursementService.endTrip(linkedTrip.id, {
-        endTime,
-        endReading: Number(endReading),
-        outcomeOfVisit: visit.notes || visit.outcome || "Visit completed",
-        endPhotoId,
-      });
-
-      // Auto-submit for approval
-      travelReimbursementService.submitTrip(updated.id);
-      setTripPanel("closed");
-      setTravelRefresh(r => r + 1);
-      toast.success(
-        `Trip submitted — ${updated.totalKm} km · ₹${updated.netPayableAmount?.toLocaleString()} reimbursement`
-      );
-    }
-
-    const tripStatusColor: Record<string, string> = {
-      Draft:            "bg-gray-100 text-gray-600 border-gray-200",
-      "Pending Manager":"bg-amber-100 text-amber-700 border-amber-200",
-      "Pending HR":     "bg-blue-100 text-blue-700 border-blue-200",
-      Approved:         "bg-green-100 text-green-700 border-green-200",
-      Rejected:         "bg-red-100 text-red-700 border-red-200",
-    };
 
     return (
-      <div className={`border rounded-xl overflow-hidden transition-all ${visit.actualVisitDone ? "border-teal-200 bg-teal-50/40" : "border-gray-200 bg-white"}`}>
-        {/* Header row */}
+      <div className={`border rounded-xl overflow-hidden ${visit.actualVisitDone ? "border-teal-200 bg-teal-50/40" : "border-gray-200 bg-white"}`}>
         <div className="flex items-center gap-3 p-3">
-          <button
-            disabled={locked}
+          <button disabled={locked}
             onClick={() => onChange({ actualVisitDone: !visit.actualVisitDone })}
-            className={`w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${visit.actualVisitDone ? "bg-teal-500 border-teal-500" : "border-gray-300 hover:border-teal-400"}`}
-          >
-            {visit.actualVisitDone && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+            className={`w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center transition-colors ${
+              visit.actualVisitDone ? "bg-teal-500 border-teal-500" : "border-gray-300 hover:border-teal-400"}`}>
+            {visit.actualVisitDone && <CheckCircle2 className="w-3.5 h-3.5 text-white"/>}
           </button>
           <div className="flex-1 min-w-0">
             <p className={`text-sm font-semibold ${visit.actualVisitDone ? "line-through text-gray-400" : "text-gray-800"}`}>
               {visit.locationName || "New location"}
             </p>
             <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-              <PriorityBadge p={visit.priority} />
-              <span className="text-xs text-gray-400">{visit.plannedTime}</span>
-              {/* Travel pill */}
-              {linkedTrip && (
-                <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${tripStatusColor[linkedTrip.status] ?? "bg-gray-100 text-gray-600"}`}>
-                  🚗 {linkedTrip.totalKm ? `${linkedTrip.totalKm} km · ₹${linkedTrip.netPayableAmount?.toLocaleString()}` : "Trip in progress"}
+              <PriorityBadge p={visit.priority}/>
+              {visit.plannedTime !== "--" && <span className="text-xs text-gray-400">{visit.plannedTime}</span>}
+              {visit.outcome && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                  visit.outcome==="Positive"?"bg-green-100 text-green-700":
+                  visit.outcome==="Negative"?"bg-red-100 text-red-700":"bg-gray-100 text-gray-600"}`}>
+                  {visit.outcome}
                 </span>
               )}
             </div>
           </div>
           <button onClick={() => setExpanded(e => !e)} className="text-gray-400 p-1">
-            {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            {expanded ? <ChevronDown className="w-4 h-4"/> : <ChevronRight className="w-4 h-4"/>}
           </button>
         </div>
 
-        {/* Expanded panel */}
         {expanded && (
           <div className="px-3 pb-3 border-t border-gray-100 pt-3 space-y-3">
-            {/* Location name if unplanned */}
+            {/* Name if unplanned */}
             {visit.locationId.startsWith("UNPLANNED") && (
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Location Name</label>
                 <Input value={visit.locationName} onChange={e => onChange({ locationName: e.target.value })}
-                  className="h-8 text-sm" disabled={locked} placeholder="e.g. Shyam Nagar Society" />
+                  className="h-8 text-sm" disabled={locked} placeholder="e.g. Shyam Nagar Society"/>
               </div>
             )}
 
@@ -860,33 +1383,33 @@ export function SMDailyActivity() {
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Outcome</label>
               <div className="flex gap-1.5 flex-wrap">
-                {(["Positive", "Neutral", "Negative", "No Answer"] as const).map(o => (
-                  <button key={o} disabled={locked}
-                    onClick={() => onChange({ outcome: o })}
-                    className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${visit.outcome === o
-                      ? o === "Positive" ? "bg-green-100 border-green-400 text-green-700"
-                        : o === "Negative" ? "bg-red-100 border-red-400 text-red-700"
-                        : o === "No Answer" ? "bg-gray-100 border-gray-400 text-gray-600"
-                        : "bg-amber-100 border-amber-400 text-amber-700"
-                      : "border-gray-200 text-gray-500 hover:border-gray-400"}`}>
+                {(["Positive","Neutral","Negative","No Answer"] as const).map(o => (
+                  <button key={o} disabled={locked} onClick={() => onChange({ outcome: o })}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                      visit.outcome===o
+                        ? o==="Positive" ? "bg-green-100 border-green-400 text-green-700"
+                          : o==="Negative" ? "bg-red-100 border-red-400 text-red-700"
+                          : o==="No Answer" ? "bg-gray-100 border-gray-400 text-gray-600"
+                          : "bg-amber-100 border-amber-400 text-amber-700"
+                        : "border-gray-200 text-gray-500 hover:border-gray-400"}`}>
                     {o}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Leads + Conversions + Duration */}
+            {/* Leads / Conversions / Duration */}
             <div className="grid grid-cols-3 gap-2">
-              {([
-                { label: "Leads", field: "leadsCollected" as const },
-                { label: "Conv. Attempts", field: "conversionAttempts" as const },
-                { label: "Duration (min)", field: "durationMinutes" as const },
-              ]).map(f => (
+              {[
+                { label:"Leads",           field:"leadsCollected"    as const },
+                { label:"Conv. Attempts",  field:"conversionAttempts" as const },
+                { label:"Duration (min)",  field:"durationMinutes"   as const },
+              ].map(f => (
                 <div key={f.field}>
                   <label className="text-xs text-gray-500 mb-1 block">{f.label}</label>
-                  <Input type="number" min={0} value={visit[f.field] || ""}
+                  <Input type="number" min={0} value={visit[f.field]||""}
                     onChange={e => onChange({ [f.field]: Number(e.target.value) })}
-                    className="h-8 text-sm" disabled={locked} />
+                    className="h-8 text-sm" disabled={locked}/>
                 </div>
               ))}
             </div>
@@ -896,183 +1419,24 @@ export function SMDailyActivity() {
               <label className="text-xs text-gray-500 mb-1 block">Notes</label>
               <Textarea value={visit.notes} onChange={e => onChange({ notes: e.target.value })}
                 rows={2} className="text-sm resize-none" disabled={locked}
-                placeholder="Key discussion points, follow-up needed…" />
+                placeholder="Key points, follow-up needed…"/>
             </div>
-
-            {/* ── TRAVEL TRACKER ─────────────────────────────────────────── */}
-            {!locked && (
-              <div className="border border-purple-200 rounded-xl bg-purple-50/50 overflow-hidden">
-                <button
-                  className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-purple-800"
-                  onClick={() => setTripPanel(p => p === "closed" ? (linkedTrip?.status === "Draft" ? "end" : "start") : "closed")}
-                >
-                  <Car className="w-4 h-4 text-purple-600" />
-                  <span className="flex-1 text-left">
-                    {linkedTrip
-                      ? linkedTrip.status === "Draft"
-                        ? `Trip in progress — ${linkedTrip.visitLocation} · End trip`
-                        : `Trip recorded: ${linkedTrip.totalKm} km · ₹${linkedTrip.netPayableAmount?.toLocaleString()}`
-                      : "Log travel for this visit"}
-                  </span>
-                  {tripPanel !== "closed"
-                    ? <ChevronUp className="w-4 h-4 text-purple-500" />
-                    : <ChevronDown className="w-4 h-4 text-purple-500" />}
-                </button>
-
-                {/* ── START TRIP FORM ────────────────────────────────── */}
-                {tripPanel === "start" && !linkedTrip && (
-                  <div className="px-3 pb-3 border-t border-purple-200 pt-3 space-y-3 bg-white">
-                    <p className="text-xs text-gray-500">Pre-filled from visit. Adjust if needed.</p>
-
-                    {/* Vehicle type */}
-                    <div className="flex gap-2">
-                      {(["2W", "4W"] as VehicleType[]).map(vt => (
-                        <button key={vt}
-                          onClick={() => setVehicleType(vt)}
-                          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-xs font-medium transition-colors ${vehicleType === vt ? "border-purple-500 bg-purple-50 text-purple-700" : "border-gray-200 text-gray-500"}`}
-                        >
-                          {vt === "2W" ? <Bike className="w-3.5 h-3.5" /> : <Car className="w-3.5 h-3.5" />}
-                          {vt} &nbsp;<span className="opacity-60">₹{vt === "2W" ? rate2W : rate4W}/km</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs text-gray-500 mb-1 block">Vehicle No. *</label>
-                        <Input value={vehicleNumber} onChange={e => setVehicleNumber(e.target.value.toUpperCase())}
-                          className="h-8 text-sm" placeholder="GJ05AB1234" />
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-500 mb-1 block">Start Odometer *</label>
-                        <Input type="number" min={0} value={startReading}
-                          onChange={e => setStartReading(Number(e.target.value))}
-                          className="h-8 text-sm" placeholder="km" />
-                      </div>
-                    </div>
-
-                    {/* Start photo */}
-                    <div>
-                      <label className="text-xs font-semibold text-red-600 mb-1 block flex items-center gap-1"><Camera className="w-3 h-3" /> Start Odometer Photo <span className="text-red-500">*</span> <span className="font-normal text-gray-400">(mandatory)</span></label>
-                      <input ref={startFileRef} type="file" accept="image/*" capture="environment" className="hidden"
-                        onChange={e => e.target.files?.[0] && capturePhoto(e.target.files[0], setStartPhotoData)} />
-                      {startPhotoData ? (
-                        <div className="relative">
-                          <img src={startPhotoData} alt="Start" className="w-full h-24 object-cover rounded-lg border" />
-                          <button onClick={() => setStartPhotoData("")}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">✕</button>
-                        </div>
-                      ) : (
-                        <button onClick={() => startFileRef.current?.click()}
-                          className="w-full h-16 border-2 border-dashed border-red-300 rounded-lg flex items-center justify-center gap-2 text-xs text-red-500 bg-red-50/30 hover:bg-red-50 font-medium">
-                          <Camera className="w-4 h-4" /> Tap to capture (required)
-                        </button>
-                      )}
-                    </div>
-
-                    <Button onClick={handleStartTrip}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm h-9 gap-1.5">
-                      <Car className="w-4 h-4" /> Start Trip
-                    </Button>
-                  </div>
-                )}
-
-                {/* ── END TRIP FORM ──────────────────────────────────── */}
-                {(tripPanel === "end" || (linkedTrip?.status === "Draft" && tripPanel !== "start")) && linkedTrip && (
-                  <div className="px-3 pb-3 border-t border-purple-200 pt-3 space-y-3 bg-white">
-                    <div className="text-xs text-gray-500 bg-gray-50 rounded-lg p-2">
-                      Started at <strong>{linkedTrip.startTime}</strong> · Odo start: <strong>{linkedTrip.startReading} km</strong>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-xs text-gray-500 mb-1 block">End Time *</label>
-                        <Input type="time" value={endTime}
-                          onChange={e => setEndTime(e.target.value)} className="h-8 text-sm" />
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-500 mb-1 block">End Odometer *</label>
-                        <Input type="number" min={linkedTrip.startReading + 1} value={endReading}
-                          onChange={e => setEndReading(Number(e.target.value))}
-                          className="h-8 text-sm" placeholder={`> ${linkedTrip.startReading}`} />
-                      </div>
-                    </div>
-
-                    {/* Live estimate */}
-                    {endReading !== "" && Number(endReading) > linkedTrip.startReading && (
-                      <div className="flex items-center justify-between bg-purple-50 rounded-lg px-3 py-2 border border-purple-100">
-                        <span className="text-xs text-purple-700">{Number(endReading) - linkedTrip.startReading} km</span>
-                        <span className="text-sm font-bold text-purple-700">
-                          ₹{Math.round((Number(endReading) - linkedTrip.startReading) * linkedTrip.ratePerKm).toLocaleString()} est.
-                        </span>
-                      </div>
-                    )}
-
-                    {/* End photo */}
-                    <div>
-                      <label className="text-xs font-semibold text-red-600 mb-1 block flex items-center gap-1"><Camera className="w-3 h-3" /> End Odometer Photo <span className="text-red-500">*</span> <span className="font-normal text-gray-400">(mandatory)</span></label>
-                      <input ref={endFileRef} type="file" accept="image/*" capture="environment" className="hidden"
-                        onChange={e => e.target.files?.[0] && capturePhoto(e.target.files[0], setEndPhotoData)} />
-                      {endPhotoData ? (
-                        <div className="relative">
-                          <img src={endPhotoData} alt="End" className="w-full h-24 object-cover rounded-lg border" />
-                          <button onClick={() => setEndPhotoData("")}
-                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">✕</button>
-                        </div>
-                      ) : (
-                        <button onClick={() => endFileRef.current?.click()}
-                          className="w-full h-16 border-2 border-dashed border-red-300 rounded-lg flex items-center justify-center gap-2 text-xs text-red-500 bg-red-50/30 hover:bg-red-50 font-medium">
-                          <Camera className="w-4 h-4" /> Tap to capture (required)
-                        </button>
-                      )}
-                    </div>
-
-                    <Button onClick={handleEndTrip}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm h-9 gap-1.5">
-                      <CheckCircle2 className="w-4 h-4" /> End Trip & Submit for Approval
-                    </Button>
-                  </div>
-                )}
-
-                {/* ── SUBMITTED SUMMARY ─────────────────────────────── */}
-                {linkedTrip && linkedTrip.status !== "Draft" && tripPanel === "closed" && (
-                  <div className="px-3 pb-3 pt-1">
-                    <div className="flex items-center justify-between text-xs bg-white rounded-lg px-3 py-2 border border-purple-100">
-                      <span className="text-gray-500">{linkedTrip.vehicleNumber} · {linkedTrip.vehicleType}</span>
-                      <span className="text-gray-500">{linkedTrip.startReading}→{linkedTrip.endReading} km</span>
-                      <span className={`font-bold px-2 py-0.5 rounded-full border text-xs ${tripStatusColor[linkedTrip.status] ?? ""}`}>
-                        {linkedTrip.status}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {/* Show read-only trip summary when field is locked */}
-            {locked && linkedTrip && (
-              <div className="flex items-center justify-between text-xs bg-purple-50 rounded-lg px-3 py-2 border border-purple-100">
-                <span className="text-purple-700 flex items-center gap-1"><Car className="w-3 h-3" /> {linkedTrip.totalKm} km</span>
-                <span className="font-bold text-purple-700">₹{linkedTrip.netPayableAmount?.toLocaleString()}</span>
-                <span className={`px-2 py-0.5 rounded-full border text-xs ${tripStatusColor[linkedTrip.status] ?? ""}`}>{linkedTrip.status}</span>
-              </div>
-            )}
           </div>
         )}
       </div>
     );
   }
 
-  // ── RENDER ───────────────────────────────────────────────────────────────
+  // ── RENDER ────────────────────────────────────────────────────────────────
 
   const sessionProgress = [
     { id: "morning" as SessionId, label: "Morning", done: report.morning.locked },
-    { id: "field"   as SessionId, label: "Field",   done: report.field.locked },
+    { id: "field"   as SessionId, label: "Field",   done: report.field.locked   },
     { id: "evening" as SessionId, label: "EOD",     done: report.evening.locked },
   ];
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Page header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
@@ -1081,34 +1445,40 @@ export function SMDailyActivity() {
           </div>
           {report.evening.locked && (
             <Badge className="bg-teal-100 text-teal-700 border-teal-200">
-              <CheckCircle2 className="w-3 h-3 mr-1" /> Submitted
+              <CheckCircle2 className="w-3 h-3 mr-1"/> Submitted
             </Badge>
           )}
         </div>
 
+        {/* EOD mandatory warning when field is locked but EOD not done */}
+        {report.field.locked && !report.evening.locked && (
+          <div className="mt-3 flex items-center gap-2 p-2.5 bg-red-50 border border-red-300 rounded-lg text-xs text-red-700">
+            <Lock className="w-3.5 h-3.5 shrink-0"/>
+            <strong>EOD report required before checkout.</strong> Complete the Evening section below.
+          </div>
+        )}
+
         {/* Session progress pills */}
-        <div className="flex gap-2 mt-4">
-          {sessionProgress.map((s, i) => (
+        <div className="flex gap-2 mt-3">
+          {sessionProgress.map(s => (
             <button key={s.id} onClick={() => setOpenSession(s.id)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${openSession === s.id
-                ? "border-teal-500 bg-teal-50 text-teal-700"
-                : s.done
-                  ? "border-teal-200 bg-teal-50/50 text-teal-600"
-                  : "border-gray-200 bg-white text-gray-400"}`}>
-              {s.done
-                ? <CheckCircle2 className="w-3.5 h-3.5 text-teal-500" />
-                : <Circle className="w-3.5 h-3.5" />}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
+                openSession === s.id
+                  ? "border-teal-500 bg-teal-50 text-teal-700"
+                  : s.done
+                    ? "border-teal-200 bg-teal-50/50 text-teal-600"
+                    : "border-gray-200 bg-white text-gray-400"}`}>
+              {s.done ? <CheckCircle2 className="w-3.5 h-3.5 text-teal-500"/> : <Circle className="w-3.5 h-3.5"/>}
               {s.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Active session */}
       <div className="min-h-[400px]">
-        {openSession === "morning" && <MorningSection />}
-        {openSession === "field"   && <FieldSection />}
-        {openSession === "evening" && <EveningSection />}
+        {openSession === "morning" && <MorningSection/>}
+        {openSession === "field"   && <FieldSection/>}
+        {openSession === "evening" && <EveningSection/>}
       </div>
     </div>
   );
