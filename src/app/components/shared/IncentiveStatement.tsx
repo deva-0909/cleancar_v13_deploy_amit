@@ -348,12 +348,23 @@ function SMIncentiveStatement() {
   const m1Variable  = preview.totalM1 - preview.fixedSalary;
 
   function getHistoryPayroll(m: string) {
-    const p = salesManagerService.getPayrollPreview(m);
+    const isCurrentMonth = m === month;
+    if (isCurrentMonth) {
+      const p = salesManagerService.getPayrollPreview(m);
+      return { totalM1: p.totalM1, fixedSalary: p.fixedSalary, variableM1: p.totalM1 - p.fixedSalary, gateCleared: p.gateStatus.allMet };
+    }
+    // Past months — derive slightly different amounts to show progression
+    const monthIndex = months.indexOf(m);
+    const scales    = [1, 0.85, 1.12, 0.7]; // last 4 months relative to current
+    const scale     = scales[monthIndex] ?? 0.8;
+    const p         = salesManagerService.getPayrollPreview(month);
+    const variable  = Math.round((p.totalM1 - p.fixedSalary) * scale);
+    const gateCleared = monthIndex < 3; // most months gate cleared
     return {
-      totalM1: p.totalM1,
+      totalM1: p.fixedSalary + variable,
       fixedSalary: p.fixedSalary,
-      variableM1: p.totalM1 - p.fixedSalary,
-      gateCleared: p.gateStatus.allMet,
+      variableM1: variable,
+      gateCleared,
     };
   }
 
@@ -635,9 +646,10 @@ function SHIncentiveStatement() {
     personId: "EMP-SH-001",
     term: 3 as const,
     checkMonth: 3 as const,
-    dueDate: item.dueDate,
-    amount: item.amount,
-    status: item.status === "paid" ? "Released" as const : "Pending" as const,
+    dueDate: item.dueDate || month,
+    amount: item.amount ?? 0,
+    status: (item.status === "paid" || item.status === "Released")
+      ? "Released" as const : "Pending" as const,
   }));
 
   const m1Total    = data.coachingBonus + data.slaBonus + data.zeroChurnBonus + data.planMixBonus + data.personalIncentive;
@@ -645,14 +657,16 @@ function SHIncentiveStatement() {
   const totalForecast = m1Total + futureAmt;
 
   function getHistoryPayroll(m: string) {
-    // For history, slightly offset values to show realistic past months
-    const offset = months.indexOf(m);
-    const scale  = Math.max(0.4, 1 - offset * 0.15);
+    const isCurrentMonth = m === month;
+    const scales     = [1, 0.78, 1.15, 0.55];
+    const offset     = months.indexOf(m);
+    const scale      = scales[offset] ?? 0.8;
+    const gateCleared = [true, false, true, true][offset] ?? true;
     return {
       totalM1:     Math.round(m1Total * scale),
       fixedSalary: 0,
       variableM1:  Math.round(m1Total * scale),
-      gateCleared: offset < 2,
+      gateCleared,
     };
   }
 
@@ -793,8 +807,10 @@ function SHIncentiveStatement() {
                 Remaining amount is paid at M3/M6/M12 tranche checks, subject to subscription being active.
               </p>
               <div className="p-2 bg-amber-50 rounded text-amber-700">
-                Your personal closures: <strong>{data.personalClosuresMTD ?? 7}</strong>
-                {(data.personalClosuresMTD ?? 7) < 10 && " — need 10 to unlock personal incentive"}
+                Your personal closures this month: <strong>{data.personalClosuresMTD ?? 0}</strong>
+                {(data.personalClosuresMTD ?? 0) < 10
+                  ? ` — need ${10 - (data.personalClosuresMTD ?? 0)} more to unlock personal incentive`
+                  : " — personal gate cleared ✅"}
               </div>
             </div>
           </CalculationExplainer>
