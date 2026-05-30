@@ -3,13 +3,9 @@
  * Used to decouple modules and enable reactive updates across the app
  *
  * NOTE: This handles SYSTEM events only, not UI-only actions
- *
- * FIX: useEventListener now uses ctx?.subscribe pattern to prevent
- * esbuild dead-code elimination of the subscribe declaration.
- * ReferenceError "subscribe is not defined" is now impossible.
  */
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo} from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo, useRef } from "react";
 
 // System Event Types (NO UI-only actions)
 export type SystemEventType =
@@ -158,13 +154,16 @@ export function useEventListener<T = any>(
   listener: EventListener<T>,
   deps: React.DependencyList = []
 ) {
-  const ctx = useEvents();
-  const subscribe = ctx?.subscribe;
+  // Use a ref to hold the context — prevents esbuild from eliminating
+  // the subscribe reference as dead code
+  const ctxRef = useRef(useEvents());
+  ctxRef.current = useEvents();
 
   useEffect(() => {
-    // Guard: subscribe may be undefined if EventSystemProvider is not in the tree
-    if (typeof subscribe !== "function") return;
-    const unsubscribe = subscribe(type, listener);
-    return unsubscribe;
-  }, [type, subscribe, ...deps]);
+    const subscribeFn = ctxRef.current?.subscribe;
+    if (typeof subscribeFn !== "function") return;
+    const unsubscribe = subscribeFn(type, listener);
+    return () => { if (typeof unsubscribe === "function") unsubscribe(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, ...deps]);
 }
