@@ -7,7 +7,7 @@
  */
 
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback, useMemo, useRef } from "react";
-import { useEventListener } from "./EventSystem";
+import { useEventListener, useEvents } from "./EventSystem";
 import { DataService } from "../services/DataService";
 import { logger } from "../services/logger";
 import { useSync } from "../hooks/useSync";
@@ -246,6 +246,7 @@ const withCityFallback = <T extends { cityId?: string; city?: string }>(item: T)
 });
 
 export function FinanceProvider({ children }: { children: ReactNode }) {
+  const { subscribe } = useEvents();
   const [mrrData, setMRRData] = useState<MRRData[]>(() => {
     const stored = DataService.get<MRRData>("FINANCE_MRR");
     logger.debug("FinanceContext MRR loaded", { count: stored.length });
