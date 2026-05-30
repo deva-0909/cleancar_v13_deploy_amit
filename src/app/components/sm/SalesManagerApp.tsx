@@ -38,6 +38,7 @@ import {
   type SMLocation, type SMBlockDeal, type LocationStatus,
 } from "../../services/salesManagerService";
 import { incentiveVisibilityService } from "../../services/incentiveVisibilityService";
+import { IncentiveStatement } from "../shared/IncentiveStatement";
 import { useRole } from "../../contexts/RoleContext";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -839,7 +840,7 @@ export function SalesManagerApp() {
           </TabsContent>
           {showIncentiveTab && (
             <TabsContent value="incentive">
-              <IncentiveTracker />
+              <IncentiveStatement role="Sales Manager" />
             </TabsContent>
           )}
           <TabsContent value="expenses">

@@ -33,6 +33,7 @@ import {
   type SHIncentiveBreakdown,
 } from "../../services/salesHeadService";
 import { incentiveVisibilityService } from "../../services/incentiveVisibilityService";
+import { IncentiveStatement } from "../shared/IncentiveStatement";
 import { useRole } from "../../contexts/RoleContext";
 import { SalesHeadManagementView } from "./SalesHeadManagementView";
 import { FieldCheckIn } from "../field/FieldCheckIn";
@@ -630,7 +631,7 @@ export function SalesHeadApp() {
           </TabsContent>
           {showIncentiveTab && (
             <TabsContent value="incentive">
-              <IncentiveTracker />
+              <IncentiveStatement role="Sales Head" />
             </TabsContent>
           )}
           <TabsContent value="reports">
