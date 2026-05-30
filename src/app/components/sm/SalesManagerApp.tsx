@@ -43,15 +43,18 @@ import { useRole } from "../../contexts/RoleContext";
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function statusPin(status: LocationStatus) {
-  const map: Record<LocationStatus, { color: string; label: string }> = {
+  const map: Record<string, { color: string; label: string }> = {
     "Active":          { color: "bg-green-500",  label: "Active" },
     "Active Prospect": { color: "bg-gray-400",   label: "Active Prospect" },
     "At Risk":         { color: "bg-amber-500",  label: "At Risk" },
     "Inactive":        { color: "bg-red-600",    label: "Inactive" },
     "Pending Approval":{ color: "bg-blue-400",   label: "Pending Approval" },
+    "Approved":        { color: "bg-teal-500",   label: "Approved" },
+    "Submitted":       { color: "bg-indigo-400", label: "Submitted" },
     "Rejected":        { color: "bg-gray-600",   label: "Rejected" },
+    "Partially Churned":{ color: "bg-orange-400",label: "Partial Churn" },
   };
-  const c = map[status];
+  const c = map[status] ?? { color: "bg-gray-300", label: status ?? "Unknown" };
   return (
     <span className="inline-flex items-center gap-1.5">
       <span className={`w-2.5 h-2.5 rounded-full ${c.color} shrink-0`} />
