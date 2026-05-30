@@ -415,11 +415,25 @@ class PeriodicNotificationService {
     if (usage.tyre.cap > 0)
       lines.push(`   🛞 Tyre Dressing: ${usage.tyre.cap - usage.tyre.used} remaining (${usage.tyre.used}/${usage.tyre.cap} used)`);
 
+    // Show total remaining for the month
+    const totalCap  = Object.values(usage).reduce((s: number, u: any) => s + (u.cap  || 0), 0);
+    const totalUsed = Object.values(usage).reduce((s: number, u: any) => s + (u.used || 0), 0);
+    const totalRem  = totalCap - totalUsed;
+    if (totalRem > 0) {
+      lines.push(`   📌 Is mahine mein aapke paas ${totalRem} aur periodic service${totalRem > 1 ? "s" : ""} bachhi hain.`);
+    }
+
     lines.push(
+      ``,
+      `⚠️ *Zaroori Baat (Policy):*`,
+      `   • Aap is mahine mein apni saari periodic services le sakte hain.`,
+      `   • Lekin ek mahine mein apni plan ki limit se *zyada nahi* le sakte.`,
+      `   • Agar koi service is mahine mein nahi li — woh *agle mahine carry forward nahi hogi*.`,
+      `   • Contract khatam hone par bachi hui services ke liye *koi discount ya reimbursement nahi milega*.`,
       ``,
       `Reply karo (kal subah tak — service se 24 ghante pehle):`,
       `   ✅  CONFIRM — service schedule mujab karein`,
-      `   🔄  RESCHEDULE — date change karni hai`,
+      `   🔄  RESCHEDULE — date change karni hai (isi mahine mein)`,
       ``,
       `⏰ Agar kal subah tak koi reply nahi aayi, hum service confirm karenge aur ek confirmation message bhejenge.`,
       ``,

@@ -540,6 +540,62 @@ export function WasherJobChecklist({ job, onChecklistChange, isInProgress }: Was
         </div>
       )}
 
+      {/* ── Customer periodic balance panel ── always visible when job is active ── */}
+      {isInProgress && job.customerId && job.packageType && job.packageType !== "EXPRESS_WASH" && (() => {
+        const today      = new Date().toISOString().split("T")[0];
+        const month      = today.slice(0, 7); // YYYY-MM
+        const usage      = periodicScheduleService.getMonthlyUsage(job.customerId, month);
+        const services   = [
+          { key: "shampoo",   icon: "🧴", label: "Shampoo Wash",        u: usage.shampoo   },
+          { key: "interior",  icon: "🪣", label: "Interior Vacuum",     u: usage.interior  },
+          { key: "tyre",      icon: "🛞", label: "Tyre Dressing",       u: usage.tyre      },
+          { key: "dashboard", icon: "🧹", label: "Dashboard Clean",     u: usage.dashboard },
+          { key: "wax",       icon: "✨", label: "Hand Wax",            u: usage.wax       },
+          { key: "engine",    icon: "⚙️", label: "Engine Bay Blow",     u: usage.engine    },
+          { key: "fragrance", icon: "🌸", label: "Fragrance",           u: usage.fragrance },
+        ].filter(s => s.u.cap > 0);
+        if (services.length === 0) return null;
+        const totalUsed = services.reduce((s, x) => s + x.u.used, 0);
+        const totalCap  = services.reduce((s, x) => s + x.u.cap, 0);
+        const allDone   = totalUsed >= totalCap;
+        return (
+          <div className={`mx-4 mt-2 mb-2 rounded-xl border-2 p-3 ${allDone ? "border-gray-200 bg-gray-50" : "border-blue-200 bg-blue-50"}`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">📊</span>
+                <p className="text-xs font-bold text-blue-900">Customer Periodic Balance — {month}</p>
+              </div>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${allDone ? "bg-gray-200 text-gray-600" : "bg-blue-100 text-blue-700"}`}>
+                {totalUsed}/{totalCap} used
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {services.map(({ key, icon, label, u }) => {
+                const rem = u.cap - u.used;
+                const barPct = u.cap > 0 ? Math.round((u.used / u.cap) * 100) : 0;
+                const color  = rem === 0 ? "text-red-600 bg-red-50 border-red-200"
+                             : rem === 1 ? "text-amber-700 bg-amber-50 border-amber-200"
+                             : "text-green-700 bg-green-50 border-green-200";
+                return (
+                  <div key={key} className={`flex items-center justify-between px-2 py-1.5 rounded-lg border text-xs ${color}`}>
+                    <span>{icon} {label}</span>
+                    <div className="flex items-center gap-1.5 ml-1">
+                      <div className="w-10 h-1 bg-white/70 rounded-full overflow-hidden flex-shrink-0">
+                        <div className="h-full bg-current rounded-full" style={{ width: `${barPct}%` }} />
+                      </div>
+                      <span className="font-bold flex-shrink-0">{rem}/{u.cap}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-xs text-blue-600 mt-2 leading-snug">
+              ⚠️ <strong>Policy:</strong> Unused balance carry forward nahi hota. Month end par bachi hui services ke liye koi reimbursement nahi milega.
+            </p>
+          </div>
+        );
+      })()}
+
       {/* ── Regular wash only banner for SHINE / no periodic ── */}
       {isInProgress && !hasPeriodicToday && job.packageType !== "EXPRESS_WASH" && (
         <div className="mx-4 mt-3 mb-2 rounded-xl border border-gray-200 bg-gray-50 p-3">

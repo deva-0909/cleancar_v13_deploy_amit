@@ -235,10 +235,18 @@ export function CustomerPeriodicNotificationScreen({ customerId, notificationId,
         </CardContent>
       </Card>
 
-      {/* No carryforward notice */}
-      <div className="mx-4 mb-3 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-        <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-        <p>Unused monthly balance is not carried forward and not reimbursed at subscription end.</p>
+      {/* Policy notice — no carryforward, no reimbursement */}
+      <div className="mx-4 mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 space-y-1">
+        <div className="flex items-center gap-1.5">
+          <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+          <p className="text-xs font-semibold text-amber-800">Periodic Service Policy</p>
+        </div>
+        <ul className="text-xs text-amber-700 space-y-0.5 list-disc list-inside ml-1">
+          <li>You can use <strong>all</strong> your monthly services within the same month.</li>
+          <li>You <strong>cannot</strong> exceed your plan&apos;s monthly limit, even via rescheduling.</li>
+          <li>Unused services do <strong>not carry forward</strong> to the next month.</li>
+          <li>At the end of your subscription term, unused services are <strong>not reimbursed</strong> and no discount is applied.</li>
+        </ul>
       </div>
 
       {/* Error */}
@@ -259,9 +267,10 @@ export function CustomerPeriodicNotificationScreen({ customerId, notificationId,
           </CardHeader>
           <CardContent className="px-4 pb-4 space-y-3">
             <ul className="text-xs text-gray-500 space-y-0.5 list-disc list-inside">
-              <li>Must be within billing month: <strong>{active.billingMonth}</strong></li>
-              <li>Must be made at least 24 hours before scheduled service time</li>
-              <li>New slot must be at least 24 hours from now</li>
+              <li>New date must be within billing month: <strong>{active.billingMonth}</strong></li>
+              <li>Request must be made ≥24 hours before scheduled service time</li>
+              <li>Cannot exceed your monthly plan limit (cap enforced automatically)</li>
+              <li>Unused services after reschedule are not carried forward or reimbursed</li>
             </ul>
             <Input
               type="date"
