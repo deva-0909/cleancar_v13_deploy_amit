@@ -242,7 +242,7 @@ export const DEFAULT_CONFIG: PlanPageConfig = {
   // Issue 2 FIX: Section 4.3 combo bundles (Andar Se Sundar + Showroom Shine)
   comboBundles: [
     { id: "andar-se-sundar", name: "Andar Se Sundar",      addonIds: ["vacuum","dashboard"], prices: { hatchback: 299, suv: 399, luxury: 549 }, savings: { hatchback: 49, suv: 49, luxury: 49 }, whenToSell: "Push at month 1 for Express Wash subscribers." },
-    { id: "showroom-shine",  name: "Showroom Shine Pack",  addonIds: ["waxpolish","vacuum","dashboard"], prices: { hatchback: 499, suv: 647, luxury: 949 }, savings: { hatchback: 47, suv: 51, luxury: 47 }, whenToSell: "Diwali / festive / gifting." },
+    { id: "showroom-shine",  name: "Showroom Shine Pack",  addonIds: ["waxpolish","vacuum","dashboard"], prices: { hatchback: 849, suv: 1099, luxury: 1399 }, savings: { hatchback: 198, suv: 248, luxury: 348 }, whenToSell: "Diwali / festive / gifting. 'Gift your family a showroom car.'" },
   ],
   addons: [
     // Issue 1 FIX: prices object added for vehicle-aware pricing (H/SUV/Luxury)
@@ -324,6 +324,7 @@ export function CustomerPlanPage() {
   const [addons, setAddons] = useState<string[]>([]);
   // Addon repeat frequency: addonId → "1x" | "2x" | "3x" | "4x"
   const [addonFreq, setAddonFreq] = useState<Record<string, string>>({});
+  const [bundleFreq, setBundleFreq] = useState<Record<string, string>>({});
 
   // Step 5 state
   const [custName, setCustName] = useState("");
@@ -547,10 +548,28 @@ export function CustomerPlanPage() {
     return p ? (p[vehicleCat] ?? a.price) : a.price;
   };
   // S4 FIX: vehicleCat added to deps (it's derived from custVehicleType, not selectedPlan)
-  const addonTotal = useMemo(() =>
-    addons.reduce((s, id) => s + getAddonPrice(id), 0),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [addons, cfg.addons, selectedPlan, activeCat]);
+  const addonTotal = useMemo(() => {
+    // Individual add-ons × their frequency
+    const indiv = addons.reduce((s, id) => {
+      // Skip addon IDs that are covered by a bundle
+      const inBundle = (cfg as any).comboBundles?.some((b: any) =>
+        b.addonIds.includes(id) && b.addonIds.every((bid: string) => addons.includes(bid))
+      );
+      if (inBundle) return s;
+      const freq = addonFreq[id] ? parseInt(addonFreq[id]) : 1;
+      return s + getAddonPrice(id) * (isNaN(freq) ? 1 : freq);
+    }, 0);
+    // Bundle totals: bundle unit price × frequency
+    const bundleTotals = ((cfg as any).comboBundles || []).reduce((s: number, b: any) => {
+      const allSel = b.addonIds.every((id: string) => addons.includes(id));
+      if (!allSel) return s;
+      const bPrice = b.prices?.[vehicleCat] ?? b.prices?.hatchback ?? 0;
+      const freq = bundleFreq[b.id] ? parseInt(bundleFreq[b.id]) : 1;
+      return s + bPrice * (isNaN(freq) ? 1 : freq);
+    }, 0);
+    return indiv + bundleTotals;
+  }, // eslint-disable-next-line react-hooks/exhaustive-deps
+  [addons, addonFreq, bundleFreq, cfg.addons, selectedPlan, activeCat]);
 
   const basePrice = planMode === "monthly" ? planPrice : packPrice;
   const total = basePrice + addonTotal;
@@ -1195,43 +1214,86 @@ export function CustomerPlanPage() {
             <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#1D4ED8", marginBottom: 24 }}>
               ℹ️ Add-ons are <strong>per visit</strong> unless stated otherwise. You can add or remove them anytime from your account.
             </div>
-            {/* S3 FIX: Combo bundles — added to config but never rendered */}
+            {/* Bundle Deals — vehicle-aware price + frequency selector */}
             {(cfg as any).comboBundles && (cfg as any).comboBundles.length > 0 && (
               <div style={{ marginBottom: 24 }}>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: "#FF6D00", marginBottom: 12 }}>💰 Bundle Deals — Save More</h3>
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: "#FF6D00", marginBottom: 4 }}>💰 Bundle Deals — Save More</h3>
+                <p style={{ fontSize: 12, color: "#6B7280", marginBottom: 12 }}>
+                  ℹ️ Bundle add-ons are <strong>per visit</strong> — select how often per month you'd like them.
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
                   {((cfg as any).comboBundles as any[]).map((bundle: any) => {
                     const allSelected = bundle.addonIds.every((id: string) => addons.includes(id));
-                    const price  = bundle.prices?.[vehicleCat]  ?? bundle.prices?.hatchback;
-                    const saving = bundle.savings?.[vehicleCat] ?? bundle.savings?.hatchback;
+                    const unitPrice  = bundle.prices?.[vehicleCat]  ?? bundle.prices?.hatchback ?? 0;
+                    const saving     = bundle.savings?.[vehicleCat] ?? bundle.savings?.hatchback ?? 0;
+                    const freq       = bundleFreq[bundle.id];
+                    const freqNum    = freq ? parseInt(freq) : 0;
+                    const monthlyTotal = freqNum > 0 ? unitPrice * freqNum : unitPrice;
+                    // Human-readable addon names
+                    const addonNames = bundle.addonIds.map((id: string) => {
+                      const a = cfg.addons.find((x: any) => x.id === id);
+                      return a ? a.name.replace("Interior Deep ", "").replace(" (all 4 tyres)", "").replace("Full Hand ", "").replace(" Detail", "") : id;
+                    }).join(" + ");
                     return (
                       <div key={bundle.id}
-                        onClick={() => {
+                        style={{ border: `2px solid ${allSelected ? "#FF6D00" : "#E5E7EB"}`,
+                          borderRadius: 14, padding: 18, background: allSelected ? "#FFF3E0" : "#fff",
+                          transition: "all 0.15s" }}>
+                        {/* Header row — click toggles bundle */}
+                        <div style={{ cursor: "pointer" }} onClick={() => {
                           const next = allSelected
                             ? addons.filter((id: string) => !bundle.addonIds.includes(id))
                             : [...new Set([...addons, ...bundle.addonIds])];
                           setAddons(next as string[]);
-                        }}
-                        style={{ padding: "14px 20px", borderRadius: 14,
-                          border: `2px solid ${allSelected ? "#FF6D00" : "#E5E7EB"}`,
-                          background: allSelected ? "#FFF3E0" : "#fff", cursor: "pointer",
-                          minWidth: 200, transition: "all 0.15s" }}>
-                        <div style={{ fontWeight: 700, fontSize: 15 }}>{bundle.name}</div>
-                        <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
-                          {bundle.addonIds.join(" + ")}
+                          if (!allSelected && !bundleFreq[bundle.id]) {
+                            setBundleFreq(prev => ({ ...prev, [bundle.id]: "1x" }));
+                          }
+                        }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: 15 }}>
+                                {bundle.name} {allSelected && <span style={{ color: "#00C853" }}>✓</span>}
+                              </div>
+                              <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>{addonNames}</div>
+                            </div>
+                            <div style={{ textAlign: "right" }}>
+                              <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 18, fontWeight: 800, color: "#FF6D00" }}>
+                                {inr(allSelected && freqNum > 1 ? monthlyTotal : unitPrice)}
+                              </div>
+                              <div style={{ fontSize: 11, color: "#6B7280" }}>
+                                {allSelected && freqNum > 1 ? `${freqNum}×/month` : "per visit"}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ marginTop: 6, fontSize: 12, color: "#2E7D32", fontWeight: 600 }}>
+                            Save ₹{allSelected && freqNum > 1 ? saving * freqNum : saving} vs individual
+                          </div>
                         </div>
-                        {price && (
-                          <div style={{ marginTop: 8, fontWeight: 800, fontSize: 17, color: "#FF6D00" }}>
-                            ₹{price}
-                            {saving && (
-                              <span style={{ fontSize: 12, color: "#2E7D32", marginLeft: 8, fontWeight: 600 }}>
-                                Save ₹{saving}
-                              </span>
+                        {/* Frequency selector — shown when bundle is selected */}
+                        {allSelected && (
+                          <div style={{ marginTop: 12 }} onClick={e => e.stopPropagation()}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: "#FF6D00", marginBottom: 6 }}>
+                              How often? <span style={{ fontWeight: 400, color: "#6B7280" }}>(per month)</span>
+                            </div>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              {(["1x","2x","3x","4x"] as const).map(f => (
+                                <button key={f}
+                                  onClick={() => setBundleFreq(prev => ({ ...prev, [bundle.id]: f }))}
+                                  style={{ padding: "5px 14px", borderRadius: 20,
+                                    border: `2px solid ${bundleFreq[bundle.id] === f ? "#FF6D00" : "#E5E7EB"}`,
+                                    background: bundleFreq[bundle.id] === f ? "#FF6D00" : "#fff",
+                                    color: bundleFreq[bundle.id] === f ? "#fff" : "#6B7280",
+                                    fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+                                  {f}
+                                </button>
+                              ))}
+                            </div>
+                            {!bundleFreq[bundle.id] && (
+                              <p style={{ fontSize: 11, color: "#F59E0B", marginTop: 6 }}>
+                                Please select how often you'd like this bundle.
+                              </p>
                             )}
                           </div>
-                        )}
-                        {allSelected && (
-                          <div style={{ marginTop: 4, fontSize: 12, color: "#00C853", fontWeight: 600 }}>✓ Selected</div>
                         )}
                       </div>
                     );
@@ -1249,8 +1311,8 @@ export function CustomerPlanPage() {
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                       <div style={{ fontWeight: 600, fontSize: 14 }}>{addon.name} {selected && <span style={{ color: "#00C853" }}>✓</span>}</div>
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 18, fontWeight: 800, color: "#1D4ED8" }}>{inr(addon.price)}</div>
-                        <div style={{ fontSize: 11, color: "#6B7280" }}>{addon.unit}</div>
+                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 18, fontWeight: 800, color: "#1D4ED8" }}>{inr(getAddonPrice(addon.id))}</div>
+                        <div style={{ fontSize: 11, color: "#6B7280" }}>per visit</div>
                       </div>
                     </div>
                     <div style={{ fontSize: 12, color: "#6B7280", marginBottom: selected ? 12 : 0 }}>{addon.description}</div>
@@ -1271,20 +1333,7 @@ export function CustomerPlanPage() {
                               {freq}
                             </button>
                           ))}
-                          <button
-                            onClick={e => { e.stopPropagation(); setAddonFreq(prev => ({ ...prev, [addon.id]: "one-time" })); }}
-                            style={{ padding: "5px 14px", borderRadius: 20, border: `2px solid ${addonFreq[addon.id] === "one-time" ? "#FF6D00" : "#E5E7EB"}`,
-                              background: addonFreq[addon.id] === "one-time" ? "#FF6D00" : "#fff",
-                              color: addonFreq[addon.id] === "one-time" ? "#fff" : "#4A5568",
-                              fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
-                            One-time only
-                          </button>
                         </div>
-                        {addonFreq[addon.id] === "one-time" && (
-                          <p style={{ fontSize: 11, color: "#E65100", marginTop: 6 }}>
-                            ⚠️ This add-on will be applied once only and will not repeat.
-                          </p>
-                        )}
                         {!addonFreq[addon.id] && (
                           <p style={{ fontSize: 11, color: "#F59E0B", marginTop: 6 }}>
                             Please select how often you'd like this add-on.
