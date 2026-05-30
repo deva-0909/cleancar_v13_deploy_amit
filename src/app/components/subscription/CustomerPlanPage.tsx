@@ -517,20 +517,19 @@ export function CustomerPlanPage() {
   const packPrice = useMemo(() => {
     const p = cfg.packs.find(p => p.id === selectedPack);
     if (!p) return 0;
-    // Handle both flat price and nested prices (vehicle-aware) structures
-    if (typeof p.price === "number") return p.price;
     const nested = (p as any).prices;
     if (nested) {
-      const washType = nested.shampoo ?? nested.waterWash ?? Object.values(nested)[0];
-      if (washType && typeof washType === "object") {
+      const washObj = nested[selectedWashType] ?? nested.shampoo ?? nested.waterWash ?? Object.values(nested)[0];
+      if (washObj && typeof washObj === "object") {
         const _cat = (activeCat || "").toLowerCase().includes("suv") ? "suv" : (activeCat || "").toLowerCase().includes("lux") ? "luxury" : "hatchback";
-      const catPrice = (washType as any)[_cat] ?? (washType as any).hatchback ?? Object.values(washType as any)[0];
+        const catPrice = (washObj as any)[_cat] ?? (washObj as any).hatchback ?? 0;
         return typeof catPrice === "number" ? catPrice : 0;
       }
     }
+    if (typeof (p as any).price === "number") return (p as any).price;
     return 0;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPack, cfg.packs, activeCat]);
+  }, [selectedPack, selectedWashType, cfg.packs, activeCat]);
 
   // S1+S2 FIX: vehicleCat comes from activeCat (the detected vehicle category id)
   // activeCat is already set from the vehicle registration lookup in Step 1
@@ -1142,57 +1141,80 @@ export function CustomerPlanPage() {
             {/* Pack plans */}
             {planMode === "pack" && (
               <>
+                {/* ── WASH TYPE SELECTOR ── */}
+                <div style={{ marginBottom: 20 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 10 }}>Select wash type:</p>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    {([
+                      { id: "waterWash"   as const, label: "💧 Water Wash",    desc: "Exterior · spray, hand wash, dry, photo" },
+                      { id: "shampoo"     as const, label: "🧴 Shampoo Wash",  desc: "+ foam shampoo + glass clean" },
+                      { id: "shampooWax"  as const, label: "✨ Shampoo + Wax", desc: "+ hand wax + tyre dressing" },
+                    ]).map(wt => {
+                      const oneTimePrice = (cfg.packs[0] as any).prices?.[wt.id]?.[vehicleCat]
+                        ?? (cfg.packs[0] as any).prices?.[wt.id]?.hatchback ?? 0;
+                      return (
+                        <div key={wt.id} onClick={() => setSelectedWashType(wt.id)}
+                          style={{ flex: "1 1 140px", border: `2px solid ${selectedWashType === wt.id ? "#1D4ED8" : "#E5E7EB"}`,
+                            borderRadius: 12, padding: "12px 14px", cursor: "pointer",
+                            background: selectedWashType === wt.id ? "#EFF6FF" : "#fff", transition: "all 0.15s" }}>
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>
+                            {wt.label}{selectedWashType === wt.id && <span style={{ color: "#00C853", marginLeft: 4 }}>✓</span>}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>{wt.desc}</div>
+                          <div style={{ marginTop: 6, fontFamily: "'Poppins', sans-serif", fontSize: 15, fontWeight: 800, color: "#1D4ED8" }}>
+                            {inr(oneTimePrice)}
+                            <span style={{ fontSize: 11, color: "#6B7280", fontWeight: 400, marginLeft: 4 }}>one-time</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ── PACK CARDS ── */}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 20 }}>
                   {cfg.packs.map(pack => {
                     const isSelected = selectedPack === pack.id;
+                    const nested = (pack as any).prices;
+                    const washObj = nested?.[selectedWashType] ?? nested?.shampoo ?? nested?.waterWash;
+                    const displayPrice = washObj?.[vehicleCat] ?? washObj?.hatchback ?? 0;
+                    const visits = pack.id === "pack2" ? 2 : pack.id === "pack4" ? 4 : 1;
+                    const perVisit = visits > 1 ? Math.round(displayPrice / visits) : 0;
                     return (
                       <div key={pack.id} onClick={() => setSelectedPack(pack.id)}
                         style={{ border: `2px solid ${isSelected ? "#1D4ED8" : "#E5E7EB"}`, borderRadius: 14, padding: "20px 16px", textAlign: "center", cursor: "pointer", background: isSelected ? "#EFF6FF" : "#fff", transition: "all 0.2s" }}>
                         <div style={{ fontSize: 28, marginBottom: 10 }}>{pack.icon}</div>
                         <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{pack.name}</div>
-                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 24, fontWeight: 800, color: "#1D4ED8" }}>{(() => {
-                          if (typeof (pack as any).price === "number") return inr((pack as any).price);
-                          const nested = (pack as any).prices;
-                          if (nested) {
-                            const wt = nested.shampoo ?? nested.waterWash ?? Object.values(nested)[0];
-                            const p = wt?.[vehicleCat] ?? wt?.hatchback ?? (typeof wt === "number" ? wt : 0);
-                            return inr(typeof p === "number" ? p : 0);
-                          }
-                          return inr(0);
-                        })()}</div>
-                        <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 8 }}>{(pack as any).perLabel ?? (pack as any).discount ?? ""}</div>
-                        <span style={{ background: "#E8F5E9", color: "#2E7D32", fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 20 }}>{pack.discount}</span>
+                        <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: 24, fontWeight: 800, color: "#1D4ED8" }}>{inr(displayPrice)}</div>
+                        {perVisit > 0 && (
+                          <div style={{ fontSize: 12, color: "#2E7D32", fontWeight: 600, marginTop: 2 }}>{inr(perVisit)}/visit</div>
+                        )}
+                        <div style={{ fontSize: 11, color: "#6B7280", marginTop: 4, marginBottom: 8 }}>
+                          {pack.id === "onetime" ? "Single visit" : pack.id === "pack2" ? "Valid 20 days" : "Valid 30 days"}
+                        </div>
+                        <span style={{ background: isSelected ? "#DBEAFE" : "#E8F5E9", color: isSelected ? "#1D4ED8" : "#2E7D32", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>
+                          {pack.discount}
+                        </span>
                       </div>
                     );
                   })}
                 </div>
-                {/* Frequency / one-time notice */}
+
+                {/* ── SELECTED PACK CONTEXT ── */}
                 {selectedPack === "onetime" && (
-                  <div style={{ background: "#FFF3E0", border: "1px solid #FFCC80", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#E65100", marginBottom: 24, display: "flex", gap: 10, alignItems: "flex-start" }}>
-                    <span style={{ fontSize: 18 }}>⚠️</span>
-                    <div>
-                      <strong>One-Time Service Only</strong><br />
-                      This is a single wash. It will <strong>not repeat</strong>. For regular service, choose a monthly subscription or a repeat pack.
-                    </div>
+                  <div style={{ background: "#FFF8E1", border: "1px solid #FFD54F", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#E65100", marginBottom: 20 }}>
+                    <strong>Single Visit</strong> — One-time service only. It will not repeat. For regular cleaning choose Monthly Subscription or a Repeat Pack.
                   </div>
                 )}
                 {selectedPack && selectedPack !== "onetime" && (
-                  <div style={{ background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#2E7D32", marginBottom: 24, display: "flex", gap: 10, alignItems: "flex-start" }}>
-                    <span style={{ fontSize: 18 }}>🔁</span>
-                    <div>
-                      <strong>Repeat Service</strong> — {
-                        selectedPack === "pack2" ? "Your 2-visit pack is valid for 20 days from purchase." :
-            selectedPack === "pack4" ? "Your 4-visit pack is valid for 30 days from purchase." :
-                        selectedPack === "3x" ? "Your car will be washed 3 times per month." :
-                        selectedPack === "weekly" ? "Your car will be washed 4 times per month (every week)." : ""
-                      }<br />
-                      <span style={{ fontWeight: 400 }}>You can change or pause frequency anytime.</span>
-                    </div>
+                  <div style={{ background: "#E8F5E9", border: "1px solid #A5D6A7", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#2E7D32", marginBottom: 20 }}>
+                    🔁 <strong>Repeat Pack</strong> — {
+                      selectedPack === "pack2"
+                        ? "2 visits valid for 20 days. Mix service types across visits."
+                        : "4 visits valid for 30 days. Mix service types across visits."
+                    } No rollover. 1 visit/day.
                   </div>
                 )}
-                <div style={{ background: "#EFF6FF", borderRadius: 12, padding: "13px 18px", fontSize: 13, color: "#1D4ED8", marginBottom: 24 }}>
-                  💡 <strong>Same ₹200 base price</strong> for all vehicle categories. Volume discount applied automatically. No lock-in.
-                </div>
               </>
             )}
 
