@@ -420,6 +420,9 @@ function TripPanel({
   onTripUpdate: (changes: Partial<ActiveTrip>) => void;
   travelRefresh: number;
 }) {
+  // Scroll ref for visit log form — used to auto-scroll when prompted
+  const visitLogRef = useRef<HTMLDivElement>(null);
+
   // Start-trip form state
   const [vehicleType,  setVehicleType]  = useState<VehicleType>("4W");
   const [vehicleNum,   setVehicleNum]   = useState("");
@@ -540,7 +543,8 @@ function TripPanel({
     if (!activeTrip) return;
     if (!activeTrip.visitLogDone) {
       setShowVisitLog(true);
-      toast.error("Log this visit before ending the trip");
+      setTimeout(() => visitLogRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+      toast.error("Fill in the visit log above — then tap End Trip");
       return;
     }
     if (odoEnd === "")              { toast.error("Enter end odometer reading"); return; }
@@ -694,6 +698,18 @@ function TripPanel({
           </a>
         )}
 
+        {/* Quick "Log Visit" button visible in banner when not yet logged */}
+        {!activeTrip.visitLogDone && (
+          <button
+            onClick={() => {
+              setShowVisitLog(true);
+              setTimeout(() => visitLogRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
+            }}
+            className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-semibold transition-colors">
+            <Bell className="w-4 h-4"/> Log This Visit
+          </button>
+        )}
+
         {/* 30-min wait indicator */}
         {activeTrip.stoppedAt && !activeTrip.visitLogDone && (
           <div className={`mt-3 flex items-center gap-2 p-2 rounded-lg text-xs ${
@@ -717,6 +733,7 @@ function TripPanel({
 
       {/* ── 30-min visit log prompt ─────────────────────────────────────── */}
       {(showVisitLog || (activeTrip.waitPromptShown && !activeTrip.visitLogDone)) && (
+        <div ref={visitLogRef}>
         <Card className="p-4 border-2 border-orange-300 bg-orange-50/50 space-y-3">
           <div className="flex items-center gap-2">
             <Bell className="w-4 h-4 text-orange-600"/>
@@ -759,10 +776,11 @@ function TripPanel({
             <CheckCircle2 className="w-3.5 h-3.5"/> Save Visit Log
           </Button>
         </Card>
+        </div>
       )}
 
       {/* ── End trip section ─────────────────────────────────────────────── */}
-      {!showVisitLog && (
+      {(
         <Card className="p-4 border border-gray-200 space-y-3">
           <p className="text-sm font-semibold text-gray-700 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-green-600"/> End This Trip
@@ -815,10 +833,15 @@ function TripPanel({
           </div>
 
           {!activeTrip.visitLogDone && (
-            <div className="flex items-center gap-2 p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0"/>
-              Log this visit before ending trip
-            </div>
+            <button
+              onClick={() => {
+                setShowVisitLog(true);
+                setTimeout(() => visitLogRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+              }}
+              className="w-full flex items-center justify-center gap-2 p-3 bg-orange-100 border-2 border-orange-400 rounded-lg text-sm text-orange-800 font-semibold hover:bg-orange-200 transition-colors">
+              <Bell className="w-4 h-4 shrink-0"/>
+              📋 Log This Visit First — tap here
+            </button>
           )}
 
           <Button onClick={handleEndTrip}
